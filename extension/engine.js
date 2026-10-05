@@ -116,6 +116,7 @@ async function loadConfig() {
       DEF_ORDER.forEach(id => {
         if (!cfg.order.includes(id)) cfg.order.push(id);
         cfg.eng[id] = Object.assign({ on: true, key: '', model: ENG[id].model || '', base: ENG[id].base || '' }, cfg.eng[id]);
+        cfg.eng[id].base = providerBase(id, cfg.eng[id]);
       });
       return cfg;
     }
@@ -128,6 +129,27 @@ async function saveConfig(cfg) {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     await chrome.storage.local.set({ makan_cfg: cfg });
   }
+}
+
+// Error text from a provider is shown on screen and logged; it must never carry the key we sent.
+function redact(text, secrets) {
+  let s = String(text ?? '');
+  for (const k of secrets) if (k && String(k).length >= 8) s = s.split(String(k)).join('[key hidden]');
+  return s;
+}
+function secretsOf(opt) {
+  const out = [];
+  for (const [k, v] of Object.entries((opt && opt.headers) || {})) {
+    if (/^(x-goog-api-key|x-api-key)$/i.test(k)) out.push(v);
+    else if (/^authorization$/i.test(k)) out.push(String(v).replace(/^Bearer\s+/i, ''));
+  }
+  return out;
+}
+
+// A key may only go to its own provider. Fixed providers always use the address written in ENG;
+// only Ollama and Custom have an address the user can set.
+function providerBase(id, e) {
+  return (ENG[id] && ENG[id].base && id !== 'custom' && id !== 'ollama') ? ENG[id].base : ((e && e.base) || '');
 }
 
 // HTTP request helper with error parsing
@@ -147,7 +169,7 @@ async function fx(url, opt, tries = 2) {
     } catch {
       m = await r.text();
     }
-    const err = new Error(m || ('HTTP ' + r.status));
+    const err = new Error(redact(m || ('HTTP ' + r.status), secretsOf(opt)));
     err.status = r.status;
     throw err;
   }
@@ -318,7 +340,7 @@ async function callAi(id, items, o, cfg) {
     // OpenAI-compatible providers: Groq, OpenRouter, Mistral, Cerebras, OpenAI, Ollama, Custom
     const h = { 'Content-Type': 'application/json' };
     if (e.key) h.Authorization = 'Bearer ' + e.key;
-    const url = (e.base || '').replace(/\/+$/, '') + '/chat/completions';
+    const url = providerBase(id, e).replace(/\/+$/, '') + '/chat/completions';
     const j = await fx(url, {
       method: 'POST',
       signal,
@@ -462,7 +484,7 @@ Return ONLY a valid JSON object in this exact schema:
     } else {
       const h = { 'Content-Type': 'application/json' };
       if (e.key) h.Authorization = 'Bearer ' + e.key;
-      const url = (e.base || '').replace(/\/+$/, '') + '/chat/completions';
+      const url = providerBase(aiEngine, e).replace(/\/+$/, '') + '/chat/completions';
       const j = await fx(url, {
         method: 'POST',
         headers: h,
@@ -559,7 +581,7 @@ async function testEngineConnection(id, cfg) {
     } else {
       const h = { 'Content-Type': 'application/json' };
       if (e.key) h.Authorization = 'Bearer ' + e.key;
-      const url = (e.base || '').replace(/\/+$/, '') + '/chat/completions';
+      const url = providerBase(id, e).replace(/\/+$/, '') + '/chat/completions';
       await fx(url, {
         method: 'POST',
         headers: h,
@@ -1011,7 +1033,7 @@ async function streamGeminiTts(text, key, options = {}) {
 
       if (!resp.ok) {
         const errText = await resp.text().catch(() => '');
-        throw new Error(`HTTP ${resp.status}: ${errText.slice(0, 140)}`);
+        throw new Error(`HTTP ${resp.status}: ${redact(errText, [key]).slice(0, 140)}`);
       }
 
       const reader = resp.body.getReader();

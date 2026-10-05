@@ -36,7 +36,11 @@ function watchConsole(page, sink) {
 
 /** Settings a test can pre-load into the web app's storage before the page starts. */
 function seedScript(seed) {
+  // Applied once per tab (sessionStorage survives reloads), so a test can change
+  // a setting and reload without the starting values being put back.
   return `(() => { try {
+    if (sessionStorage.getItem('__makan_seeded')) return;
+    sessionStorage.setItem('__makan_seeded', '1');
     const seed = ${JSON.stringify(seed || {})};
     for (const [k, v] of Object.entries(seed)) localStorage.setItem('mkt_' + k, JSON.stringify(v));
   } catch (e) {} })();`;
