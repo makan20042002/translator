@@ -544,7 +544,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         return { ok: false, error: 'Gemini API key is not configured in MAKAN Options.' };
       }
 
+      const previousToken = activeAudioToken;
       const token = ++activeAudioToken;
+      // A new speech replaces any earlier one (here or in another tab); tell the earlier one's button.
+      broadcastTtsState({ state: 'stopped', token: previousToken });
       const voice = req.voice || cfg.tts?.geminiVoice || 'Kore';
       const rate = req.rate || cfg.tts?.rate || 1.0;
       const model = req.model || cfg.tts?.model || 'gemini-3.8-flash-lite-tts';
@@ -667,6 +670,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     // TTS: Stop playing speech audio immediately
     if (req.action === 'stop-tts') {
+      const stoppedToken = activeAudioToken;
       activeAudioToken++;
       if (currentPlaybackQueue) {
         try { currentPlaybackQueue.abortController.abort(); } catch {}
@@ -695,7 +699,8 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
           action: 'stop-audio'
         }).catch(() => {});
       }
-      broadcastTtsState({ state: 'stopped', token: activeAudioToken });
+      // Say which speech was stopped, so a button that already moved on to a newer speech ignores this.
+      broadcastTtsState({ state: 'stopped', token: stoppedToken });
       return { ok: true };
     }
 

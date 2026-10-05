@@ -1031,6 +1031,17 @@ async function streamGeminiTts(text, key, options = {}) {
   const cacheKey = getTtsCacheKey(text, voice, rate, model);
   if (options.cache !== false && ttsSessionCache.has(cacheKey)) {
     const cached = ttsSessionCache.get(cacheKey);
+    // Speaking text we already have audio for: play the saved audio through the player, instead of
+    // returning without a sound (which left the Speak button waiting for an "ended" that never came).
+    if (options.player && cached.dataUrl) {
+      const bin = atob(cached.dataUrl.split(',')[1] || '');
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      const pcm = bytes.subarray(44); // skip the 44-byte WAV header written by pcmToWav
+      options.player.feedChunk(pcm);
+      options.player.endStream();
+      return { ok: true, chunks: 1, cached: true, model };
+    }
     return { ...cached, cached: true };
   }
 

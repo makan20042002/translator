@@ -65,10 +65,18 @@
   let currentSpeakToken = 0;
   let isAudioPlaying = false;
   let activePlayingBtn = null;
+  // Gemini voice plays in the background, and each speech there has a number. Updates about other
+  // speeches (an older one stopping, one in another tab) must not change this card's Speak button.
+  let speakBackendToken = null;      // our speech's number, once the background has told us
+  let speakWaitingForStart = false;  // true between asking the background to speak and its answer
+  let heldStates = [];               // updates that arrive before we know our number
 
-  function stopCurrentSpeech() {
+  function stopCurrentSpeech(tellBackground = true) {
     currentSpeakToken++;
     isAudioPlaying = false;
+    speakBackendToken = null;
+    speakWaitingForStart = false;
+    heldStates = [];
     if (activePlayingBtn) {
       activePlayingBtn.classList.remove('playing');
       activePlayingBtn.setAttribute('title', 'Read aloud');
@@ -79,11 +87,13 @@
     try {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch {}
-    try {
-      if (window.chrome?.runtime?.sendMessage) {
-        chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {});
-      }
-    } catch {}
+    if (tellBackground) {
+      try {
+        if (window.chrome?.runtime?.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {});
+        }
+      } catch {}
+    }
   }
 
   async function handleSpeakClick(text, lang, btn, noticeContainer) {
@@ -95,7 +105,9 @@
       return;
     }
 
-    stopCurrentSpeech();
+    // Starting a new speech: the background replaces any earlier one by itself, so do not send a stop
+    // that could arrive after the new speech has begun and cancel it.
+    stopCurrentSpeech(false);
     const token = ++currentSpeakToken;
     isAudioPlaying = true;
     activePlayingBtn = btn;
@@ -123,6 +135,8 @@
     // Use Gemini TTS if preferGemini is true OR no matching browser voice exists for this language
     if (preferGemini || !voice) {
       let ttsRes = null;
+      speakWaitingForStart = true;
+      heldStates = [];
       try {
         if (window.chrome?.runtime?.sendMessage) {
           ttsRes = await chrome.runtime.sendMessage({
@@ -133,10 +147,15 @@
           });
         }
       } catch {}
+      speakWaitingForStart = false;
 
       if (token !== currentSpeakToken) return;
 
       if (ttsRes && ttsRes.ok) {
+        speakBackendToken = typeof ttsRes.token === 'number' ? ttsRes.token : null;
+        const held = heldStates;
+        heldStates = [];
+        for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
         // Fallback for audio element if returned directly
         if (ttsRes.audioDataUrl) {
           try {
@@ -950,6 +969,29 @@
     });
   }
 
+  // What the background tells us about the speech it is playing for this card.
+  function applyTtsState(req) {
+    if (req.state === 'playing') {
+      if (activePlayingBtn) {
+        activePlayingBtn.classList.remove('preparing');
+        activePlayingBtn.classList.add('playing');
+        activePlayingBtn.setAttribute('title', 'Stop read-aloud');
+        const span = activePlayingBtn.querySelector('span');
+        if (span) span.textContent = 'Stop';
+      }
+    } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
+      if (activePlayingBtn) {
+        activePlayingBtn.classList.remove('preparing', 'playing');
+        activePlayingBtn.setAttribute('title', 'Read aloud');
+        const span = activePlayingBtn.querySelector('span');
+        if (span) span.textContent = 'Speak';
+      }
+      isAudioPlaying = false;
+      activePlayingBtn = null;
+      speakBackendToken = null;
+    }
+  }
+
   // Listen to messages from background / popup
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
@@ -957,24 +999,10 @@
         // Only the extension itself can reach this listener; refuse anything else (and anything from another content script).
         if (!sender || sender.id !== chrome.runtime.id || !req || typeof req !== 'object') return false;
         if (req.target === 'makan-ui' && req.action === 'tts-state-update') {
-          if (req.state === 'playing') {
-            if (activePlayingBtn) {
-              activePlayingBtn.classList.remove('preparing');
-              activePlayingBtn.classList.add('playing');
-              activePlayingBtn.setAttribute('title', 'Stop read-aloud');
-              const span = activePlayingBtn.querySelector('span');
-              if (span) span.textContent = 'Stop';
-            }
-          } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
-            if (activePlayingBtn) {
-              activePlayingBtn.classList.remove('preparing', 'playing');
-              activePlayingBtn.setAttribute('title', 'Read aloud');
-              const span = activePlayingBtn.querySelector('span');
-              if (span) span.textContent = 'Speak';
-            }
-            isAudioPlaying = false;
-            activePlayingBtn = null;
-          }
+          if (speakWaitingForStart) { heldStates.push(req); return false; }
+          // Only follow the background's speech if it is ours (a device voice speaks without the background).
+          if (speakBackendToken === null || req.token !== speakBackendToken) return false;
+          applyTtsState(req);
           return false;
         }
 

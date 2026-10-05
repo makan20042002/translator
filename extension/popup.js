@@ -327,30 +327,48 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Speak Output (TTS) with language-matching voice, Gemini fallback, visible playing state and second-click stop
   let pSpeakToken = 0;
   let isPopupSpeaking = false;
+  // Gemini voice plays in the background and each speech there has a number. Updates about other
+  // speeches (an older one stopping, one in a web page) must not change this button.
+  let popupBackendToken = null;
+  let popupWaitingForStart = false;
+  let popupHeldStates = [];
 
-  function stopPopupSpeech() {
+  function stopPopupSpeech(tellBackground = true) {
     pSpeakToken++;
     isPopupSpeaking = false;
+    popupBackendToken = null;
+    popupWaitingForStart = false;
+    popupHeldStates = [];
     pSpeakBtn.classList.remove('preparing', 'playing');
     pSpeakBtn.setAttribute('title', 'Read aloud');
     try { if (window.speechSynthesis) window.speechSynthesis.cancel(); } catch {}
-    try { chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {}); } catch {}
+    if (tellBackground) {
+      try { chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {}); } catch {}
+    }
+  }
+
+  function applyPopupTtsState(req) {
+    if (req.state === 'playing') {
+      pSpeakBtn.classList.remove('preparing');
+      pSpeakBtn.classList.add('playing');
+      pSpeakBtn.setAttribute('title', 'Stop read-aloud');
+    } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
+      isPopupSpeaking = false;
+      popupBackendToken = null;
+      pSpeakBtn.classList.remove('preparing', 'playing');
+      pSpeakBtn.setAttribute('title', 'Read aloud');
+    }
   }
 
   // Listen for background TTS state transitions
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((req) => {
-        if (req.target === 'makan-ui' && req.action === 'tts-state-update') {
-          if (req.state === 'playing') {
-            pSpeakBtn.classList.remove('preparing');
-            pSpeakBtn.classList.add('playing');
-            pSpeakBtn.setAttribute('title', 'Stop read-aloud');
-          } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
-            isPopupSpeaking = false;
-            pSpeakBtn.classList.remove('preparing', 'playing');
-            pSpeakBtn.setAttribute('title', 'Read aloud');
-          }
+        if (req && req.target === 'makan-ui' && req.action === 'tts-state-update') {
+          if (popupWaitingForStart) { popupHeldStates.push(req); return; }
+          // Only follow the background's speech if it is ours (a device voice speaks without the background).
+          if (popupBackendToken === null || req.token !== popupBackendToken) return;
+          applyPopupTtsState(req);
         }
       });
     }
@@ -365,7 +383,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    stopPopupSpeech();
+    // Starting a new speech: the background replaces any earlier one itself, so do not send a stop
+    // that could arrive after the new speech began.
+    stopPopupSpeech(false);
     const token = ++pSpeakToken;
     isPopupSpeaking = true;
     pSpeakBtn.classList.add('preparing');
@@ -391,6 +411,8 @@ document.addEventListener('DOMContentLoaded', async () => {
 
     if (preferGemini || !voice) {
       let ttsRes = null;
+      popupWaitingForStart = true;
+      popupHeldStates = [];
       try {
         ttsRes = await chrome.runtime.sendMessage({
           action: 'play-gemini-tts',
@@ -399,10 +421,15 @@ document.addEventListener('DOMContentLoaded', async () => {
           rate: cfg.tts?.rate
         });
       } catch {}
+      popupWaitingForStart = false;
 
       if (token !== pSpeakToken) return;
 
       if (ttsRes && ttsRes.ok) {
+        popupBackendToken = typeof ttsRes.token === 'number' ? ttsRes.token : null;
+        const held = popupHeldStates;
+        popupHeldStates = [];
+        for (const st of held) if (popupBackendToken !== null && st.token === popupBackendToken) applyPopupTtsState(st);
         if (ttsRes.audioDataUrl) {
           try {
             const a = new Audio(ttsRes.audioDataUrl);
