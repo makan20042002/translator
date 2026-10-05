@@ -12,6 +12,12 @@ if (typeof importScripts === 'function') {
   }
 }
 
+// Stored settings hold the API keys. Keep them out of reach of content scripts (the code that runs
+// inside web pages); only the extension's own pages and this background worker may read storage.
+try {
+  Promise.resolve(chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })).catch(() => {});
+} catch {}
+
 // Global active audio token for TTS cancellation & pipelining
 let activeAudioToken = 0;
 let offscreenCreating = null;
@@ -371,8 +377,61 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
   }
 });
 
+// ---- Who is asking? ----
+// The extension's own pages (popup, options, offscreen player) have an address inside the extension.
+// A content script reports the address of the web page it runs in.
+const EXT_URL = chrome.runtime.getURL('');
+const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_URL);
+const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
+// The only things the part of the extension that runs inside web pages may ask for.
+// Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts']);
+
+// What a web page's content script may know about the settings: never keys, models or addresses.
+function safeWebAppUrl(u) {
+  try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return x.href.replace(/\/+$/, ''); } catch {}
+  return 'http://localhost:8080';
+}
+function publicConfig(cfg) {
+  const tts = cfg.tts || {};
+  return {
+    src: cfg.src, tgt: cfg.tgt, tone: cfg.tone, subject: cfg.subject,
+    trigger: cfg.trigger, dictLookup: cfg.dictLookup, disabledSites: cfg.disabledSites || [], ui: cfg.ui,
+    webAppUrl: safeWebAppUrl(cfg.webAppUrl),
+    tts: { rate: tts.rate, preferGemini: !!tts.preferGemini, geminiVoice: tts.geminiVoice, voices: tts.voices || {} }
+  };
+}
+
+// Check the shape of requests before using them.
+const LANG_RE = /^(auto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
+function requestProblem(req) {
+  if (req.action === 'translate-text') {
+    if (req.items !== undefined && (!Array.isArray(req.items) || req.items.length > 200 || req.items.some(x => typeof x !== 'string' || x.length > 20000))) return 'Bad items';
+    if (req.text !== undefined && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
+  }
+  if (req.action === 'translate-dict' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
+  if (req.action === 'play-gemini-tts' && (typeof req.text !== 'string' || req.text.length > 5000)) return 'Bad text';
+  for (const k of ['src', 'tgt']) if (req[k] !== undefined && !LANG_RE.test(String(req[k]))) return 'Bad language';
+  if (req.engine !== undefined && req.engine !== 'auto' && !(typeof ENG !== 'undefined' && ENG[req.engine])) return 'Bad engine';
+  return null;
+}
+
 // Handle runtime messages from content scripts, options, and popups
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
+  if (!req || typeof req !== 'object') return false;
+
+  const fromExtensionPage = isExtensionPage(sender);
+  if (req.target === 'makan-background') {
+    // Only the extension's own hidden audio player reports playback state.
+    if (!fromExtensionPage || req.action !== 'tts-state') return false;
+  } else if (!fromExtensionPage && !(isContentScript(sender) && CONTENT_SCRIPT_ACTIONS.has(req.action))) {
+    // Extension pages may do anything; content scripts (inside web pages) only the short list above.
+    sendResponse({ ok: false, error: 'Not allowed from this context' });
+    return false;
+  }
+  const problem = requestProblem(req);
+  if (problem) { sendResponse({ ok: false, error: problem }); return false; }
+
   if (req.target === 'makan-background' && req.action === 'tts-state') {
     if (req.state === 'playing') {
       broadcastTtsState({ state: 'playing', token: req.token });
@@ -400,6 +459,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-config') {
       return { ok: true, cfg };
+    }
+
+    if (req.action === 'get-public-config') {
+      return { ok: true, cfg: publicConfig(cfg) };
     }
 
     if (req.action === 'save-config') {

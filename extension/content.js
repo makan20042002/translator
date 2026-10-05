@@ -240,7 +240,7 @@
   async function refreshConfig() {
     try {
       if (window.chrome?.runtime?.sendMessage) {
-        const res = await chrome.runtime.sendMessage({ action: 'get-config' });
+        const res = await chrome.runtime.sendMessage({ action: 'get-public-config' });
         if (res && res.ok) cfg = res.cfg;
       }
     } catch {}

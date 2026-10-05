@@ -86,3 +86,45 @@ test.describe('Extension: API key safety', () => {
     expect(stub.calls('api.openai.com').length).toBeGreaterThan(0);
   });
 });
+
+test.describe('Extension: the part that runs inside web pages gets no keys and no powers', () => {
+  test.use({ extOptions: { config: ALL_KEYS_CONFIG } });
+
+  /** Everything the content script (the code running inside each web page) can ask the extension, tried one by one. */
+  const PROBE = `(async () => {
+    const out = {};
+    const ask = async msg => { try { return JSON.stringify(await chrome.runtime.sendMessage(msg)); } catch (e) { return 'ERR ' + e.message; } };
+    out.getConfig = await ask({ action: 'get-config' });
+    out.getPublicConfig = await ask({ action: 'get-public-config' });
+    out.saveConfig = await ask({ action: 'save-config', cfg: { eng: { gemini: { key: 'attacker-key' } }, order: ['gemini'] } });
+    out.toggleSite = await ask({ action: 'toggle-site-disabled', host: 'example.com' });
+    out.testEngine = await ask({ action: 'test-engine', id: 'gemini' });
+    out.testAll = await ask({ action: 'test-all-engines' });
+    out.tabStatus = await ask({ action: 'check-tab-status' });
+    out.inject = await ask({ action: 'inject-into-tab', tabId: 1 });
+    out.fakeTtsState = await ask({ target: 'makan-background', action: 'tts-state', state: 'ended', token: 1 });
+    try { out.storage = JSON.stringify(await chrome.storage.local.get('makan_cfg')); } catch (e) { out.storage = 'ERR ' + e.message; }
+    return out;
+  })()`;
+
+  test('no answer the content script can get contains an API key, and it cannot read the extension\'s storage', async ({ ext }) => {
+    const out = await inContentScriptWorld(ext, ext.article, PROBE);
+    const everything = JSON.stringify(out);
+    expect(findKeysInText('an answer given to the web page side', everything)).toEqual([]);
+    expect(out.storage, 'the content script must not be able to read stored settings').not.toContain('makan_cfg');
+    expect(JSON.parse(out.getPublicConfig)).toMatchObject({ ok: true });
+    expect(JSON.parse(out.getPublicConfig).cfg.tgt).toBe('fa');
+  });
+
+  test('the content script cannot change settings, switch sites off, or use the extension\'s other tools', async ({ ext }) => {
+    const before = await ext.getConfig();
+    const out = await inContentScriptWorld(ext, ext.article, PROBE);
+    for (const action of ['saveConfig', 'toggleSite', 'testEngine', 'testAll', 'tabStatus', 'inject']) {
+      expect(JSON.parse(out[action]), `${action} from a web page's content script`).toMatchObject({ ok: false });
+    }
+    const after = await ext.getConfig();
+    expect(after.eng.gemini.key, 'stored Gemini key after the attempt').toBe(KEYS.gemini);
+    expect(after.disabledSites || []).toEqual(before.disabledSites || []);
+    expect(after.order).toEqual(before.order);
+  });
+});
