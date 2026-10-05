@@ -921,6 +921,13 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 const $=id=>document.getElementById(id);
 const esc=s=>String(s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const sleep=ms=>new Promise(r=>setTimeout(r,ms));
+// A wait that the Stop button can cut short.
+const sleepAbortable=(ms,signal)=>new Promise((res,rej)=>{
+  if(signal?.aborted)return rej(new DOMException('Aborted','AbortError'));
+  const ab=()=>{clearTimeout(t);rej(new DOMException('Aborted','AbortError'))};
+  const t=setTimeout(()=>{signal?.removeEventListener('abort',ab);res()},ms);
+  signal?.addEventListener('abort',ab,{once:true});
+});
 const mem={};
 const store={
   get(k,d){try{const v=localStorage.getItem('mkt_'+k);return v==null?(k in mem?mem[k]:d):JSON.parse(v)}catch{return k in mem?mem[k]:d}},
@@ -942,7 +949,7 @@ const I18N={en:{
  setNote:'Free engines work with no setup. For better quality add a free key (Gemini, Groq or OpenRouter). In Auto mode engines are tried from top to bottom, and the next one takes over if one fails.',
  mmEmail:'MyMemory e-mail (optional, raises the daily limit)',
  auto:'Auto (best available)',detect:'Detect language',copied:'Copied',noEngine:'No engine is available. Open “Engines & keys”.',
- failed:'failed',switching:'switching to',done:'Done',stopped:'Stopped. Finished lines are kept.',lines:'lines',segments:'segments',via:'via',chars:'characters',
+ failed:'failed',switching:'switching to',done:'Done',stopped:'Stopped. Finished lines are kept.',rateLimited:'rate limit reached. Wait a minute and try again.',lines:'lines',segments:'segments',via:'via',chars:'characters',
  speakIn:'Speak',empty:'Nothing here yet.',test:'Test',works:'works',getKey:'Get key',free:'free',freekey:'free key',paid:'paid',custom:'custom',
  key:'API key',model:'Model',baseUrl:'Base URL (OpenAI-compatible)',needKey:'needs a key',notHere:'not supported in this browser',term:'Term',termTo:'Always translate as',
  tipKey:'Large job on a free engine. A free Gemini or Groq key will be faster and more accurate.',pick2:'Pick at least one engine.',sameLang:'Choose a source language for this.',offMode:'Offline mode',voiceH:'Voice',sttL:'Speech to text (microphone)',sttAuto:'Auto (best available)',sttBrowser:'Browser (online)',sttGroq:'Groq Whisper (online, uses Groq key)',sttWh:'Whisper in browser (offline)',
@@ -1009,7 +1016,7 @@ const I18N={en:{
  setNote:'موتورهای رایگان بدون تنظیم کار می‌کنند. برای کیفیت بهتر یک کلید رایگان (Gemini، Groq یا OpenRouter) اضافه کنید. در حالت خودکار موتورها از بالا به پایین امتحان می‌شوند و اگر یکی خطا بدهد بعدی جایگزین می‌شود.',
  mmEmail:'ایمیل MyMemory (اختیاری، سقف روزانه را بالا می‌برد)',
  auto:'خودکار (بهترین موجود)',detect:'تشخیص زبان',copied:'کپی شد',noEngine:'هیچ موتوری در دسترس نیست. «موتورها و کلیدها» را باز کنید.',
- failed:'خطا داد',switching:'جایگزین:',done:'انجام شد',stopped:'متوقف شد. خط‌های ترجمه‌شده حفظ شدند.',lines:'خط',segments:'بخش',via:'با',chars:'نویسه',
+ failed:'خطا داد',switching:'جایگزین:',done:'انجام شد',stopped:'متوقف شد. خط‌های ترجمه‌شده حفظ شدند.',rateLimited:'به سقف مجاز درخواست رسیده‌اید. یک دقیقه صبر کنید و دوباره تلاش کنید.',lines:'خط',segments:'بخش',via:'با',chars:'نویسه',
  speakIn:'صحبت به',empty:'هنوز چیزی اینجا نیست.',test:'آزمایش',works:'کار می‌کند',getKey:'دریافت کلید',free:'رایگان',freekey:'کلید رایگان',paid:'پولی',custom:'سفارشی',
  key:'کلید API',model:'مدل',baseUrl:'نشانی پایه (سازگار با OpenAI)',needKey:'کلید لازم دارد',notHere:'در این مرورگر پشتیبانی نمی‌شود',term:'واژه',termTo:'همیشه ترجمه شود به',
  tipKey:'کار بزرگ روی موتور رایگان. با کلید رایگان Gemini یا Groq سریع‌تر و دقیق‌تر می‌شود.',pick2:'دست‌کم یک موتور انتخاب کنید.',sameLang:'برای این کار زبان مبدأ را انتخاب کنید.',offMode:'حالت آفلاین',voiceH:'صدا',sttL:'گفتار به متن (میکروفون)',sttAuto:'خودکار (بهترین موجود)',sttBrowser:'مرورگر (آنلاین)',sttGroq:'Groq Whisper (آنلاین، با کلید Groq)',sttWh:'Whisper در مرورگر (آفلاین)',
@@ -1303,7 +1310,7 @@ async function fx(url,opt,tries=2){
   try{r=await fetch(url,opt)}catch(e){if(e.name==='AbortError')throw e;throw new Error('network / blocked')}
   if((r.status===429||r.status===503)&&tries>1){const w=Math.min(+r.headers.get('retry-after')||2,10);await sleep(w*1000);return fx(url,opt,tries-1)}
   let j=null;const txt=await r.text();try{j=JSON.parse(txt)}catch{}
-  if(!r.ok){const m=j&&(j.error?.message||j.error||j.message);throw new Error(scrubKeys(typeof m==='string'?m:'HTTP '+r.status).slice(0,160))}
+  if(!r.ok){const m=j&&(j.error?.message||j.error||j.message);{const er=new Error(scrubKeys(typeof m==='string'?m:'HTTP '+r.status).slice(0,160));er.status=r.status;throw er}}
   if(j==null)throw new Error('bad response');
   return j;
 }
@@ -1594,7 +1601,7 @@ async function translateItems(items,o){
   const out=new Array(items.length),notes=new Array(items.length),todo=[],used=new Set();
   items.forEach((s,i)=>{if(s&&s.trim())todo.push(i);else{out[i]=s||'';notes[i]=null}});
   if(todo.length>80&&!ENG[chain[0]].ai&&!tipShown){tipShown=true;toast(L('tipKey'),'warn',7000)}
-  let pos=0,ci=0;
+  let pos=0,ci=0,rateWaits=0;
   while(pos<todo.length){
     if(o.signal?.aborted)throw new DOMException('Aborted','AbortError');
     const id=chain[ci],lm=lim(id),b=[];let chars=0;
@@ -1611,7 +1618,7 @@ async function translateItems(items,o){
           notes[i]=null;
         }
       });
-      pos+=b.length;used.add(id);
+      pos+=b.length;used.add(id);rateWaits=0;
       o.onBatch?.(b,res,out,notes);o.onProgress?.(pos,todo.length,id);
     }catch(e){
       if(e.name==='AbortError'||o.signal?.aborted)throw new DOMException('Aborted','AbortError');
@@ -1625,8 +1632,11 @@ async function translateItems(items,o){
           ci++;
           continue;
         }else{
+          // Last engine left: wait and try again, but only a few times; then say so instead of waiting forever.
+          if(++rateWaits>3)throw new Error(`${ENG[id].name}: ${L('rateLimited')}`);
+          waitSec=Math.min(waitSec,20);
           toast(`${ENG[id].name} (429 Rate Limit) — waiting ${waitSec}s as requested by provider…`,'warn',4000);
-          await new Promise(r=>setTimeout(r,waitSec*1000));
+          await sleepAbortable(waitSec*1000,o.signal);
           continue;
         }
       }
