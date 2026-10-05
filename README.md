@@ -65,10 +65,10 @@ extension/engine.js      ← must stay in a folder called "extension"; index.htm
 Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test-assets/`,
 `test_docs/`, `package.json`, `package-lock.json` or `test-server.py`.
 
-> **Warning before you publish:** the web app currently sends the Gemini and
-> Groq keys that a visitor types in to your website's own address
-> `/api/sync_keys`. See `docs/OVERVIEW.md`, section 6, item 1. This should
-> be removed before the site is used by anyone else.
+> **Before you publish:** the web app no longer sends API keys to your
+> website's server (this was fixed; see `docs/OVERVIEW.md`, section 6).
+> One open point remains: `index.html` loads JSZip from a public CDN without
+> an integrity check, see the same section.
 
 ---
 
