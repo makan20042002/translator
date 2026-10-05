@@ -293,7 +293,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         throw new Error(resp?.error || 'Translation failed');
       }
     } catch (err) {
-      pOutputText.innerHTML = `<span style="color:var(--err)">⚠️ ${err.message}</span>`;
+      // Provider messages are plain text, never page markup.
+      const msg = document.createElement('span');
+      msg.style.color = 'var(--err)';
+      msg.textContent = '⚠️ ' + err.message;
+      pOutputText.replaceChildren(msg);
     } finally {
       pTransBtn.disabled = false;
       pTransBtn.textContent = I18N[currentUi].translate;

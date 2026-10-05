@@ -128,3 +128,60 @@ test.describe('Extension: the part that runs inside web pages gets no keys and n
     expect(after.order).toEqual(before.order);
   });
 });
+
+test.describe('Extension: outside text is shown as text, never as page markup', () => {
+  const MARKUP = '<img id="injected" src="x" onerror="document.title=\'owned\'">';
+
+  test('an error message from a provider is shown as text in the popup', async ({ ext, stub }) => {
+    for (const h of ['clients5.google.com', 'translate.googleapis.com', 'api.mymemory.translated.net']) stub.failHost(h, 400, Infinity, { error: { message: MARKUP } });
+    await ext.patchConfig({ order: ['google'], eng: { gemini: { on: false }, mymemory: { on: false }, openrouter: { on: false }, mistral: { on: false }, cerebras: { on: false }, openai: { on: false }, claude: { on: false }, ollama: { on: false }, groq: { on: false } } });
+    const popup = await openRealPopup(ext);
+    await popup.click('#pInputText');
+    await popup.type('Hello');
+    await popup.click('#pTransBtn');
+    await popup.waitFor(`document.getElementById('pOutputText').textContent.includes('Translation failed')`);
+    expect(await popup.eval(`document.querySelectorAll('#pOutputText img').length`), 'an <img> created from the provider\'s message').toBe(0);
+    expect(await popup.eval(`document.getElementById('pOutputText').textContent`)).toContain('<img');
+    await popup.close();
+  });
+
+  test('settings values with markup in them are shown as text on the options page', async ({ ext }) => {
+    await ext.patchConfig({ eng: { openai: { on: true, key: 'k"><b id="injected">', model: 'm"><i id="injected2">x</i>' }, custom: { on: true, base: 'http://x"><u id="injected3">' } } });
+    const page = await ext.context.newPage();
+    await page.goto(ext.url('options.html'));
+    await expect(page.locator('#optEngineList .opt-eng-row').first()).toBeVisible();
+    expect(await page.locator('#injected, #injected2, #injected3').count(), 'elements created from stored values').toBe(0);
+    await expect(page.locator('#optEngineList input[data-id="openai"][data-prop="model"]')).toHaveValue('m"><i id="injected2">x</i>');
+  });
+
+  test('a language setting with markup in it cannot put markup into web pages', async ({ ext, stub }) => {
+    // The injected <img> is created and removed within one moment, so watch for the browser trying to load it.
+    const bait = `<img src="${stub.appOrigin}/injected-by-language-setting.png">`;
+    await ext.patchConfig({ tgt: bait, src: bait });
+    const page = ext.article;
+    await page.reload();
+    stub.clearLog();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-card')).toBeVisible();
+    await page.waitForTimeout(1500);
+    expect(stub.log.filter(e => /injected-by-language-setting/i.test(e.path)).map(e => e.path), 'requests for an image created from the language setting').toEqual([]);
+  });
+
+  test('importing settings with markup or a bad address in them keeps only safe values', async ({ ext }) => {
+    const page = await ext.context.newPage();
+    await page.goto(ext.url('options.html'));
+    await expect(page.locator('#optEngineList .opt-eng-row').first()).toBeVisible();
+    await page.locator('#btnPasteJson').click();
+    await page.locator('#modalPasteArea').fill(JSON.stringify({ tgt: '<img id="injected" src="x">', src: 'xx"yy', tone: '<b>', webAppUrl: 'javascript:alert(1)', order: ['gemini', 'chrome', 'nllb', '<b>'], eng: { gemini: { on: true, key: 'real-looking-key' }, nllb: { on: true }, '<b>': { on: true } } }));
+    await page.locator('#modalPasteSave').click();
+    await expect(page.locator('#optToasts')).toContainText(/imported/i);
+    await expect.poll(async () => (await ext.getConfig()).eng.gemini.key).toBe('real-looking-key');
+    const cfg = await ext.getConfig();
+    expect(cfg.tgt).toBe('fa');
+    expect(cfg.src).toBe('auto');
+    expect(cfg.order.every(id => ['gemini', 'openrouter', 'mistral', 'cerebras', 'openai', 'claude', 'ollama', 'custom', 'google', 'mymemory', 'groq'].includes(id)), `order after import: ${cfg.order}`).toBe(true);
+    expect(Object.keys(cfg.eng)).not.toContain('<b>');
+    expect(cfg.webAppUrl, 'web app address after importing javascript:').toMatch(/^https?:\/\//);
+  });
+});

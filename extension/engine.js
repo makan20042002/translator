@@ -104,22 +104,60 @@ const DEFAULT_CFG = {
   }
 };
 
+// Make a settings object safe to use. Anything unexpected (an engine this extension does not know,
+// a language code containing markup, a web address that is not http/https) is replaced by the previous
+// valid value, or by the default. Used when settings are loaded and when a settings file is imported.
+const LANG_CODE_RE = /^(auto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
+const isStr = v => typeof v === 'string';
+function safeHttpUrl(u, fallback) {
+  try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return String(u).trim(); } catch {}
+  return fallback;
+}
+function sanitizeConfig(raw, previous) {
+  const prev = previous || DEFAULT_CFG;
+  const src = raw && typeof raw === 'object' ? raw : {};
+  const pick = (v, ok, key) => (ok(v) ? v : (ok(prev[key]) ? prev[key] : DEFAULT_CFG[key]));
+  const cfg = Object.assign({}, DEFAULT_CFG, src);
+  cfg.src = pick(src.src, v => isStr(v) && LANG_CODE_RE.test(v), 'src');
+  cfg.tgt = pick(src.tgt, v => isStr(v) && LANG_CODE_RE.test(v) && v !== 'auto', 'tgt');
+  cfg.tone = pick(src.tone, v => ['neutral', 'technical', 'formal', 'film'].includes(v), 'tone');
+  cfg.trigger = pick(src.trigger, v => ['auto', 'alt', 'never'].includes(v), 'trigger');
+  cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
+  cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
+  cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
+  cfg.subject = isStr(src.subject) ? src.subject : '';
+  cfg.subStyle = ['film', 'neutral', 'formal'].includes(src.subStyle) ? src.subStyle : DEFAULT_CFG.subStyle;
+  cfg.disabledSites = Array.isArray(src.disabledSites) ? src.disabledSites.filter(isStr) : [];
+  cfg.glossary = Array.isArray(src.glossary) ? src.glossary.filter(g => g && isStr(g.s) && isStr(g.t)).map(g => ({ s: g.s, t: g.t })) : [];
+  // Engines: only the ones this extension knows, each in the same simple shape.
+  const order = Array.isArray(src.order) ? src.order.filter(id => isStr(id) && ENG[id]) : [];
+  cfg.order = order.filter((id, i) => order.indexOf(id) === i);
+  DEF_ORDER.forEach(id => { if (!cfg.order.includes(id)) cfg.order.push(id); });
+  const engIn = src.eng && typeof src.eng === 'object' ? src.eng : {};
+  cfg.eng = {};
+  DEF_ORDER.forEach(id => {
+    const e = engIn[id] && typeof engIn[id] === 'object' ? engIn[id] : {};
+    const d = DEFAULT_CFG.eng[id] || {};
+    const merged = {
+      on: typeof e.on === 'boolean' ? e.on : (d.on !== undefined ? d.on : true),
+      key: isStr(e.key) ? e.key : '',
+      model: isStr(e.model) ? e.model : (ENG[id].model || ''),
+      base: isStr(e.base) ? e.base : (ENG[id].base || '')
+    };
+    merged.base = providerBase(id, merged);
+    cfg.eng[id] = merged;
+  });
+  const t = src.tts && typeof src.tts === 'object' ? src.tts : {};
+  cfg.tts = Object.assign({}, DEFAULT_CFG.tts, t);
+  cfg.tts.voices = Object.assign({}, DEFAULT_CFG.tts.voices, t.voices && typeof t.voices === 'object' ? t.voices : {});
+  return cfg;
+}
+
 // Helper: load config from chrome.storage.local
 async function loadConfig() {
   if (typeof chrome !== 'undefined' && chrome.storage && chrome.storage.local) {
     const data = await chrome.storage.local.get('makan_cfg');
-    if (data && data.makan_cfg) {
-      const cfg = Object.assign({}, DEFAULT_CFG, data.makan_cfg);
-      cfg.eng = Object.assign({}, DEFAULT_CFG.eng, data.makan_cfg.eng);
-      cfg.tts = Object.assign({}, DEFAULT_CFG.tts, data.makan_cfg.tts || {});
-      cfg.tts.voices = Object.assign({}, DEFAULT_CFG.tts.voices, data.makan_cfg.tts?.voices || {});
-      DEF_ORDER.forEach(id => {
-        if (!cfg.order.includes(id)) cfg.order.push(id);
-        cfg.eng[id] = Object.assign({ on: true, key: '', model: ENG[id].model || '', base: ENG[id].base || '' }, cfg.eng[id]);
-        cfg.eng[id].base = providerBase(id, cfg.eng[id]);
-      });
-      return cfg;
-    }
+    if (data && data.makan_cfg) return sanitizeConfig(data.makan_cfg);
   }
   return JSON.parse(JSON.stringify(DEFAULT_CFG));
 }
@@ -1114,6 +1152,8 @@ if (root) {
   if (!root.DEF_ORDER) root.DEF_ORDER = DEF_ORDER;
   if (!root.DEFAULT_CFG) root.DEFAULT_CFG = DEFAULT_CFG;
   root.loadConfig = loadConfig;
+  root.sanitizeConfig = sanitizeConfig;
+  root.safeHttpUrl = safeHttpUrl;
   root.saveConfig = saveConfig;
   root.translateItemsWithFallback = translateItemsWithFallback;
   root.lookupWordDictionary = lookupWordDictionary;

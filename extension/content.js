@@ -438,7 +438,7 @@
           <div class="makan-mark-ico">M</div>
           MAKAN<span>Translate</span>
         </div>
-        <span class="makan-pill" id="makanPairPill">${curSrc.toUpperCase()} → ${curTgt.toUpperCase()}</span>
+        <span class="makan-pill" id="makanPairPill">${escapeHtml(curSrc.toUpperCase())} → ${escapeHtml(curTgt.toUpperCase())}</span>
         <span class="makan-pill detected" id="makanDetectedPill">Detected: ${detectedLang.toUpperCase()}</span>
         <span class="makan-pill engine" id="makanEnginePill">Translating…</span>
         <button class="makan-icon-btn" id="makanCardClose" title="Close (Esc)">
