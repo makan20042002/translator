@@ -83,6 +83,18 @@ test.describe('Web app: Voice tab', () => {
     });
   });
 
+  test.describe('saved microphone setting', () => {
+    test.use({ appOptions: { seed: { cfg: { ...onlyEngines(['google']), stt: 'browser' } } } });
+
+    test('the Voice panel\'s "Microphone engine" menu shows the saved choice', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await mouseClick(page, page.locator('#vToggleSettings'));
+      await expect(page.locator('#sttSel'), 'the same setting in Engines & keys').toHaveValue('browser');
+      await expect(page.locator('#vSttChoice'), 'the Voice panel menu').toHaveValue('browser');
+    });
+  });
+
   test.describe('without any AI key', () => {
     test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
 

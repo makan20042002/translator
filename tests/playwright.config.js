@@ -18,6 +18,8 @@ module.exports = defineConfig({
   use: { trace: 'retain-on-failure', screenshot: 'only-on-failure', actionTimeout: 15_000 },
   projects: [
     { name: 'web', testMatch: /web\/.*\.spec\.js$/ },
-    { name: 'ext', testMatch: /ext\/.*\.spec\.js$/ }
+    { name: 'ext', testMatch: /ext\/.*\.spec\.js$/ },
+    // Real internet services; every test here skips itself unless switched on (see the file).
+    { name: 'live', testMatch: /live\/.*\.spec\.js$/ }
   ]
 });

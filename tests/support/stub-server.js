@@ -196,8 +196,10 @@ async function startStub() {
       if (/:streamGenerateContent$/.test(p)) {
         res.writeHead(200, { 'content-type': 'text/event-stream', 'access-control-allow-origin': '*' });
         const chunk = JSON.stringify({ candidates: [{ content: { parts: [{ inlineData: { mimeType: 'audio/L16;codec=pcm;rate=24000', data: PCM_B64 } }] } }] });
-        res.write(`data: ${chunk}\r\n\r\n`);
-        setTimeout(() => { res.write(`data: ${chunk}\r\n\r\n`); res.end(); }, 50);
+        // Four 0.4 s chunks, about 1.6 s of audio in total.
+        let sent = 0;
+        const next = () => { res.write(`data: ${chunk}\r\n\r\n`); if (++sent < 4) setTimeout(next, 40); else res.end(); };
+        next();
         return;
       }
       if (/:generateContent$/.test(p)) {
