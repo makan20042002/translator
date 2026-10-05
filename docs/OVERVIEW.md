@@ -237,111 +237,192 @@ keeps two separate implementations of the same behaviour consistent. They
 have already drifted apart (different engine lists, different error
 handling, different connection-check messages).
 
-## 6. Things that look fragile or wrong (from reading the code)
+## 6. Problems found, most serious first
 
-Ordered roughly by how much they matter. The test suite tries to confirm
-each of them; see section 7.
+Each item says how it is known:
+
+* **Confirmed**: an automated test ran it and saw it happen. The test name is
+  given so you can find it in the `npm test` summary.
+* **From reading**: seen in the code but not run by a test.
+
+None of these has been fixed yet; this list is for deciding what to fix.
+
+### Security and privacy
 
 1. **The web app sends your Gemini and Groq API keys to its own web
    server.** `syncKeysToServer()` (index.html line 1111) runs half a second
-   after every page load and on every settings save. It sends
+   after every page load and on every settings save, and sends
    `POST /api/sync_keys` with `{gemini: <key>, groq: <key>}` to whatever site
-   the page is served from. On the public website that means the keys reach
-   the website's server and its logs. The footer says "Keys stay in your
-   browser and are sent only to the provider you choose", which is not true
-   while this code is there.
-2. **Settings exported from the web app break the extension.** The web
-   app's export includes the `chrome` and `nllb` engines. The extension's
-   import copies them in, and `isEngineUsable()` in engine.js then reads
-   `ENG['chrome'].key` for an engine the extension does not know, which
-   crashes. After import, every translation in the extension would fail.
-3. **Re-loading or updating the extension can leave open tabs unusable.**
-   `content.js` refuses to run twice in the same tab
-   (`window.__makanTranslateLoaded`). After the extension is reloaded or
-   updated, the old copy in an open tab stops working, but the new copy
-   injected by `background.js` sees the old flag and exits immediately. The
-   right-click item then shows "Please reload this page" instead of a card.
-4. **Read-aloud in the extension card and popup never uses the computer's
-   own voices.** `content.js` calls `pickBestVoice`, `splitTextForSpeech` and
-   `getNoVoiceMessage`, but these live in `engine.js`, which is not loaded
-   into web pages (the manifest only lists `content.js`). The check
-   `typeof pickBestVoice === 'function'` is always false, so it always tries
-   Gemini, and without a Gemini key it shows "No voice installed" even when
-   Windows has a voice for that language. This matches the report that
-   read-aloud does not work in Chrome. (The popup does load `engine.js`, so
-   the popup is not affected.)
-5. **"Show Original" after whole-page translation does not bring back links
-   and formatting.** Page translation replaces each paragraph's content with
-   plain text (`innerText`), and restore puts back plain text. Links, bold
-   text and images inside translated paragraphs are lost until the page is
-   reloaded.
-6. **Whole-page translation says "Page translated" even when every request
-   failed**, and the banner names the first engine in the list rather than
-   the engine that was actually used.
-7. **The card's "Detected" language is always EN.** `isRtl(text)` is given
-   the selected text instead of a language code, so it is false for any
-   text, Persian included. Swap on Persian text then translates in the wrong
-   direction.
-8. **"Open in App" from the extension opens an empty web app.** The card and
-   popup pass `?text=…&src=…&tgt=…`, but `index.html` never reads the address
-   bar.
-9. **Gemini connection check in the extension reports a bad key as
-   "Connection failed"** instead of "Key rejected", because Gemini's real
-   message ("API key not valid") does not match the patterns it looks for.
-   In the web app, any unexpected error (for example a server error 500) is
-   reported as "Key rejected".
-10. **Endless retry when the only engine left is rate-limited.** In
-    `translateItems()`, a 429 answer on the last engine waits and retries
-    forever, with no limit, until you press Stop.
-11. **"+ Add to Glossary" in the Document tab is not saved.** It changes the
-    glossary in memory and calls `saveCfg()`, which saves the engine settings,
-    not the glossary (`mkt_gls`). After a reload the terms are gone.
-12. **Two settings share the id `vSilenceWait`** (Voice tab panel and the
-    Engines & keys window). The one in Engines & keys does nothing.
-13. **The popup's "Grant Site Access" asks the background for
-    `inject-tab`**, but the background only understands `inject-into-tab`, so
-    the script is never injected after access is granted.
-14. **Any web page can make the extension translate the whole page** by
-    firing a `__makan_page_translate_action` event on its own document
-    (content.js line 1019). That sends the page's text to the user's engines
-    (and spends their quota) without the user asking, contrary to
-    `PRIVACY.md`.
-15. **The extension hands all API keys to every web page's content
-    script.** `get-config` returns the full settings, keys included, and the
-    content script asks for it on every page load. Keys do not need to leave
-    the background worker.
-16. **The extension's dictionary lookup ignores Claude.** If Claude is the
-    first AI engine, it sends the request to `/chat/completions` with no
-    address and silently falls back to plain translation.
-17. **Extension 429 retry uses the wrong engine.** If the last engine in the
-    chain is MyMemory and it is rate-limited, the retry calls Google instead.
-18. **JSON documents are downloaded with an invisible "byte order mark"**
-    at the start (all downloads get one). Strict JSON readers, including
-    Node.js and many web APIs, reject such files.
-19. **Word documents: new XML elements are appended at the end of their
-    parent** (`w:bidi`, `w:jc`, `w:rtl`, `w:rFonts`, `w:updateFields`). The
-    Office file format defines a fixed order for these, so a strict reader
-    could reject the file or "repair" it. LibreOffice opens such files; it is
-    not known whether Word complains.
-20. **Translator notes only work for Word, TXT and Markdown.** The checkbox
-    has no effect for PowerPoint, Excel, JSON and CSV, and in Word only if the
-    file already has a footnotes part.
-21. **The Talk button ignores the "Microphone engine" setting.** Without a
-    Gemini key it always uses the offline Whisper model, which starts a large
-    download without asking, even if "Browser" or "Groq" is selected.
-22. **`build-manifests.js` writes into the source folder**
-    (`extension/manifest.chrome.json`, `extension/manifest.firefox.json`) as
-    well as `dist/`.
-23. Smaller items: the Gemini key is put in the web address (`?key=`) for
-    voice transcription and the connection check, so it can appear in logs;
-    `MakanEngine` is referenced in the extension but never defined, so those
-    fallbacks are dead code; the service worker does not pre-save
-    `extension/engine.js`; `ENGINE_SYNC.md` and `PRIVACY.md` list endpoints
-    and engines that do not match the code (for example `PRIVACY.md` omits
-    `clients5.google.com`, which is the main Google address used).
+   the page is served from. On the public website the keys would reach the
+   site's server and its logs. The footer promises "Keys stay in your
+   browser". **Confirmed**: the test *API keys are not sent to the web app's
+   own server* saw the key POSTed 4 times after one key entry and one reload.
+2. **The extension gives every web page's content script all API keys.**
+   `get-config` returns the full settings, keys included, to the script
+   running inside each web page. **Confirmed**: *the content script running
+   inside web pages is not given the API keys* read the Gemini key from
+   inside a web page.
+3. **Any web page can make the extension translate it without the user
+   asking.** A page only has to fire the event `__makan_page_translate_action`
+   (content.js line 1019). The page's text is then sent to the user's engines,
+   using their quota. This contradicts `PRIVACY.md`. **Confirmed**: *a web
+   page cannot make the extension translate it without the user asking*. The
+   page's own script started a request to Google, and the page came back
+   translated.
+4. From reading: the Gemini key is put in the web address (`?key=…`) for voice
+   transcription, the voice interpreter and the connection check, so it can
+   appear in logs. Elsewhere it is sent in a header.
 
-## 7. Which of these the tests confirmed
+### Features that do not work
 
-See the "Test results" section of the pull request and
-`docs/TEST-REPORT.md`, which lists, for every item above, whether a test ran
-it and what happened.
+5. **Settings exported from the web app break the extension.** "Export for
+   Extension" includes the engines `chrome` and `nllb`, which the extension
+   does not know. After "Import Settings File", every translation fails.
+   **Confirmed**: *settings exported from the web app … can be imported, and
+   the extension still translates*. The card showed "⚠️ Cannot read
+   properties of undefined (reading 'key')".
+6. **Read-aloud in the extension card never uses the computer's own voices.**
+   `content.js` relies on `pickBestVoice`, `splitTextForSpeech` and
+   `getNoVoiceMessage` from `engine.js`, but `engine.js` is not loaded into
+   web pages. So the card always asks Gemini, and without a Gemini key it
+   says there is no voice, even when Windows has one. This matches "read-aloud
+   does not work in Chrome". **Confirmed**: *the card can use the computer's
+   own voices* found all three helpers missing in the content script's world.
+   (Real Windows voices could not be tested here.) The popup does load
+   `engine.js` and is not affected.
+7. **The card's Speak button forgets that it is playing.** About 7 ms after
+   the press, the "stopped" message from the button's own clean-up arrives
+   and resets it to "Speak" while the Gemini voice plays. Pressing it again
+   starts the speech over instead of stopping it. **Confirmed**: *Speak plays
+   Gemini voice … and shows the playing state*. The audio request was made,
+   but the button read "Speak" during playback.
+8. **Endless retry when the only engine left is rate-limited.** A 429
+   answer on the last engine in the chain waits and retries with no limit;
+   the Translate button stays disabled until you press Stop. **Confirmed**:
+   *when the only engine is rate-limited (HTTP 429) …*. The app made 16
+   requests in 30 s and was still retrying.
+9. **"+ Add to Glossary" in the Document tab is not saved.** It saves the
+   engine settings (`saveCfg`) instead of the glossary (`mkt_gls`).
+   **Confirmed**: *"+ Add to Glossary" … keeps the terms after a reload*. The
+   term was gone after reload.
+10. **"Show Original" after whole-page translation loses links and
+    formatting.** Translation and restore both replace paragraph content with
+    plain text. **Confirmed**: *"Show Original" brings back links and bold
+    text …*. The link and the bold text were missing after restore.
+11. **"Open in App" from the extension opens an empty web app.** The card and
+    popup pass `?text=…&src=…&tgt=…`; `index.html` never reads them.
+    **Confirmed**: *opening the app with ?text=… fills the Text tab*.
+12. **The Talk button ignores the "Microphone engine" setting.** Without a
+    Gemini key it always uses the offline Whisper model and starts
+    downloading its AI library, even with "Browser" selected.
+    **Confirmed**: *with "Microphone engine: Browser", Talk does not start
+    downloading the offline Whisper model*. A request for
+    `cdn.jsdelivr.net/npm/@huggingface/transformers` was made.
+13. **"Silence wait" in Engines & keys does nothing.** Two elements share the
+    id `vSilenceWait`; only the Voice-tab one is connected. **Confirmed**:
+    *"Silence wait" in Engines & keys is saved*.
+14. From reading: the popup's "Grant Site Access" button asks the background
+    for `inject-tab`, but the background only understands `inject-into-tab`.
+    That banner only appears when site access is missing (mainly Firefox), so
+    it was not run.
+15. From reading: the extension's dictionary lookup does not handle Claude. If
+    Claude is the first AI engine, the lookup silently falls back to plain
+    translation.
+16. From reading: in the extension, if the last engine is MyMemory and it is
+    rate-limited, the retry calls Google instead.
+17. From reading: "Translator notes" only work for Word (and only if the file
+    already has footnotes), TXT and Markdown. The box has no effect for
+    PowerPoint, Excel, JSON and CSV.
+
+### Wrong or misleading messages
+
+18. **The page banner after whole-page translation can be wrong.** It names
+    the first engine in the list rather than the one used ("via gemini" when
+    Google did the work), and it says "Page translated" even when every
+    request failed. **Confirmed**: *the page banner names the engine that was
+    actually used* and *when every engine fails, the page banner says so …*.
+19. **Wrong connection-check results.** In the web app, any unexpected error
+    (for example a server error 500) is shown as "key rejected". In the
+    extension, a wrong Gemini key is shown as "Connection failed", because
+    Gemini's real message ("API key not valid") is not recognised.
+    **Confirmed**: *a provider outage (HTTP 500) is not reported as "key
+    rejected"* (web) and *a wrong Gemini key is reported as "Key rejected"*
+    (extension).
+20. **The card's "Detected" language is always EN.** The code checks the
+    selected text as if it were a language code. Swap on Persian text then
+    goes the wrong way. **Confirmed**: *"Detected" shows FA when Persian text
+    is selected*.
+21. **Seven interface texts are missing in both languages**, so the raw key
+    name is shown: `docAddedToGlossary` (the message reads "1
+    docAddedToGlossary"), `noTermsToReview`, `vAskLangAuto` (first choice in
+    the Ask AI language menu), and `pages`, `words`, `slides`, `sheets`
+    (English words in the Persian interface). **Confirmed**: *every interface
+    text … exists in both English and Persian* and *the Ask AI
+    answer-language menu shows a readable first choice*.
+22. **The Voice panel's "Microphone engine" menu does not show the saved
+    choice** (it always shows "Auto"). **Confirmed**: *the Voice panel's
+    "Microphone engine" menu shows the saved choice*.
+23. **The "Done" message covers the Download button** in the Document tab for
+    about 4 s. A click there in that time does nothing. Seen at a 1280 × 900
+    window; it depends on window size. **Confirmed**: *the Download button can
+    be clicked as soon as translation finishes*.
+
+### Output files
+
+24. **JSON documents are downloaded with an invisible byte-order mark** at
+    the start, which strict JSON readers (Node.js, many web services) reject.
+    **Confirmed**: *JSON: the downloaded file can be read by a strict JSON
+    reader*.
+25. **Word documents: added elements are out of the order the Office format
+    requires** (`w:bidi` after `w:rPr`, `w:rFonts` after `w:rtl`). LibreOffice
+    opens the files fine, and the test checks that. Whether Microsoft Word
+    complains was **not** tested (Word is not available here). **Confirmed**
+    (the ordering): *DOCX: elements the app adds are in the order the Office
+    file format requires*. 15 places in the sample file.
+26. From reading and one test run: Excel right-to-left is only applied to
+    sheets that already contain a "sheet view" entry. Files saved by Excel
+    always have one; some files made by other programs do not.
+
+### Code and repository hygiene (from reading)
+
+27. `index.html` loads `extension/engine.js` and then declares its own copies
+    of most of it (section 5). Two implementations of the same logic have
+    already drifted apart (items 5, 6 and 19 come from this).
+28. `MakanEngine` is used as a fallback in the extension but is never
+    defined, so that code can never run.
+29. `build-manifests.js` also writes into the source folder
+    (`extension/manifest.chrome.json`, `extension/manifest.firefox.json`).
+    Re-running it produced identical files.
+30. The service worker does not pre-save `extension/engine.js`, so after the
+    very first visit the page can open offline without the Gemini streaming
+    read-aloud.
+31. `ENGINE_SYNC.md` and `PRIVACY.md` describe engines and addresses that do
+    not match the code. For example, `PRIVACY.md` omits
+    `clients5.google.com`, the main Google address used.
+32. The repository contains the old `test-assets/` scripts (you said they
+    were meant to stay out) and a broken `translator` sub-repository link.
+
+33. `web-ext lint` (Mozilla's checker) reports 0 errors and 21 warnings for
+    the Firefox build. 3 are about the `offscreen` API, which the code only
+    uses when it exists (Chrome/Edge). 18 are places that build page content
+    with `innerHTML`. Most insert fixed text, but two insert outside data
+    without escaping it: `popup.js` line 296 inserts an error message that can
+    come from a provider's reply, and `options.js` puts stored key and model
+    values into the page this way. Low risk, but easy to make safe.
+
+### Withdrawn after testing
+
+* *Earlier draft:* "after the extension is reloaded, open tabs stop working
+  because the new content script refuses to start." Testing showed this is
+  wrong for Chromium. After a reload, the extension injects a working copy
+  and selecting text in an already-open tab translates normally (test
+  *selecting text in a tab that was already open still translates*). Edge
+  was not tested.
+
+## 7. Where the evidence is
+
+* Run `npm test`; the summary at the end lists every failing test with the
+  reason. The same text is saved to `tests/.results/report.txt`.
+* `docs/TEST-REPORT.md` has the full output of the run made when the suite
+  was written, and says for each failure whether the test or the app was
+  wrong.
