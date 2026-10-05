@@ -43,3 +43,7 @@ makan-settings*.json
 *-settings.json
 *.key
 *.pem
+
+# Test suite output (npm test)
+tests/.generated/
+tests/.results/

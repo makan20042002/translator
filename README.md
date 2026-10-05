@@ -1,0 +1,162 @@
+# MAKAN Translate
+
+A translator in two forms:
+
+* a **web app**: one web page (`index.html`) with Text, Subtitle, Document,
+  Voice, Compare, Glossary and History tabs;
+* a **browser extension** for Chrome, Edge and Firefox: select text on any
+  page, press the **M** button, and a small translation card appears.
+
+How the code fits together, where settings and keys are stored, and a list of
+known problems are in [`docs/OVERVIEW.md`](docs/OVERVIEW.md). What the
+automated tests found is in [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md).
+
+---
+
+## What each folder is
+
+| Folder or file | What it is | Do you need it? |
+| --- | --- | --- |
+| `index.html`, `ai-worker.js`, `sw.js`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png` | The web app. | Yes: this is the website. |
+| `extension/` | The **source** of the browser extension. Edit files here. | Yes. |
+| `dist/` | The **built** extension: `dist/chrome` (Chrome and Edge) and `dist/firefox`. Made by the build step below and not kept in git. Rebuild it after every change in `extension/`. | Made for you. |
+| `build-manifests.js` | Makes `dist/` from `extension/`. | Yes. |
+| `docs/` | Explanations: code overview and test report. | For reading. |
+| `tests/` | The automated tests (see below). Nothing the user loads depends on them. | For checking. |
+| `package.json`, `package-lock.json` | List of the developer tools the tests use. Not part of the app. | For checking. |
+| `node_modules/` | The tools themselves, downloaded by `npm install`. Not kept in git. | Made for you. |
+| `test-server.py` | A small local web server from earlier development (port 8080). | Optional. |
+| `ENGINE_SYNC.md` | An older note about keeping the web app and the extension in step. Out of date; see `docs/OVERVIEW.md` section 5. | No. |
+| `test-assets/`, `test_docs/` | Old one-off test scripts and sample files from earlier work. Not used by the new tests. | No. |
+| `translator` | An empty, broken link to another copy of this repository, probably added by accident. | No. |
+
+---
+
+## Which folder to load in each browser
+
+First build the extension (see "One-time setup" below), then:
+
+| Browser | Steps | Folder or file to choose |
+| --- | --- | --- |
+| **Chrome** | Open `chrome://extensions`, switch on **Developer mode** (top right), click **Load unpacked**. | `dist\chrome` |
+| **Edge** | Open `edge://extensions`, switch on **Developer mode** (left side), click **Load unpacked**. | `dist\chrome` (Edge uses the Chrome build) |
+| **Firefox** (version 142 or newer) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**. Firefox forgets it when it closes. | `dist\firefox\manifest.json` |
+
+After changing anything in `extension/`, run `npm run build` again and press
+the **reload** arrow on the extension's card in `chrome://extensions` or
+`edge://extensions`.
+
+---
+
+## Which files go on the website
+
+Upload these, keeping the same names and folders:
+
+```
+index.html
+ai-worker.js
+sw.js
+manifest.webmanifest
+icon-192.png
+icon-512.png
+extension/engine.js      ← must stay in a folder called "extension"; index.html loads it from there
+```
+
+Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test-assets/`,
+`test_docs/`, `package.json`, `package-lock.json` or `test-server.py`.
+
+> **Warning before you publish:** the web app currently sends the Gemini and
+> Groq keys that a visitor types in to your website's own address
+> `/api/sync_keys`. See `docs/OVERVIEW.md`, section 6, item 1. This should
+> be removed before the site is used by anyone else.
+
+---
+
+## One-time setup on Windows
+
+1. Install **Node.js** (the "LTS" version) from <https://nodejs.org>.
+2. Open the project folder in File Explorer, type `cmd` in the address bar
+   and press Enter. A black command window opens in the right folder.
+3. Type these two commands, pressing Enter after each:
+
+   ```
+   npm install
+   npx playwright install chromium
+   ```
+
+   The first downloads the test tools (they took about 160 MB of disk space
+   when this was set up). The second downloads the copy of Chromium that the
+   tests drive (about 600 MB once unpacked). You only do this once.
+
+To build the extension at any time:
+
+```
+npm run build
+```
+
+## Running the tests
+
+```
+npm test
+```
+
+This one command:
+
+1. builds the extension into `dist/`;
+2. opens the web app and the extension in a hidden Chromium window and uses
+   them with real mouse clicks and key presses: every tab, translating text,
+   subtitles, every document type, Compare, Glossary, History, Engines &
+   keys, English/Persian switching, the Voice tab with a pretend microphone,
+   the extension's popup, the **M** button and card, double-click
+   dictionary, the right-click menu, whole-page translation and the options
+   page;
+3. checks the Firefox build with Mozilla's own checker (`web-ext lint`);
+4. prints a **summary** at the end, with three lists: what passed, what
+   **failed** (and what each failure means), and what was **skipped** and
+   why.
+
+It takes about 6 minutes. The same summary is saved to
+`tests\.results\report.txt`. For each failed test there is a screenshot and a
+step-by-step recording in `tests\.results\artifacts\`. Open a recording with:
+
+```
+npx playwright show-trace tests\.results\artifacts\<test folder>\trace.zip
+```
+
+You can also run one part: `npm run test:web`, `npm run test:ext`,
+`npm run test:firefox`.
+
+### No keys or internet needed
+
+The tests do not use the real translation services. A small program inside
+the tests pretends to be Google, MyMemory, Gemini, OpenAI and the others, on
+your own computer. It answers with predictable fake translations such as
+`[fa] Hello` for "Hello". So the tests check the app's own behaviour
+(sending the right text, putting answers in the right place, handling
+errors, building valid files), **not** the quality of real translations.
+
+### Tests against the real services (optional)
+
+A few tests talk to the real services. They are **skipped** unless you turn
+them on, and the summary lists them as "skipped: needs key", never as
+passed. In PowerShell:
+
+```
+$env:MAKAN_LIVE="1"              # real Google Translate (no key)
+$env:MAKAN_GEMINI_KEY="your key" # real Gemini translation and read-aloud
+npm test
+```
+
+The key is only put into the test browser; it is not printed or saved.
+
+### What the tests cannot check
+
+* a real microphone and real speech recognition (a recorded sound is used
+  instead);
+* the voices installed in Windows / Edge ("read aloud" with device voices);
+* real providers' answers and limits (unless you run the optional tests
+  above);
+* Firefox itself, unless Firefox is installed (then the summary tells you
+  how to try it by hand);
+* Microsoft Word opening the translated `.docx` (LibreOffice is used instead
+  when it is installed).

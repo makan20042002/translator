@@ -1,0 +1,23 @@
+{
+  "name": "makan-translate-dev",
+  "version": "0.0.0",
+  "private": true,
+  "description": "Development-only tooling for MAKAN Translate (tests, lint). Nothing the web app or extension loads depends on this file.",
+  "scripts": {
+    "test": "node tests/run-all.js",
+    "test:web": "node tests/run-all.js --only=web",
+    "test:ext": "node tests/run-all.js --only=ext",
+    "test:firefox": "node tests/run-all.js --only=firefox",
+    "build": "node build-manifests.js"
+  },
+  "devDependencies": {
+    "@playwright/test": "1.56.1",
+    "docx": "9.8.1",
+    "exceljs": "4.4.0",
+    "fast-xml-parser": "5.11.2",
+    "jszip": "3.10.1",
+    "pptxgenjs": "4.0.1",
+    "selfsigned": "5.5.0",
+    "web-ext": "10.7.0"
+  }
+}
