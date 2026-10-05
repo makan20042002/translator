@@ -235,6 +235,7 @@ function preGloss(s, glossary = []) {
 
 // Engine check
 function isEngineUsable(id, cfg) {
+  if (!ENG[id]) return false; // an engine this extension does not have (for example from a settings file made by the web app)
   const e = cfg.eng?.[id];
   if (!e || !e.on) return false;
   if (ENG[id].key && !e.key) return false;

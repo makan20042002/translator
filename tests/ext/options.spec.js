@@ -101,4 +101,23 @@ test.describe('Extension: options page', () => {
     await pressM(article);
     await expect(inShadow(article, '.makan-card .makan-card-body'), 'the card after importing web-app settings').toContainText('[fa] First item in the list of things.');
   });
+
+  test('settings saved earlier with engines this extension does not have do not break translation', async ({ ext }) => {
+    // Someone who already imported the web app's file has "chrome" and "nllb" in the stored engine list.
+    await ext.patchConfig({ order: ['chrome', 'nllb', 'google', 'gemini'], eng: { chrome: { on: true }, nllb: { on: true, key: '' } } });
+    const article = ext.article;
+    await article.reload();
+    await dragSelect(article, '#li1');
+    await pressM(article);
+    await expect(inShadow(article, '.makan-card .makan-card-body')).toContainText('[fa] First item in the list of things.');
+    const popup = await openRealPopup(ext);
+    await popup.click('#pInputText');
+    await popup.type('Hello');
+    await popup.click('#pTransBtn');
+    await popup.waitFor(`document.getElementById('pOutputText').textContent === '[fa] Hello'`);
+    await popup.close();
+    const options = await ext.context.newPage();
+    await options.goto(ext.url('options.html'));
+    await expect(options.locator('#optEngineList .opt-eng-row')).toHaveCount(11);
+  });
 });
