@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Selection Conflict and Iframe Test Page</title>
+  <style>
+    body { font-family: -apple-system, system-ui, sans-serif; padding: 40px; max-width: 800px; margin: 0 auto; line-height: 1.6; }
+    .site-popup { position: absolute; background: #222; color: #fff; padding: 6px 12px; border-radius: 6px; font-size: 12px; display: none; z-index: 1000; }
+    iframe { width: 100%; height: 200px; border: 1px solid #ccc; border-radius: 8px; margin-top: 20px; }
+  </style>
+</head>
+<body>
+  <h1>Selection Conflict and Iframe Real Pointer Test</h1>
+  
+  <p id="medium-style-paragraph">
+    In this paragraph, the host webpage has its own aggressive selection listener, similar to Medium or documentation portals. When you select text here, a native site popup appears, and pointerdown events might try to clear or interfere with selection.
+  </p>
+  
+  <div id="siteCustomPopup" class="site-popup">Site Native Menu (Share / Tweet / Highlight)</div>
+
+  <p id="news-paragraph">
+    Global technological advancements continue to transform real-time communication across multiple languages, bridging borders and enabling cross-cultural collaboration seamlessly.
+  </p>
+
+  <iframe id="testIframe" srcdoc="
+    <!DOCTYPE html>
+    <html>
+    <head><style>body { font-family: sans-serif; padding: 16px; background: #f8fafc; }</style></head>
+    <body>
+      <h3>Inside Embedded Iframe</h3>
+      <p id='iframe-p'>Text inside this iframe represents embedded widgets or rich third-party editors.</p>
+    </body>
+    </html>
+  "></iframe>
+
+  <script>
+    // Simulate aggressive Medium-style selection popup
+    const popup = document.getElementById('siteCustomPopup');
+    document.addEventListener('mouseup', e => {
+      const sel = window.getSelection();
+      const txt = sel ? sel.toString().trim() : '';
+      if (txt.length > 5) {
+        const range = sel.getRangeAt(0);
+        const rect = range.getBoundingClientRect();
+        popup.style.display = 'block';
+        popup.style.top = (rect.bottom + window.scrollY + 10) + 'px';
+        popup.style.left = (rect.left + window.scrollX) + 'px';
+      } else {
+        popup.style.display = 'none';
+      }
+    });
+
+    document.addEventListener('mousedown', e => {
+      if (e.target !== popup && !popup.contains(e.target)) {
+        popup.style.display = 'none';
+      }
+    });
+  </script>
+</body>
+</html>

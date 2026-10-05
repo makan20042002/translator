@@ -1,0 +1,45 @@
+# Dependencies
+node_modules/
+
+# Build and distribution artifacts
+dist/
+web-ext-artifacts/
+*.zip
+*.xpi
+*.crx
+
+# Browser profiles, user data, and automation directories
+**/chrome_*prof*/
+**/chromium_*prof*/
+**/edge_*prof*/
+**/puppeteer_prof*/
+**/test_prof*/
+**/*_prof*/
+**/*-profile*/
+**/Profile */
+**/User Data/
+**/Default/
+
+# Test output and reports
+*_report.json
+lint_results*.json
+req_subj_test.json
+*.log
+*.tmp
+.cache/
+
+# Screenshots
+screenshots/
+**/screenshots/
+
+# Environment files and credentials
+.env
+.env.*
+*.local
+
+# Exported settings and keys
+makan-settings.json
+makan-settings*.json
+*-settings.json
+*.key
+*.pem

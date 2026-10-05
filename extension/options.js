@@ -1,0 +1,766 @@
+/**
+ * MAKAN Translate - Options & Settings Script (Manifest V3)
+ * Never logs or prints API keys.
+ */
+
+document.addEventListener('DOMContentLoaded', async () => {
+  let cfg = null;
+  let connResults = {};
+
+  const I18N = {
+    en: {
+      dir: 'ltr',
+      langBtn: 'فارسی',
+      title: 'Engines & Settings',
+      sub: 'Configure translation providers, API keys, fallback priority, and extension behavior. Keys remain in your local browser extension storage only.',
+      syncTitle: 'Sync with MAKAN Web App',
+      syncDesc: 'Already configured your API keys in the MAKAN web app? Export settings from the app and import them here with one click.',
+      btnImport: 'Import Settings File',
+      btnPaste: 'Paste JSON',
+      btnExport: 'Export Backup',
+      secBehavior: 'Extension Behavior',
+      lblTrigger: 'Selection Translation Button:',
+      triggerAuto: 'Always show button when text is selected (Recommended)',
+      triggerAlt: 'Only show button when Alt key is held',
+      triggerNever: 'Never show button (Use right-click context menu only)',
+      lblDefaultTgt: 'Default Target Language:',
+      lblDefaultTone: 'Default Translation Tone:',
+      lblWebAppUrl: 'Web App URL:',
+      lblDictLookup: 'Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)',
+      secEngines: 'Translation Engines & Keys',
+      subEngines: 'Engines are tried from top to bottom. If a provider hits rate limits or fails, the next available engine takes over seamlessly.',
+      btnCheckConn: 'Check Connections',
+      checkingConn: 'Testing connections…',
+      openApp: 'Open Web App',
+      keyPh: 'API Key',
+      modelPh: 'Model Name',
+      basePh: 'Base URL',
+      works: 'Works',
+      saved: 'Saved',
+      secSiteCheck: 'Site Compatibility Self-Check',
+      subSiteCheck: 'Diagnose whether MAKAN Translate can run on your current site and troubleshoot browser permissions or injection status.',
+      btnCheckActiveTab: 'Check Active Tab',
+      checkingTab: 'Diagnosing tab…',
+      secVoice: 'Voice & Read-Aloud (TTS)',
+      subVoice: 'Choose voices per language, adjust speed, and configure AI speech fallback when no system voice is installed.',
+      lblPreferGeminiVoice: 'Prefer Gemini AI Voice — High-fidelity neural speech for Persian & English with Gemini key.',
+      lblGeminiVoice: 'Gemini AI Voice Model:',
+      lblTtsRate: 'Speech Speed (Rate):',
+      lblVoiceFa: 'Persian Voice (فارسی):',
+      lblVoiceEn: 'English Voice:',
+      btnTestVoice: 'Test Voice',
+      testingVoice: 'Speaking test…'
+    },
+    fa: {
+      dir: 'rtl',
+      langBtn: 'English',
+      title: 'موتورها و تنظیمات',
+      sub: 'پیکربندی سرویس‌های ترجمه، کلیدهای API، ترتیب جایگزینی و رفتار افزونه. کلیدها فقط در حافظه محلی مرورگر شما ذخیره می‌شوند.',
+      syncTitle: 'همگام‌سازی با نسخه وب MAKAN',
+      syncDesc: 'کلیدهای خود را قبلاً در نسخه وب تنظیم کرده‌اید؟ تنظیمات را از برنامه وب خروجی گرفته و با یک کلیک اینجا وارد کنید.',
+      btnImport: 'وارد کردن فایل تنظیمات',
+      btnPaste: 'چسباندن متن JSON',
+      btnExport: 'خروجی پشتیبان',
+      secBehavior: 'رفتار افزونه در صفحات وب',
+      lblTrigger: 'دکمه شناور ترجمه متن انتخاب‌شده:',
+      triggerAuto: 'همیشه با انتخاب متن دکمه نمایش داده شود (پیشنهادی)',
+      triggerAlt: 'فقط زمانی که کلید Alt نگه داشته شده است',
+      triggerNever: 'هرگز دکمه نمایش داده نشود (فقط از منوی کلیک راست استفاده شود)',
+      lblDefaultTgt: 'زبان مقصد پیش‌فرض:',
+      lblDefaultTone: 'لحن پیش‌فرض ترجمه:',
+      lblWebAppUrl: 'آدرس وب‌اپلیکیشن:',
+      lblDictLookup: 'فعال‌سازی حالت دیکشنری با دوبار کلیک روی کلمه (تلفظ، معانی و مثال با هوش مصنوعی)',
+      secEngines: 'موتورهای ترجمه و کلیدها',
+      subEngines: 'موتورها از بالا به پایین امتحان می‌شوند. در صورت بروز محدودیت نرخ (429) یا خطا، موتور بعدی به طور خودکار جایگزین می‌شود.',
+      btnCheckConn: 'بررسی اتصال‌ها',
+      checkingConn: 'در حال بررسی اتصال‌ها…',
+      openApp: 'باز کردن نسخه وب',
+      keyPh: 'کلید API',
+      modelPh: 'نام مدل',
+      basePh: 'آدرس سرور',
+      works: 'کار می‌کند',
+      saved: 'ذخیره شد',
+      secSiteCheck: 'بررسی سازگاری با سایت جاری',
+      subSiteCheck: 'بررسی وضعیت اجرای افزونه در برگه فعال و عیب‌یابی دسترسی‌ها و تزریق اسکریپت.',
+      btnCheckActiveTab: 'بررسی برگه فعال',
+      checkingTab: 'در حال بررسی برگه…',
+      secVoice: 'صدا و خواندن متن (TTS)',
+      subVoice: 'انتخاب صدا برای هر زبان، تنظیم سرعت گفتار و جایگزینی خودکار صدای هوش مصنوعی در نبود صدای سیستمی.',
+      lblPreferGeminiVoice: 'استفاده ترجیحی از صدای هوش مصنوعی جمینای — گفتار طبیعی فارسی و انگلیسی با کلید جمینای.',
+      lblGeminiVoice: 'مدل صدای هوش مصنوعی:',
+      lblTtsRate: 'سرعت خواندن متن:',
+      lblVoiceFa: 'صدای زبان فارسی:',
+      lblVoiceEn: 'صدای زبان انگلیسی:',
+      btnTestVoice: 'تست صدا',
+      testingVoice: 'در حال پخش تست…'
+    }
+  };
+
+  // Elements
+  const optLangToggle = document.getElementById('optLangToggle');
+  const optTitle = document.getElementById('optTitle');
+  const optSub = document.getElementById('optSub');
+  const syncTitle = document.getElementById('syncTitle');
+  const syncDesc = document.getElementById('syncDesc');
+  const btnImportFile = document.getElementById('btnImportFile');
+  const btnImportText = document.getElementById('btnImportText');
+  const btnPasteJson = document.getElementById('btnPasteJson');
+  const btnPasteText = document.getElementById('btnPasteText');
+  const btnExportSettings = document.getElementById('btnExportSettings');
+  const btnExportText = document.getElementById('btnExportText');
+  const fileImportInput = document.getElementById('fileImportInput');
+  const secBehavior = document.getElementById('secBehavior');
+  const lblTrigger = document.getElementById('lblTrigger');
+  const selTrigger = document.getElementById('selTrigger');
+  const lblDefaultTgt = document.getElementById('lblDefaultTgt');
+  const selDefaultTgt = document.getElementById('selDefaultTgt');
+  const lblDefaultTone = document.getElementById('lblDefaultTone');
+  const selDefaultTone = document.getElementById('selDefaultTone');
+  const lblWebAppUrl = document.getElementById('lblWebAppUrl');
+  const txtWebAppUrl = document.getElementById('txtWebAppUrl');
+  const chkDictLookup = document.getElementById('chkDictLookup');
+  const lblDictLookup = document.getElementById('lblDictLookup');
+  const secEngines = document.getElementById('secEngines');
+  const subEngines = document.getElementById('subEngines');
+  const btnCheckConn = document.getElementById('btnCheckConn');
+  const btnCheckConnText = document.getElementById('btnCheckConnText');
+  const optEngineList = document.getElementById('optEngineList');
+  const optOpenApp = document.getElementById('optOpenApp');
+  const modalPasteOv = document.getElementById('modalPasteOv');
+  const modalPasteArea = document.getElementById('modalPasteArea');
+  const modalPasteCancel = document.getElementById('modalPasteCancel');
+  const modalPasteSave = document.getElementById('modalPasteSave');
+  const optToasts = document.getElementById('optToasts');
+
+  // Site Check Elements
+  const secSiteCheck = document.getElementById('secSiteCheck');
+  const subSiteCheck = document.getElementById('subSiteCheck');
+  const btnRefreshSiteCheck = document.getElementById('btnRefreshSiteCheck');
+  const btnRefreshSiteCheckText = document.getElementById('btnRefreshSiteCheckText');
+  const siteCheckBadge = document.getElementById('siteCheckBadge');
+  const siteCheckUrl = document.getElementById('siteCheckUrl');
+  const siteCheckDetail = document.getElementById('siteCheckDetail');
+  const btnInjectScript = document.getElementById('btnInjectScript');
+  const btnToggleSiteDisable = document.getElementById('btnToggleSiteDisable');
+
+  // Voice Elements
+  const secVoice = document.getElementById('secVoice');
+  const subVoice = document.getElementById('subVoice');
+  const btnTestVoice = document.getElementById('btnTestVoice');
+  const btnTestVoiceText = document.getElementById('btnTestVoiceText');
+  const chkPreferGeminiVoice = document.getElementById('chkPreferGeminiVoice');
+  const lblPreferGeminiVoice = document.getElementById('lblPreferGeminiVoice');
+  const lblGeminiVoice = document.getElementById('lblGeminiVoice');
+  const selGeminiVoice = document.getElementById('selGeminiVoice');
+  const lblTtsRate = document.getElementById('lblTtsRate');
+  const selTtsRate = document.getElementById('selTtsRate');
+  const lblVoiceFa = document.getElementById('lblVoiceFa');
+  const selVoiceFa = document.getElementById('selVoiceFa');
+  const lblVoiceEn = document.getElementById('lblVoiceEn');
+  const selVoiceEn = document.getElementById('selVoiceEn');
+
+  // Load config directly from local storage with background fallback
+  try {
+    if (typeof loadConfig === 'function') {
+      cfg = await loadConfig();
+    }
+  } catch {}
+  if (!cfg) {
+    try {
+      if (window.chrome?.runtime?.sendMessage) {
+        const res = await Promise.race([
+          chrome.runtime.sendMessage({ action: 'get-config' }),
+          new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 300))
+        ]);
+        if (res && res.cfg) cfg = res.cfg;
+      }
+    } catch {}
+  }
+  if (!cfg) {
+    cfg = typeof DEFAULT_CFG !== 'undefined' ? JSON.parse(JSON.stringify(DEFAULT_CFG)) : {};
+  }
+
+  let currentUi = cfg.ui || 'en';
+
+  function toast(msg, kind = 'ok') {
+    const d = document.createElement('div');
+    d.className = `opt-toast ${kind}`;
+    d.textContent = msg;
+    optToasts.appendChild(d);
+    setTimeout(() => d.remove(), 4000);
+  }
+
+  function applyUi(lang) {
+    currentUi = lang;
+    document.body.dir = I18N[lang].dir;
+    optLangToggle.textContent = I18N[lang].langBtn;
+    optTitle.textContent = I18N[lang].title;
+    optSub.textContent = I18N[lang].sub;
+    syncTitle.textContent = I18N[lang].syncTitle;
+    syncDesc.textContent = I18N[lang].syncDesc;
+    btnImportText.textContent = I18N[lang].btnImport;
+    btnPasteText.textContent = I18N[lang].btnPaste;
+    btnExportText.textContent = I18N[lang].btnExport;
+    secBehavior.textContent = I18N[lang].secBehavior;
+    lblTrigger.textContent = I18N[lang].lblTrigger;
+    selTrigger.options[0].text = I18N[lang].triggerAuto;
+    selTrigger.options[1].text = I18N[lang].triggerAlt;
+    selTrigger.options[2].text = I18N[lang].triggerNever;
+    lblDefaultTgt.textContent = I18N[lang].lblDefaultTgt;
+    lblDefaultTone.textContent = I18N[lang].lblDefaultTone;
+    lblWebAppUrl.textContent = I18N[lang].lblWebAppUrl;
+    lblDictLookup.textContent = I18N[lang].lblDictLookup;
+    secEngines.textContent = I18N[lang].secEngines;
+    subEngines.textContent = I18N[lang].subEngines;
+    btnCheckConnText.textContent = I18N[lang].btnCheckConn;
+    optOpenApp.querySelector('span').textContent = I18N[lang].openApp;
+
+    if (secSiteCheck) secSiteCheck.textContent = I18N[lang].secSiteCheck;
+    if (subSiteCheck) subSiteCheck.textContent = I18N[lang].subSiteCheck;
+    if (btnRefreshSiteCheckText) btnRefreshSiteCheckText.textContent = I18N[lang].btnCheckActiveTab;
+    if (secVoice) secVoice.textContent = I18N[lang].secVoice;
+    if (subVoice) subVoice.textContent = I18N[lang].subVoice;
+    if (lblPreferGeminiVoice) lblPreferGeminiVoice.innerHTML = `<strong>${lang === 'fa' ? 'استفاده ترجیحی از صدای هوش مصنوعی جمینای' : 'Prefer Gemini AI Voice'}</strong> — ${I18N[lang].lblPreferGeminiVoice}`;
+    if (lblGeminiVoice) lblGeminiVoice.textContent = I18N[lang].lblGeminiVoice;
+    if (lblTtsRate) lblTtsRate.textContent = I18N[lang].lblTtsRate;
+    if (lblVoiceFa) lblVoiceFa.textContent = I18N[lang].lblVoiceFa;
+    if (lblVoiceEn) lblVoiceEn.textContent = I18N[lang].lblVoiceEn;
+    if (btnTestVoiceText) btnTestVoiceText.textContent = I18N[lang].btnTestVoice;
+  }
+
+  // Populate Languages Dropdown
+  selDefaultTgt.innerHTML = '';
+  LANGS.forEach(([code, name, faName]) => {
+    const label = currentUi === 'fa' ? faName : name;
+    selDefaultTgt.innerHTML += `<option value="${code}">${label}</option>`;
+  });
+
+  // Populate Initial Values
+  selTrigger.value = cfg.trigger || 'auto';
+  selDefaultTgt.value = cfg.tgt || 'fa';
+  selDefaultTone.value = cfg.tone || 'neutral';
+  txtWebAppUrl.value = cfg.webAppUrl || 'http://localhost:8080';
+  chkDictLookup.checked = cfg.dictLookup !== false;
+  optOpenApp.href = cfg.webAppUrl || 'http://localhost:8080';
+
+  applyUi(currentUi);
+
+  // Render Engines List
+  function renderEngines() {
+    optEngineList.innerHTML = '';
+
+    cfg.order.forEach((id, index) => {
+      const def = ENG[id];
+      if (!def) return;
+      const engCfg = cfg.eng[id] || { on: true, key: '', model: def.model || '', base: def.base || '' };
+
+      const row = document.createElement('div');
+      row.className = `opt-eng-row ${engCfg.on ? '' : 'disabled'}`;
+      row.dataset.id = id;
+
+      const conn = connResults[id];
+      const statusHtml = conn
+        ? `<span class="opt-status-pill ${conn.code === 'works' ? 'works' : (conn.code === 'needsKey' ? 'needsKey' : 'err')}">${conn.text}</span>`
+        : '';
+
+      const tierClass = def.tier || 'free';
+      const tierText = def.tier === 'freekey' ? 'Free Key' : def.tier;
+
+      row.innerHTML = `
+        <div class="opt-eng-head">
+          <div class="opt-eng-order">
+            <button class="opt-arrow-btn" data-action="up" data-idx="${index}" title="Move up" ${index === 0 ? 'disabled' : ''}>▲</button>
+            <button class="opt-arrow-btn" data-action="down" data-idx="${index}" title="Move down" ${index === cfg.order.length - 1 ? 'disabled' : ''}>▼</button>
+          </div>
+          <label class="opt-chk">
+            <input type="checkbox" class="opt-eng-on" data-id="${id}" ${engCfg.on ? 'checked' : ''}>
+          </label>
+          <div class="opt-eng-name">
+            <span>${def.name}</span>
+            <span class="opt-tier-pill ${tierClass}">${tierText}</span>
+          </div>
+          <div class="opt-sp"></div>
+          ${statusHtml}
+          ${def.url ? `<a href="${def.url}" target="_blank" class="opt-btn ghost" style="font-size:11px;height:24px;padding:0 8px">Get Key ↗</a>` : ''}
+        </div>
+        ${(def.key || def.ai || def.tier === 'custom') ? `
+        <div class="opt-eng-fields">
+          ${def.key ? `
+          <div class="opt-key-wrap">
+            <input type="password" class="opt-eng-input" data-id="${id}" data-prop="key" value="${engCfg.key || ''}" placeholder="${I18N[currentUi].keyPh}">
+            <button type="button" class="opt-eye-btn" title="Show/hide key">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+            </button>
+          </div>` : ''}
+          ${def.ai ? `
+          <div class="opt-model-wrap">
+            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="model" value="${engCfg.model || def.model || ''}" placeholder="${I18N[currentUi].modelPh}">
+          </div>` : ''}
+          ${(def.tier === 'custom' || id === 'ollama') ? `
+          <div class="opt-base-wrap">
+            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="base" value="${engCfg.base || def.base || ''}" placeholder="${I18N[currentUi].basePh}">
+          </div>` : ''}
+        </div>` : ''}
+      `;
+
+      optEngineList.appendChild(row);
+    });
+
+    // Hook listeners
+    optEngineList.querySelectorAll('.opt-eng-on').forEach(chk => {
+      chk.onchange = e => {
+        const id = e.target.dataset.id;
+        cfg.eng[id].on = e.target.checked;
+        saveAndNotify();
+        renderEngines();
+      };
+    });
+
+    optEngineList.querySelectorAll('.opt-arrow-btn').forEach(btn => {
+      btn.onclick = e => {
+        const idx = +btn.dataset.idx;
+        const act = btn.dataset.action;
+        const targetIdx = act === 'up' ? idx - 1 : idx + 1;
+        if (targetIdx >= 0 && targetIdx < cfg.order.length) {
+          const temp = cfg.order[idx];
+          cfg.order[idx] = cfg.order[targetIdx];
+          cfg.order[targetIdx] = temp;
+          saveAndNotify();
+          renderEngines();
+        }
+      };
+    });
+
+    optEngineList.querySelectorAll('.opt-eng-input').forEach(inp => {
+      inp.onchange = e => {
+        const id = e.target.dataset.id;
+        const prop = e.target.dataset.prop;
+        cfg.eng[id][prop] = e.target.value.trim();
+        saveAndNotify();
+      };
+    });
+
+    optEngineList.querySelectorAll('.opt-eye-btn').forEach(btn => {
+      btn.onclick = () => {
+        const inp = btn.previousElementSibling;
+        if (inp.type === 'password') {
+          inp.type = 'text';
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m2 2 20 20"/><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/></svg>`;
+        } else {
+          inp.type = 'password';
+          btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`;
+        }
+      };
+    });
+  }
+
+  async function saveAndNotify() {
+    try {
+      if (window.chrome?.runtime?.sendMessage) {
+        await chrome.runtime.sendMessage({ action: 'save-config', cfg });
+      } else if (window.localStorage) {
+        localStorage.setItem('makan-ext-cfg', JSON.stringify(cfg));
+      }
+    } catch {}
+  }
+
+  renderEngines();
+
+  // Behavior Settings handlers
+  selTrigger.onchange = () => {
+    cfg.trigger = selTrigger.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selDefaultTgt.onchange = () => {
+    cfg.tgt = selDefaultTgt.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selDefaultTone.onchange = () => {
+    cfg.tone = selDefaultTone.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  txtWebAppUrl.onchange = () => {
+    cfg.webAppUrl = txtWebAppUrl.value.trim() || 'http://localhost:8080';
+    optOpenApp.href = cfg.webAppUrl;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  chkDictLookup.onchange = () => {
+    cfg.dictLookup = chkDictLookup.checked;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  // ==================== SITE COMPATIBILITY SELF-CHECK ====================
+  let activeTabInfo = null;
+
+  async function runSiteCheck() {
+    siteCheckBadge.className = 'opt-check-badge warn';
+    siteCheckBadge.textContent = 'Checking…';
+    siteCheckUrl.textContent = 'Detecting active tab…';
+    siteCheckDetail.textContent = 'Querying browser tab state…';
+    btnInjectScript.style.display = 'none';
+    btnToggleSiteDisable.style.display = 'none';
+
+    try {
+      let res = null;
+      if (window.chrome?.runtime?.sendMessage) {
+        res = await chrome.runtime.sendMessage({ action: 'check-tab-status' });
+      }
+
+      if (!res || !res.ok) {
+        siteCheckBadge.className = 'opt-check-badge warn';
+        siteCheckBadge.textContent = 'Unavailable';
+        siteCheckUrl.textContent = 'No tab info';
+        siteCheckDetail.textContent = res?.reason || 'Could not determine active tab. Make sure a web page is open in this window.';
+        return;
+      }
+
+      activeTabInfo = res;
+      siteCheckUrl.textContent = res.url || 'about:blank';
+
+      if (res.isInternal) {
+        siteCheckBadge.className = 'opt-check-badge err';
+        siteCheckBadge.textContent = 'Restricted';
+        siteCheckDetail.textContent = `Browser security policies restrict extension content scripts on internal pages (${res.url.split(':')[0]}://). MAKAN Translate cannot run on browser settings or internal utility pages.`;
+      } else if (res.isStore) {
+        siteCheckBadge.className = 'opt-check-badge err';
+        siteCheckBadge.textContent = 'Restricted';
+        siteCheckDetail.textContent = 'Browser web store pages block extension execution by browser security policy. Please test on any normal website (e.g. Wikipedia, BBC, GitHub).';
+      } else if (res.isDomainDisabled) {
+        siteCheckBadge.className = 'opt-check-badge warn';
+        siteCheckBadge.textContent = 'Disabled on Site';
+        siteCheckDetail.textContent = `MAKAN is currently disabled on ${res.host} in your settings. Click the button below to re-enable it.`;
+        btnToggleSiteDisable.style.display = 'inline-block';
+        btnToggleSiteDisable.textContent = `Re-enable on ${res.host}`;
+      } else if (!res.contentScriptResponding) {
+        siteCheckBadge.className = 'opt-check-badge warn';
+        siteCheckBadge.textContent = 'Not Injected Yet';
+        siteCheckDetail.textContent = `This tab was opened before MAKAN Translate was installed or reloaded, or site access is pending. Reload the tab once, or click "Inject Script Now" below.`;
+        btnInjectScript.style.display = 'inline-block';
+        btnInjectScript.textContent = 'Inject Script Now';
+      } else {
+        siteCheckBadge.className = 'opt-check-badge ok';
+        siteCheckBadge.textContent = 'Active & Ready';
+        siteCheckDetail.textContent = `MAKAN Translate is active and fully operational on ${res.host || 'this site'}. Text selection button, right-click menu, Alt-selection, and whole-page translation are ready.`;
+        btnToggleSiteDisable.style.display = 'inline-block';
+        btnToggleSiteDisable.textContent = `Disable MAKAN on ${res.host}`;
+      }
+    } catch (e) {
+      siteCheckBadge.className = 'opt-check-badge err';
+      siteCheckBadge.textContent = 'Error';
+      siteCheckDetail.textContent = 'Failed to check tab status: ' + e.message;
+    }
+  }
+
+  btnRefreshSiteCheck.onclick = runSiteCheck;
+
+  btnInjectScript.onclick = async () => {
+    if (!activeTabInfo?.tabId) return;
+    btnInjectScript.disabled = true;
+    btnInjectScript.textContent = 'Injecting…';
+    try {
+      const res = await chrome.runtime.sendMessage({ action: 'inject-into-tab', tabId: activeTabInfo.tabId });
+      if (res && res.ok) {
+        toast('Content script injected successfully!', 'ok');
+      } else {
+        toast('Could not inject script: ' + (res?.error || 'Unknown error'), 'warn');
+      }
+    } catch (e) {
+      toast('Injection failed: ' + e.message, 'err');
+    } finally {
+      btnInjectScript.disabled = false;
+      await runSiteCheck();
+    }
+  };
+
+  btnToggleSiteDisable.onclick = async () => {
+    if (!activeTabInfo?.host) return;
+    try {
+      const res = await chrome.runtime.sendMessage({ action: 'toggle-site-disabled', host: activeTabInfo.host });
+      if (res && res.ok) {
+        toast(res.isSiteDisabled ? `Disabled on ${activeTabInfo.host}` : `Enabled on ${activeTabInfo.host}`, 'ok');
+      }
+    } catch (e) {
+      toast('Toggle failed: ' + e.message, 'err');
+    }
+    await runSiteCheck();
+  };
+
+  // Run initial tab diagnostics
+  runSiteCheck();
+
+  // ==================== VOICE / TTS SETTINGS ====================
+  cfg.tts = cfg.tts || {};
+  chkPreferGeminiVoice.checked = !!cfg.tts.preferGemini;
+  selGeminiVoice.value = cfg.tts.geminiVoice || 'Kore';
+  selTtsRate.value = String(cfg.tts.rate || 1.0);
+
+  function populateVoices() {
+    if (!window.speechSynthesis) return;
+    const voices = window.speechSynthesis.getVoices();
+    const faVoices = voices.filter(v => v.lang.toLowerCase().startsWith('fa'));
+    const enVoices = voices.filter(v => v.lang.toLowerCase().startsWith('en'));
+
+    selVoiceFa.innerHTML = '';
+    if (!faVoices.length) {
+      selVoiceFa.innerHTML = '<option value="">None installed (Uses Gemini AI voice)</option>';
+    } else {
+      selVoiceFa.innerHTML = '<option value="">Auto (Best system voice)</option>';
+      faVoices.forEach(v => {
+        selVoiceFa.innerHTML += `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`;
+      });
+    }
+
+    selVoiceEn.innerHTML = '<option value="">Auto (Best system voice)</option>';
+    enVoices.forEach(v => {
+      selVoiceEn.innerHTML += `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`;
+    });
+
+    if (cfg.tts.voices?.fa) selVoiceFa.value = cfg.tts.voices.fa;
+    if (cfg.tts.voices?.en) selVoiceEn.value = cfg.tts.voices.en;
+  }
+
+  populateVoices();
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = populateVoices;
+  }
+
+  chkPreferGeminiVoice.onchange = () => {
+    cfg.tts.preferGemini = chkPreferGeminiVoice.checked;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selGeminiVoice.onchange = () => {
+    cfg.tts.geminiVoice = selGeminiVoice.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selTtsRate.onchange = () => {
+    cfg.tts.rate = parseFloat(selTtsRate.value) || 1.0;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selVoiceFa.onchange = () => {
+    cfg.tts.voices = cfg.tts.voices || {};
+    cfg.tts.voices.fa = selVoiceFa.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  selVoiceEn.onchange = () => {
+    cfg.tts.voices = cfg.tts.voices || {};
+    cfg.tts.voices.en = selVoiceEn.value;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
+
+  // Test Voice Handler
+  let isTestingVoice = false;
+  btnTestVoice.onclick = async () => {
+    if (isTestingVoice) {
+      try { window.speechSynthesis?.cancel(); } catch {}
+      try { chrome.runtime.sendMessage({ action: 'stop-tts' }); } catch {}
+      isTestingVoice = false;
+      btnTestVoiceText.textContent = I18N[currentUi].btnTestVoice;
+      return;
+    }
+
+    isTestingVoice = true;
+    btnTestVoiceText.textContent = I18N[currentUi].testingVoice;
+
+    const testText = currentUi === 'fa'
+      ? 'سلام! خواندن متن مکان به درستی کار می‌کند.'
+      : 'Hello! MAKAN Translate read-aloud is working properly.';
+    const testLang = currentUi === 'fa' ? 'fa' : 'en';
+
+    const finishTest = () => {
+      isTestingVoice = false;
+      btnTestVoiceText.textContent = I18N[currentUi].btnTestVoice;
+    };
+
+    try {
+      const preferGemini = !!cfg.tts.preferGemini;
+      const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+      const v = typeof pickBestVoice === 'function' ? pickBestVoice(testLang, voices, cfg.tts.voices) : null;
+
+      if (preferGemini || !v) {
+        const resp = await chrome.runtime.sendMessage({
+          action: 'play-gemini-tts',
+          text: testText,
+          voice: cfg.tts.geminiVoice || 'Kore',
+          rate: cfg.tts.rate || 1.0
+        });
+        if (resp && resp.ok) {
+          if (resp.audioDataUrl) {
+            const a = new Audio(resp.audioDataUrl);
+            a.onended = finishTest;
+            a.onerror = finishTest;
+            await a.play();
+            return;
+          }
+          setTimeout(finishTest, 3500);
+          return;
+        } else if (!v) {
+          toast(resp?.error || 'No voice installed and Gemini API key not set.', 'warn');
+          finishTest();
+          return;
+        }
+      }
+
+      if (v && window.speechSynthesis) {
+        const u = new SpeechSynthesisUtterance(testText);
+        u.voice = v;
+        u.lang = v.lang || testLang;
+        u.rate = cfg.tts.rate || 1.0;
+        u.onend = finishTest;
+        u.onerror = finishTest;
+        window.speechSynthesis.speak(u);
+      } else {
+        finishTest();
+      }
+    } catch (e) {
+      toast('Test voice failed: ' + e.message, 'err');
+      finishTest();
+    }
+  };
+
+  // Check connections
+  btnCheckConn.onclick = async () => {
+    btnCheckConn.disabled = true;
+    btnCheckConnText.textContent = I18N[currentUi].checkingConn;
+    toast(I18N[currentUi].checkingConn, 'warn');
+
+    try {
+      let resp = null;
+      if (window.chrome?.runtime?.sendMessage) {
+        try {
+          resp = await chrome.runtime.sendMessage({ action: 'test-all-engines' });
+        } catch {}
+      }
+
+      if (resp && resp.ok && resp.results) {
+        connResults = resp.results;
+      } else if (typeof MakanEngine !== 'undefined') {
+        connResults = await MakanEngine.testAllConnections(cfg);
+      }
+
+      if (connResults) {
+        renderEngines();
+        let ok = 0;
+        Object.values(connResults).forEach(v => { if (v.code === 'works') ok++; });
+        toast(`Connections checked: ${ok}/${cfg.order.length} working`, 'ok');
+      }
+    } catch (e) {
+      toast('Connection check error: ' + e.message, 'err');
+    } finally {
+      btnCheckConn.disabled = false;
+      btnCheckConnText.textContent = I18N[currentUi].btnCheckConn;
+    }
+  };
+
+  // Toggle UI language
+  optLangToggle.onclick = () => {
+    const next = currentUi === 'en' ? 'fa' : 'en';
+    cfg.ui = next;
+    saveAndNotify();
+    applyUi(next);
+    renderEngines();
+  };
+
+  // Import from Web App via file
+  btnImportFile.onclick = () => fileImportInput.click();
+  fileImportInput.onchange = async e => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    try {
+      const txt = await file.text();
+      applySettingsJson(txt);
+      fileImportInput.value = '';
+    } catch (err) {
+      toast('Invalid file: ' + err.message, 'err');
+    }
+  };
+
+  // Paste JSON modal
+  btnPasteJson.onclick = () => {
+    modalPasteOv.hidden = false;
+    modalPasteArea.value = '';
+    modalPasteArea.focus();
+  };
+  modalPasteCancel.onclick = () => modalPasteOv.hidden = true;
+  modalPasteSave.onclick = () => {
+    const val = modalPasteArea.value.trim();
+    if (!val) return;
+    if (applySettingsJson(val)) {
+      modalPasteOv.hidden = true;
+    }
+  };
+
+  function applySettingsJson(rawJson) {
+    try {
+      const data = JSON.parse(rawJson);
+      // Support either raw cfg or exported structure
+      const importedCfg = data.cfg || data.order ? data : (data.makan_cfg || data);
+
+      if (importedCfg.order && Array.isArray(importedCfg.order)) {
+        cfg.order = importedCfg.order;
+      }
+      if (importedCfg.eng && typeof importedCfg.eng === 'object') {
+        Object.keys(importedCfg.eng).forEach(k => {
+          if (!cfg.eng[k]) cfg.eng[k] = {};
+          Object.assign(cfg.eng[k], importedCfg.eng[k]);
+        });
+      }
+      if (importedCfg.glossary && Array.isArray(importedCfg.glossary)) {
+        cfg.glossary = importedCfg.glossary;
+      }
+      if (importedCfg.tone) cfg.tone = importedCfg.tone;
+      if (importedCfg.src) cfg.src = importedCfg.src;
+      if (importedCfg.tgt) cfg.tgt = importedCfg.tgt;
+
+      saveAndNotify();
+      selDefaultTgt.value = cfg.tgt || 'fa';
+      selDefaultTone.value = cfg.tone || 'neutral';
+      renderEngines();
+      toast('Settings and API keys imported successfully!', 'ok');
+      return true;
+    } catch (e) {
+      toast('Failed to parse settings JSON: ' + e.message, 'err');
+      return false;
+    }
+  }
+
+  // Export settings backup
+  btnExportSettings.onclick = () => {
+    const exportData = {
+      app: 'MAKAN Translate',
+      version: '1.0.0',
+      exportedAt: new Date().toISOString(),
+      order: cfg.order,
+      eng: cfg.eng,
+      src: cfg.src,
+      tgt: cfg.tgt,
+      tone: cfg.tone,
+      glossary: cfg.glossary
+    };
+    const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'makan-translate-settings.json';
+    a.click();
+    URL.revokeObjectURL(url);
+    toast('Settings exported to makan-translate-settings.json', 'ok');
+  };
+});

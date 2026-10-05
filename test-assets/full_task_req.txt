@@ -1,0 +1,94 @@
+<USER_REQUEST>
+The owner loaded the MAKAN Translate extension by hand in real Chrome and real
+Edge. Chrome works well except for read-aloud. Edge has two failures. He also
+wants a Firefox version. Never print API keys.
+
+1. Edge failures (from the owner's screenshots on English Wikipedia):
+   a. Selecting text shows only Edge's own mini menu (the small floating bar
+      with hide, more, Copilot, copy and search icons). The MAKAN button does
+      not appear.
+   b. Right-click shows "Translate with MAKAN" with the M icon, but choosing
+      it does nothing: no card, no message.
+   Investigate and fix the real causes. Check at least these: the content
+   script is missing in tabs that were open before the extension was installed
+   or reloaded (inject it on install and on demand with the scripting API, and
+   make the context-menu handler inject it first if the tab does not answer);
+   the message from the background worker to the tab fails silently (handle
+   the error and show a visible result); the worker was asleep; site access is
+   set to "on click" in Edge so the script never ran; our button is rendered
+   but hidden under or beside Edge's mini menu (position it so both are
+   visible, for example on the opposite side of the selection). The context
+   menu path must always produce something visible: the card, or a clear
+   message such as "reload this page once to enable MAKAN" with the reason.
+   Add a short self-check to the options page that says whether the extension
+   can run on the current site and why not if it cannot.
+
+2. Read-aloud bug (seen in Chrome). On a Persian translation the speaker says
+   only one or two words such as "AI" or "data". Cause to confirm: there is no
+   Persian voice, so an English voice is used and it skips everything except
+   Latin words. Fix it the way the web app does:
+   - Choose the voice by the language of the text being spoken, preferring
+     natural/online voices, and never speak text with a voice of a different
+     language.
+   - When no voice exists for that language, use Gemini text-to-speech through
+     the background worker if a Gemini key is set, with the same model
+     fallback and PCM-to-WAV handling as the web app, played in a way that
+     works under Manifest V3 (for example an offscreen document) and is not
+     blocked by the page's content security policy.
+   - If neither is available, show one clear line saying no voice is installed
+     for this language and how to get one. Do not play anything.
+   - Add a voice section to the options page: voice per language, speed, and
+     "prefer Gemini voice". Give the speaker button a visible playing state,
+     make a second click stop it, and split long text into parts.
+   Apply this in the selection card, the dictionary card and the popup, and
+   fix the same weakness in the web app if it exists there.
+
+3. Firefox version. Make the same extension run in Firefox desktop and, where
+   the APIs allow, Firefox for Android, from the same source folder if
+   practical. Check the current Firefox extension docs and handle each
+   difference that matters: background script declaration versus service
+   worker, browser_specific_settings / gecko id and minimum version, any
+   data-collection declaration Mozilla's store requires, host permissions
+   being optional and user-granted in Firefox Manifest V3, the lack of an
+   offscreen document API (find the right way to play audio), context menu,
+   commands and storage differences. If one manifest cannot serve all
+   browsers cleanly, generate them from a shared source with a small script
+   and tell me how to run it.
+
+4. Test for real. Use Mozilla's web-ext tool to lint the extension and launch
+   Firefox with it loaded, and test on English and Persian Wikipedia, a news
+   article, a heavily styled page and a page with code blocks: selection
+   button and card, right-click menu, shortcut, popup, whole-page translation
+   with Show original, options with Check connections, settings import, and
+   read aloud in English and Persian. Test both a freshly opened tab and a tab
+   that was already open before the extension was loaded. For Chrome and Edge
+   the owner loads the folder by hand, so give me a short checklist to run
+   after your changes. Say clearly which results come from a real browser with
+   the extension loaded and which do not.
+
+5. Publishing. Give exact steps to install temporarily in Firefox, to get it
+   signed, and to publish on addons.mozilla.org, including what reviewers will
+   ask about the all-sites permission and third-party API calls, and what
+   source notes must be submitted.
+
+6. The engine logic now lives in two places (index.html and
+   extension/engine.js). Either move it to one shared file used by both, or
+   add a short ENGINE_SYNC.md listing exactly what must be kept identical.
+
+Report real outputs, list what you could not test, and confirm the web app's
+tabs still work.
+</USER_REQUEST>
+<ADDITIONAL_METADATA>
+The current local time is: 2026-10-05T16:04:24+03:30.
+
+The user's current state is as follows:
+Other open documents:
+- c:\Users\Makan\Desktop\translator\test-assets\inspect_loaded_ext.js (LANGUAGE_JAVASCRIPT)
+- c:\Users\Makan\Desktop\translator\test-assets\check_ext_manager.js (LANGUAGE_JAVASCRIPT)
+- c:\Users\Makan\Desktop\translator\extension\manifest.json (LANGUAGE_JSON)
+- c:\Users\Makan\Desktop\translator\extension\engine.js (LANGUAGE_JAVASCRIPT)
+- c:\Users\Makan\Desktop\translator\test-assets\check_50505.py (LANGUAGE_PYTHON)
+</ADDITIONAL_METADATA>
+<USER_SETTINGS_CHANGE>
+The user changed setting `Model Selection` from None to Gemini 3.8 Flash (Medium). No need to comment on this change if the user doesn't ask about it. If reporting what model you are, please use a human readable name instead of the exact string.
+</USER_SETTINGS_CHANGE>

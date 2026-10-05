@@ -1,0 +1,180 @@
+import sys
+
+lines = [
+    "Look, we don't have all day. What's the plan?",
+    "I don't know, man. Nobody told me shit.",
+    "Are you serious? You're telling me we came all this way for nothing?",
+    "Keep your voice down, asshole. Someone might hear us.",
+    "I don't give a damn who hears us.",
+    "Hey! Both of you, shut up and listen.",
+    "What is it now, Marcus?",
+    "The cops just pulled up outside.",
+    "Shit! How did they find us so fast?",
+    "I don't know, but we gotta get the hell outta here right now.",
+    "Grab the bag. Leave the rest.",
+    "What about the laptop? It's got everything on it.",
+    "Forget the damn laptop! Move!",
+    "I'm not leaving without it.",
+    "You wanna spend twenty years in prison for a piece of junk?",
+    "Come on, let's go through the back alley.",
+    "The back door is locked!",
+    "Kick it open, you idiot!",
+    "Stand back, I got this.",
+    "Hurry up! They're coming up the stairs!",
+    "Almost there... got it! It's open!",
+    "Go, go, go! Don't look back!",
+    "Where's the getaway car?",
+    "Danny was supposed to park at the corner.",
+    "Where the hell is Danny?",
+    "He bailed on us. I knew he was a coward.",
+    "Damn it, Danny! When I see him, I'm gonna break his neck.",
+    "We need another ride. Look, over there!",
+    "That blue sedan?",
+    "Yeah. The driver just left the keys in the ignition.",
+    "Are you crazy? We're stealing a car now?",
+    "Do you see any taxis around here?",
+    "Good point. Get in!",
+    "Punch it! Step on the gas!",
+    "I'm stepping on it! This piece of junk doesn't accelerate!",
+    "Hang on, sharp turn ahead!",
+    "Watch out for that trash can!",
+    "Phew! That was close.",
+    "Did we lose them?",
+    "I don't see any flashing lights behind us.",
+    "We're not safe yet. We need to ditch this car.",
+    "Where do we go?",
+    "To the safehouse in Brooklyn.",
+    "Are you sure no one followed us?",
+    "Pretty sure. But we can't let our guard down.",
+    "Call Sarah. Tell her we're on our way.",
+    "My phone died two hours ago.",
+    "Use mine. It's in my jacket pocket.",
+    "What's your passcode?",
+    "One, two, three, four.",
+    "Seriously? That's your passcode?",
+    "It's easy to remember, okay? Just dial the number.",
+    "It's ringing... Sarah? It's me.",
+    "Is everything okay?",
+    "We had a little complication, but we're headed to you.",
+    "Did you get the merchandise?",
+    "Yeah, we got it. Have the cash ready.",
+    "Don't worry about the money. Just get here in one piece.",
+    "See you in twenty minutes.",
+    "She sounded nervous.",
+    "Who wouldn't be nervous after what happened?",
+    "Something doesn't feel right about this whole deal.",
+    "Relax. We've done this a dozen times.",
+    "Yeah, but never with cops on our tail five minutes in.",
+    "Somebody tipped them off.",
+    "Who knew about the meeting?",
+    "Just us, Sarah, and the boss.",
+    "You don't think the boss set us up, do you?",
+    "Why would he do that? He needs this delivery.",
+    "Maybe he wants the payout without splitting it with us.",
+    "That son of a bitch wouldn't dare.",
+    "Greed makes people do stupid things.",
+    "If he betrayed us, he's a dead man.",
+    "First things first: we survive tonight.",
+    "Agreed. Take the next left.",
+    "This street is blocked off for construction.",
+    "Take the alleyway then.",
+    "It's too narrow. We might scratch the sides.",
+    "Who cares about scratching a stolen car?!",
+    "Right, sorry. My bad.",
+    "Keep moving!",
+    "We're three blocks away.",
+    "Park around the block. We'll walk the rest.",
+    "Good idea. Less attention.",
+    "Check the bag. Make sure everything is inside.",
+    "Diamond necklace, luxury watches, foreign bonds... it's all here.",
+    "Man, this must be worth millions.",
+    "Don't get attached. It's not ours to keep.",
+    "A guy can dream, can't he?",
+    "Dreams don't pay the lawyer fees.",
+    "True that. Put your hood up.",
+    "Ready when you are.",
+    "Let's get this over with.",
+    "Knock three times, pause, then twice.",
+    "I know the drill.",
+    "Who is it?",
+    "It's Marcus and Leo. Open up.",
+    "The door opened slowly with a creak.",
+    "Get inside, quickly!",
+    "Did anyone see you?",
+    "No, we ditched the wheels two streets over.",
+    "Thank God you made it.",
+    "Where is the boss?",
+    "He's waiting in the back room.",
+    "Is he alone?",
+    "He's got two of his bodyguards with him.",
+    "Keep your hand near your piece, Leo.",
+    "Already on it.",
+    "Boss, the boys are here.",
+    "Ah, gentlemen! Glad to see you're alive.",
+    "Cut the crap, Vincent. The cops were waiting for us.",
+    "Is that so? What a shame.",
+    "Don't play dumb with me!",
+    "Calm down, Marcus. Accusations won't help anybody.",
+    "Did you set us up, Vincent?",
+    "Why would I jeopardize my own operation?",
+    "You tell me. Maybe you wanted a bigger cut.",
+    "I take care of my people. You know that.",
+    "Then explain why squad cars surrounded the block!",
+    "Someone talked. But it wasn't me.",
+    "Then who was it?",
+    "We caught Danny trying to board a flight to Miami.",
+    "Danny?! That rat!",
+    "He sang like a canary to the feds.",
+    "Where is Danny now?",
+    "In the basement. Having a little chat with Bruno.",
+    "I want five minutes with that bastard.",
+    "Later. First, show me the goods.",
+    "Leo, hand him the bag.",
+    "Here. Every single item accounted for.",
+    "Magnificent. Absolutely stunning.",
+    "Now give us our share. We're getting out of town.",
+    "Of course. A deal is a deal.",
+    "Here's the cash. Five hundred thousand each.",
+    "Count it.",
+    "It's all here.",
+    "Pleasure doing business with you, boys.",
+    "Don't ever call us again, Vincent.",
+    "Take care, Marcus. Take care, Leo.",
+    "Let's get out of here before Danny's friends show up.",
+    "Which airport?",
+    "JFK. We're flying to Mexico City.",
+    "Sounds like a plan.",
+    "I need a drink.",
+    "First plane ticket, then drinks.",
+    "Fair enough, my friend. Fair enough."
+]
+
+# We need at least 300 lines for the test requirement
+full_dialogue = []
+while len(full_dialogue) < 320:
+    for line in lines:
+        full_dialogue.append(line)
+        if len(full_dialogue) >= 320:
+            break
+
+srt_content = []
+curr_ms = 12000
+for i, text in enumerate(full_dialogue, 1):
+    start_ms = curr_ms
+    duration = max(1800, len(text) * 60)
+    end_ms = start_ms + duration
+    curr_ms = end_ms + 400
+
+    def fmt_srt(ms):
+        h = ms // 3600000
+        m = (ms // 60000) % 60
+        s = (ms // 1000) % 60
+        sub = ms % 1000
+        return f"{h:02d}:{m:02d}:{s:02d},{sub:03d}"
+
+    srt_content.append(f"{i}\n{fmt_srt(start_ms)} --> {fmt_srt(end_ms)}\n{text}\n")
+
+with open('test-assets/sample_movie.srt', 'w', encoding='utf-8') as f:
+    f.write('\n'.join(srt_content))
+
+print(f"Generated sample_movie.srt with {len(full_dialogue)} lines.")

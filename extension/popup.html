@@ -1,0 +1,108 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAKAN Translate</title>
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="p-header">
+    <div class="p-brand">
+      <div class="p-mark">M</div>
+      <span class="p-title">MAKAN<b>Translate</b></span>
+    </div>
+    <div class="p-header-actions">
+      <button class="p-icon-btn" id="pLangToggle" title="Switch UI language (English / فارسی)">FA</button>
+      <button class="p-icon-btn" id="pOptionsBtn" title="Engines & Keys Settings">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+      </button>
+    </div>
+  </div>
+
+  <!-- Quick Controls Bar -->
+  <div class="p-quick-bar">
+    <div class="p-site-toggle-wrap">
+      <label class="p-switch" title="Toggle selection popup button on this site">
+        <input type="checkbox" id="pSiteToggle" checked>
+        <span class="p-slider"></span>
+      </label>
+      <span class="p-site-label" id="pSiteLabel">Enabled on site</span>
+    </div>
+    <span class="p-sp"></span>
+    <button class="p-page-btn" id="pPageTransBtn" title="Translate entire visible page in-place">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span id="pPageTransText">Translate Page</span>
+    </button>
+  </div>
+
+  <!-- Site Access Permission Banner (e.g. for Firefox MV3) -->
+  <div class="p-perm-banner" id="pPermBanner" style="display:none;">
+    <span class="p-perm-msg" id="pPermText">Enable full site translation:</span>
+    <button class="p-perm-btn" id="pPermBtn">Grant Site Access</button>
+  </div>
+
+  <!-- Mini Translator Card -->
+  <div class="p-trans-card">
+    <div class="p-lang-row">
+      <select class="p-sel" id="pSrcLang" aria-label="Source Language">
+        <option value="auto">Auto-detect</option>
+      </select>
+      <button class="p-swap-btn" id="pSwapLang" title="Swap languages">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="m7 16-4-4 4-4"/><path d="M3 12h18"/><path d="m17 8 4 4-4 4"/></svg>
+      </button>
+      <select class="p-sel" id="pTgtLang" aria-label="Target Language"></select>
+    </div>
+
+    <div class="p-meta-row">
+      <div class="p-ctrl-item">
+        <label id="lblEngine">Engine:</label>
+        <select class="p-mini-sel" id="pEngineSel">
+          <option value="auto">Auto (Best available)</option>
+        </select>
+      </div>
+      <div class="p-ctrl-item">
+        <label id="lblTone">Tone:</label>
+        <select class="p-mini-sel" id="pToneSel">
+          <option value="neutral">Neutral</option>
+          <option value="technical">Technical</option>
+          <option value="formal">Formal</option>
+          <option value="film">Film / Colloquial</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="p-input-wrap">
+      <textarea id="pInputText" placeholder="Type or paste text to translate…" rows="3"></textarea>
+      <div class="p-input-actions">
+        <button class="p-action-btn" id="pClearBtn" title="Clear text">Clear</button>
+        <button class="p-action-btn cta" id="pTransBtn">Translate</button>
+      </div>
+    </div>
+
+    <div class="p-output-wrap" id="pOutputWrap" hidden>
+      <div class="p-output-head">
+        <span class="p-out-meta" id="pOutputEngine">Engine</span>
+        <span class="p-sp"></span>
+        <button class="p-icon-btn" id="pCopyBtn" title="Copy translation">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+        </button>
+        <button class="p-icon-btn" id="pSpeakBtn" title="Read aloud">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/></svg>
+        </button>
+      </div>
+      <div class="p-output-text" id="pOutputText"></div>
+    </div>
+  </div>
+
+  <div class="p-footer">
+    <a href="http://localhost:8080" target="_blank" class="p-link" id="pOpenWebApp">
+      <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span>Open full Web App</span>
+    </a>
+  </div>
+
+  <script src="engine.js"></script>
+  <script src="popup.js"></script>
+</body>
+</html>

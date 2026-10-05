@@ -1,0 +1,465 @@
+/* MAKAN Translate - Shadow DOM Content Styles */
+:host {
+  all: initial;
+  font-family: 'Manrope', 'Vazirmatn', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #EAF1F7;
+  --bg: #05070D;
+  --surface: #0B111C;
+  --surface2: #101826;
+  --glass: rgba(11, 17, 28, 0.94);
+  --border: rgba(255, 255, 255, 0.10);
+  --border2: rgba(255, 255, 255, 0.16);
+  --accent: #58A6FF;
+  --accent-dim: rgba(88, 166, 255, 0.14);
+  --green: #22E58A;
+  --cyan: #13C8F5;
+  --blue: #3B6BFF;
+  --grad: linear-gradient(100deg, #22E58A 0%, #13C8F5 50%, #3B6BFF 100%);
+  --cta: #FFB44A;
+  --cta-ink: #16110A;
+  --text: #EAF1F7;
+  --muted: #93A1B5;
+  --faint: #5E6B7E;
+  --r-s: 8px;
+  --r-m: 14px;
+  --r-l: 20px;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* Floating MAKAN Action Button */
+.makan-btn-float {
+  position: absolute;
+  z-index: 2147483647;
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  background: var(--surface);
+  border: 1px solid var(--accent);
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4), 0 0 10px rgba(88, 166, 255, 0.3);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transform: scale(0.92);
+  transition: transform 0.16s cubic-bezier(0.2, 0.8, 0.4, 1), box-shadow 0.16s ease;
+  user-select: none;
+  pointer-events: auto !important;
+}
+
+.makan-btn-float:hover {
+  transform: scale(1.08);
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.5), 0 0 14px rgba(88, 166, 255, 0.5);
+  border-color: #79b8ff;
+}
+
+.makan-mark-ico {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  background: var(--grad);
+  display: grid;
+  place-items: center;
+  color: #03111A;
+  font-size: 11px;
+  font-weight: 800;
+  font-family: 'Space Grotesk', sans-serif;
+  line-height: 1;
+}
+
+/* Compact Translation Card */
+.makan-card {
+  position: absolute;
+  z-index: 2147483647;
+  width: 370px;
+  max-width: calc(100vw - 32px);
+  max-height: 480px;
+  background: var(--glass);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid var(--border2);
+  border-radius: var(--r-m);
+  box-shadow: 0 20px 48px -8px rgba(0, 0, 0, 0.75), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: auto !important;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  animation: makanFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes makanFadeIn {
+  from { opacity: 0; transform: translateY(6px) scale(0.97); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+.makan-card-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  background: rgba(255, 255, 255, 0.03);
+  border-bottom: 1px solid var(--border);
+  user-select: none;
+}
+
+.makan-card-brand {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  font-size: 12.5px;
+  letter-spacing: 0.02em;
+  color: var(--text);
+}
+
+.makan-card-brand span {
+  color: var(--accent);
+}
+
+.makan-pill {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 7px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--muted);
+}
+
+.makan-pill.engine {
+  color: var(--accent);
+  background: var(--accent-dim);
+  border-color: rgba(88, 166, 255, 0.3);
+  margin-inline-start: auto;
+}
+
+.makan-pill.detected {
+  color: var(--green);
+  background: rgba(34, 229, 138, 0.12);
+  border-color: rgba(34, 229, 138, 0.28);
+}
+
+.makan-icon-btn {
+  background: transparent;
+  border: none;
+  color: var(--muted);
+  width: 26px;
+  height: 26px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+  padding: 0;
+  transition: background 0.15s ease, color 0.15s ease;
+}
+
+.makan-icon-btn:hover {
+  background: var(--surface2);
+  color: var(--text);
+}
+
+.makan-card-body {
+  padding: 14px;
+  overflow-y: auto;
+  max-height: 260px;
+  min-height: 60px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  font-size: 14.5px;
+  line-height: 1.6;
+  color: var(--text);
+}
+
+.makan-loading {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 13px;
+  padding: 20px 0;
+}
+
+.makan-spin {
+  animation: makanSpin 0.9s linear infinite;
+}
+
+@keyframes makanSpin {
+  100% { transform: rotate(360deg); }
+}
+
+.makan-result-text {
+  white-space: pre-wrap;
+  word-break: break-word;
+  user-select: text;
+}
+
+.makan-result-text[dir="rtl"] {
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+  text-align: right;
+  font-size: 15px;
+  line-height: 1.7;
+}
+
+/* Dictionary card style */
+.makan-dict-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.makan-dict-head {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+}
+
+.makan-dict-word {
+  font-size: 18px;
+  font-weight: 700;
+  color: #fff;
+}
+
+.makan-dict-phonetic {
+  font-family: monospace;
+  font-size: 12px;
+  color: var(--muted);
+}
+
+.makan-dict-pos {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  background: rgba(34, 229, 138, 0.15);
+  color: var(--green);
+  border: 1px solid rgba(34, 229, 138, 0.3);
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+.makan-dict-trans {
+  font-size: 15.5px;
+  font-weight: 600;
+  color: var(--cta);
+}
+
+.makan-dict-def {
+  font-size: 13px;
+  color: var(--muted);
+  line-height: 1.5;
+  border-inline-start: 2px solid var(--accent);
+  padding-inline-start: 8px;
+}
+
+.makan-dict-ex {
+  font-size: 12.5px;
+  color: #cbd5e1;
+  font-style: italic;
+  background: var(--surface2);
+  padding: 6px 10px;
+  border-radius: 6px;
+}
+
+/* Card Footer Toolbar */
+.makan-card-footer {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  background: rgba(0, 0, 0, 0.25);
+  border-top: 1px solid var(--border);
+}
+
+.makan-action-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  height: 28px;
+  padding: 0 10px;
+  border-radius: 6px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.makan-action-btn:hover {
+  background: rgba(255, 255, 255, 0.08);
+  color: var(--text);
+  border-color: var(--border2);
+}
+
+.makan-action-btn.active {
+  color: var(--ok);
+  border-color: var(--ok);
+}
+
+.makan-action-btn.preparing {
+  color: #ffbe53;
+  border-color: #ffbe53;
+  background: rgba(255, 190, 83, 0.16);
+  box-shadow: 0 0 10px rgba(255, 190, 83, 0.35);
+  animation: makanPulseAudio 0.8s ease-in-out infinite alternate;
+}
+
+.makan-action-btn.playing {
+  color: var(--cyan);
+  border-color: var(--cyan);
+  background: rgba(19, 200, 245, 0.16);
+  box-shadow: 0 0 10px rgba(19, 200, 245, 0.35);
+  animation: makanPulseAudio 1.2s ease-in-out infinite alternate;
+}
+
+@keyframes makanPulseAudio {
+  from { box-shadow: 0 0 4px currentColor; opacity: 0.85; }
+  to { box-shadow: 0 0 12px currentColor; opacity: 1; }
+}
+
+.makan-voice-notice {
+  font-size: 12px;
+  line-height: 1.45;
+  color: #ffbe53;
+  background: rgba(255, 180, 74, 0.10);
+  border: 1px solid rgba(255, 180, 74, 0.3);
+  padding: 8px 10px;
+  border-radius: 6px;
+  margin-top: 6px;
+  word-break: break-word;
+}
+
+.makan-sp {
+  flex: 1;
+}
+
+.makan-open-app-btn {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 12px;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 6px;
+}
+
+.makan-open-app-btn:hover {
+  background: var(--accent-dim);
+  text-decoration: none;
+}
+
+/* Full Page Translation Floating Top Banner */
+.makan-top-banner {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483646;
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border2);
+  border-radius: 40px;
+  padding: 6px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: makanBannerDrop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 13px;
+  pointer-events: auto !important;
+}
+
+@keyframes makanBannerDrop {
+  from { opacity: 0; transform: translate(-50%, -20px); }
+  to { opacity: 1; transform: translate(-50%, 0); }
+}
+
+.makan-banner-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.makan-banner-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+}
+
+.makan-banner-btn.cta {
+  background: var(--cta);
+  color: var(--cta-ink);
+  border-color: var(--cta);
+}
+
+.makan-banner-btn.cta:hover {
+  background: #ffc470;
+}
+
+/* Hover Tooltip for translated elements */
+.makan-tooltip {
+  position: absolute;
+  z-index: 2147483647;
+  max-width: 380px;
+  background: #080C14;
+  border: 1px solid var(--accent);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #E2E8F0;
+  pointer-events: none;
+  animation: makanFadeIn 0.12s ease;
+}
+
+.makan-tooltip-lbl {
+  font-size: 10px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--accent);
+  margin-bottom: 2px;
+}
+
+/* In-Page Toast Notification (Replaces chrome.notifications) */
+.makan-inpage-toast {
+  position: fixed;
+  top: 16px;
+  right: 16px;
+  z-index: 2147483647;
+  background: var(--surface2, #101826);
+  color: var(--text, #EAF1F7);
+  border: 1px solid var(--accent, #58A6FF);
+  border-radius: 10px;
+  padding: 10px 16px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Vazirmatn', sans-serif;
+  font-size: 13px;
+  line-height: 1.45;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  pointer-events: auto;
+  max-width: 360px;
+  opacity: 0;
+  transform: translateY(-8px);
+  transition: opacity 0.25s ease, transform 0.25s ease;
+}
+
+.makan-inpage-toast.visible {
+  opacity: 1;
+  transform: translateY(0);
+}

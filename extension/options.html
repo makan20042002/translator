@@ -1,0 +1,219 @@
+<!doctype html>
+<html lang="en" dir="ltr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>MAKAN Translate — Options & Settings</title>
+  <link rel="stylesheet" href="options.css">
+</head>
+<body>
+  <div class="opt-nav">
+    <div class="opt-wrap">
+      <div class="opt-brand">
+        <div class="opt-mark">M</div>
+        <span>MAKAN<b>Translate</b> <small>Extension Settings</small></span>
+      </div>
+      <div class="opt-sp"></div>
+      <button class="opt-btn ghost" id="optLangToggle">فارسی</button>
+      <a href="http://localhost:8080" target="_blank" class="opt-btn" id="optOpenApp">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+        <span>Open Web App</span>
+      </a>
+    </div>
+  </div>
+
+  <main class="opt-wrap opt-main">
+    <div class="opt-head">
+      <div class="opt-eyebrow">CONFIGURATION &amp; API KEYS</div>
+      <h1 id="optTitle">Engines &amp; Settings</h1>
+      <p class="opt-sub" id="optSub">Configure translation providers, API keys, fallback priority, and extension behavior. Keys remain in your local browser extension storage only.</p>
+    </div>
+
+    <!-- Sync with Web App Banner -->
+    <div class="opt-card opt-sync-card">
+      <div class="opt-sync-info">
+        <div class="opt-sync-ico">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+        </div>
+        <div>
+          <strong id="syncTitle">Sync with MAKAN Web App</strong>
+          <p id="syncDesc">Already configured your API keys in the MAKAN web app? Export settings from the app and import them here with one click.</p>
+        </div>
+      </div>
+      <div class="opt-sync-actions">
+        <button class="opt-btn" id="btnImportFile">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          <span id="btnImportText">Import Settings File</span>
+        </button>
+        <button class="opt-btn ghost" id="btnPasteJson">
+          <span id="btnPasteText">Paste JSON</span>
+        </button>
+        <button class="opt-btn ghost" id="btnExportSettings">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span id="btnExportText">Export Backup</span>
+        </button>
+        <input type="file" id="fileImportInput" accept=".json" hidden>
+      </div>
+    </div>
+
+    <!-- Site Compatibility Self-Check -->
+    <div class="opt-card" id="cardSiteCheck">
+      <div class="opt-card-head">
+        <div>
+          <h2 id="secSiteCheck">Site Compatibility Self-Check</h2>
+          <p class="opt-sub" id="subSiteCheck">Diagnose whether MAKAN Translate can run on your current site and troubleshoot browser permissions or injection status.</p>
+        </div>
+        <div class="opt-sp"></div>
+        <button class="opt-btn" id="btnRefreshSiteCheck">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/><path d="M3 12a9 9 0 0 0 9 9 9.75 9.75 0 0 0 6.74-2.74L21 16"/><path d="M16 21h5v-5"/></svg>
+          <span id="btnRefreshSiteCheckText">Check Active Tab</span>
+        </button>
+      </div>
+
+      <div class="opt-check-body" id="siteCheckBody" style="margin-top:14px;">
+        <div class="opt-check-status-row">
+          <div class="opt-check-badge ok" id="siteCheckBadge">Checking…</div>
+          <div class="opt-check-url" id="siteCheckUrl">Detecting active tab…</div>
+        </div>
+        <div class="opt-check-detail" id="siteCheckDetail">Please wait while the active tab is verified.</div>
+        <div class="opt-check-actions" id="siteCheckActions" style="margin-top:12px; display:flex; gap:10px; flex-wrap:wrap;">
+          <button class="opt-btn ghost" id="btnInjectScript" style="display:none;">Inject Script Now</button>
+          <button class="opt-btn ghost" id="btnToggleSiteDisable" style="display:none;">Enable / Disable on this Site</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Behavior & Trigger Settings -->
+    <div class="opt-card">
+      <h2 id="secBehavior">Extension Behavior</h2>
+      <div class="opt-grid-2">
+        <div class="opt-field">
+          <label for="selTrigger" id="lblTrigger">Selection Translation Button:</label>
+          <select id="selTrigger">
+            <option value="auto">Always show button when text is selected (Recommended)</option>
+            <option value="alt">Only show button when Alt key is held</option>
+            <option value="never">Never show button (Use right-click context menu only)</option>
+          </select>
+        </div>
+        <div class="opt-field">
+          <label for="selDefaultTgt" id="lblDefaultTgt">Default Target Language:</label>
+          <select id="selDefaultTgt"></select>
+        </div>
+        <div class="opt-field">
+          <label for="selDefaultTone" id="lblDefaultTone">Default Translation Tone:</label>
+          <select id="selDefaultTone">
+            <option value="neutral">Neutral / Standard</option>
+            <option value="technical">Technical / Specialized</option>
+            <option value="formal">Formal / Academic</option>
+            <option value="film">Film / Colloquial (Natural spoken)</option>
+          </select>
+        </div>
+        <div class="opt-field">
+          <label for="txtWebAppUrl" id="lblWebAppUrl">Web App URL:</label>
+          <input type="text" id="txtWebAppUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+        </div>
+      </div>
+      <div style="margin-top:14px">
+        <label class="opt-chk">
+          <input type="checkbox" id="chkDictLookup" checked>
+          <span id="lblDictLookup">Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)</span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Voice & Read-Aloud (TTS) Settings -->
+    <div class="opt-card" id="cardVoice">
+      <div class="opt-card-head">
+        <div>
+          <h2 id="secVoice">Voice &amp; Read-Aloud (TTS)</h2>
+          <p class="opt-sub" id="subVoice">Choose voices per language, adjust speed, and configure AI speech fallback when no system voice is installed.</p>
+        </div>
+        <div class="opt-sp"></div>
+        <button class="opt-btn ghost" id="btnTestVoice">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          <span id="btnTestVoiceText">Test Voice</span>
+        </button>
+      </div>
+
+      <div style="margin-bottom:16px;">
+        <label class="opt-chk">
+          <input type="checkbox" id="chkPreferGeminiVoice">
+          <span id="lblPreferGeminiVoice"><strong>Prefer Gemini AI Voice</strong> — Uses high-fidelity neural speech for Persian and English when Gemini key is configured.</span>
+        </label>
+      </div>
+
+      <div class="opt-grid-2">
+        <div class="opt-field">
+          <label for="selGeminiVoice" id="lblGeminiVoice">Gemini AI Voice Model:</label>
+          <select id="selGeminiVoice">
+            <option value="Kore">Kore (Warm &amp; Natural Female - Recommended for FA/EN)</option>
+            <option value="Fenrir">Fenrir (Deep &amp; Resonant Male)</option>
+            <option value="Puck">Puck (Crisp &amp; Lively)</option>
+            <option value="Charon">Charon (Calm &amp; Authoritative Male)</option>
+            <option value="Aoede">Aoede (Expressive Female)</option>
+          </select>
+        </div>
+        <div class="opt-field">
+          <label for="selTtsRate" id="lblTtsRate">Speech Speed (Rate):</label>
+          <select id="selTtsRate">
+            <option value="0.75">0.75x (Slower)</option>
+            <option value="0.9">0.9x</option>
+            <option value="1.0" selected>1.0x (Normal speed)</option>
+            <option value="1.15">1.15x</option>
+            <option value="1.25">1.25x (Faster)</option>
+            <option value="1.5">1.5x</option>
+          </select>
+        </div>
+        <div class="opt-field">
+          <label for="selVoiceFa" id="lblVoiceFa">Persian Voice (فارسی):</label>
+          <select id="selVoiceFa"></select>
+        </div>
+        <div class="opt-field">
+          <label for="selVoiceEn" id="lblVoiceEn">English Voice:</label>
+          <select id="selVoiceEn"></select>
+        </div>
+      </div>
+
+      <div class="opt-hint-box" style="margin-top:16px;">
+        <p id="ttsVoiceHint">💡 <strong>Tip:</strong> Microsoft Edge includes built-in natural voices for Persian (Dilara/Farid) and English out of the box. In Chrome, speech synthesis uses voices installed in Windows Language settings. If no Persian voice is installed on your PC, configure your free Google Gemini API key below to enable natural Persian audio playback.</p>
+      </div>
+    </div>
+
+    <!-- Engines & Keys Section -->
+    <div class="opt-card">
+      <div class="opt-card-head">
+        <div>
+          <h2 id="secEngines">Translation Engines &amp; Keys</h2>
+          <p class="opt-sub" id="subEngines">Engines are tried from top to bottom. If a provider hits rate limits or fails, the next available engine takes over seamlessly.</p>
+        </div>
+        <div class="opt-sp"></div>
+        <button class="opt-btn" id="btnCheckConn">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span id="btnCheckConnText">Check Connections</span>
+        </button>
+      </div>
+
+      <div class="opt-engine-list" id="optEngineList"></div>
+    </div>
+
+    <!-- Paste JSON Modal -->
+    <div class="opt-modal-ov" id="modalPasteOv" hidden>
+      <div class="opt-modal">
+        <h3 id="modalPasteTitle">Paste Settings JSON</h3>
+        <p id="modalPasteDesc">Paste the JSON configuration exported from the MAKAN web app:</p>
+        <textarea id="modalPasteArea" rows="8" placeholder="Paste JSON here..."></textarea>
+        <div class="opt-modal-actions">
+          <button class="opt-btn ghost" id="modalPasteCancel">Cancel</button>
+          <button class="opt-btn cta" id="modalPasteSave">Save &amp; Apply</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Toast Notifications Container -->
+    <div class="opt-toasts" id="optToasts"></div>
+  </main>
+
+  <script src="engine.js"></script>
+  <script src="options.js"></script>
+</body>
+</html>
