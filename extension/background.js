@@ -266,7 +266,7 @@ async function ensureTabReady(tab) {
     try {
       await chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['content.js']
+        files: ['engine.js', 'content.js']
       });
       if (chrome.scripting.insertCSS) {
         await chrome.scripting.insertCSS({
@@ -302,7 +302,7 @@ async function injectOpenTabs() {
       if (!tab.id || !isTabAccessible(tab.url)) continue;
       chrome.scripting.executeScript({
         target: { tabId: tab.id },
-        files: ['content.js']
+        files: ['engine.js', 'content.js']
       }).catch(() => {});
       if (chrome.scripting.insertCSS) {
         chrome.scripting.insertCSS({
@@ -757,7 +757,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       try {
         await chrome.scripting.executeScript({
           target: { tabId },
-          files: ['content.js']
+          files: ['engine.js', 'content.js']
         });
         if (chrome.scripting.insertCSS) {
           await chrome.scripting.insertCSS({
