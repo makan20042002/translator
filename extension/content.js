@@ -475,6 +475,11 @@
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
       </div>
+      <div class="makan-lang-row">
+        <select class="makan-mode-select makan-lang-select" id="makanSrcSel" aria-label="Source language"></select>
+        <span class="makan-lang-arrow">→</span>
+        <select class="makan-mode-select makan-lang-select" id="makanTgtSel" aria-label="Target language"></select>
+      </div>
       <div class="makan-card-body" id="makanCardBody">
         <div class="makan-loading">
           <svg class="makan-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
@@ -547,6 +552,28 @@
     card.addEventListener('pointerup', stopCardPropagation);
     card.addEventListener('mouseup', stopCardPropagation);
     card.addEventListener('click', stopCardPropagation);
+
+    // Compact source / target language selectors (same list as the web app); the choice is remembered.
+    const srcSel = card.querySelector('#makanSrcSel');
+    const tgtSel = card.querySelector('#makanTgtSel');
+    const langList = (typeof globalThis.LANGS !== 'undefined' && globalThis.LANGS) || [];
+    const langOpt = ([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(String(name).split(' · ').pop())}</option>`;
+    srcSel.innerHTML = '<option value="auto">Auto-detect</option>' + langList.filter(l => l[0] !== 'auto').map(langOpt).join('');
+    tgtSel.innerHTML = langList.filter(l => l[0] !== 'auto').map(langOpt).join('');
+    const syncLangSelects = () => { srcSel.value = curSrc; tgtSel.value = curTgt; };
+    syncLangSelects();
+    const rememberLangs = () => chrome.runtime?.sendMessage?.({ action: 'set-language', src: curSrc, tgt: curTgt })?.catch?.(() => {});
+    for (const sel of [srcSel, tgtSel]) {
+      sel.addEventListener('pointerdown', e => e.stopPropagation());
+      sel.addEventListener('mousedown', e => e.stopPropagation());
+      sel.addEventListener('keydown', e => e.stopPropagation());
+      sel.onchange = e => {
+        if (!e.isTrusted) return;
+        curSrc = srcSel.value; curTgt = tgtSel.value;
+        rememberLangs();
+        executeTranslate(text, curSrc, curTgt, false);
+      };
+    }
 
     // Hook mode select
     const modeSel = card.querySelector('#makanModeSel');
@@ -688,6 +715,11 @@
             let fastRes = '', fastEngine = '';
             let smartRes = '', smartEngine = '';
             let fastErr = null, smartErr = null;
+            // Fast failed but Smart worked: show the Smart result and say so in one line.
+            const noteFastFailed = () => {
+              enginePill.textContent = `${smartEngine} · Fast engines failed, showing Smart result`;
+              enginePill.title = `Fast: ${fastErr?.message || 'failed'}`;
+            };
 
             const fastReq = chrome.runtime.sendMessage({
               action: 'translate-text',
@@ -713,6 +745,7 @@
             }).catch(e => {
               fastDone = true;
               fastErr = e;
+              if (smartDone && smartRes && !userInteractedWithFast) noteFastFailed();
               throw e;
             });
 
@@ -758,6 +791,7 @@
                   bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(smartRes)}</div>`;
                   enginePill.textContent = smartEngine;
                   enginePill.title = smartEngine;
+                  if (fastErr) noteFastFailed();
                 }
               } else {
                 throw new Error(resp?.error || 'AI translation failed');
@@ -768,7 +802,7 @@
               smartErr = err;
               if (fastRes) {
                 const is429 = /429|resource_exhausted|rate limit|quota/i.test(err.message || '');
-                const reason = is429 ? 'AI rate limited' : 'AI unavailable';
+                const reason = is429 ? 'AI rate limited' : ('AI unavailable' + (err.message ? ` (${String(err.message).replace(/^Translation failed: /, '').slice(0, 80)})` : ''));
                 enginePill.textContent = `Fast (${fastEngine}) · ${reason}`;
               } else {
                 throw err;
@@ -858,6 +892,8 @@
       const prevTgt = curTgt;
       curSrc = prevTgt;
       curTgt = prevSrc;
+      syncLangSelects();
+      rememberLangs();
       const textToTranslate = translatedResult || text;
       await executeTranslate(textToTranslate, curSrc, curTgt, false);
     };

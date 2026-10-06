@@ -79,7 +79,7 @@ test.describe('Web app: Glossary tab', () => {
     test('AI engines receive the glossary in their instructions', async ({ app }) => {
       const { page, stub } = app;
       await translateText(page, 'MAKAN works well');
-      const body = JSON.parse(stub.calls('generativelanguage.googleapis.com')[0].body);
+      const body = JSON.parse(stub.calls('generativelanguage.googleapis.com').filter(c => c.method === 'POST')[0].body);
       expect(body.systemInstruction.parts[0].text).toContain('Always use this glossary: "MAKAN" → "ماکان"');
     });
 

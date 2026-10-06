@@ -87,6 +87,18 @@ Neither has a build step for the app code itself. The only "build" is
      uses `generativelanguage.googleapis.com`, Claude uses
      `api.anthropic.com/v1/messages`, the others use the "OpenAI-compatible"
      `…/chat/completions` address.
+   * **Gemini models and keys.** A Gemini key is never judged by its shape
+     (old keys start with `AIza`, new ones with `AQ.`); Google decides, and
+     the key travels only in the `x-goog-api-key` header. The app asks
+     Google which models the key may use (`geminiModelOrder` in `engine.js`,
+     shared by the web app and the extension), tries big and "lite" models
+     alternately, skips models that answer 404 ("no longer available") or
+     503 ("high demand"), and tells the user plainly ("model not found",
+     "provider busy") instead of waiting silently. The Text tab shows
+     "Waiting for <engine>…" after 4 seconds.
+   * **Fast mode** tries every non-AI engine in turn (Chrome on-device, Google
+     web, MyMemory). In Both mode, if Fast fails completely but Smart works,
+     the Smart result is shown with a one-line note.
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.
