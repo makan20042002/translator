@@ -21,7 +21,7 @@ const PROVIDER_HOSTS = {
 };
 
 /** One distinct key per provider. */
-const KEYS = Object.fromEntries(Object.keys(PROVIDER_HOSTS).map(id => [id, `${VALID_KEY}-${id}`]));
+const KEYS = Object.fromEntries(Object.keys(PROVIDER_HOSTS).map(id => [id, id === 'gemini' ? `AQ.${VALID_KEY}-gemini` : `${VALID_KEY}-${id}`]));
 
 /**
  * Look through every recorded request. Returns a list of plain-language
