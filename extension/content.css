@@ -76,6 +76,7 @@
   position: absolute;
   z-index: 2147483647;
   width: 370px;
+  min-width: 280px;
   max-width: calc(100vw - 32px);
   max-height: 480px;
   background: var(--glass);
@@ -89,6 +90,7 @@
   flex-direction: column;
   overflow: hidden;
   animation: makanFadeIn 0.18s cubic-bezier(0.16, 1, 0.3, 1);
+  box-sizing: border-box;
 }
 
 @keyframes makanFadeIn {
@@ -97,13 +99,20 @@
 }
 
 .makan-card-header {
+  position: relative;
   display: flex;
   align-items: center;
-  gap: 8px;
-  padding: 10px 14px;
+  flex-wrap: wrap;
+  row-gap: 6px;
+  column-gap: 6px;
+  padding-block: 8px;
+  padding-inline-start: 10px;
+  padding-inline-end: 36px;
   background: rgba(255, 255, 255, 0.03);
   border-bottom: 1px solid var(--border);
   user-select: none;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .makan-card-brand {
@@ -114,10 +123,26 @@
   font-size: 12.5px;
   letter-spacing: 0.02em;
   color: var(--text);
+  flex-shrink: 0;
+  white-space: nowrap;
 }
 
 .makan-card-brand span {
   color: var(--accent);
+}
+
+.makan-mode-select {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .makan-pill {
@@ -128,13 +153,21 @@
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--muted);
+  white-space: nowrap;
+  box-sizing: border-box;
+  flex-shrink: 0;
 }
 
 .makan-pill.engine {
   color: var(--accent);
   background: var(--accent-dim);
   border-color: rgba(88, 166, 255, 0.3);
-  margin-inline-start: auto;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  flex-shrink: 1;
+  min-width: 0;
 }
 
 .makan-pill.detected {
@@ -155,6 +188,13 @@
   cursor: pointer;
   padding: 0;
   transition: background 0.15s ease, color 0.15s ease;
+}
+
+#makanCardClose {
+  position: absolute;
+  inset-block-start: 7px;
+  inset-inline-end: 7px;
+  z-index: 2;
 }
 
 .makan-icon-btn:hover {

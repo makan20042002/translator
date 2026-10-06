@@ -171,4 +171,74 @@ test.describe('Extension: selection card', () => {
     await expect(inShadow(page, '.makan-result-text')).toHaveText('[fa] Serendipity');
     await expect(inShadow(page, '#makanEnginePill')).toHaveText('Google Translate');
   });
+
+  test('header row does not overflow card at default and minimum widths, with long engine name and in Persian', async ({ ext }) => {
+    const page = ext.article;
+    await dblclickText(page, '#p3');
+    await expect(card(page)).toBeVisible();
+    await expect(inShadow(page, '#makanEnginePill')).toBeVisible();
+
+    const checkHeaderContainment = async (label) => {
+      const containment = await page.evaluate(() => {
+        const host = document.querySelector('#makan-translate-root');
+        const root = host?.shadowRoot || document;
+        const cardElem = root.querySelector('.makan-card');
+        const header = root.querySelector('.makan-card-header');
+        if (!cardElem || !header) return { ok: false, reason: 'missing elements' };
+        const cardRect = cardElem.getBoundingClientRect();
+        const headerRect = header.getBoundingClientRect();
+        const items = Array.from(header.querySelectorAll('.makan-card-brand, #makanPairPill, #makanModeSel, #makanDetectedPill, #makanEnginePill, #makanCardClose'));
+        const overflows = [];
+        for (const el of items) {
+          const r = el.getBoundingClientRect();
+          // Allow 1px subpixel tolerance
+          if (r.left < cardRect.left - 1 || r.right > cardRect.right + 1) {
+            overflows.push({
+              tag: el.tagName,
+              id: el.id || el.className,
+              left: Math.round(r.left),
+              right: Math.round(r.right),
+              cardLeft: Math.round(cardRect.left),
+              cardRight: Math.round(cardRect.right)
+            });
+          }
+        }
+        return { ok: overflows.length === 0, overflows, cardWidth: Math.round(cardRect.width), headerWidth: Math.round(headerRect.width) };
+      });
+      expect(containment.ok, `${label}: items overflow card: ${JSON.stringify(containment.overflows)}`).toBe(true);
+    };
+
+    // 1. Verify default width containment
+    await checkHeaderContainment('default width');
+
+    // 2. Verify min-width (280px) containment
+    await page.evaluate(() => {
+      const host = document.querySelector('#makan-translate-root');
+      const root = host?.shadowRoot || document;
+      const cardElem = root.querySelector('.makan-card');
+      if (cardElem) cardElem.style.width = '280px';
+    });
+    await checkHeaderContainment('min width 280px');
+
+    // 3. Verify long engine name truncates and stays contained
+    await page.evaluate(() => {
+      const host = document.querySelector('#makan-translate-root');
+      const root = host?.shadowRoot || document;
+      const pill = root.querySelector('#makanEnginePill');
+      if (pill) {
+        pill.textContent = 'OpenRouter (anthropic/claude-3.5-sonnet)';
+        pill.title = pill.textContent;
+      }
+    });
+    await checkHeaderContainment('long engine name at 280px');
+
+    // 4. Verify Persian RTL containment
+    await page.evaluate(() => {
+      const host = document.querySelector('#makan-translate-root');
+      const root = host?.shadowRoot || document;
+      const cardElem = root.querySelector('.makan-card');
+      if (cardElem) cardElem.setAttribute('dir', 'rtl');
+    });
+    await checkHeaderContainment('Persian RTL at 280px with long engine name');
+  });
 });

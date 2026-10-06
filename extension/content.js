@@ -470,7 +470,7 @@
           <option value="smart"${cardMode === 'smart' ? ' selected' : ''}>Smart</option>
         </select>
         <span class="makan-pill detected" id="makanDetectedPill">Detected: ${detectedLang.toUpperCase()}</span>
-        <span class="makan-pill engine" id="makanEnginePill">Translating…</span>
+        <span class="makan-pill engine" id="makanEnginePill" title="Translating…">Translating…</span>
         <button class="makan-icon-btn" id="makanCardClose" title="Close (Esc)">
           <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
         </button>
@@ -602,6 +602,7 @@
           if (resp && resp.ok && resp.dict) {
             const d = resp.dict;
             enginePill.textContent = d.engineName || 'AI Dictionary';
+            enginePill.title = enginePill.textContent;
             if (d.isDictionary) {
               translatedResult = Array.isArray(d.translations) ? d.translations.join('، ') : d.word;
               bodyElem.innerHTML = `
@@ -676,6 +677,7 @@
             if (resp && resp.ok && resp.results?.length) {
               translatedResult = resp.results[0];
               enginePill.textContent = resp.engineName || 'Translated';
+              enginePill.title = enginePill.textContent;
               bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
             } else {
               throw new Error(resp?.error || 'Translation failed');
@@ -702,6 +704,7 @@
                   translatedResult = fastRes;
                   bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(fastRes)}</div>`;
                   enginePill.innerHTML = `<span class="makan-pill-fast">Fast</span> ${escapeHtml(fastEngine)}`;
+                  enginePill.title = `Fast: ${fastEngine}`;
                 }
               } else {
                 throw new Error(resp?.error || 'Fast translation failed');
@@ -745,6 +748,7 @@
                     setTimeout(() => bodyElem.classList.remove('calm-fade'), 400);
                     bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(smartRes)}</div>`;
                     enginePill.textContent = smartEngine;
+                    enginePill.title = smartEngine;
                     showBtn.remove();
                   };
                 } else {
@@ -753,6 +757,7 @@
                   setTimeout(() => bodyElem.classList.remove('calm-fade'), 400);
                   bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(smartRes)}</div>`;
                   enginePill.textContent = smartEngine;
+                  enginePill.title = smartEngine;
                 }
               } else {
                 throw new Error(resp?.error || 'AI translation failed');
