@@ -265,6 +265,10 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .v-icon-btn:hover{color:var(--text);background:var(--surface2);border-color:var(--accent-line)}
 .v-icon-btn.on{color:var(--accent);background:var(--accent-dim);border-color:var(--accent)}
 
+.v-auto-engines{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap}
+.v-auto-engines .v-eng-pill{display:inline-flex;align-items:center;gap:4px;padding:3px 9px;border-radius:999px;background:var(--surface2);border:1px solid var(--border2);color:var(--muted);font-size:12px;font-family:var(--mono)}
+.v-auto-engines .v-eng-pill strong{color:var(--accent);font-weight:600}
+
 /* Compact Collapsible Settings Panel */
 .v-settings-panel{background:var(--surface2);border:1px solid var(--border2);border-radius:var(--r-s);padding:14px 16px;margin:12px 0;animation:vFadeDown .2s var(--ease)}
 @keyframes vFadeDown{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:translateY(0)}}
@@ -645,6 +649,11 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
           <button class="v-mode" id="vTabAsk" role="tab" aria-selected="false" data-t="vModeAsk">Ask AI</button>
         </div>
 
+        <div class="v-auto-engines" id="vAutoEngines" title="Active voice engines">
+          <span class="v-eng-pill" id="vListenEngPill"><span data-t="vListenLabel">Mic:</span> <strong id="vListenEngName">—</strong></span>
+          <span class="v-eng-pill" id="vTransEngPill"><span data-t="vTransLabel">Translate:</span> <strong id="vTransEngName">—</strong></span>
+        </div>
+
         <span class="sp"></span>
 
         <div class="v-top-actions">
@@ -1012,7 +1021,8 @@ const I18N={en:{
  docEngineNoticeText:'Subject analysis & translator notes require an AI engine. With non-AI engines, standard translation and Glossary are used.',
  docFormattingNote:'Formatting note: Paragraphs, tables, images, slides and formulas are preserved byte-for-byte; complex inline run styling within single sentences is merged.',
  tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page',
- pages:'pages',words:'words',slides:'slides',sheets:'sheets',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed'
+ pages:'pages',words:'words',slides:'slides',sheets:'sheets',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed',
+ vListenLabel:'Mic:',vTransLabel:'Translate:'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
  tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
@@ -1080,7 +1090,8 @@ const I18N={en:{
  docEngineNoticeText:'تحلیل خودکار موضوع و یادداشت‌های مترجم نیازمند موتور هوش مصنوعی است. با موتورهای معمولی، ترجمه استاندارد و واژه‌نامه اعمال می‌شود.',
  docFormattingNote:'نکته قالب‌بندی: پاراگراف‌ها، جدول‌ها، تصاویر، اسلایدها و فرمول‌ها عینا حفظ می‌شوند؛ قالب‌بندی‌های تکه‌تکه درون جملات برای یکپارچگی ترکیب می‌شوند.',
  tSubject:'موضوع',tSubjectPh:'موضوع (مثلاً کامپیوتر، حقوق، پزشکی…)',subColSlide:'اسلاید',subColPage:'صفحه',
- pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال'
+ pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال',
+ vListenLabel:'میکروفون:',vTransLabel:'ترجمه:'
 }};
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -1249,6 +1260,7 @@ async function checkEngineConn(id){
         headers:{'Content-Type':'application/json','x-goog-api-key':e.key},
         body:JSON.stringify({contents:[{parts:[{text:'Hi'}]}]})
       },1);
+      sessionBlocked.delete(id);
       return {code:'works',text:L('connWorks')};
     }else if(id==='claude'){
       await fx('https://api.anthropic.com/v1/messages',{
@@ -1256,6 +1268,7 @@ async function checkEngineConn(id){
         headers:{'Content-Type':'application/json','x-api-key':e.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
         body:JSON.stringify({model:e.model||'claude-haiku-4-5',max_tokens:1,messages:[{role:'user',content:'Hi'}]})
       },1);
+      sessionBlocked.delete(id);
       return {code:'works',text:L('connWorks')};
     }else{
       const h={'Content-Type':'application/json'};
@@ -1265,6 +1278,7 @@ async function checkEngineConn(id){
         headers:h,
         body:JSON.stringify({model:e.model,messages:[{role:'user',content:'Hi'}],max_tokens:1})
       },1);
+      sessionBlocked.delete(id);
       return {code:'works',text:L('connWorks')};
     }
   }catch(err){
@@ -2073,8 +2087,9 @@ const SR=self.SpeechRecognition||self.webkitSpeechRecognition;
 function sttMode(){
   if(cfg.stt!=='auto')return cfg.stt;
   if(isOff())return 'whisper';
-  if(cfg.eng.groq.key&&!sessionBlocked.has('groq'))return 'groq';
-  if(cfg.eng.gemini.key&&!sessionBlocked.has('gemini'))return 'gemini';
+  if(cfg.eng.groq.key&&!sessionBlocked.has('groq')&&cfg.eng.groq.on!==false)return 'groq';
+  const gemKey=cfg.eng.gemini.key||(cfg.tts.mode==='gemini'&&cfg.tts.key);
+  if(gemKey&&!sessionBlocked.has('gemini')&&cfg.eng.gemini.on!==false)return 'gemini';
   return (self.SpeechRecognition||self.webkitSpeechRecognition)?'browser':'whisper';
 }
 
@@ -2102,13 +2117,14 @@ function blobToBase64(blob){
 }
 
 async function transcribeGemini(blob, lang){
-  const key=cfg.eng.gemini.key;
+  const key=cfg.eng.gemini.key||(cfg.tts.mode==='gemini'&&cfg.tts.key);
   if(!key)throw new Error('Gemini: '+L('needKey'));
   const wavBlob=await blobToWav(blob);
   const base64Audio=await blobToBase64(wavBlob);
   const langHint=lang&&lang!=='auto'?` The spoken language is ${langShort(lang)} (${lang}).`:'';
   const prompt=`Transcribe the spoken audio verbatim.${langHint} Output only the exact transcript in the spoken language, with no commentary, no markdown, and no extra text.`;
-  const models=['gemini-3.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'];
+  const m0=cfg.eng.gemini.model||'gemini-3.8-flash';
+  const models=[m0,'gemini-3.5-flash','gemini-2.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'].filter((v,i,a)=>v&&a.indexOf(v)===i);
   let lastErr;
   for(const model of models){
     try{
@@ -2185,7 +2201,7 @@ function updateMicIndicator(active,recording=false){
 }
 
 async function interpretGemini(blob,langA,langB){
-  const key=cfg.eng.gemini.key;
+  const key=cfg.eng.gemini.key||(cfg.tts.mode==='gemini'&&cfg.tts.key);
   if(!key)throw new Error('Gemini: '+L('needKey'));
   const wavBlob=await blobToWav(blob);
   const base64Audio=await blobToBase64(wavBlob);
@@ -2202,7 +2218,8 @@ Respond ONLY with a valid JSON object in this exact schema:
   "transcript": "exact verbatim transcript in spoken language",
   "translation": "natural fluent translation into the other language"
 }`;
-  const models=['gemini-3.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'];
+  const m0=cfg.eng.gemini.model||'gemini-3.8-flash';
+  const models=[m0,'gemini-3.5-flash','gemini-2.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'].filter((v,i,a)=>v&&a.indexOf(v)===i);
   let lastErr;
   for(const model of models){
     try{
@@ -2511,13 +2528,46 @@ function fillEngines(){
   $('engine').innerHTML=`<option value="auto">${esc(L('auto'))}</option>`+ok.map(id=>`<option value="${id}">${esc(ENG[id].name)}</option>`).join('');
   $('engine').value=ok.includes(cur)?cur:'auto';
   $('cEng').innerHTML=ok.map((id,i)=>`<label class="chk"><input type="checkbox" value="${id}" ${i<3?'checked':''}>${esc(ENG[id].name)}</label>`).join('');
+  if(typeof fillVoiceTransEngines==='function') fillVoiceTransEngines();
 }
+
+function getVoiceAutoEngines() {
+  const mode = sttMode();
+  let listen = 'Browser';
+  if (mode === 'gemini') listen = 'Google Gemini';
+  else if (mode === 'groq') listen = 'Groq Whisper';
+  else if (mode === 'whisper') listen = 'Whisper (offline)';
+  else listen = (self.SpeechRecognition || self.webkitSpeechRecognition) ? 'Browser' : 'Whisper (offline)';
+
+  const activeTrans = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
+  let trans = activeTrans;
+  if (trans === 'auto') {
+    const chain = cfg.order.filter(usable);
+    trans = chain[0] || 'google';
+  }
+  const transName = ENG[trans]?.name || trans;
+  return { listen, trans: transName };
+}
+
+function updateVoiceAutoEngineDisplay() {
+  const { listen, trans } = getVoiceAutoEngines();
+  const elListen = $('vListenEngName');
+  const elTrans = $('vTransEngName');
+  if (elListen) elListen.textContent = listen;
+  if (elTrans) elTrans.textContent = trans;
+  const turnMeta = $('vTurnMeta');
+  if (turnMeta && (voiceState === 'ready' || !turnMeta.textContent)) {
+    turnMeta.textContent = `${listen} → ${trans}`;
+  }
+}
+
 function voiceLabels(){
   const s=$('src')?.value||'auto',t=$('tgt')?.value||'en';
   if($('vA')) $('vA').textContent=`${L('speakIn')} ${s==='auto'?L('detect'):langShort(s)}`;
   if($('vB')) $('vB').textContent=`${L('speakIn')} ${langShort(t)}`;
   if($('vNo')) $('vNo').hidden=sttMode()!=='browser'||!!SR;
   if(typeof updateVoiceLangPills==='function') updateVoiceLangPills();
+  updateVoiceAutoEngineDisplay();
 }
 
 /* ---------- TEXT ---------- */
@@ -4231,7 +4281,7 @@ async function handleConvPttAudio(audioInput) {
         let detectedLang = typeof res === 'object' ? res.lang : null;
         tx = (tx || '').trim();
         turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
-      } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
+      } else if ((cfg.eng.gemini.key || (cfg.tts.mode==='gemini'&&cfg.tts.key)) && !sessionBlocked.has('gemini')) {
         try {
           const res = await interpretGemini(blob, s, t);
           turnResult = {
@@ -4564,7 +4614,7 @@ $('engList').addEventListener('click',async e=>{const a=e.target.dataset.a;if(!a
   if(a==='up'||a==='down'){const j=a==='up'?i-1:i+1;[cfg.order[i],cfg.order[j]]=[cfg.order[j],cfg.order[i]];saveCfg();renderEngines();fillEngines();return}
   e.target.disabled=true;
   try{
-    if(a==='test'){if(why(id))throw new Error(why(id));const tg=$('tgt').value==='en'?'fa':$('tgt').value;const r=await translateItems(['Good morning, how are you?'],{src:'en',tgt:tg,engine:id,tone:''});toast(`${ENG[id].name} ${L('works')}: ${r.out[0]}`,'ok',6000)}
+    if(a==='test'){if(why(id))throw new Error(why(id));const tg=$('tgt').value==='en'?'fa':$('tgt').value;const r=await translateItems(['Good morning, how are you?'],{src:'en',tgt:tg,engine:id,tone:''});sessionBlocked.delete(id);toast(`${ENG[id].name} ${L('works')}: ${r.out[0]}`,'ok',6000)}
     if(a==='models'){const m=await listModels(id);$('models').innerHTML=m.map(x=>`<option value="${esc(x)}">`).join('');toast(`${m.length} ${L('model')}`,'ok');e.target.closest('.eng').querySelector('[data-f=model]').focus()}
   }catch(err){toast(`${ENG[id].name}: ${err.message}`,'err',7000)}
   e.target.disabled=false;
@@ -4595,10 +4645,27 @@ $('btnExportForExt').onclick=()=>{
 };
 $('mmEmail').onchange=()=>{cfg.mmEmail=$('mmEmail').value.trim();saveCfg()};
 const saveAllInputs=()=>{
-  document.querySelectorAll('#engList .eng').forEach(el=>{const id=el.dataset.id;if(!id||!cfg.eng[id])return;el.querySelectorAll('input').forEach(inp=>{const f=inp.dataset.f;if(!f)return;cfg.eng[id][f]=inp.type==='checkbox'?inp.checked:inp.value.trim()})});
+  document.querySelectorAll('#engList .eng').forEach(el=>{
+    const id=el.dataset.id;if(!id||!cfg.eng[id])return;
+    el.querySelectorAll('input').forEach(inp=>{
+      const f=inp.dataset.f;if(!f)return;
+      cfg.eng[id][f]=inp.type==='checkbox'?inp.checked:inp.value.trim();
+      if(f==='key'&&inp.value.trim()) sessionBlocked.delete(id);
+    });
+  });
   const ovSilence = document.querySelector('#ov select#vSilenceWait');
   if(ovSilence) cfg.silenceWait = +ovSilence.value || cfg.silenceWait || 800;
+  if($('sttSel')) cfg.stt = $('sttSel').value;
+  if($('vSttChoice')) cfg.stt = $('vSttChoice').value;
+  if($('ttsMode')) cfg.tts.mode = $('ttsMode').value;
+  if(cfg.tts.mode==='gemini'&&cfg.tts.key&&!cfg.eng.gemini.key) cfg.eng.gemini.key=cfg.tts.key;
+  if(cfg.eng.gemini.key&&!cfg.tts.key&&cfg.tts.mode==='gemini') cfg.tts.key=cfg.eng.gemini.key;
+  if(cfg.eng.gemini.key) sessionBlocked.delete('gemini');
+  if(cfg.eng.groq.key) sessionBlocked.delete('groq');
   saveCfg();
+  fillEngines();
+  fillVoiceTransEngines();
+  voiceLabels();
 };
 $('openSet').onclick=()=>{
   renderEngines();

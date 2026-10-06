@@ -154,4 +154,45 @@ test.describe('Web app: the Talk button follows the Microphone engine setting', 
       await expect(page.locator('#vStatusLine')).toHaveAttribute('data-state', /ready|error/);
     });
   });
+
+  test.describe('Auto engine choice with Gemini key', () => {
+    test.use({ appOptions: { seed: { cfg: { ...onlyEngines(['gemini', 'google'], { gemini: KEYS.gemini }), stt: 'auto' }, src: 'en', tgt: 'fa' } } });
+
+    test('shows Gemini for both listening and translation in the Voice tab before speaking', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await expect(page.locator('#vListenEngName')).toHaveText('Google Gemini');
+      await expect(page.locator('#vTransEngName')).toHaveText('Google Gemini');
+      await expect(page.locator('#vTurnMeta')).toContainText('Google Gemini → Google Gemini');
+    });
+
+    test('picks Gemini for listening and translation during PTT turn', async ({ app }) => {
+      test.setTimeout(60_000);
+      const { page, stub } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await holdTalk(page, '#vPttBtn', 2600);
+      const bub = page.locator('#bubbles .bub').first();
+      await expect(bub.locator('.bub-text')).toBeVisible({ timeout: 20_000 });
+      expect(stub.calls('generativelanguage.googleapis.com').length).toBeGreaterThan(0);
+      expect(stub.calls('clients5.google.com').length).toBe(0);
+    });
+
+    test('clearing session block after saving settings restores Gemini in Auto', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await expect(page.locator('#vListenEngName')).toHaveText('Google Gemini');
+
+      // Artificially simulate a block
+      await page.evaluate(() => markBlocked('gemini'));
+      await expect(page.locator('#vListenEngName')).not.toHaveText('Google Gemini');
+
+      // Open settings, save settings (which clears block for configured keys)
+      await mouseClick(page, page.locator('#openSet'));
+      await mouseClick(page, page.locator('#btnSaveDone'));
+
+      // Check that Voice tab now displays Gemini again
+      await expect(page.locator('#vListenEngName')).toHaveText('Google Gemini');
+      await expect(page.locator('#vTransEngName')).toHaveText('Google Gemini');
+    });
+  });
 });
