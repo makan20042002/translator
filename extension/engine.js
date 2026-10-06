@@ -205,6 +205,9 @@ function toPlainReason(err) {
   if (status === 429 || /quota|resource_exhausted|rate limit|too many requests/i.test(msg)) {
     return 'rate limited';
   }
+  if (status === 503 || /high demand|overloaded|currently experiencing/i.test(msg)) {
+    return 'provider busy (high demand), try again in a moment';
+  }
   if (status === 404 || /is not found for api version|model.*not.*found/i.test(msg)) {
     return 'model not found';
   }
@@ -412,21 +415,38 @@ async function geminiModelOrder(key, kind, configured, signal) {
   }
   const ranked = rankGeminiModels(models, kind);
   if (!ranked.length) throw geminiModelProblem(kind);
-  return [...(configured && ranked.includes(configured) ? [configured] : []), ...ranked.filter(n => n !== configured)];
+  // The name shipped as our old default is not honoured as "chosen by the user": Google has retired it for new keys.
+  const chosen = configured && configured !== 'gemini-2.5-flash' && ranked.includes(configured);
+  return [...(chosen ? [configured] : []), ...ranked.filter(n => n !== configured || !chosen)];
 }
-// Run fn(modelName) with the best model, moving on to the next one when a model is not found or out of quota.
+// Models Google answered "not found" for with this key (e.g. "no longer available to new users"): skipped for 30 minutes.
+const geminiBadModels = new Map();
+const badKey = (key, m) => key.slice(-6) + '|' + m;
+function isBadGeminiModel(key, m) { const t = geminiBadModels.get(badKey(key, m)); return !!t && Date.now() - t < 30 * 60 * 1000; }
+// Run fn(modelName) with the best model, moving on to the next one when a model is not found or busy.
+// Gives up after a few models or ~25 s, so the user gets a plain reason instead of a long silent wait.
 async function withGeminiModel(key, kind, configured, fn, signal) {
-  const order = await geminiModelOrder(key, kind, configured, signal);
-  let last = null;
+  let order = await geminiModelOrder(key, kind, configured, signal);
+  const good = order.filter(m => !isBadGeminiModel(key, m));
+  if (good.length) order = good;
+  // Alternate full-size and "lite" models: when the big ones are overloaded the small ones usually still answer.
+  const lite = order.filter(m => /lite/i.test(m)), big = order.filter(m => !/lite/i.test(m));
+  if (lite.length && big.length) { order = []; for (let i = 0; i < Math.max(lite.length, big.length); i++) { if (big[i]) order.push(big[i]); if (lite[i]) order.push(lite[i]); } }
+  let last = null, busy = null;
+  const t0 = Date.now();
   for (const m of order.slice(0, 5)) {
+    if (last && Date.now() - t0 > 25000) break;
     try { return await fn(m); }
     catch (e) {
       if (e.name === 'AbortError') throw e;
       last = e;
-      if (e.status === 404 || e.status === 429 || /not found|not supported|unavailable|high demand/i.test(e.message || '')) continue;
+      if (e.status === 404) { geminiBadModels.set(badKey(key, m), Date.now()); continue; }
+      if (e.status === 429 || e.status === 503) busy = e;
+      if (e.status === 429 || e.status === 503 || /not found|not supported|unavailable|high demand|overloaded/i.test(e.message || '')) continue;
       throw e;
     }
   }
+  if (busy) throw busy; // overloaded or rate limited is the more useful thing to tell than "not found"
   if (last && last.status === 404) throw geminiModelProblem(kind);
   throw last || geminiModelProblem(kind);
 }

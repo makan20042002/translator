@@ -40,6 +40,8 @@ const isValidKey = k => typeof k === 'string' && k.includes(VALID_KEY);  // incl
 
 /** Gemini models the stub offers; null = the default realistic list. */
 let geminiModels = null;
+/** Gemini models that answer 503 "high demand" (what the real service does when a model is overloaded). */
+let geminiBusy = [];
 const DEFAULT_GEMINI_MODELS = [
   ['gemini-2.5-flash', ['generateContent', 'streamGenerateContent']],
   ['gemini-2.5-flash-lite', ['generateContent']],
@@ -209,6 +211,9 @@ async function startStub() {
         return sendJson(res, 200, { models: (geminiModels || DEFAULT_GEMINI_MODELS.map(m => m[0])).map(n => ({ name: 'models/' + n, supportedGenerationMethods: (DEFAULT_GEMINI_MODELS.find(m => m[0] === n) || [, ['generateContent']])[1] })) });
       }
       const mm = p.match(/^\/v1beta\/models\/([^:/]+):/);
+      if (mm && geminiBusy.includes(mm[1])) {
+        return sendJson(res, 503, { error: { code: 503, message: 'This model is currently experiencing high demand. Spikes in demand are usually temporary. Please try again later.', status: 'UNAVAILABLE' } });
+      }
       if (mm && !(geminiModels || DEFAULT_GEMINI_MODELS.map(m => m[0])).includes(mm[1])) {
         return sendJson(res, 404, { error: { code: 404, message: `models/${mm[1]} is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.`, status: 'NOT_FOUND' } });
       }
@@ -329,7 +334,9 @@ async function startStub() {
     delayHost(host, ms) { modes[host] = Object.assign(modes[host] || {}, { delayMs: ms }); },
     /** Restrict the Gemini models this key can use (list of names, or null for the default list). */
     setGeminiModels(list) { geminiModels = list; },
-    resetModes() { for (const k of Object.keys(modes)) delete modes[k]; geminiModels = null; },
+    /** These Gemini models answer 503 "high demand". */
+    setGeminiBusy(list) { geminiBusy = list; },
+    resetModes() { for (const k of Object.keys(modes)) delete modes[k]; geminiModels = null; geminiBusy = []; },
     async close() {
       for (const c of sockets) c.destroy();
       await Promise.all([providerServer, proxyServer, appServer].map(s => new Promise(r => s.close(r))));

@@ -41,6 +41,33 @@ test.describe('Web app: Gemini key in the new "AQ." shape and model discovery', 
     expect(used.every(p => p.includes('gemini-2.5-flash-lite')), used.join(',')).toBe(true);
   });
 
+  test('big models overloaded (503): a smaller model answers instead', async ({ app }) => {
+    const { page, stub } = app;
+    stub.setGeminiBusy(['gemini-2.5-flash', 'gemini-2.5-pro']);
+    await translate(page, 'Good morning');
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Good morning', { timeout: 15_000 });
+    await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+  });
+
+  test('every model overloaded: a plain "busy" reason within a few seconds, not a silent wait', async ({ app }) => {
+    const { page, stub } = app;
+    stub.setGeminiBusy(['gemini-2.5-flash', 'gemini-2.5-pro', 'gemini-2.5-flash-lite']);
+    const t0 = Date.now();
+    await translate(page, 'Good morning');
+    await expect(page.locator('#toasts')).toContainText(/busy|high demand/i, { timeout: 10_000 });
+    expect(Date.now() - t0).toBeLessThan(10_000);
+    await expect(page.locator('#tGo')).toBeEnabled();
+  });
+
+  test('a slow answer shows "Waiting for Google Gemini" after a few seconds', async ({ app }) => {
+    test.setTimeout(30_000);
+    const { page, stub } = app;
+    stub.delayHost(GEMINI, 6000);
+    await translate(page, 'Good morning');
+    await expect(page.locator('#tMeta')).toContainText(/Waiting for Google Gemini/, { timeout: 8000 });
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Good morning', { timeout: 25_000 });
+  });
+
   test('a key with no usable translation model gets a plain "model not found" message', async ({ app }) => {
     const { page, stub } = app;
     stub.setGeminiModels(['gemini-embedding-001']);
