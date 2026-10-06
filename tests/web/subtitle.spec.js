@@ -81,4 +81,31 @@ test.describe('Web app: Subtitle tab', () => {
     expect(vttCues[3].text).toBe('My own corrected line');
     expect(errors).toEqual([]);
   });
+
+  test('empty drop area layout is intact across widths from 360px to 1920px in English and Persian', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+
+    const widths = [360, 640, 1024, 1920];
+    for (const lang of ['en', 'fa']) {
+      if (lang === 'fa') {
+        await page.evaluate(() => {
+          ui = 'fa';
+          document.documentElement.dir = 'rtl';
+          document.documentElement.lang = 'fa';
+          applyI18n();
+        });
+      }
+      for (const w of widths) {
+        await page.setViewportSize({ width: w, height: 800 });
+        const dropBox = await page.locator('#sDrop').boundingBox();
+        const strongBox = await page.locator('#sDrop strong').boundingBox();
+        expect(dropBox, `sDrop exists at ${w}px in ${lang}`).toBeTruthy();
+        expect(dropBox.x).toBeGreaterThanOrEqual(0);
+        expect(dropBox.x + dropBox.width).toBeLessThanOrEqual(w + 1);
+        expect(strongBox.x).toBeGreaterThanOrEqual(dropBox.x);
+        expect(strongBox.x + strongBox.width).toBeLessThanOrEqual(dropBox.x + dropBox.width + 1);
+      }
+    }
+  });
 });
