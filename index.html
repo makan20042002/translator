@@ -496,6 +496,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
             <div class="sub-file-meta">
               <span class="meta" id="sInfo"></span>
               <button class="btn ghost" id="sChangeFile" type="button" style="font-size:12px;min-height:28px">📁 <span data-t="subChangeFile">Change file</span></button>
+              <button class="btn ghost" id="sCloseFile" type="button" style="font-size:12px;min-height:28px">✕ <span id="sCloseFileText" data-t="subCloseFile">Close file</span></button>
             </div>
             <span class="sp"></span>
             <label class="chk"><input type="checkbox" id="sBi"><span data-t="bilingual">Bilingual export</span></label>
@@ -1029,7 +1030,7 @@ const I18N={en:{
  subStyle:'Style',subStyleFilm:'Film / spoken',subStyleNeutral:'Neutral',subStyleFormal:'Formal',
  subFamily:'Family-friendly (soften swearing)',
  subNonAiWarn:'⚠️ Non-AI engines (Google, MyMemory, Offline) cannot follow styles or spoken Persian. Choose an AI engine (Gemini, Groq, OpenRouter) for film subtitles.',
- subChangeFile:'Change file',subColNum:'#',subColTime:'Time',subColOrig:'Original',subColTrans:'Translation',
+ subChangeFile:'Change file',subCloseFile:'Close file',subCloseSure:'Click again to discard the translation',subColNum:'#',subColTime:'Time',subColOrig:'Original',subColTrans:'Translation',
  silenceWaitL:'Silence wait (end of speech)',liveVoice:'Live voice',fastVoice:'Fast (Device / Edge)',qualityVoice:'Quality (Gemini voice)',
  saveConv:'Save conversation',convSaved:'Conversation saved to file',convCleared:'Conversation cleared',settings:'Settings',
  readAloud:'Read aloud',enabled:'Enabled',vStatusReady:'Ready · Hold to speak',vStatusListening:'Listening…',
@@ -1100,7 +1101,7 @@ const I18N={en:{
  subStyle:'سبک',subStyleFilm:'فیلم / محاوره‌ای',subStyleNeutral:'معمولی',subStyleFormal:'رسمی',
  subFamily:'مناسب خانواده (تعدیل فحش و اصطلاحات تند)',
  subNonAiWarn:'⚠️ موتورهای غیرهوش مصنوعی (گوگل، مای‌مموری و آفلاین) قادر به اعمال لحن محاوره‌ای یا سبک فیلم نیستند. برای زیرنویس محاوره‌ای فیلم از موتور هوش مصنوعی استفاده کنید.',
- subChangeFile:'تغییر فایل',subColNum:'ردیف',subColTime:'زمان‌بندی',subColOrig:'متن اصلی',subColTrans:'ترجمه',
+ subChangeFile:'تغییر فایل',subCloseFile:'بستن فایل',subCloseSure:'برای دورریختن ترجمه دوباره کلیک کنید',subColNum:'ردیف',subColTime:'زمان‌بندی',subColOrig:'متن اصلی',subColTrans:'ترجمه',
  silenceWaitL:'مکث تشخیص پایان گفتار',liveVoice:'صدای حالت زنده',fastVoice:'سریع (صدای دستگاه / اج)',qualityVoice:'کیفیت بالا (صدای جمینای)',
  saveConv:'ذخیره گفتگو',convSaved:'گفتگو در فایل متنی ذخیره شد',convCleared:'گفتگو پاک شد',settings:'تنظیمات',
  readAloud:'خواندن با صدا',enabled:'فعال',vStatusReady:'آماده · برای صحبت نگه دارید',vStatusListening:'در حال شنیدن…',
@@ -2876,10 +2877,26 @@ const sInfo=()=>$('sInfo').textContent=`${sName} · ${cues.filter(c=>c.t).length
 $('cues').addEventListener('input',e=>{const i=e.target.dataset?.i;if(i!=null){cues[i].t=e.target.innerText.replace(/\n$/,'');sInfo()}});
 async function loadSubs(f){
   const c=parseSubs(await f.text());if(!c.length){toast('No subtitle lines found in this file','err');return}
+  sCtl?.abort(); // a translation still running belongs to the old file
   cues=c;sName=f.name.replace(/\.[^.]+$/,'');$('sDrop').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
 }
 dropzone($('sDrop'),$('sFile'),loadSubs);
 if($('sChangeFile'))$('sChangeFile').onclick=()=>$('sFile').click();
+// Close file: back to the empty drop zone. If there are translated lines, the first click only asks (second click within 6 s confirms).
+let sCloseTimer=null;
+const sCloseReset=()=>{clearTimeout(sCloseTimer);sCloseTimer=null;if($('sCloseFileText'))$('sCloseFileText').textContent=L('subCloseFile')};
+function closeSubs(){
+  sCtl?.abort();sCloseReset();
+  cues=[];sName='subtitle';$('cues').innerHTML='';$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='';
+  $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;
+}
+if($('sCloseFile'))$('sCloseFile').onclick=()=>{
+  if(cues.some(c=>c.t&&c.t.trim())&&!sCloseTimer){
+    $('sCloseFileText').textContent=L('subCloseSure');
+    sCloseTimer=setTimeout(sCloseReset,6000);return;
+  }
+  closeSubs();
+};
 async function doSubs(onlyEmpty){
   const idx=cues.map((c,i)=>i).filter(i=>!onlyEmpty||!cues[i].t.trim());if(!idx.length)return;
   // unit = one cue, or one dialogue line when every line starts with a dash
