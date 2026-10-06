@@ -47,3 +47,4 @@ makan-settings*.json
 # Test suite output (npm test)
 tests/.generated/
 tests/.results/
+/test-results
