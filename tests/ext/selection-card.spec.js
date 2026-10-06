@@ -241,4 +241,26 @@ test.describe('Extension: selection card', () => {
     });
     await checkHeaderContainment('Persian RTL at 280px with long engine name');
   });
+
+  test('Smart mode shows plain-language failure reason on card when key is missing or rejected', async ({ ext, stub }) => {
+    // 1. Without key: Smart mode shows key missing
+    await ext.patchConfig({ order: ['gemini'], eng: { gemini: { on: true, key: '' }, ollama: { on: false }, google: { on: false }, mymemory: { on: false } } });
+    const page = ext.article;
+    await page.reload();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(card(page)).toBeVisible();
+    await inShadow(page, '#makanModeSel').selectOption('smart');
+    await expect(inShadow(page, '.makan-card-body')).toContainText('key missing');
+
+    // 2. With rejected key: Smart mode shows key rejected
+    await page.keyboard.press('Escape');
+    await ext.patchConfig({ order: ['gemini'], eng: { gemini: { on: true, key: 'bad-key-12345678' }, ollama: { on: false } } });
+    await page.reload();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(card(page)).toBeVisible();
+    await inShadow(page, '#makanModeSel').selectOption('smart');
+    await expect(inShadow(page, '.makan-card-body')).toContainText('key rejected');
+  });
 });

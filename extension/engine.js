@@ -56,7 +56,7 @@ const isRtlLang = l => ['fa', 'ar', 'he', 'ur', 'ps', 'sd', 'ug'].some(c => l ==
 const ENG = {
   google: { name: 'Google Translate', tier: 'free', items: 40, chars: 1800 },
   mymemory: { name: 'MyMemory', tier: 'free', items: 1, chars: 450 },
-  gemini: { name: 'Google Gemini', tier: 'freekey', ai: 1, key: 1, model: 'gemini-3.8-flash', url: 'https://aistudio.google.com/apikey' },
+  gemini: { name: 'Google Gemini', tier: 'freekey', ai: 1, key: 1, model: 'gemini-2.5-flash', url: 'https://aistudio.google.com/apikey' },
   groq: { name: 'Groq', tier: 'freekey', ai: 1, key: 1, base: 'https://api.groq.com/openai/v1', model: 'llama-3.3-70b-versatile', url: 'https://console.groq.com/keys' },
   openrouter: { name: 'OpenRouter', tier: 'freekey', ai: 1, key: 1, base: 'https://openrouter.ai/api/v1', model: 'meta-llama/llama-3.3-70b-instruct:free', url: 'https://openrouter.ai/keys' },
   mistral: { name: 'Mistral AI', tier: 'freekey', ai: 1, key: 1, base: 'https://api.mistral.ai/v1', model: 'mistral-small-latest', url: 'https://console.mistral.ai/api-keys/' },
@@ -74,7 +74,7 @@ const DEFAULT_CFG = {
   eng: {
     google: { on: true, key: '', model: '', base: '' },
     mymemory: { on: true, key: '', model: '', base: '' },
-    gemini: { on: true, key: '', model: 'gemini-3.8-flash', base: '' },
+    gemini: { on: true, key: '', model: 'gemini-2.5-flash', base: '' },
     groq: { on: false, key: '', model: 'llama-3.3-70b-versatile', base: 'https://api.groq.com/openai/v1' },
     openrouter: { on: true, key: '', model: 'meta-llama/llama-3.3-70b-instruct:free', base: 'https://openrouter.ai/api/v1' },
     mistral: { on: true, key: '', model: 'mistral-small-latest', base: 'https://api.mistral.ai/v1' },
@@ -190,6 +190,31 @@ function providerBase(id, e) {
   return (ENG[id] && ENG[id].base && id !== 'custom' && id !== 'ollama') ? ENG[id].base : ((e && e.base) || '');
 }
 
+// Map errors to plain words (key missing, key rejected, provider unreachable from this network, rate limited, model not found)
+function toPlainReason(err) {
+  if (!err) return '';
+  const msg = String(err.message || err.rawMessage || err || '').toLowerCase();
+  const status = err.status || 0;
+
+  if (/key missing|needs? key|no api key|needkey|key is missing|not configured/i.test(msg)) {
+    return 'key missing';
+  }
+  if (status === 401 || /invalid.*key|key.*not.*valid|api.?key.*not.*valid|api_key_invalid|bad api key|unauthorized|permission_denied|unregistered caller/i.test(msg)) {
+    return 'key rejected';
+  }
+  if (status === 429 || /quota|resource_exhausted|rate limit|too many requests/i.test(msg)) {
+    return 'rate limited';
+  }
+  if (status === 404 || /is not found for api version|model.*not.*found/i.test(msg)) {
+    return 'model not found';
+  }
+  if ((status === 403 && /region|country|geograph|forbidden|access denied|not supported in your/i.test(msg)) ||
+      /provider unreachable|network error|connection blocked|failed to fetch|netblocked/i.test(msg)) {
+    return 'provider unreachable from this network';
+  }
+  return err.message || '';
+}
+
 // HTTP request helper with error parsing
 async function fx(url, opt, tries = 2) {
   let r;
@@ -197,7 +222,9 @@ async function fx(url, opt, tries = 2) {
     r = await fetch(url, opt);
   } catch (e) {
     if (e.name === 'AbortError') throw e;
-    throw new Error('Network error or connection blocked');
+    const err = new Error('provider unreachable from this network');
+    err.cause = e;
+    throw err;
   }
   if (!r.ok) {
     let m = '';
@@ -207,8 +234,10 @@ async function fx(url, opt, tries = 2) {
     } catch {
       m = await r.text();
     }
-    const err = new Error(redact(m || ('HTTP ' + r.status), secretsOf(opt)));
+    const cleanMsg = redact(m || ('HTTP ' + r.status), secretsOf(opt));
+    const err = new Error(cleanMsg);
     err.status = r.status;
+    err.rawMessage = m;
     throw err;
   }
   const ct = r.headers.get('content-type') || '';
@@ -344,19 +373,46 @@ async function callAi(id, items, o, cfg) {
   let txt = '';
 
   if (id === 'gemini') {
-    const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model)}:generateContent`;
-    const j = await fx(url, {
-      method: 'POST',
-      signal,
-      headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
-      body: JSON.stringify({
-        systemInstruction: { parts: [{ text: sys }] },
-        contents: [{ role: 'user', parts: [{ text: user }] }],
-        generationConfig: { temperature: 0.15, responseMimeType: 'application/json' }
-      })
-    });
-    txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-    if (!txt) throw new Error(j.promptFeedback?.blockReason || 'Empty Gemini response');
+    const key = (e.key || '').trim();
+    if (!key) throw new Error('key missing');
+    const modelChain = [
+      e.model || 'gemini-2.5-flash',
+      'gemini-2.5-flash',
+      'gemini-2.0-flash',
+      'gemini-1.5-flash',
+      'gemini-flash-latest'
+    ].filter((m, i, a) => m && a.indexOf(m) === i);
+
+    let lastGemErr = null;
+    let gotResult = false;
+    for (const m of modelChain) {
+      try {
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
+        const j = await fx(url, {
+          method: 'POST',
+          signal,
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: sys }] },
+            contents: [{ role: 'user', parts: [{ text: user }] }],
+            generationConfig: { temperature: 0.15, responseMimeType: 'application/json' }
+          })
+        });
+        txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+        if (!txt) throw new Error(j.promptFeedback?.blockReason || 'Empty Gemini response');
+        gotResult = true;
+        break;
+      } catch (gemErr) {
+        lastGemErr = gemErr;
+        if (gemErr.status === 404 || /not found|is not supported for generatecontent/i.test(gemErr.message || '')) {
+          continue;
+        }
+        throw gemErr;
+      }
+    }
+    if (!gotResult) {
+      throw lastGemErr || new Error('model not found');
+    }
   } else if (id === 'claude') {
     const j = await fx('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -425,6 +481,10 @@ async function translateItemsWithFallback(items, options = {}, cfg) {
   }
 
   if (!chain.length) {
+    if (options.mode === 'smart') {
+      const hasMissingKey = cfg.order.some(id => ENG[id]?.ai && ENG[id]?.key && !cfg.eng?.[id]?.key);
+      if (hasMissingKey) throw new Error('Translation failed: key missing');
+    }
     throw new Error('No usable translation engine configured. Please configure an engine in MAKAN options.');
   }
 
@@ -481,7 +541,8 @@ async function translateItemsWithFallback(items, options = {}, cfg) {
     }
   }
 
-  throw new Error(`Translation failed: ${lastError?.message || 'All engines in chain failed'}`);
+  const plain = toPlainReason(lastError);
+  throw new Error(`Translation failed: ${plain || lastError?.message || 'All engines in chain failed'}`);
 }
 
 // Single-word dictionary lookup using an AI engine
@@ -609,13 +670,27 @@ async function testEngineConnection(id, cfg) {
 
   try {
     if (id === 'gemini') {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model || 'gemini-3.8-flash')}:generateContent`;
-      await fx(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
-        body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
-      });
-      return { code: 'works', text: 'Works' };
+      const models = [e.model || 'gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'].filter((m, i, a) => m && a.indexOf(m) === i);
+      let testErr = null;
+      let ok = false;
+      for (const m of models) {
+        try {
+          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
+          await fx(url, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
+            body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
+          });
+          ok = true;
+          break;
+        } catch (mErr) {
+          testErr = mErr;
+          if (mErr.status === 404 || /not found/i.test(mErr.message || '')) continue;
+          throw mErr;
+        }
+      }
+      if (ok) return { code: 'works', text: 'Works' };
+      throw testErr || new Error('model not found');
     } else if (id === 'claude') {
       await fx('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -641,11 +716,14 @@ async function testEngineConnection(id, cfg) {
     }
   } catch (err) {
     const msg = String(err?.message || err || '').toLowerCase();
-    if (/401|invalid.*key|key.*not.*valid|api.?key.*not.*valid|unauthorized|api_key_invalid|bad api key/i.test(msg)) {
+    if (/401|invalid.*key|key.*not.*valid|api.?key.*not.*valid|unauthorized|api_key_invalid|bad api key|permission_denied|unregistered caller/i.test(msg)) {
       return { code: 'keyRejected', text: 'Key rejected' };
     }
     if (/429|quota/i.test(msg)) {
       return { code: 'works', text: 'Works (quota warning)' };
+    }
+    if (/not found|model not found/i.test(msg)) {
+      return { code: 'modelNotFound', text: 'Model not found' };
     }
     return { code: 'netBlocked', text: 'Connection failed' };
   }
@@ -1194,6 +1272,8 @@ if (root) {
   root.GeminiAudioStreamPlayer = GeminiAudioStreamPlayer;
   root.ttsSessionCache = ttsSessionCache;
   root.getTtsCacheKey = getTtsCacheKey;
+  root.toPlainReason = toPlainReason;
+  if (typeof module !== 'undefined' && module.exports) module.exports = root;
 }
 
 })(typeof self !== 'undefined' ? self : (typeof globalThis !== 'undefined' ? globalThis : this));

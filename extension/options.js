@@ -360,6 +360,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function saveAndNotify() {
     try {
+      if (typeof saveConfig === 'function') {
+        await saveConfig(cfg);
+      } else if (window.chrome?.storage?.local) {
+        await chrome.storage.local.set({ makan_cfg: cfg });
+      }
       if (window.chrome?.runtime?.sendMessage) {
         await chrome.runtime.sendMessage({ action: 'save-config', cfg });
       } else if (window.localStorage) {
@@ -718,7 +723,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   };
 
-  function applySettingsJson(rawJson) {
+  async function applySettingsJson(rawJson) {
     try {
       const data = JSON.parse(rawJson);
       if (!data || typeof data !== 'object') throw new Error('not a settings file');
@@ -733,6 +738,19 @@ document.addEventListener('DOMContentLoaded', async () => {
           if (ENG[k] && v && typeof v === 'object') next.eng[k] = Object.assign({}, cfg.eng[k], v);
         }
       }
+      if (importedCfg.tts && typeof importedCfg.tts === 'object') {
+        next.tts = Object.assign({}, cfg.tts, importedCfg.tts);
+        if (!next.eng?.gemini?.key && importedCfg.tts.key) {
+          next.eng = next.eng || {};
+          next.eng.gemini = next.eng.gemini || {};
+          next.eng.gemini.key = String(importedCfg.tts.key).trim();
+        }
+      }
+      if (!next.eng?.gemini?.key && (importedCfg.geminiKey || importedCfg.gemini_key)) {
+        next.eng = next.eng || {};
+        next.eng.gemini = next.eng.gemini || {};
+        next.eng.gemini.key = String(importedCfg.geminiKey || importedCfg.gemini_key).trim();
+      }
       if (Array.isArray(importedCfg.glossary)) next.glossary = importedCfg.glossary;
       for (const k of ['tone', 'src', 'tgt']) if (importedCfg[k]) next[k] = importedCfg[k];
       // Keep only values this extension understands (the web app's export also lists engines that exist only there).
@@ -740,7 +758,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       for (const k of Object.keys(cfg)) delete cfg[k];
       Object.assign(cfg, clean);
 
-      saveAndNotify();
+      await saveAndNotify();
       selDefaultTgt.value = cfg.tgt || 'fa';
       selDefaultTone.value = cfg.tone || 'neutral';
       renderEngines();

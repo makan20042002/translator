@@ -72,4 +72,20 @@ test.describe('Live services (real internet)', () => {
     await mouseClick(page, page.locator('#tSpeak'));
     expect((await audio).status()).toBe(200);
   });
+
+  test('real Gemini translates in extension Smart mode', async () => {
+    test.skip(!GEMINI_KEY, 'skipped: needs key (set MAKAN_GEMINI_KEY to run)');
+    test.setTimeout(60_000);
+    const engine = require('../../extension/engine.js');
+    const cfg = {
+      order: ['gemini'],
+      eng: { gemini: { on: true, key: GEMINI_KEY, model: 'gemini-2.5-flash' } },
+      src: 'en',
+      tgt: 'fa'
+    };
+    const res = await engine.translateItemsWithFallback(['Good morning, how are you?'], { mode: 'smart', src: 'en', tgt: 'fa' }, cfg);
+    expect(res.results[0]).toMatch(/[؀-ۿ]/);
+    expect(res.engineName).toBe('Google Gemini');
+  });
 });
+
