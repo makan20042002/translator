@@ -517,6 +517,41 @@ async function callAi(id, items, o, cfg) {
   return parseAiJsonArray(txt, items.length);
 }
 
+
+// ---- Plain failure reasons and the last error of each engine (for the card, popup, Options and diagnostics) ----
+const IN_EXTENSION_PAGE = typeof location !== 'undefined' && /^(chrome|moz)-extension:$/.test(location.protocol) || typeof importScripts === 'function';
+const lastEngineErrors = {};
+function recordEngineError(id, err) {
+  const entry = { reason: toPlainReason(err) || String((err && err.message) || err || ''), time: new Date().toISOString() };
+  lastEngineErrors[id] = entry;
+  try { if (IN_EXTENSION_PAGE && root.chrome && chrome.storage && chrome.storage.local) chrome.storage.local.set({ makan_last_errors: lastEngineErrors }); } catch {}
+}
+
+// Turn any failure into one line of plain words. Never returns an empty string.
+function plainFailure(raw) {
+  let msg = String((raw && (raw.message || raw.error)) || raw || '').replace(/^(Error: )?(Translation failed: )+/i, '').trim();
+  if (/content security policy|securitypolicyviolation|csp\b|refused to (connect|load|execute|apply)|blocked by this site/i.test(msg)) return "blocked by this site's security policy";
+  if (/extension context invalidated|updated or reloaded/i.test(msg)) return 'the extension was updated or reloaded: refresh this page';
+  if (/receiving end does not exist|could not establish connection|background (is )?not (running|reachable)|no answer from the extension/i.test(msg)) return 'the extension background did not answer: refresh this page';
+  const plain = toPlainReason({ message: msg, status: (raw && raw.status) || 0 });
+  const out = (plain || msg).replace(/^key missing$/i, 'key missing').trim();
+  return out || 'unknown reason (use "Copy diagnostics" in Options and send it to the developer)';
+}
+// Reasons the user can fix in Options.
+function failureNeedsOptions(reason) { return /key missing|key rejected|model not found|no usable|not configured|no engine/i.test(String(reason)); }
+
+// Ask the extension's background and never lose the reason: a missing or silent answer becomes a plain message.
+async function askBackground(msg) {
+  try {
+    if (!(root.chrome && chrome.runtime && chrome.runtime.sendMessage)) return { ok: false, error: 'the extension background did not answer: refresh this page' };
+    const r = await chrome.runtime.sendMessage(msg);
+    if (!r) return { ok: false, error: 'the extension background did not answer: refresh this page' };
+    return r;
+  } catch (e) {
+    return { ok: false, error: plainFailure(e) };
+  }
+}
+
 // Main translation coordinator with fallback chain and 429 backoff
 async function translateItemsWithFallback(items, options = {}, cfg) {
   if (!items || !items.length) return { results: [], engineUsed: '', engineName: '' };
@@ -578,6 +613,7 @@ async function translateItemsWithFallback(items, options = {}, cfg) {
       };
     } catch (err) {
       lastError = err;
+      recordEngineError(id, err);
       const is429 = err.status === 429 || /429|resource_exhausted|rate limit|quota/i.test(err.message || '');
       
       if (is429) {
@@ -1315,6 +1351,10 @@ if (root) {
   root.ttsSessionCache = ttsSessionCache;
   root.getTtsCacheKey = getTtsCacheKey;
   root.toPlainReason = toPlainReason;
+  root.plainFailure = plainFailure;
+  root.failureNeedsOptions = failureNeedsOptions;
+  root.askBackground = askBackground;
+  root.lastEngineErrors = lastEngineErrors;
   if (typeof module !== 'undefined' && module.exports) module.exports = root;
 }
 

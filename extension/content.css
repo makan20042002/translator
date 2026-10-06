@@ -551,3 +551,8 @@
   color: var(--muted);
   font-size: 12px;
 }
+
+.makan-banner-text { font-weight: 600; }
+.makan-err { color: var(--err); font-size: 13px; margin-bottom: 8px; }
+.makan-empty { color: var(--muted); font-size: 13.5px; padding: 12px 4px; }
+.makan-dict-ex2 { color: #94a3b8; }

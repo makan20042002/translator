@@ -99,6 +99,19 @@ Neither has a build step for the app code itself. The only "build" is
    * **Fast mode** tries every non-AI engine in turn (Chrome on-device, Google
      web, MyMemory). In Both mode, if Fast fails completely but Smart works,
      the Smart result is shown with a one-line note.
+   * **Strict-policy sites.** The on-page card gets its styling as a
+     constructable stylesheet (CSS text handed over by the background), not a
+     `<link>` or `<style>` a site's Content-Security-Policy could refuse. The
+     on-page code makes no network call, plays no audio and writes no inline
+     style markup; everything like that happens in the background or the
+     hidden audio page. `tests/pages/strict.html` is served with a very strict
+     policy and is part of the suite.
+   * **Every failure has a reason.** Card, popup and whole-page translation
+     show a plain reason (`plainFailure` in `engine.js`: key missing, key
+     rejected, provider busy, model not found, rate limited, provider
+     unreachable, blocked by this site's security policy, extension background
+     did not answer), with an "Open Options" button when the user can fix it.
+     The last error of each engine is kept for "Copy diagnostics" in Options.
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.
