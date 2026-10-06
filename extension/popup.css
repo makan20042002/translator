@@ -491,3 +491,21 @@ input:checked + .p-slider:before {
 .p-link:hover {
   color: var(--accent);
 }
+
+.pill-fast {
+  font-size: 10px;
+  padding: 1px 5px;
+  background: rgba(255, 190, 83, 0.18);
+  color: #ffbe53;
+  border-radius: 4px;
+  font-weight: 600;
+}
+
+.calm-fade {
+  animation: calmFade 0.35s ease-out;
+}
+
+@keyframes calmFade {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}

@@ -409,9 +409,20 @@ async function translateItemsWithFallback(items, options = {}, cfg) {
   const subject = options.subject || cfg.subject || '';
   const subStyle = options.subStyle || cfg.subStyle || 'neutral';
 
-  const chain = (options.engine && options.engine !== 'auto')
-    ? [options.engine]
-    : cfg.order.filter(id => isEngineUsable(id, cfg));
+  let chain;
+  if (options.mode === 'fast') {
+    const nonAi = ['google', 'mymemory'].filter(id => !ENG[id]?.ai && isEngineUsable(id, cfg));
+    chain = nonAi.slice(0, 1);
+  } else if (options.mode === 'smart') {
+    const aiChain = (options.engine && options.engine !== 'auto' && ENG[options.engine]?.ai)
+      ? [options.engine]
+      : cfg.order.filter(id => ENG[id]?.ai && isEngineUsable(id, cfg));
+    chain = aiChain;
+  } else {
+    chain = (options.engine && options.engine !== 'auto')
+      ? [options.engine]
+      : cfg.order.filter(id => isEngineUsable(id, cfg));
+  }
 
   if (!chain.length) {
     throw new Error('No usable translation engine configured. Please configure an engine in MAKAN options.');
@@ -630,7 +641,7 @@ async function testEngineConnection(id, cfg) {
     }
   } catch (err) {
     const msg = String(err?.message || err || '').toLowerCase();
-    if (/401|invalid.*key|unauthorized|api_key_invalid|bad api key/i.test(msg)) {
+    if (/401|invalid.*key|key.*not.*valid|api.?key.*not.*valid|unauthorized|api_key_invalid|bad api key/i.test(msg)) {
       return { code: 'keyRejected', text: 'Key rejected' };
     }
     if (/429|quota/i.test(msg)) {
@@ -1170,6 +1181,7 @@ if (root) {
   root.translateItemsWithFallback = translateItemsWithFallback;
   root.lookupWordDictionary = lookupWordDictionary;
   root.testEngineConnection = testEngineConnection;
+  root.isEngineUsable = isEngineUsable;
   root.isRtlLang = isRtlLang;
   root.langName = langName;
   root.pcmToWav = pcmToWav;

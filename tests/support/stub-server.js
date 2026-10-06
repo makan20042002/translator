@@ -147,6 +147,9 @@ async function startStub() {
     if (req.method === 'OPTIONS') return sendJson(res, 204, {});
 
     const forced = modes[host];
+    if (forced && forced.delayMs) {
+      await new Promise(r => setTimeout(r, forced.delayMs));
+    }
     if (forced && forced.times > 0) {
       forced.times--;
       forced.hits = (forced.hits || 0) + 1;
@@ -308,6 +311,7 @@ async function startStub() {
     clearLog() { log.length = 0; },
     /** Make the next `times` requests to `host` fail with `status` ('drop' closes the connection). */
     failHost(host, status, times = Infinity, body) { modes[host] = { status, times, body, hits: 0 }; return modes[host]; },
+    delayHost(host, ms) { modes[host] = Object.assign(modes[host] || {}, { delayMs: ms }); },
     resetModes() { for (const k of Object.keys(modes)) delete modes[k]; },
     async close() {
       for (const c of sockets) c.destroy();

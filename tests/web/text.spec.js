@@ -79,8 +79,8 @@ test.describe('Web app: Text tab', () => {
     });
   });
 
-  test.describe('with Gemini first and Google second', () => {
-    test.use({ appOptions: { seed: { cfg: onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }) } } });
+  test.describe('with Gemini first and Google second (Smart mode)', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }), tMode: 'smart' } } });
 
     test('Gemini is used when it works', async ({ app }) => {
       const { page, stub } = app;
@@ -110,4 +110,80 @@ test.describe('Web app: Text tab', () => {
       expect(stub.calls('clients5.google.com').length).toBe(1);
     });
   });
+
+  test.describe('with Both mode (Fast first, then better)', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }), tMode: 'both' } } });
+
+    test('starts Fast and Smart together, displays Fast result first with Fast label, then replaces calmly with Gemini', async ({ app }) => {
+      const { page, stub } = app;
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Dual translation');
+      await mouseClick(page, page.locator('#tGo'));
+
+      // Replaces with Gemini eventually
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Dual translation');
+      await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+
+      // Both engines were called concurrently
+      expect(stub.calls('clients5.google.com').length).toBe(1);
+      expect(stub.calls('generativelanguage.googleapis.com').length).toBe(1);
+    });
+
+    test('if user copies Fast result before Smart finishes, Show improved button appears without overwriting under hands', async ({ app }) => {
+      const { page, stub } = app;
+      // Delay Gemini slightly to allow user to copy Fast result
+      stub.delayHost('generativelanguage.googleapis.com', 300);
+
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Do not overwrite');
+      await mouseClick(page, page.locator('#tGo'));
+
+      // Wait for Fast result to appear
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Do not overwrite');
+      // Copy Fast result
+      await mouseClick(page, page.locator('#tCopy'));
+
+      // Show improved button should appear once Gemini completes
+      const showBtn = page.locator('#tShowImproved');
+      await expect(showBtn).toBeVisible({ timeout: 5000 });
+      expect(await page.locator('#tOut').inputValue()).toBe('[fa] Do not overwrite');
+
+      // Clicking Show improved updates output
+      await mouseClick(page, showBtn);
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Do not overwrite');
+      await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+      await expect(showBtn).not.toBeVisible();
+    });
+
+    test('if AI engine fails, keeps Fast result and informs user in one line', async ({ app }) => {
+      const { page, stub } = app;
+      stub.failHost('generativelanguage.googleapis.com', 500);
+
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Keep the fast version');
+      await mouseClick(page, page.locator('#tGo'));
+
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Keep the fast version');
+      await expect(page.locator('#tMeta')).toContainText('Fast');
+      await expect(page.locator('#tMeta')).toContainText('AI unavailable');
+      expect(stub.calls('clients5.google.com').length).toBe(1);
+    });
+  });
+
+  test.describe('with Fast mode selected', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }), tMode: 'fast' } } });
+
+    test('Fast mode calls only non-AI engine and labels output Fast', async ({ app }) => {
+      const { page, stub } = app;
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Only fast engine');
+      await mouseClick(page, page.locator('#tGo'));
+
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Only fast engine');
+      await expect(page.locator('#tMeta')).toContainText('Fast');
+      expect(stub.calls('clients5.google.com').length).toBe(1);
+      expect(stub.calls('generativelanguage.googleapis.com').length).toBe(0);
+    });
+  });
 });
+

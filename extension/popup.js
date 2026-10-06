@@ -19,6 +19,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       restorePage: 'Show Original',
       lblEngine: 'Engine:',
       lblTone: 'Tone:',
+      lblMode: 'Mode:',
+      fastLabel: 'Fast',
+      showImproved: 'Show improved',
+      aiRateLimited: 'AI rate limited',
+      aiUnavailable: 'AI unavailable',
       placeholder: 'Type or paste text to translate…',
       clear: 'Clear',
       translate: 'Translate',
@@ -36,6 +41,11 @@ document.addEventListener('DOMContentLoaded', async () => {
       restorePage: 'متن اصلی',
       lblEngine: 'موتور:',
       lblTone: 'لحن:',
+      lblMode: 'حالت:',
+      fastLabel: 'سریع',
+      showImproved: 'نمایش نسخه بهتر',
+      aiRateLimited: 'محدودیت نرخ هوش مصنوعی',
+      aiUnavailable: 'هوش مصنوعی در دسترس نیست',
       placeholder: 'متن را برای ترجمه تایپ یا پیست کنید…',
       clear: 'پاک کردن',
       translate: 'ترجمه',
@@ -55,6 +65,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pSrcLang = document.getElementById('pSrcLang');
   const pTgtLang = document.getElementById('pTgtLang');
   const pSwapLang = document.getElementById('pSwapLang');
+  const pModeSel = document.getElementById('pModeSel');
   const pEngineSel = document.getElementById('pEngineSel');
   const pToneSel = document.getElementById('pToneSel');
   const pInputText = document.getElementById('pInputText');
@@ -137,6 +148,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     document.querySelector('.p-title').innerHTML = I18N[lang].title;
     document.getElementById('lblEngine').textContent = I18N[lang].lblEngine;
     document.getElementById('lblTone').textContent = I18N[lang].lblTone;
+    if (document.getElementById('lblMode')) document.getElementById('lblMode').textContent = I18N[lang].lblMode;
     pInputText.placeholder = I18N[lang].placeholder;
     pClearBtn.textContent = I18N[lang].clear;
     pTransBtn.textContent = I18N[lang].translate;
@@ -163,6 +175,17 @@ document.addEventListener('DOMContentLoaded', async () => {
   pSrcLang.value = cfg.src || 'auto';
   pTgtLang.value = cfg.tgt || 'fa';
 
+  // Mode Selection
+  const hasAi = cfg.order?.some(id => ENG[id]?.ai && (typeof isEngineUsable === 'function' ? isEngineUsable(id, cfg) : (cfg.eng?.[id]?.on && cfg.eng?.[id]?.key)) && (ENG[id]?.key ? Boolean(cfg.eng?.[id]?.key) : (id === 'custom' ? Boolean(cfg.eng?.[id]?.base) : false)));
+  const defaultMode = cfg.transMode || (hasAi ? 'both' : 'fast');
+  if (pModeSel) {
+    pModeSel.value = defaultMode;
+    pModeSel.onchange = () => {
+      cfg.transMode = pModeSel.value;
+      chrome.runtime.sendMessage({ action: 'save-config', cfg });
+    };
+  }
+
   // Populate Engines
   pEngineSel.innerHTML = '<option value="auto">Auto (Best available)</option>';
   cfg.order.forEach(id => {
@@ -177,7 +200,23 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Set web app link
   const appBase = cfg.webAppUrl || 'http://localhost:8080';
-  pOpenWebApp.href = appBase;
+  function updateOpenWebAppHref(inputText) {
+    if (!pOpenWebApp) return;
+    const t = (inputText != null ? inputText : pInputText.value || '').trim();
+    if (t) {
+      const p = new URLSearchParams();
+      p.set('text', t.slice(0, 2000));
+      p.set('src', pSrcLang.value || 'auto');
+      p.set('tgt', pTgtLang.value || 'fa');
+      pOpenWebApp.href = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+    } else {
+      pOpenWebApp.href = appBase;
+    }
+  }
+  updateOpenWebAppHref();
+  pInputText.addEventListener('input', () => updateOpenWebAppHref());
+  pSrcLang.addEventListener('change', () => updateOpenWebAppHref());
+  pTgtLang.addEventListener('change', () => updateOpenWebAppHref());
 
   // Toggle UI language
   pLangToggle.onclick = async () => {
@@ -258,39 +297,165 @@ document.addEventListener('DOMContentLoaded', async () => {
     pOutputText.innerHTML = '<span style="color:var(--muted)">Translating…</span>';
     pOutputEngine.textContent = '…';
 
+    const hasAiAvailable = cfg.order?.some(id => ENG[id]?.ai && (typeof isEngineUsable === 'function' ? isEngineUsable(id, cfg) : (cfg.eng?.[id]?.on && cfg.eng?.[id]?.key)) && (ENG[id]?.key ? Boolean(cfg.eng?.[id]?.key) : (id === 'custom' ? Boolean(cfg.eng?.[id]?.base) : false)));
+    const mode = pModeSel?.value || (hasAiAvailable ? 'both' : 'fast');
+    let userInteractedWithFast = false;
+    const markInteracted = () => { userInteractedWithFast = true; };
+    pOutputText.addEventListener('copy', markInteracted, { once: true });
+    pCopyBtn.addEventListener('click', markInteracted, { once: true });
+
     try {
-      let resp = null;
-      if (window.chrome?.runtime?.sendMessage) {
-        try {
-          resp = await chrome.runtime.sendMessage({
-            action: 'translate-text',
-            items: [text],
-            src: pSrcLang.value,
-            tgt: pTgtLang.value,
-            engine: pEngineSel.value,
-            tone: pToneSel.value
+      if (mode === 'fast' || (mode === 'both' && !hasAiAvailable)) {
+        let resp = null;
+        if (window.chrome?.runtime?.sendMessage) {
+          try {
+            resp = await chrome.runtime.sendMessage({
+              action: 'translate-text',
+              items: [text],
+              src: pSrcLang.value,
+              tgt: pTgtLang.value,
+              mode: 'fast'
+            });
+          } catch {}
+        }
+        if (!resp && typeof MakanEngine !== 'undefined') {
+          const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, { mode: 'fast' });
+          resp = { ok: true, results: r.results, engineName: r.engineName };
+        }
+        if (resp && resp.ok && resp.results?.length) {
+          pOutputText.textContent = resp.results[0];
+          pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
+          pOutputEngine.textContent = resp.engineName || 'Translated';
+          updateOpenWebAppHref(text);
+        } else {
+          throw new Error(resp?.error || 'Translation failed');
+        }
+      } else if (mode === 'smart') {
+        let resp = null;
+        if (window.chrome?.runtime?.sendMessage) {
+          try {
+            resp = await chrome.runtime.sendMessage({
+              action: 'translate-text',
+              items: [text],
+              src: pSrcLang.value,
+              tgt: pTgtLang.value,
+              engine: pEngineSel.value,
+              tone: pToneSel.value,
+              mode: 'smart'
+            });
+          } catch {}
+        }
+        if (!resp && typeof MakanEngine !== 'undefined') {
+          const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, {
+            engineName: pEngineSel.value,
+            tone: pToneSel.value,
+            mode: 'smart'
           });
-        } catch {}
-      }
-
-      if (!resp && typeof MakanEngine !== 'undefined') {
-        const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, {
-          engineName: pEngineSel.value,
-          tone: pToneSel.value
-        });
-        resp = { ok: true, results: r.results, engineName: r.engineName };
-      }
-
-      if (resp && resp.ok && resp.results?.length) {
-        const out = resp.results[0];
-        pOutputText.textContent = out;
-        pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
-        pOutputEngine.textContent = resp.engineName || 'Translated';
-
-        // Update full app link with query
-        pOpenWebApp.href = `${appBase.replace(/\/+$/, '')}/?text=${encodeURIComponent(text)}&src=${encodeURIComponent(pSrcLang.value)}&tgt=${encodeURIComponent(pTgtLang.value)}`;
+          resp = { ok: true, results: r.results, engineName: r.engineName };
+        }
+        if (resp && resp.ok && resp.results?.length) {
+          pOutputText.textContent = resp.results[0];
+          pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
+          pOutputEngine.textContent = resp.engineName || 'Translated';
+          updateOpenWebAppHref(text);
+        } else {
+          throw new Error(resp?.error || 'Translation failed');
+        }
       } else {
-        throw new Error(resp?.error || 'Translation failed');
+        // Both mode: start fast and smart concurrently
+        let fastDone = false, smartDone = false;
+        let fastRes = '', fastEngine = '';
+        let smartRes = '', smartEngine = '';
+        let fastErr = null, smartErr = null;
+
+        const fastReq = chrome.runtime.sendMessage({
+          action: 'translate-text',
+          items: [text],
+          src: pSrcLang.value,
+          tgt: pTgtLang.value,
+          mode: 'fast'
+        }).then(resp => {
+          if (resp && resp.ok && resp.results?.length) {
+            fastRes = resp.results[0];
+            fastEngine = resp.engineName || 'Fast';
+            fastDone = true;
+            if (!smartDone) {
+              pOutputText.textContent = fastRes;
+              pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
+              pOutputEngine.innerHTML = `<span class="pill-fast" style="font-size:10px;padding:1px 5px;background:rgba(255,190,83,0.18);color:#ffbe53;border-radius:4px;font-weight:600;">${I18N[currentUi].fastLabel}</span> · ${fastEngine}`;
+            }
+          } else {
+            throw new Error(resp?.error || 'Fast translation failed');
+          }
+          return resp;
+        }).catch(e => {
+          fastDone = true;
+          fastErr = e;
+          throw e;
+        });
+
+        const smartReq = chrome.runtime.sendMessage({
+          action: 'translate-text',
+          items: [text],
+          src: pSrcLang.value,
+          tgt: pTgtLang.value,
+          engine: pEngineSel.value,
+          tone: pToneSel.value,
+          mode: 'smart'
+        }).then(resp => {
+          if (resp && resp.ok && resp.results?.length) {
+            smartRes = resp.results[0];
+            smartEngine = resp.engineName || 'AI';
+            smartDone = true;
+            if (userInteractedWithFast && fastRes) {
+              let showBtn = document.getElementById('pShowImproved');
+              if (!showBtn) {
+                showBtn = document.createElement('button');
+                showBtn.id = 'pShowImproved';
+                showBtn.className = 'p-mini-sel';
+                showBtn.style.cursor = 'pointer';
+                showBtn.style.color = 'var(--cyan, #06b6d4)';
+                showBtn.style.borderColor = 'var(--cyan, #06b6d4)';
+                showBtn.textContent = I18N[currentUi].showImproved;
+                pOutputEngine.appendChild(document.createTextNode(' '));
+                pOutputEngine.appendChild(showBtn);
+              }
+              showBtn.onclick = () => {
+                pOutputText.classList.add('calm-fade');
+                setTimeout(() => pOutputText.classList.remove('calm-fade'), 400);
+                pOutputText.textContent = smartRes;
+                pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
+                pOutputEngine.textContent = smartEngine;
+                showBtn.remove();
+              };
+            } else {
+              pOutputText.classList.add('calm-fade');
+              setTimeout(() => pOutputText.classList.remove('calm-fade'), 400);
+              pOutputText.textContent = smartRes;
+              pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
+              pOutputEngine.textContent = smartEngine;
+            }
+            updateOpenWebAppHref(text);
+          } else {
+            throw new Error(resp?.error || 'AI translation failed');
+          }
+          return resp;
+        }).catch(err => {
+          smartDone = true;
+          smartErr = err;
+          if (fastRes) {
+            const is429 = /429|resource_exhausted|rate limit|quota/i.test(err.message || '');
+            const reason = is429 ? I18N[currentUi].aiRateLimited : I18N[currentUi].aiUnavailable;
+            pOutputEngine.textContent = `${I18N[currentUi].fastLabel} (${fastEngine}) · ${reason}`;
+          } else {
+            throw err;
+          }
+        });
+
+        await Promise.allSettled([fastReq, smartReq]);
+        if (!fastRes && !smartRes) {
+          throw smartErr || fastErr || new Error('Translation failed');
+        }
       }
     } catch (err) {
       // Provider messages are plain text, never page markup.

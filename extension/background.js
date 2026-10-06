@@ -394,10 +394,13 @@ function safeWebAppUrl(u) {
 }
 function publicConfig(cfg) {
   const tts = cfg.tts || {};
+  const hasAi = (cfg.order || []).some(id => ENG[id]?.ai && isEngineUsable(id, cfg) && (ENG[id].key ? Boolean(cfg.eng?.[id]?.key) : (id === 'custom' ? Boolean(cfg.eng?.[id]?.base) : false)));
   return {
     src: cfg.src, tgt: cfg.tgt, tone: cfg.tone, subject: cfg.subject,
     trigger: cfg.trigger, dictLookup: cfg.dictLookup, disabledSites: cfg.disabledSites || [], ui: cfg.ui,
     webAppUrl: safeWebAppUrl(cfg.webAppUrl),
+    transMode: cfg.transMode,
+    hasAi,
     tts: { rate: tts.rate, preferGemini: !!tts.preferGemini, geminiVoice: tts.geminiVoice, voices: tts.voices || {} }
   };
 }
@@ -490,7 +493,8 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         engine: req.engine || 'auto',
         tone: req.tone || cfg.tone || 'neutral',
         subject: req.subject || cfg.subject || '',
-        subStyle: req.subStyle || cfg.subStyle || 'neutral'
+        subStyle: req.subStyle || cfg.subStyle || 'neutral',
+        mode: req.mode || 'auto'
       };
 
       try {

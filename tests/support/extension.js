@@ -265,7 +265,7 @@ async function dragSelect(page, selector) {
     r.selectNodeContents(el);
     const rects = r.getClientRects();
     const first = rects[0], last = rects[rects.length - 1];
-    return { x1: first.left + 1, y1: first.top + first.height / 2, x2: last.right - 1, y2: last.top + last.height / 2 };
+    return { x1: first.left + 1, y1: first.top + first.height / 2, x2: Math.ceil(last.right) + 2, y2: last.top + last.height / 2 };
   }, selector);
   const expected = await page.evaluate(sel => document.querySelector(sel).innerText.trim(), selector);
   await page.mouse.move(box.x1, box.y1);
@@ -275,6 +275,9 @@ async function dragSelect(page, selector) {
   // Like a person, let go only once the whole text is highlighted (on a busy machine the browser can lag a moment).
   for (let i = 0; i < 40; i++) {
     if ((await page.evaluate(() => getSelection().toString().trim())) === expected) break;
+    if (i > 5 && i % 5 === 0) {
+      await page.mouse.move(box.x2 + i, box.y2);
+    }
     await page.waitForTimeout(50);
   }
   await page.mouse.up();

@@ -463,3 +463,34 @@
   opacity: 1;
   transform: translateY(0);
 }
+
+.makan-mode-select {
+  font-size: 11px;
+  font-weight: 600;
+  padding: 2px 6px;
+  border-radius: 6px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  cursor: pointer;
+  outline: none;
+}
+
+.makan-pill-fast {
+  font-size: 10px;
+  padding: 1px 4px;
+  border-radius: 4px;
+  background: rgba(255, 190, 83, 0.2);
+  color: #ffbe53;
+  font-weight: 700;
+  margin-inline-end: 3px;
+}
+
+.calm-fade {
+  animation: makanCalmFade 0.35s ease-out;
+}
+
+@keyframes makanCalmFade {
+  from { opacity: 0.5; }
+  to { opacity: 1; }
+}

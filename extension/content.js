@@ -282,6 +282,9 @@
   function isRtl(lang) {
     return ['fa', 'ar', 'he', 'ur', 'ps', 'sd', 'ug'].some(c => lang === c || (lang && lang.startsWith(c + '-')));
   }
+  function isRtlText(str) {
+    return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str || '');
+  }
 
   // Remove existing floating button
   function removeFloatBtn() {
@@ -448,8 +451,11 @@
 
     let curSrc = cfg?.src || 'auto';
     let curTgt = cfg?.tgt || 'fa';
-    let detectedLang = isRtl(text) ? 'fa' : 'en';
+    let detectedLang = isRtlText(text) ? 'fa' : 'en';
     const isSingleWord = isWord || (!text.includes(' ') && text.length <= 32);
+
+    const hasAiAvailable = !!cfg?.hasAi;
+    let cardMode = cfg?.transMode || (hasAiAvailable ? 'both' : 'fast');
 
     card.innerHTML = `
       <div class="makan-card-header">
@@ -458,6 +464,11 @@
           MAKAN<span>Translate</span>
         </div>
         <span class="makan-pill" id="makanPairPill">${escapeHtml(curSrc.toUpperCase())} → ${escapeHtml(curTgt.toUpperCase())}</span>
+        <select class="makan-mode-select" id="makanModeSel" title="Mode">
+          <option value="both"${cardMode === 'both' ? ' selected' : ''}>Both</option>
+          <option value="fast"${cardMode === 'fast' ? ' selected' : ''}>Fast</option>
+          <option value="smart"${cardMode === 'smart' ? ' selected' : ''}>Smart</option>
+        </select>
         <span class="makan-pill detected" id="makanDetectedPill">Detected: ${detectedLang.toUpperCase()}</span>
         <span class="makan-pill engine" id="makanEnginePill">Translating…</span>
         <button class="makan-icon-btn" id="makanCardClose" title="Close (Esc)">
@@ -518,8 +529,11 @@
 
     function updateAppUrl(sourceText, sLang, tLang) {
       const appBase = cfg?.webAppUrl || 'http://localhost:8080';
-      const appUrl = `${appBase.replace(/\/+$/, '')}/?text=${encodeURIComponent(sourceText)}&src=${encodeURIComponent(sLang)}&tgt=${encodeURIComponent(tLang)}`;
-      openAppBtn.href = appUrl;
+      const p = new URLSearchParams();
+      p.set('text', (sourceText || '').slice(0, 2000));
+      p.set('src', sLang || 'auto');
+      p.set('tgt', tLang || 'fa');
+      openAppBtn.href = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
     }
     updateAppUrl(text, curSrc, curTgt);
 
@@ -533,6 +547,21 @@
     card.addEventListener('pointerup', stopCardPropagation);
     card.addEventListener('mouseup', stopCardPropagation);
     card.addEventListener('click', stopCardPropagation);
+
+    // Hook mode select
+    const modeSel = card.querySelector('#makanModeSel');
+    if (modeSel) {
+      modeSel.addEventListener('pointerdown', e => e.stopPropagation());
+      modeSel.addEventListener('mousedown', e => e.stopPropagation());
+      modeSel.onchange = () => {
+        cardMode = modeSel.value;
+        if (cfg) {
+          cfg.transMode = cardMode;
+          chrome.runtime?.sendMessage?.({ action: 'save-config', cfg });
+        }
+        executeTranslate(text, curSrc, curTgt, false);
+      };
+    }
 
     // Execute translation via background
     let translatedResult = '';
@@ -549,7 +578,7 @@
         </div>
       `;
       pairPill.textContent = `${sLang.toUpperCase()} → ${tLang.toUpperCase()}`;
-      detectedLang = isRtl(sourceText) ? 'fa' : 'en';
+      detectedLang = isRtlText(sourceText) ? 'fa' : 'en';
       detectedPill.textContent = `Detected: ${detectedLang.toUpperCase()}`;
       updateAppUrl(sourceText, sLang, tLang);
 
@@ -595,29 +624,156 @@
             throw new Error(resp?.error || 'Dictionary lookup failed');
           }
         } else {
-          let resp = null;
-          if (window.chrome?.runtime?.sendMessage) {
-            try {
-              resp = await chrome.runtime.sendMessage({
-                action: 'translate-text',
-                items: [sourceText],
-                src: sLang,
-                tgt: tLang,
-                tone: cfg?.tone,
-                subject: cfg?.subject
-              });
-            } catch {}
-          }
-          if (!resp && typeof MakanEngine !== 'undefined') {
-            const r = await MakanEngine.translateText([sourceText], sLang, tLang, cfg, { tone: cfg?.tone, subject: cfg?.subject });
-            resp = { ok: true, results: r.results, engineName: r.engineName };
-          }
-          if (resp && resp.ok && resp.results?.length) {
-            translatedResult = resp.results[0];
-            enginePill.textContent = resp.engineName || 'Translated';
-            bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
+          let userInteractedWithFast = false;
+          const markInteracted = () => { userInteractedWithFast = true; };
+          bodyElem.addEventListener('copy', markInteracted, { once: true });
+          const copyBtn = card.querySelector('#makanCopyBtn');
+          copyBtn?.addEventListener('click', markInteracted, { once: true });
+
+          if (cardMode === 'fast' || (cardMode === 'both' && !hasAiAvailable)) {
+            let resp = null;
+            if (window.chrome?.runtime?.sendMessage) {
+              try {
+                resp = await chrome.runtime.sendMessage({
+                  action: 'translate-text',
+                  items: [sourceText],
+                  src: sLang,
+                  tgt: tLang,
+                  mode: 'fast'
+                });
+              } catch {}
+            }
+            if (!resp && typeof MakanEngine !== 'undefined') {
+              const r = await MakanEngine.translateText([sourceText], sLang, tLang, cfg, { mode: 'fast' });
+              resp = { ok: true, results: r.results, engineName: r.engineName };
+            }
+            if (resp && resp.ok && resp.results?.length) {
+              translatedResult = resp.results[0];
+              enginePill.textContent = resp.engineName || 'Translated';
+              bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
+            } else {
+              throw new Error(resp?.error || 'Translation failed');
+            }
+          } else if (cardMode === 'smart') {
+            let resp = null;
+            if (window.chrome?.runtime?.sendMessage) {
+              try {
+                resp = await chrome.runtime.sendMessage({
+                  action: 'translate-text',
+                  items: [sourceText],
+                  src: sLang,
+                  tgt: tLang,
+                  tone: cfg?.tone,
+                  subject: cfg?.subject,
+                  mode: 'smart'
+                });
+              } catch {}
+            }
+            if (!resp && typeof MakanEngine !== 'undefined') {
+              const r = await MakanEngine.translateText([sourceText], sLang, tLang, cfg, { tone: cfg?.tone, subject: cfg?.subject, mode: 'smart' });
+              resp = { ok: true, results: r.results, engineName: r.engineName };
+            }
+            if (resp && resp.ok && resp.results?.length) {
+              translatedResult = resp.results[0];
+              enginePill.textContent = resp.engineName || 'Translated';
+              bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
+            } else {
+              throw new Error(resp?.error || 'Translation failed');
+            }
           } else {
-            throw new Error(resp?.error || 'Translation failed');
+            // Both mode
+            let fastDone = false, smartDone = false;
+            let fastRes = '', fastEngine = '';
+            let smartRes = '', smartEngine = '';
+            let fastErr = null, smartErr = null;
+
+            const fastReq = chrome.runtime.sendMessage({
+              action: 'translate-text',
+              items: [sourceText],
+              src: sLang,
+              tgt: tLang,
+              mode: 'fast'
+            }).then(resp => {
+              if (resp && resp.ok && resp.results?.length) {
+                fastRes = resp.results[0];
+                fastEngine = resp.engineName || 'Fast';
+                fastDone = true;
+                if (!smartDone) {
+                  translatedResult = fastRes;
+                  bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(fastRes)}</div>`;
+                  enginePill.innerHTML = `<span class="makan-pill-fast">Fast</span> ${escapeHtml(fastEngine)}`;
+                }
+              } else {
+                throw new Error(resp?.error || 'Fast translation failed');
+              }
+              return resp;
+            }).catch(e => {
+              fastDone = true;
+              fastErr = e;
+              throw e;
+            });
+
+            const smartReq = chrome.runtime.sendMessage({
+              action: 'translate-text',
+              items: [sourceText],
+              src: sLang,
+              tgt: tLang,
+              tone: cfg?.tone,
+              subject: cfg?.subject,
+              mode: 'smart'
+            }).then(resp => {
+              if (resp && resp.ok && resp.results?.length) {
+                smartRes = resp.results[0];
+                smartEngine = resp.engineName || 'AI';
+                smartDone = true;
+                if (userInteractedWithFast && fastRes) {
+                  let showBtn = card.querySelector('#makanShowImproved');
+                  if (!showBtn) {
+                    showBtn = document.createElement('button');
+                    showBtn.id = 'makanShowImproved';
+                    showBtn.className = 'makan-action-btn';
+                    showBtn.style.color = 'var(--cyan, #58a6ff)';
+                    showBtn.style.borderColor = 'var(--cyan, #58a6ff)';
+                    showBtn.innerHTML = `<span>Show improved</span>`;
+                    const footer = card.querySelector('.makan-card-footer');
+                    if (footer) footer.insertBefore(showBtn, footer.firstChild);
+                  }
+                  showBtn.onclick = (e) => {
+                    e.stopPropagation();
+                    translatedResult = smartRes;
+                    bodyElem.classList.add('calm-fade');
+                    setTimeout(() => bodyElem.classList.remove('calm-fade'), 400);
+                    bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(smartRes)}</div>`;
+                    enginePill.textContent = smartEngine;
+                    showBtn.remove();
+                  };
+                } else {
+                  translatedResult = smartRes;
+                  bodyElem.classList.add('calm-fade');
+                  setTimeout(() => bodyElem.classList.remove('calm-fade'), 400);
+                  bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(smartRes)}</div>`;
+                  enginePill.textContent = smartEngine;
+                }
+              } else {
+                throw new Error(resp?.error || 'AI translation failed');
+              }
+              return resp;
+            }).catch(err => {
+              smartDone = true;
+              smartErr = err;
+              if (fastRes) {
+                const is429 = /429|resource_exhausted|rate limit|quota/i.test(err.message || '');
+                const reason = is429 ? 'AI rate limited' : 'AI unavailable';
+                enginePill.textContent = `Fast (${fastEngine}) · ${reason}`;
+              } else {
+                throw err;
+              }
+            });
+
+            await Promise.allSettled([fastReq, smartReq]);
+            if (!fastRes && !smartRes) {
+              throw smartErr || fastErr || new Error('Translation failed');
+            }
           }
         }
       } catch (err) {
@@ -839,6 +995,7 @@
     // Process in batches
     const BATCH_SIZE = 25;
     let completed = 0;
+    let lastEngineName = '';
     translatedNodes = [];
 
     for (let i = 0; i < targets.length; i += BATCH_SIZE) {
@@ -865,11 +1022,15 @@
         }
 
         if (res && res.ok && res.results) {
+          if (res.engineName || res.engineUsed) {
+            lastEngineName = res.engineName || res.engineUsed;
+          }
           chunk.forEach((el, idx) => {
             const original = texts[idx];
             const translated = res.results[idx] || original;
             el.setAttribute('data-makan-orig', original);
             el.setAttribute('data-makan-trans', translated);
+            if (el._makanOrigHtml === undefined) el._makanOrigHtml = el.innerHTML;
             el.innerText = translated;
             if (isRtl(tgt)) el.setAttribute('dir', 'rtl');
 
@@ -885,22 +1046,32 @@
       }
     }
 
+    if (completed === 0) {
+      isPageTranslated = false;
+      showPageBanner('Translation failed. Could not translate page.', false, false);
+      return;
+    }
+
     isPageTranslated = true;
-    showPageBanner(`Page translated to ${tgt.toUpperCase()} via ${cfg?.order?.[0] || 'MAKAN'}.`, false, true);
+    const engineLabel = lastEngineName || (cfg?.order?.[0] || 'MAKAN');
+    showPageBanner(`Page translated to ${tgt.toUpperCase()} via ${engineLabel}.`, false, true);
   }
 
   // Restore original page text
   function restoreOriginalPage() {
     translatedNodes.forEach(el => {
-      const orig = el.getAttribute('data-makan-orig');
-      if (orig) {
-        el.innerText = orig;
-        el.removeAttribute('data-makan-orig');
-        el.removeAttribute('data-makan-trans');
-        el.removeAttribute('dir');
-        el.onmouseenter = null;
-        el.onmouseleave = null;
+      if (el._makanOrigHtml !== undefined) {
+        el.innerHTML = el._makanOrigHtml;
+        delete el._makanOrigHtml;
+      } else {
+        const orig = el.getAttribute('data-makan-orig');
+        if (orig) el.innerText = orig;
       }
+      el.removeAttribute('data-makan-orig');
+      el.removeAttribute('data-makan-trans');
+      el.removeAttribute('dir');
+      el.onmouseenter = null;
+      el.onmouseleave = null;
     });
     translatedNodes = [];
     isPageTranslated = false;

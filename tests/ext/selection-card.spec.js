@@ -91,8 +91,9 @@ test.describe('Extension: selection card', () => {
     const href = await inShadow(page, '#makanOpenApp').getAttribute('href');
     const u = new URL(href);
     expect(u.origin).toBe('http://localhost:8080');
-    expect(u.searchParams.get('text')).toBe('First item in the list of things.');
-    expect(u.searchParams.get('tgt')).toBe('fa');
+    const params = u.searchParams.get('text') ? u.searchParams : new URLSearchParams(u.hash.replace(/^#/, ''));
+    expect(params.get('text')).toBe('First item in the list of things.');
+    expect(params.get('tgt')).toBe('fa');
   });
 
   test.describe('Speak button', () => {
@@ -145,6 +146,22 @@ test.describe('Extension: selection card', () => {
       await expect(inShadow(page, '#makanEnginePill')).toHaveText('Google Gemini');
       const req = stub.calls('generativelanguage.googleapis.com')[0];
       expect(req.headers['x-goog-api-key']).toBe(VALID_KEY);
+    });
+
+    test('three-way mode choice (Both, Fast, Smart) in selection card', async ({ ext, stub }) => {
+      const page = ext.article;
+      await dragSelect(page, '#li1');
+      await pressM(page);
+      await expect(card(page)).toBeVisible();
+      const modeSel = inShadow(page, '#makanModeSel');
+      await expect(modeSel).toBeVisible();
+      await expect(modeSel).toHaveValue('both');
+      await expect(inShadow(page, '#makanEnginePill')).toHaveText('Google Gemini');
+
+      // Switch to Fast mode
+      await modeSel.selectOption('fast');
+      await expect(inShadow(page, '.makan-result-text')).toHaveText('[fa] First item in the list of things.');
+      await expect(inShadow(page, '#makanEnginePill')).toHaveText('Google Translate');
     });
   });
 
