@@ -63,6 +63,52 @@ test.describe('Web app: the Talk button follows the Microphone engine setting', 
       await expect.poll(() => page.evaluate(() => window.__recognitionStarted)).toBe(1);
       expect(offlineModelRequests(stub)).toEqual([]);
     });
+
+    test('does not duplicate the first word when interim results arrive before final results', async ({ app }) => {
+      test.setTimeout(60_000);
+      const { page, context, stub, errors } = app;
+      await context.addInitScript(() => {
+        class FakeInterimThenFinalRecognition {
+          constructor() { this.lang = ''; this.interimResults = false; this.continuous = false; }
+          start() { window.__recognitionStarted = (window.__recognitionStarted || 0) + 1; }
+          stop() {
+            setTimeout(() => {
+              // 1. Interim result with first word "set"
+              if (this.onresult) {
+                this.onresult({
+                  resultIndex: 0,
+                  results: [
+                    Object.assign([{ transcript: 'set ' }], { isFinal: false, length: 1 })
+                  ]
+                });
+              }
+              // 2. Final result with complete sentence "set alarm"
+              setTimeout(() => {
+                if (this.onresult) {
+                  this.onresult({
+                    resultIndex: 0,
+                    results: [
+                      Object.assign([{ transcript: 'set alarm' }], { isFinal: true, length: 1 })
+                    ]
+                  });
+                }
+                if (this.onend) this.onend();
+              }, 20);
+            }, 20);
+          }
+          abort() { if (this.onend) this.onend(); }
+        }
+        window.SpeechRecognition = FakeInterimThenFinalRecognition;
+        window.webkitSpeechRecognition = FakeInterimThenFinalRecognition;
+      });
+      await page.reload();
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await holdTalk(page, '#vPttBtn', 1500);
+      const bub = page.locator('#bubbles .bub').first();
+      await expect(bub.locator('.bub-orig-text')).toHaveText('set alarm', { timeout: 20_000 });
+      await expect(bub.locator('.bub-text')).toHaveText('[fa] set alarm');
+      expect(errors).toEqual([]);
+    });
   });
 
   test.describe('Groq', () => {

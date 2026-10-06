@@ -188,8 +188,8 @@ textarea::placeholder{color:var(--faint)}
 .dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(34,229,138,.6)}
 .note{font-size:13px;color:var(--muted);border-inline-start:2px solid var(--cyan);padding:6px 12px;margin:14px 0 4px;background:rgba(19,200,245,.05);border-radius:0 8px 8px 0}
 
-.toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 36px))}
-.toast{background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5)}
+.toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 36px));pointer-events:none}
+.toast{background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);pointer-events:none}
 .toast.err{border-inline-start-color:var(--err)} .toast.warn{border-inline-start-color:var(--warn)} .toast.ok{border-inline-start-color:var(--ok)}
 footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font-size:13px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
@@ -240,6 +240,9 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
 .doc-actions-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
 .doc-prog-meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:4px}
+.pill-fast{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(59,107,255,.15);color:var(--pri,#3b6bff);border:1px solid var(--pri,#3b6bff)}
+.calm-fade{animation:calmFade .35s ease-out}
+@keyframes calmFade{0%{opacity:.45}100%{opacity:1}}
 
 /* ==================== VOICE TAB REDESIGN ==================== */
 .v-card{max-width:880px;margin:0 auto;padding:18px 20px;background:var(--surface);border:1px solid var(--border);border-radius:var(--r-m);display:flex;flex-direction:column;box-shadow:0 18px 45px rgba(0,0,0,.35)}
@@ -270,8 +273,9 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .v-set-label{font-family:var(--mono);font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .v-set-item select{height:34px;padding:0 8px;font-size:13px}
 
-/* Middle: Conversation View */
+[hidden]{display:none !important}
 .v-view-wrap{display:flex;flex-direction:column;min-width:0}
+.v-view-wrap[hidden]{display:none !important}
 .v-conv-container{display:flex;flex-direction:column;min-height:260px;max-height:48vh;overflow-y:auto;overflow-x:hidden;padding:12px 4px;margin:6px 0;scroll-behavior:smooth}
 .v-conv-container::-webkit-scrollbar{width:6px}
 .v-conv-container::-webkit-scrollbar-thumb{background:var(--border2);border-radius:3px}
@@ -425,6 +429,12 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       <button class="btn" id="swap" title="Swap" aria-label="Swap languages">⇄</button>
       <select id="tgt" aria-label="Target language"></select></div>
     <span class="sp"></span>
+    <div class="grp" id="tModeGrp"><label for="tMode" data-t="mode">Mode</label>
+      <select id="tMode">
+        <option value="both" data-t="modeBoth">Both (Fast → Smart)</option>
+        <option value="fast" data-t="modeFast">Fast</option>
+        <option value="smart" data-t="modeSmart">Smart</option>
+      </select></div>
     <div class="grp"><label for="engine" data-t="engine">Engine</label><select id="engine"></select></div>
     <div class="grp"><label for="tone" data-t="tone">Tone</label>
       <select id="tone">
@@ -453,7 +463,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
         <div class="pane-h"><span class="lbl" data-t="translation">Translation</span><span class="sp"></span>
           <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
           <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
-        <textarea id="tOut" dir="auto" readonly></textarea>
+        <textarea id="tOut" dir="auto"></textarea>
         <div class="pane-f"><span class="meta" id="tMeta"></span></div>
       </div>
     </div>
@@ -938,7 +948,7 @@ const store={
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
  tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
- engine:'Engine',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
+ engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',showImproved:'Show improved',aiUnavailable:'AI unavailable',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
  sDrop:'Drop an SRT or VTT file',sDrop2:'or click to choose. Timings are kept exactly.',bilingual:'Bilingual export',sRest:'Translate empty lines',sAll:'Translate all',
@@ -1001,11 +1011,12 @@ const I18N={en:{
  docSegments:'segments',docWords:'words',docPagesEst:'pages',docSlidesEst:'slides',docRowsEst:'rows',
  docEngineNoticeText:'Subject analysis & translator notes require an AI engine. With non-AI engines, standard translation and Glossary are used.',
  docFormattingNote:'Formatting note: Paragraphs, tables, images, slides and formulas are preserved byte-for-byte; complex inline run styling within single sentences is merged.',
- tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page'
+ tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page',
+ pages:'pages',words:'words',slides:'slides',sheets:'sheets',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
  tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
- engine:'موتور',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
+ engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
  sDrop:'فایل SRT یا VTT را اینجا رها کنید',sDrop2:'یا برای انتخاب کلیک کنید. زمان‌بندی دقیقاً حفظ می‌شود.',bilingual:'خروجی دوزبانه',sRest:'ترجمه‌ی خط‌های خالی',sAll:'ترجمه‌ی همه',
@@ -1068,7 +1079,8 @@ const I18N={en:{
  docSegments:'بخش',docWords:'کلمه',docPagesEst:'صفحه',docSlidesEst:'اسلاید',docRowsEst:'سطر',
  docEngineNoticeText:'تحلیل خودکار موضوع و یادداشت‌های مترجم نیازمند موتور هوش مصنوعی است. با موتورهای معمولی، ترجمه استاندارد و واژه‌نامه اعمال می‌شود.',
  docFormattingNote:'نکته قالب‌بندی: پاراگراف‌ها، جدول‌ها، تصاویر، اسلایدها و فرمول‌ها عینا حفظ می‌شوند؛ قالب‌بندی‌های تکه‌تکه درون جملات برای یکپارچگی ترکیب می‌شوند.',
- tSubject:'موضوع',tSubjectPh:'موضوع (مثلاً کامپیوتر، حقوق، پزشکی…)',subColSlide:'اسلاید',subColPage:'صفحه'
+ tSubject:'موضوع',tSubjectPh:'موضوع (مثلاً کامپیوتر، حقوق، پزشکی…)',subColSlide:'اسلاید',subColPage:'صفحه',
+ pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال'
 }};
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -1111,9 +1123,8 @@ DEF_ORDER.forEach(id=>{
 // ENG above, never from saved settings; only Ollama and Custom have an address the user can set.
 DEF_ORDER.forEach(id=>{if(ENG[id].base&&id!=='custom'&&id!=='ollama')cfg.eng[id].base=ENG[id].base});
 if(!store.get('groq_order_fixed',false)){
-  cfg.order=cfg.order.filter(id=>id!=='groq');
-  cfg.order.push('groq');
-  if(cfg.eng.groq)cfg.eng.groq.on=false;
+  if(!cfg.order.includes('groq')) cfg.order.push('groq');
+  if(cfg.eng.groq && typeof cfg.eng.groq.on !== 'boolean') cfg.eng.groq.on=false;
   store.set('groq_order_fixed',true);
 }
 cfg.order=cfg.order.filter(id=>ENG[id]);
@@ -1271,7 +1282,7 @@ async function checkEngineConn(id){
     if(/quota|429/i.test(msg)){
       return {code:'works',text:L('connWorks')+' (quota)'};
     }
-    return {code:'keyRejected',text:L('connKeyRejected')};
+    return {code:'err',text:L('connFailed')||'connection failed'};
   }
 }
 let isCheckingConn=false;
@@ -1596,7 +1607,7 @@ async function runBatch(id,arr,o){
 /* core: translate a list of strings with batching + fallback chain */
 let tipShown=false;
 async function translateItems(items,o){
-  const chain=o.engine==='auto'?cfg.order.filter(usable):[o.engine];
+  const chain=o.chain||(o.engine==='auto'?cfg.order.filter(usable):[o.engine]);
   if(!chain.length)throw new Error(L(isOff()?'noOff':'noEngine'));
   const out=new Array(items.length),notes=new Array(items.length),todo=[],used=new Set();
   items.forEach((s,i)=>{if(s&&s.trim())todo.push(i);else{out[i]=s||'';notes[i]=null}});
@@ -2064,7 +2075,7 @@ function sttMode(){
   if(isOff())return 'whisper';
   if(cfg.eng.groq.key&&!sessionBlocked.has('groq'))return 'groq';
   if(cfg.eng.gemini.key&&!sessionBlocked.has('gemini'))return 'gemini';
-  return SR?'browser':'whisper';
+  return (self.SpeechRecognition||self.webkitSpeechRecognition)?'browser':'whisper';
 }
 
 async function blobToWav(blob){
@@ -2122,6 +2133,22 @@ async function transcribeGemini(blob, lang){
     }
   }
   throw lastErr||new Error('Gemini STT failed');
+}
+async function transcribeGroq(blob, lang){
+  const key=cfg.eng.groq.key;
+  if(!key)throw new Error('Groq: '+L('needKey'));
+  const fd=new FormData();
+  const ext=/mp4/.test(blob.type)?'m4a':/ogg/.test(blob.type)?'ogg':'webm';
+  fd.append('file',blob,'speech.'+ext);
+  fd.append('model','whisper-large-v3-turbo');
+  const l2=(!lang||lang==='auto')?null:lang.split('-')[0];
+  if(l2)fd.append('language',l2);
+  const res=await fx('https://api.groq.com/openai/v1/audio/transcriptions',{
+    method:'POST',
+    headers:{Authorization:'Bearer '+key},
+    body:fd
+  });
+  return (res.text||'').trim();
 }
 let sharedMicStream=null;
 async function getMicStream(){
@@ -2434,10 +2461,7 @@ async function listen(lang,btn,onText,onPartial){
       text=await transcribeGemini(blob,l2);
     }else if(mode==='groq'){
       try{
-        const fd=new FormData(),ext=/mp4/.test(blob.type)?'m4a':/ogg/.test(blob.type)?'ogg':'webm';
-        fd.append('file',blob,'speech.'+ext);fd.append('model','whisper-large-v3-turbo');
-        if(l2)fd.append('language',l2);
-        text=(await fx('https://api.groq.com/openai/v1/audio/transcriptions',{method:'POST',headers:{Authorization:'Bearer '+cfg.eng.groq.key},body:fd})).text;
+        text=await transcribeGroq(blob,l2);
       }catch(err){
         if(isBlockError(err)){
           markBlocked('groq');
@@ -2445,6 +2469,7 @@ async function listen(lang,btn,onText,onPartial){
           if(cfg.eng.gemini.key&&!sessionBlocked.has('gemini')){
             text=await transcribeGemini(blob,l2);
           }else{
+            if(store.get('whisper','')!==cfg.whisper)throw new Error('Whisper: '+L('needDl'));
             const audio=await to16k(blob);
             text=await rpc('asr',{audio,lang:l2,model:cfg.whisper,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
           }
@@ -2467,7 +2492,7 @@ async function listen(lang,btn,onText,onPartial){
     btn?.classList?.remove('work');
   }
 }
-function download(name,data,type='text/plain'){const blob=data instanceof Blob?data:new Blob(['\ufeff'+data],{type:type+';charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
+function download(name,data,type='text/plain'){const isJson=name.endsWith('.json')||type.includes('json');const bom=isJson?'':'\ufeff';const blob=data instanceof Blob?data:new Blob([bom+data],{type:type+';charset=utf-8'});const a=document.createElement('a');a.href=URL.createObjectURL(blob);a.download=name;document.body.append(a);a.click();a.remove();setTimeout(()=>URL.revokeObjectURL(a.href),2000)}
 function dropzone(drop,input,onFile){
   input.onchange=()=>{if(input.files[0])onFile(input.files[0]);input.value=''};
   ['dragover','dragenter'].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add('over')}));
@@ -2497,16 +2522,132 @@ function voiceLabels(){
 
 /* ---------- TEXT ---------- */
 let tCtl=null;
+function getQuickestNonAiEngine(){
+  if(usable('chrome'))return 'chrome';
+  if(usable('google'))return 'google';
+  if(usable('mymemory'))return 'mymemory';
+  return 'google';
+}
+function getSmartEngineChain(){
+  const cur=$('engine').value;
+  if(cur!=='auto'&&usable(cur))return [cur];
+  return cfg.order.filter(usable);
+}
+function getAiEngineChain(){
+  const cur=$('engine').value;
+  if(cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
+  const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+  return aiList.length?aiList:['gemini'];
+}
+function getDefaultTransMode(){
+  const saved=store.get('tMode',null);
+  if(saved&&['both','fast','smart'].includes(saved))return saved;
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  return hasAi?'both':'fast';
+}
 async function doText(){
   const text=$('tIn').value;if(!text.trim())return;
   tCtl=new AbortController();busy([$('tGo')],$('tStop'),true);$('tMeta').textContent='…';const t0=performance.now();
+  $('tShowImproved')?.remove();
+  let userInteractedWithFast=false;
+  const onFastInteract=()=>{userInteractedWithFast=true};
+  $('tOut').addEventListener('input',onFastInteract,{once:true});
+  $('tOut').addEventListener('keydown',onFastInteract,{once:true});
+  $('tOut').addEventListener('copy',onFastInteract,{once:true});
+  const copyBtnClick=()=>{userInteractedWithFast=true};
+  $('tCopy').addEventListener('click',copyBtnClick,{once:true});
+
+  const mode=$('tMode')?.value||getDefaultTransMode();
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+
   try{
     const lines=text.split('\n');
-    const r=await translateItems(lines,opts({signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
-    const res=r.out.join('\n');$('tOut').value=res;
-    $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
-    const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+    if(mode==='fast'||(mode==='both'&&!hasAi)){
+      const nonAiEng=getQuickestNonAiEngine();
+      const r=await translateItems(lines,opts({chain:[nonAiEng],signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
+      const res=r.out.join('\n');$('tOut').value=res;
+      $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+      const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+    }else if(mode==='smart'){
+      const smartChain=getSmartEngineChain();
+      const r=await translateItems(lines,opts({chain:smartChain,signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
+      const res=r.out.join('\n');$('tOut').value=res;
+      $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+      const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+    }else{
+      const nonAiEng=getQuickestNonAiEngine();
+      const aiChain=getAiEngineChain();
+      let fastDone=false,smartDone=false;
+      let fastRes='',fastUsed=nonAiEng;
+      let smartRes='',smartUsed='';
+
+      const fastPromise=translateItems(lines,opts({chain:[nonAiEng],signal:tCtl.signal})).then(r=>{
+        fastRes=r.out.join('\n');
+        fastUsed=r.used;
+        fastDone=true;
+        if(!smartDone){
+          $('tOut').value=fastRes;
+          $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)}`;
+        }
+        return r;
+      }).catch(err=>{
+        fastDone=true;
+        throw err;
+      });
+
+      const smartPromise=translateItems(lines,opts({chain:aiChain,signal:tCtl.signal})).then(r=>{
+        smartRes=r.out.join('\n');
+        smartUsed=r.used;
+        smartDone=true;
+        const dur=((performance.now()-t0)/1000).toFixed(1);
+
+        if(userInteractedWithFast&&fastRes){
+          let showBtn=$('tShowImproved');
+          if(!showBtn){
+            showBtn=document.createElement('button');
+            showBtn.id='tShowImproved';
+            showBtn.className='btn ghost';
+            showBtn.style.marginLeft='8px';
+            showBtn.textContent=L('showImproved');
+            $('tMeta').appendChild(showBtn);
+          }
+          showBtn.onclick=()=>{
+            $('tOut').classList.add('calm-fade');
+            setTimeout(()=>$('tOut').classList.remove('calm-fade'),400);
+            $('tOut').value=smartRes;
+            $('tMeta').textContent=`${L('via')} ${smartUsed} · ${dur}s`;
+            showBtn.remove();
+            const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:smartUsed,i:text.slice(0,4000),o:smartRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+          };
+        }else{
+          $('tOut').classList.add('calm-fade');
+          setTimeout(()=>$('tOut').classList.remove('calm-fade'),400);
+          $('tOut').value=smartRes;
+          $('tMeta').textContent=`${L('via')} ${smartUsed} · ${dur}s`;
+          const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:smartUsed,i:text.slice(0,4000),o:smartRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+        }
+        return r;
+      }).catch(err=>{
+        smartDone=true;
+        if(fastRes){
+          const is429=err.status===429||/429|resource_exhausted|rate limit|quota/i.test(err.message||'');
+          const reason=is429?L('aiRateLimited'):L('aiUnavailable');
+          $('tMeta').textContent=`${L('fastLabel')} (${esc(fastUsed)}) · ${reason}`;
+          const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fastUsed,i:text.slice(0,4000),o:fastRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+        }else{
+          throw err;
+        }
+      });
+
+      await Promise.allSettled([fastPromise,smartPromise]);
+      if(!fastRes&&!smartRes){
+        throw new Error(L('noEngine'));
+      }
+    }
   }catch(e){$('tMeta').textContent='';fail(e)}
+  finally{
+    $('tCopy').removeEventListener('click',copyBtnClick);
+  }
   busy([$('tGo')],$('tStop'),false);
 }
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
@@ -2605,9 +2746,9 @@ function loadJSZip(){
   if(!jszipPromise){
     jszipPromise=new Promise((res,rej)=>{
       const s=document.createElement('script');
-      s.src='https://cdn.jsdelivr.net/npm/jszip@3.10.1/dist/jszip.min.js';
+      s.src='jszip.min.js';
       s.onload=()=>res(window.JSZip);
-      s.onerror=()=>rej(new Error('Failed to load JSZip from CDN'));
+      s.onerror=()=>rej(new Error('Failed to load JSZip'));
       document.head.appendChild(s);
     });
   }
@@ -2615,6 +2756,20 @@ function loadJSZip(){
 }
 
 const isRtlLang=l=>['fa','ar','he','ur','ps','sd','ug'].some(c=>l===c||l.startsWith(c+'-'));
+
+const DOCX_PPR_ORDER=['w:pStyle','w:keepNext','w:keepLines','w:pageBreakBefore','w:framePr','w:widowControl','w:numPr','w:suppressLineNumbers','w:pBdr','w:shd','w:tabs','w:suppressAutoHyphens','w:kinsoku','w:wordWrap','w:overflowPunct','w:topLinePunct','w:autoSpaceDE','w:autoSpaceDN','w:bidi','w:adjustRightInd','w:snapToGrid','w:spacing','w:ind','w:contextualSpacing','w:mirrorIndents','w:suppressOverlap','w:jc','w:textDirection','w:textAlignment','w:textboxTightWrap','w:outlineLvl','w:divId','w:cnfStyle','w:rPr','w:sectPr','w:pPrChange'];
+const DOCX_RPR_ORDER=['w:rStyle','w:rFonts','w:b','w:bCs','w:i','w:iCs','w:caps','w:smallCaps','w:strike','w:dstrike','w:outline','w:shadow','w:emboss','w:imprint','w:noProof','w:snapToGrid','w:vanish','w:webHidden','w:color','w:spacing','w:w','w:kern','w:position','w:sz','w:szCs','w:highlight','w:u','w:effect','w:bdr','w:shd','w:fitText','w:vertAlign','w:rtl','w:cs','w:em','w:lang','w:eastAsianLayout','w:specVanish','w:oMath','w:rPrChange'];
+
+function insertInDocxOrder(parent,child,order){
+  const idx=order.indexOf(child.nodeName);
+  if(idx<0){parent.appendChild(child);return}
+  const kids=Array.from(parent.childNodes).filter(n=>n.nodeType===1);
+  for(const k of kids){
+    const kIdx=order.indexOf(k.nodeName);
+    if(kIdx>idx){parent.insertBefore(child,k);return}
+  }
+  parent.appendChild(child);
+}
 
 /* Office DOCX */
 async function prepDocx(name,buffer){
@@ -2703,12 +2858,12 @@ async function prepDocx(name,buffer){
           if(!pPr){pPr=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:pPr');seg.p.insertBefore(pPr,seg.p.firstChild)}
           if(!pPr.getElementsByTagName('w:bidi')[0]){
             const bidi=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidi');
-            pPr.appendChild(bidi);
+            insertInDocxOrder(pPr,bidi,DOCX_PPR_ORDER);
           }
           let jc=pPr.getElementsByTagName('w:jc')[0];
           if(!jc){
             jc=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:jc');
-            pPr.appendChild(jc);
+            insertInDocxOrder(pPr,jc,DOCX_PPR_ORDER);
           }
           jc.setAttribute('w:val','right');
 
@@ -2717,15 +2872,16 @@ async function prepDocx(name,buffer){
           for(const r of runs){
             let rPr=r.getElementsByTagName('w:rPr')[0];
             if(!rPr){rPr=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rPr');r.insertBefore(rPr,r.firstChild)}
-            if(!rPr.getElementsByTagName('w:rtl')[0]){
-              rPr.appendChild(seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rtl'));
-            }
             let rFonts=rPr.getElementsByTagName('w:rFonts')[0];
             if(!rFonts){
               rFonts=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rFonts');
-              rPr.appendChild(rFonts);
+              insertInDocxOrder(rPr,rFonts,DOCX_RPR_ORDER);
             }
             rFonts.setAttribute('w:cs', keepLayout ? 'Tahoma' : 'Vazirmatn');
+            if(!rPr.getElementsByTagName('w:rtl')[0]){
+              const rtlEl=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rtl');
+              insertInDocxOrder(rPr,rtlEl,DOCX_RPR_ORDER);
+            }
           }
 
           // Keep page layout: scale run font size down slightly per paragraph to offset target expansion
@@ -2751,8 +2907,10 @@ async function prepDocx(name,buffer){
             if(cur.nodeName==='w:tbl'){
               let tblPr=cur.getElementsByTagName('w:tblPr')[0];
               if(!tblPr){tblPr=cur.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:tblPr');cur.insertBefore(tblPr,cur.firstChild)}
-              if(!tblPr.getElementsByTagName('w:tblBidi')[0]){
-                tblPr.appendChild(cur.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:tblBidi'));
+              const oldBidi=tblPr.getElementsByTagName('w:tblBidi')[0];
+              if(oldBidi)oldBidi.remove();
+              if(!tblPr.getElementsByTagName('w:bidiVisual')[0]){
+                tblPr.appendChild(cur.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidiVisual'));
               }
               break;
             }
@@ -2774,14 +2932,14 @@ async function prepDocx(name,buffer){
           fnElem.setAttribute('w:id',String(fnId));
           const pFn=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:p');
           const pPrFn=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:pPr');
-          if(rtl){pPrFn.appendChild(fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidi'))}
+          if(rtl){insertInDocxOrder(pPrFn,fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidi'),DOCX_PPR_ORDER)}
           pFn.appendChild(pPrFn);
 
           const rRef=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:r');
           const rPrRef=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rPr');
           const rStyleRef=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rStyle');
           rStyleRef.setAttribute('w:val','FootnoteReference');
-          rPrRef.appendChild(rStyleRef);
+          insertInDocxOrder(rPrRef,rStyleRef,DOCX_RPR_ORDER);
           rRef.appendChild(rPrRef);
           rRef.appendChild(fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:footnoteRef'));
           pFn.appendChild(rRef);
@@ -2789,7 +2947,7 @@ async function prepDocx(name,buffer){
           const rTxt=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:r');
           if(rtl){
             const rPrTxt=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rPr');
-            rPrTxt.appendChild(fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rtl'));
+            insertInDocxOrder(rPrTxt,fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rtl'),DOCX_RPR_ORDER);
             rTxt.appendChild(rPrTxt);
           }
           const tTxt=fnDoc.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:t');
@@ -2805,7 +2963,7 @@ async function prepDocx(name,buffer){
           const rPrCall=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rPr');
           const rStyleCall=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rStyle');
           rStyleCall.setAttribute('w:val','FootnoteReference');
-          rPrCall.appendChild(rStyleCall);
+          insertInDocxOrder(rPrCall,rStyleCall,DOCX_RPR_ORDER);
           rCall.appendChild(rPrCall);
           const fnRef=seg.p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:footnoteReference');
           fnRef.setAttribute('w:id',String(fnId));
@@ -3144,7 +3302,7 @@ $('docAddToGlossaryBtn').onclick=()=>{
       added++;
     }
   });
-  saveCfg();
+  store.set('gls', glossary);
   renderGloss();
   toast(`${added} ${L('docAddedToGlossary')||'terms added to Glossary'}`,'ok');
 };
@@ -3534,13 +3692,20 @@ $('vSpeed').onchange = () => {
   if ($('ttsSpeed')) $('ttsSpeed').value = String(cfg.tts.rate);
 };
 if ($('vLiveVoiceSpeed')) $('vLiveVoiceSpeed').onchange = () => store.set('liveVoiceSpeed', $('vLiveVoiceSpeed').value);
-if ($('vSilenceWait')) $('vSilenceWait').onchange = () => {
-  cfg.silenceWait = +$('vSilenceWait').value || 800;
-  store.set('silenceWait', cfg.silenceWait);
-};
+document.querySelectorAll('select#vSilenceWait').forEach(el => {
+  el.onchange = () => {
+    cfg.silenceWait = +el.value || 800;
+    saveCfg();
+    document.querySelectorAll('select#vSilenceWait').forEach(other => {
+      other.value = String(cfg.silenceWait);
+    });
+  };
+});
 if ($('vSttChoice')) $('vSttChoice').onchange = () => {
   cfg.stt = $('vSttChoice').value;
   saveCfg();
+  if ($('sttSel')) $('sttSel').value = cfg.stt;
+  voiceLabels();
 };
 if ($('vTransEngine')) $('vTransEngine').onchange = () => {
   store.set('voiceTransEngine', $('vTransEngine').value);
@@ -3852,6 +4017,73 @@ function setupPTT(btn, onSend, viewType) {
     setVoiceState('listening', L('vStatusListening'), { isTap: tapActive });
     if (partEl) { partEl.hidden = false; partEl.textContent = '…'; }
 
+    if (sttMode() === 'browser') {
+      const SR = self.SpeechRecognition || self.webkitSpeechRecognition;
+      if (!SR) {
+        isRecording = false;
+        tapActive = false;
+        if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
+        setVoiceState('error', L('noSR'));
+        toast(L('noSR'), 'err');
+        return;
+      }
+      try {
+        const rec = new SR();
+        const l = isAsk ? ($('vAskLang')?.value || 'auto') : ($('src')?.value || 'auto');
+        rec.lang = (l === 'auto') ? (navigator.language || 'en') : l;
+        rec.interimResults = true;
+        rec.continuous = false;
+        let finalTx = '', interimTx = '';
+        rec.onresult = e => {
+          let f = '', it = '';
+          for (let i = 0; i < e.results.length; ++i) {
+            const r = e.results[i];
+            const t = r[0]?.transcript || '';
+            if (r.isFinal) f += t;
+            else it += t;
+          }
+          finalTx = f;
+          interimTx = it;
+          const display = (f + (f && it && !f.endsWith(' ') && !it.startsWith(' ') ? ' ' : '') + it).trim();
+          if (display && partEl) partEl.textContent = display;
+        };
+        rec.onerror = e => {
+          if (e.error !== 'no-speech' && e.error !== 'aborted') toast('Mic: ' + e.error, 'err');
+        };
+        rec.onend = () => {
+          isRecording = false;
+          tapActive = false;
+          pttRec = null;
+          curPttStop = null;
+          if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
+          const dur = Date.now() - pressTime;
+          const combined = (finalTx + (finalTx && interimTx && !finalTx.endsWith(' ') && !interimTx.startsWith(' ') ? ' ' : '') + interimTx).trim();
+          if (dur < 350 && !combined) {
+            setVoiceState('ready');
+            return;
+          }
+          if (combined) {
+            onSend({ transcript: combined, mode: 'browser' });
+          } else {
+            setVoiceState('ready');
+          }
+        };
+        pttRec = { stop: () => { try { rec.stop(); } catch {} } };
+        curPttStop = pttRec.stop;
+        rec.start();
+        return;
+      } catch (err) {
+        isRecording = false;
+        tapActive = false;
+        pttRec = null;
+        curPttStop = null;
+        if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
+        setVoiceState('error', err.message);
+        toast(err.message, 'err');
+        return;
+      }
+    }
+
     try {
       const st = await getMicStream();
       const mr = new MediaRecorder(st);
@@ -3959,42 +4191,83 @@ function setupPTT(btn, onSend, viewType) {
   });
 }
 
-async function handleConvPttAudio(blob) {
+async function handleConvPttAudio(audioInput) {
   const s = $('src').value, t = $('tgt').value;
-  const hasGeminiKey = !!cfg.eng.gemini.key && !sessionBlocked.has('gemini');
   setVoiceState('working', L('vStatusWorking'));
   const t0 = performance.now();
 
   try {
     let turnResult = null;
-    let sttName = 'Gemini';
+    const mode = sttMode();
 
-    if (hasGeminiKey && sttMode() !== 'whisper') {
-      try {
-        const res = await interpretGemini(blob, s, t);
+    if (audioInput && typeof audioInput === 'object' && audioInput.transcript) {
+      turnResult = {
+        lang: s === 'auto' ? 'en' : s,
+        transcript: audioInput.transcript,
+        translation: '',
+        stt: 'Browser',
+        engine: 'Auto'
+      };
+    } else {
+      const blob = audioInput;
+      if (mode === 'groq') {
+        const tx = await transcribeGroq(blob, s);
         turnResult = {
-          lang: res.lang,
-          transcript: res.transcript,
-          translation: res.translation,
-          stt: 'Gemini',
-          engine: 'Gemini'
+          lang: s === 'auto' ? 'en' : s,
+          transcript: tx,
+          translation: '',
+          stt: 'Groq',
+          engine: 'Auto'
         };
-      } catch (gemErr) {
-        if (/quota|429|403|blocked/i.test(gemErr.message || '')) {
-          toast('Gemini: ' + L('switching') + ' Google', 'warn', 4000);
+      } else if (mode === 'whisper') {
+        if (store.get('whisper', '') !== cfg.whisper) {
+          toast(L('needDl'), 'warn');
+          setVoiceState('ready');
+          return;
         }
         const audio = await to16k(blob);
-        let tx = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
-        tx = (typeof tx === 'object' ? tx.text : tx) || '';
-        turnResult = { lang: s, transcript: tx.trim(), translation: '', stt: 'Whisper', engine: 'Auto' };
+        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+        let tx = typeof res === 'object' ? res.text : res;
+        let detectedLang = typeof res === 'object' ? res.lang : null;
+        tx = (tx || '').trim();
+        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
+      } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
+        try {
+          const res = await interpretGemini(blob, s, t);
+          turnResult = {
+            lang: res.lang,
+            transcript: res.transcript,
+            translation: res.translation,
+            stt: 'Gemini',
+            engine: 'Gemini'
+          };
+        } catch (gemErr) {
+          if (/quota|429|403|blocked/i.test(gemErr.message || '')) {
+            toast('Gemini: ' + L('switching') + ' Google', 'warn', 4000);
+          }
+          if (store.get('whisper', '') !== cfg.whisper) {
+            toast(L('needDl'), 'warn');
+            setVoiceState('ready');
+            return;
+          }
+          const audio = await to16k(blob);
+          let tx = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+          tx = (typeof tx === 'object' ? tx.text : tx) || '';
+          turnResult = { lang: s, transcript: tx.trim(), translation: '', stt: 'Whisper', engine: 'Auto' };
+        }
+      } else {
+        if (store.get('whisper', '') !== cfg.whisper) {
+          toast(L('needDl'), 'warn');
+          setVoiceState('ready');
+          return;
+        }
+        const audio = await to16k(blob);
+        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+        let tx = typeof res === 'object' ? res.text : res;
+        let detectedLang = typeof res === 'object' ? res.lang : null;
+        tx = (tx || '').trim();
+        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
       }
-    } else {
-      const audio = await to16k(blob);
-      let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
-      let tx = typeof res === 'object' ? res.text : res;
-      let detectedLang = typeof res === 'object' ? res.lang : null;
-      tx = (tx || '').trim();
-      turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
     }
 
     if (!turnResult || !turnResult.transcript || isSilenceHallucination(turnResult.transcript)) {
@@ -4052,16 +4325,38 @@ async function handleConvPttAudio(blob) {
   }
 }
 
-async function handleAskPttAudio(blob) {
+async function handleAskPttAudio(audioInput) {
   setVoiceState('working', L('vStatusWorking'));
   try {
     let tx = '';
     const askL = $('vAskLang').value, l2 = askL === 'auto' ? null : askL.split('-')[0];
-    if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
-      tx = await transcribeGemini(blob, l2);
+    const mode = sttMode();
+
+    if (audioInput && typeof audioInput === 'object' && audioInput.transcript) {
+      tx = audioInput.transcript;
     } else {
-      const audio = await to16k(blob);
-      tx = await rpc('asr', { audio, lang: l2, model: cfg.whisper, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+      const blob = audioInput;
+      if (mode === 'groq') {
+        tx = await transcribeGroq(blob, askL);
+      } else if (mode === 'whisper') {
+        if (store.get('whisper', '') !== cfg.whisper) {
+          toast(L('needDl'), 'warn');
+          setVoiceState('ready');
+          return;
+        }
+        const audio = await to16k(blob);
+        tx = await rpc('asr', { audio, lang: l2, model: cfg.whisper, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+      } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
+        tx = await transcribeGemini(blob, l2);
+      } else {
+        if (store.get('whisper', '') !== cfg.whisper) {
+          toast(L('needDl'), 'warn');
+          setVoiceState('ready');
+          return;
+        }
+        const audio = await to16k(blob);
+        tx = await rpc('asr', { audio, lang: l2, model: cfg.whisper, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+      }
     }
     tx = (tx || '').trim();
     if (tx && !isSilenceHallucination(tx)) {
@@ -4299,7 +4594,12 @@ $('btnExportForExt').onclick=()=>{
   toast(L('settingsExported')||'Settings exported for Extension!','ok');
 };
 $('mmEmail').onchange=()=>{cfg.mmEmail=$('mmEmail').value.trim();saveCfg()};
-const saveAllInputs=()=>{document.querySelectorAll('#engList .eng').forEach(el=>{const id=el.dataset.id;if(!id||!cfg.eng[id])return;el.querySelectorAll('input').forEach(inp=>{const f=inp.dataset.f;if(!f)return;cfg.eng[id][f]=inp.type==='checkbox'?inp.checked:inp.value.trim()})});saveCfg()};
+const saveAllInputs=()=>{
+  document.querySelectorAll('#engList .eng').forEach(el=>{const id=el.dataset.id;if(!id||!cfg.eng[id])return;el.querySelectorAll('input').forEach(inp=>{const f=inp.dataset.f;if(!f)return;cfg.eng[id][f]=inp.type==='checkbox'?inp.checked:inp.value.trim()})});
+  const ovSilence = document.querySelector('#ov select#vSilenceWait');
+  if(ovSilence) cfg.silenceWait = +ovSilence.value || cfg.silenceWait || 800;
+  saveCfg();
+};
 $('openSet').onclick=()=>{
   renderEngines();
   let ok=0,total=cfg.order.length;
@@ -4344,7 +4644,9 @@ async function offStatus(){
   $('offBtn').classList.toggle('on',isOff());$('offBtn').querySelector('.dot').classList.toggle('ok',isOff());
 }
 function renderVoice(){
-  $('sttSel').value=cfg.stt;$('whSel').value=cfg.whisper;$('ttsMode').value=cfg.tts.mode;
+  $('sttSel').value=cfg.stt;
+  if($('vSttChoice'))$('vSttChoice').value=cfg.stt;
+  $('whSel').value=cfg.whisper;$('ttsMode').value=cfg.tts.mode;
   if($('ttsSpeed'))$('ttsSpeed').value=String(cfg.tts.rate||1.0);
   if($('vSpeed'))$('vSpeed').value=String(cfg.tts.rate||1.0);
   const isDev=cfg.tts.mode==='device';
@@ -4365,13 +4667,19 @@ function renderVoice(){
     else hEl.textContent=L('ttsHint');
   }
   ['base','key','model','voice'].forEach(k=>{if($('tts_'+k))$('tts_'+k).value=cfg.tts[k]||''});
-  if($('vSilenceWait'))$('vSilenceWait').value=String(cfg.silenceWait||800);
+  document.querySelectorAll('select#vSilenceWait').forEach(el=>{el.value=String(cfg.silenceWait||800)});
   fillVoices();offStatus();
 }
 if('speechSynthesis' in self)speechSynthesis.onvoiceschanged=fillVoices;
-$('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();voiceLabels()};
+$('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();if($('vSttChoice'))$('vSttChoice').value=cfg.stt;voiceLabels()};
 $('whSel').onchange=()=>{cfg.whisper=$('whSel').value;saveCfg();offStatus()};
-if($('vSilenceWait'))$('vSilenceWait').onchange=()=>{cfg.silenceWait=+$('vSilenceWait').value||800;saveCfg()};
+document.querySelectorAll('select#vSilenceWait').forEach(el=>{
+  el.onchange=()=>{
+    cfg.silenceWait=+el.value||800;
+    saveCfg();
+    document.querySelectorAll('select#vSilenceWait').forEach(other=>{other.value=String(cfg.silenceWait)});
+  };
+});
 $('ttsMode').onchange=()=>{
   // The voice key box belongs to one voice provider; never carry it over to another one.
   if(cfg.tts.mode!==$('ttsMode').value)cfg.tts.key='';
@@ -4423,10 +4731,12 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   }
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
   if(b.dataset.tab==='sub')updateSubEngineNotice();
+  if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });
 $('src').onchange=()=>{store.set('src',$('src').value);voiceLabels()};
 $('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs()};
 $('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice()};
+if($('tMode'))$('tMode').onchange=()=>store.set('tMode',$('tMode').value);
 $('tone').onchange=()=>store.set('tone',$('tone').value);
 if($('subStyle'))$('subStyle').onchange=()=>{store.set('subStyle',$('subStyle').value);updateSubEngineNotice()};
 if($('subFamily'))$('subFamily').onchange=()=>{store.set('subFamily',$('subFamily').checked)};
@@ -4437,12 +4747,34 @@ $('uiLang').onclick=()=>{ui=ui==='en'?'fa':'en';store.set('ui',ui);boot()};
 function boot(){
   const s=$('src').value,t=$('tgt').value;
   applyI18n();fillLangs();if(s){$('src').value=s;$('tgt').value=t}
-  fillEngines();$('tone').value=store.get('tone','');voiceLabels();renderGloss();renderVoice();fillAskLangs();
-  if($('vSilenceWait'))$('vSilenceWait').value=String(cfg.silenceWait||800);
+  fillEngines();if($('tMode'))$('tMode').value=getDefaultTransMode();$('tone').value=store.get('tone','');voiceLabels();renderGloss();renderVoice();fillAskLangs();
+  document.querySelectorAll('select#vSilenceWait').forEach(el=>{el.value=String(cfg.silenceWait||800)});
   if($('vLiveVoiceSpeed'))$('vLiveVoiceSpeed').value=store.get('liveVoiceSpeed','fast');
   if($('subStyle'))$('subStyle').value=store.get('subStyle','film');
   if($('subFamily'))$('subFamily').checked=store.get('subFamily',false);
   updateSubEngineNotice();
+  const rawParams = (location.hash && location.hash.length > 1)
+    ? location.hash.slice(1)
+    : ((location.search && location.search.length > 1) ? location.search.slice(1) : '');
+  if (rawParams) {
+    try {
+      const p = new URLSearchParams(rawParams);
+      const text = p.get('text');
+      const srcP = p.get('src');
+      const tgtP = p.get('tgt');
+      if (text !== null) {
+        $('tIn').value = text.slice(0, 5000);
+      }
+      if (srcP && (srcP === 'auto' || LANGS.some(l => l[0] === srcP))) {
+        $('src').value = srcP;
+      }
+      if (tgtP && LANGS.some(l => l[0] === tgtP)) {
+        $('tgt').value = tgtP;
+      }
+      voiceLabels();
+      history.replaceState(null, '', location.pathname || '/');
+    } catch (e) {}
+  }
   $('tIn').dispatchEvent(new Event('input'));
 }
 boot();
