@@ -89,6 +89,25 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
   } catch {}
 
+  // Pages where the browser itself forbids extensions: say so in one line.
+  try {
+    const tab = (await chrome.tabs.query({ active: true, currentWindow: true }))[0];
+    const url = (tab && tab.url) || '';
+    const isFirefox = /Firefox\//.test(navigator.userAgent);
+    const restricted = !tab || !url
+      || /^(chrome|edge|brave|opera|vivaldi|about|view-source|devtools|chrome-search|chrome-untrusted|chrome-extension|moz-extension|edge-extension):/i.test(url)
+      || /^https:\/\/(chromewebstore\.google\.com|microsoftedge\.microsoft\.com\/addons)\b/i.test(url)
+      || /^https:\/\/chrome\.google\.com\/webstore/i.test(url)
+      || (isFirefox && /^https:\/\/(addons\.mozilla\.org|accounts\.firefox\.com|support\.mozilla\.org)\b/i.test(url));
+    if (restricted) {
+      const box = document.getElementById('pRestricted');
+      document.getElementById('pRestrictedText').textContent = "The browser doesn't allow extensions on this page, so the on-page card and Translate Page are off here. The box below still works.";
+      box.hidden = false;
+      document.getElementById('pPageTransBtn').disabled = true;
+      document.getElementById('pSiteToggle').disabled = true;
+    }
+  } catch {}
+
   // Load config directly from local storage with background fallback
   try {
     if (typeof loadConfig === 'function') {
@@ -307,17 +326,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     try {
       if (mode === 'fast' || (mode === 'both' && !hasAiAvailable)) {
         let resp = null;
-        if (window.chrome?.runtime?.sendMessage) {
-          try {
-            resp = await chrome.runtime.sendMessage({
+        resp = await askBackground({
               action: 'translate-text',
               items: [text],
               src: pSrcLang.value,
               tgt: pTgtLang.value,
               mode: 'fast'
             });
-          } catch {}
-        }
         if (!resp && typeof MakanEngine !== 'undefined') {
           const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, { mode: 'fast' });
           resp = { ok: true, results: r.results, engineName: r.engineName };
@@ -328,13 +343,11 @@ document.addEventListener('DOMContentLoaded', async () => {
           pOutputEngine.textContent = resp.engineName || 'Translated';
           updateOpenWebAppHref(text);
         } else {
-          throw new Error(resp?.error || 'Translation failed');
+          throw new Error(plainFailure(resp?.error));
         }
       } else if (mode === 'smart') {
         let resp = null;
-        if (window.chrome?.runtime?.sendMessage) {
-          try {
-            resp = await chrome.runtime.sendMessage({
+        resp = await askBackground({
               action: 'translate-text',
               items: [text],
               src: pSrcLang.value,
@@ -343,8 +356,6 @@ document.addEventListener('DOMContentLoaded', async () => {
               tone: pToneSel.value,
               mode: 'smart'
             });
-          } catch {}
-        }
         if (!resp && typeof MakanEngine !== 'undefined') {
           const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, {
             engineName: pEngineSel.value,
@@ -359,7 +370,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           pOutputEngine.textContent = resp.engineName || 'Translated';
           updateOpenWebAppHref(text);
         } else {
-          throw new Error(resp?.error || 'Translation failed');
+          throw new Error(plainFailure(resp?.error));
         }
       } else {
         // Both mode: start fast and smart concurrently
@@ -368,7 +379,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         let smartRes = '', smartEngine = '';
         let fastErr = null, smartErr = null;
 
-        const fastReq = chrome.runtime.sendMessage({
+        const fastReq = askBackground({
           action: 'translate-text',
           items: [text],
           src: pSrcLang.value,
@@ -385,7 +396,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               pOutputEngine.innerHTML = `<span class="pill-fast" style="font-size:10px;padding:1px 5px;background:rgba(255,190,83,0.18);color:#ffbe53;border-radius:4px;font-weight:600;">${I18N[currentUi].fastLabel}</span> · ${fastEngine}`;
             }
           } else {
-            throw new Error(resp?.error || 'Fast translation failed');
+            throw new Error(plainFailure(resp?.error));
           }
           return resp;
         }).catch(e => {
@@ -394,7 +405,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           throw e;
         });
 
-        const smartReq = chrome.runtime.sendMessage({
+        const smartReq = askBackground({
           action: 'translate-text',
           items: [text],
           src: pSrcLang.value,
@@ -437,7 +448,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             }
             updateOpenWebAppHref(text);
           } else {
-            throw new Error(resp?.error || 'AI translation failed');
+            throw new Error(plainFailure(resp?.error));
           }
           return resp;
         }).catch(err => {
@@ -454,15 +465,25 @@ document.addEventListener('DOMContentLoaded', async () => {
 
         await Promise.allSettled([fastReq, smartReq]);
         if (!fastRes && !smartRes) {
-          throw smartErr || fastErr || new Error('Translation failed');
+          throw smartErr || fastErr || new Error(plainFailure(''));
         }
       }
     } catch (err) {
       // Provider messages are plain text, never page markup.
+      const why = plainFailure(err);
       const msg = document.createElement('span');
-      msg.style.color = 'var(--err)';
-      msg.textContent = '⚠️ ' + err.message;
-      pOutputText.replaceChildren(msg);
+      msg.className = 'p-err';
+      msg.textContent = '⚠️ Translation failed: ' + why;
+      const nodes = [msg];
+      if (failureNeedsOptions(why)) {
+        const b = document.createElement('button');
+        b.className = 'p-page-btn';
+        b.id = 'pErrOptions';
+        b.textContent = 'Open Options';
+        b.onclick = () => { try { chrome.runtime.openOptionsPage(); } catch {} };
+        nodes.push(document.createElement('br'), b);
+      }
+      pOutputText.replaceChildren(...nodes);
     } finally {
       pTransBtn.disabled = false;
       pTransBtn.textContent = I18N[currentUi].translate;

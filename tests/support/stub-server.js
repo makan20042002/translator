@@ -30,6 +30,7 @@ const { URL } = require('url');
 const selfsigned = require('selfsigned');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
+const STRICT_CSP = "default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self'; font-src 'self'; connect-src 'self'; media-src 'self'; object-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'none'";
 const TEST_PAGES = path.resolve(__dirname, '..', 'pages');
 const JSZIP_FILE = require.resolve('jszip/dist/jszip.min.js');
 
@@ -310,7 +311,11 @@ async function startStub() {
     if (!file.startsWith(base) || !fs.existsSync(file) || fs.statSync(file).isDirectory()) {
       res.writeHead(404, { 'content-type': 'text/plain' }); return res.end('not found');
     }
-    res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' });
+    const headers = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' };
+    // strict.html imitates sites such as addons.mozilla.org: no inline styles or scripts, and every kind of
+    // resource limited to the page's own address.
+    if (/\/strict\.html$/.test(file)) headers['content-security-policy'] = STRICT_CSP;
+    res.writeHead(200, headers);
     res.end(req.method === 'HEAD' ? undefined : fs.readFileSync(file));
   });
 

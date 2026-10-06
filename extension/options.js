@@ -792,4 +792,47 @@ document.addEventListener('DOMContentLoaded', async () => {
     URL.revokeObjectURL(url);
     toast('Settings exported to makan-translate-settings.json', 'ok');
   };
+
+  // ==================== DIAGNOSTICS AND RESET ====================
+  // A short report for support. It never contains a key: only whether one is present.
+  async function buildDiagnostics() {
+    let lastErrors = {};
+    try { lastErrors = (await chrome.storage.local.get('makan_last_errors')).makan_last_errors || {}; } catch {}
+    const lines = [];
+    let version = '?';
+    try { version = chrome.runtime.getManifest().version; } catch {}
+    lines.push(`MAKAN Translate extension ${version}`);
+    lines.push(`Browser: ${navigator.userAgent}`);
+    lines.push(`Languages: ${cfg.src || 'auto'} -> ${cfg.tgt || '?'}, mode: ${cfg.transMode || 'default'}`);
+    lines.push('Engines (in order):');
+    for (const id of cfg.order || []) {
+      const e = (cfg.eng || {})[id] || {};
+      const info = (typeof ENG !== 'undefined' && ENG[id]) || {};
+      const err = lastErrors[id];
+      lines.push(`- ${info.name || id}: ${e.on === false ? 'off' : 'on'}, key: ${e.key ? 'yes' : 'no'}${info.ai ? `, model: ${e.model || '(none)'}` : ''}, last error: ${err ? `${err.reason} (${err.time})` : 'none'}`);
+    }
+    lines.push(`Read-aloud: ${(cfg.tts && cfg.tts.mode) || 'browser'}, key: ${cfg.tts && cfg.tts.key ? 'yes' : 'no'}`);
+    return lines.join('\n');
+  }
+  const btnCopyDiagnostics = document.getElementById('btnCopyDiagnostics');
+  btnCopyDiagnostics.onclick = async () => {
+    const text = await buildDiagnostics();
+    try { await navigator.clipboard.writeText(text); toast('Diagnostics copied. They contain no keys.', 'ok'); }
+    catch { toast('Could not copy automatically; the report is shown in the console.', 'warn'); console.log(text); }
+  };
+
+  const btnResetSettings = document.getElementById('btnResetSettings');
+  let resetArmed = null;
+  btnResetSettings.onclick = async () => {
+    const label = document.getElementById('btnResetSettingsText');
+    if (!resetArmed) {
+      label.textContent = 'Click again to erase all settings and keys';
+      resetArmed = setTimeout(() => { resetArmed = null; label.textContent = 'Reset extension settings'; }, 6000);
+      return;
+    }
+    clearTimeout(resetArmed); resetArmed = null;
+    try { await chrome.storage.local.remove(['makan_cfg', 'makan_last_errors']); } catch {}
+    toast('Settings erased. Reloading…', 'ok');
+    setTimeout(() => location.reload(), 400);
+  };
 });

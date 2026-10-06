@@ -157,8 +157,10 @@ function isTabAccessible(url) {
   const lower = url.toLowerCase();
   return (lower.startsWith('http://') || lower.startsWith('https://') || lower.startsWith('file://')) &&
          !lower.includes('chrome.google.com/webstore') &&
-         !lower.includes('microsoftedge.microsoft.com') &&
-         !lower.includes('addons.mozilla.org');
+         !lower.includes('chromewebstore.google.com') &&
+         !lower.includes('microsoftedge.microsoft.com/addons') &&
+         // Only Firefox forbids extensions on its own add-on site; Chrome and Edge allow them there.
+         !(/Firefox\//.test(navigator.userAgent) && lower.includes('addons.mozilla.org'));
 }
 
 // Helper: Ensure Offscreen document for audio playback (Chrome/Edge MV3)
@@ -385,7 +387,7 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css']);
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
@@ -466,6 +468,14 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'open-options') {
+      try { await chrome.runtime.openOptionsPage(); return { ok: true }; } catch (e) { return { ok: false, error: String(e.message || e) }; }
+    }
+
+    if (req.action === 'get-card-css') {
+      try { const r = await fetch(chrome.runtime.getURL('content.css')); return { ok: true, css: await r.text() }; } catch (e) { return { ok: false, error: String(e.message || e) }; }
     }
 
     if (req.action === 'set-language') {
@@ -725,15 +735,23 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         try { targetTab = await chrome.tabs.get(req.tabId); } catch {}
       }
       if (!targetTab) {
-        const activeTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
-        targetTab = activeTabs[0];
+        // The Options page itself is the active tab when this runs from there, so look for the web page
+        // the user was most recently on (any window), not at the Options page.
+        const all = await chrome.tabs.query({});
+        const web = all.filter(t => /^(https?|file):/i.test(t.url || '')).sort((a, b) => (b.lastAccessed || 0) - (a.lastAccessed || 0));
+        targetTab = web[0];
+        if (!targetTab) {
+          const activeTabs = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+          targetTab = activeTabs.find(t => !String(t.url || '').startsWith(EXT_URL));
+        }
       }
 
-      if (!targetTab) return { ok: false, reason: 'No active tab found' };
+      if (!targetTab) return { ok: false, reason: 'No normal web page is open. Open a website in another tab, then press "Check Active Tab" again.' };
 
       const url = targetTab.url || '';
       const isInternal = url.startsWith('chrome://') || url.startsWith('edge://') || url.startsWith('about:') || url.startsWith('view-source:');
-      const isStore = url.includes('microsoftedge.microsoft.com') || url.includes('addons.mozilla.org') || url.includes('chrome.google.com/webstore');
+      const onFirefox = /Firefox\//.test(navigator.userAgent);
+      const isStore = url.includes('microsoftedge.microsoft.com/addons') || url.includes('chromewebstore.google.com') || url.includes('chrome.google.com/webstore') || (onFirefox && url.includes('addons.mozilla.org'));
       const isFile = url.startsWith('file://');
       const accessible = isTabAccessible(url);
 

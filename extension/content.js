@@ -156,20 +156,6 @@
         const held = heldStates;
         heldStates = [];
         for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
-        // Fallback for audio element if returned directly
-        if (ttsRes.audioDataUrl) {
-          try {
-            const a = new Audio(ttsRes.audioDataUrl);
-            if (cfg?.tts?.rate) a.playbackRate = cfg.tts.rate;
-            a.onended = cleanup;
-            a.onerror = cleanup;
-            await a.play();
-            return;
-          } catch {
-            cleanup();
-            return;
-          }
-        }
         // Playing via background offscreen or background page
         const monitorInterval = setInterval(() => {
           if (token !== currentSpeakToken) {
@@ -245,15 +231,36 @@
     speakNext();
   }
 
-  // Load shadow stylesheet
-  const link = document.createElement('link');
-  link.rel = 'stylesheet';
-  try {
-    link.href = window.chrome?.runtime?.getURL ? chrome.runtime.getURL('content.css') : 'http://localhost:8080/extension/content.css';
-  } catch {
-    link.href = 'http://localhost:8080/extension/content.css';
+  // Load the card's stylesheet. A constructable stylesheet is not subject to the page's Content-Security-Policy
+  // (a link or style element may be refused by strict sites), so the background hands over the CSS text.
+  // If that is impossible, fall back to a <link> to the extension's own file.
+  function addLinkStylesheet() {
+    const link = document.createElement('link');
+    link.rel = 'stylesheet';
+    try { link.href = window.chrome?.runtime?.getURL ? chrome.runtime.getURL('content.css') : 'http://localhost:8080/extension/content.css'; }
+    catch { link.href = 'http://localhost:8080/extension/content.css'; }
+    shadow.appendChild(link);
   }
-  shadow.appendChild(link);
+  (async () => {
+    try {
+      const r = await askBackground({ action: 'get-card-css' });
+      if (r && r.ok && typeof r.css === 'string' && r.css && 'adoptedStyleSheets' in shadow) {
+        const sheet = new CSSStyleSheet();
+        sheet.replaceSync(r.css);
+        shadow.adoptedStyleSheets = [sheet];
+        return;
+      }
+    } catch {}
+    addLinkStylesheet();
+  })();
+
+  // If the page's policy refuses something of ours, remember it so a failure can say so plainly.
+  let lastCspBlock = null;
+  document.addEventListener('securitypolicyviolation', e => {
+    const b = String(e.blockedURI || '');
+    if (/^(chrome|moz)-extension:/.test(b) || /^(chrome|moz)-extension:/.test(String(e.sourceFile || '')) || /makan/i.test(b)) lastCspBlock = Date.now();
+  }, true);
+  const cspBlockedReason = () => (lastCspBlock && Date.now() - lastCspBlock < 120000 ? "blocked by this site's security policy" : '');
 
   // Load config from background
   async function refreshConfig() {
@@ -612,16 +619,12 @@
       try {
         if (useDict && cfg?.dictLookup) {
           let resp = null;
-          if (window.chrome?.runtime?.sendMessage) {
-            try {
-              resp = await chrome.runtime.sendMessage({
+          resp = await askBackground({
                 action: 'translate-dict',
                 word: sourceText,
                 src: sLang,
                 tgt: tLang
               });
-            } catch {}
-          }
           if (!resp && typeof MakanEngine !== 'undefined') {
             const d = await MakanEngine.lookupWordDictionary(sourceText, sLang, tLang, cfg);
             resp = { ok: true, dict: d };
@@ -641,7 +644,7 @@
                   </div>
                   <div class="makan-dict-trans" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>
                   ${d.definition ? `<div class="makan-dict-def" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(d.definition)}</div>` : ''}
-                  ${d.examples && d.examples.length ? `<div class="makan-dict-ex">${escapeHtml(d.examples[0])}<br><span style="color:#94a3b8" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(d.examples[1] || '')}</span></div>` : ''}
+                  ${d.examples && d.examples.length ? `<div class="makan-dict-ex">${escapeHtml(d.examples[0])}<br><span class="makan-dict-ex2" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(d.examples[1] || '')}</span></div>` : ''}
                 </div>
               `;
             } else {
@@ -649,7 +652,7 @@
               bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
             }
           } else {
-            throw new Error(resp?.error || 'Dictionary lookup failed');
+            throw new Error(plainFailure(resp?.error));
           }
         } else {
           let userInteractedWithFast = false;
@@ -660,17 +663,13 @@
 
           if (cardMode === 'fast' || (cardMode === 'both' && !hasAiAvailable)) {
             let resp = null;
-            if (window.chrome?.runtime?.sendMessage) {
-              try {
-                resp = await chrome.runtime.sendMessage({
+            resp = await askBackground({
                   action: 'translate-text',
                   items: [sourceText],
                   src: sLang,
                   tgt: tLang,
                   mode: 'fast'
                 });
-              } catch {}
-            }
             if (!resp && typeof MakanEngine !== 'undefined') {
               const r = await MakanEngine.translateText([sourceText], sLang, tLang, cfg, { mode: 'fast' });
               resp = { ok: true, results: r.results, engineName: r.engineName };
@@ -680,13 +679,11 @@
               enginePill.textContent = resp.engineName || 'Translated';
               bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
             } else {
-              throw new Error(resp?.error || 'Translation failed');
+              throw new Error(plainFailure(resp?.error));
             }
           } else if (cardMode === 'smart') {
             let resp = null;
-            if (window.chrome?.runtime?.sendMessage) {
-              try {
-                resp = await chrome.runtime.sendMessage({
+            resp = await askBackground({
                   action: 'translate-text',
                   items: [sourceText],
                   src: sLang,
@@ -695,8 +692,6 @@
                   subject: cfg?.subject,
                   mode: 'smart'
                 });
-              } catch {}
-            }
             if (!resp && typeof MakanEngine !== 'undefined') {
               const r = await MakanEngine.translateText([sourceText], sLang, tLang, cfg, { tone: cfg?.tone, subject: cfg?.subject, mode: 'smart' });
               resp = { ok: true, results: r.results, engineName: r.engineName };
@@ -707,7 +702,7 @@
               enginePill.title = enginePill.textContent;
               bodyElem.innerHTML = `<div class="makan-result-text" dir="${isRtl(tLang) ? 'rtl' : 'ltr'}">${escapeHtml(translatedResult)}</div>`;
             } else {
-              throw new Error(resp?.error || 'Translation failed');
+              throw new Error(plainFailure(resp?.error));
             }
           } else {
             // Both mode
@@ -721,7 +716,7 @@
               enginePill.title = `Fast: ${fastErr?.message || 'failed'}`;
             };
 
-            const fastReq = chrome.runtime.sendMessage({
+            const fastReq = askBackground({
               action: 'translate-text',
               items: [sourceText],
               src: sLang,
@@ -739,7 +734,7 @@
                   enginePill.title = `Fast: ${fastEngine}`;
                 }
               } else {
-                throw new Error(resp?.error || 'Fast translation failed');
+                throw new Error(plainFailure(resp?.error));
               }
               return resp;
             }).catch(e => {
@@ -749,7 +744,7 @@
               throw e;
             });
 
-            const smartReq = chrome.runtime.sendMessage({
+            const smartReq = askBackground({
               action: 'translate-text',
               items: [sourceText],
               src: sLang,
@@ -794,7 +789,7 @@
                   if (fastErr) noteFastFailed();
                 }
               } else {
-                throw new Error(resp?.error || 'AI translation failed');
+                throw new Error(plainFailure(resp?.error));
               }
               return resp;
             }).catch(err => {
@@ -811,18 +806,21 @@
 
             await Promise.allSettled([fastReq, smartReq]);
             if (!fastRes && !smartRes) {
-              throw smartErr || fastErr || new Error('Translation failed');
+              throw smartErr || fastErr || new Error(plainFailure(''));
             }
           }
         }
       } catch (err) {
-        bodyElem.innerHTML = `<div style="color:var(--err);font-size:13px">⚠️ ${escapeHtml(err.message)}</div>`;
+        const why = plainFailure(cspBlockedReason() || err);
+        bodyElem.innerHTML = `<div class="makan-err">⚠️ Translation failed: ${escapeHtml(why)}</div>${failureNeedsOptions(why) ? '<button class="makan-action-btn" id="makanErrOptions">Open Options</button>' : ''}`;
+        const eo = bodyElem.querySelector('#makanErrOptions');
+        if (eo) eo.onclick = (e) => { if (e.isTrusted) askBackground({ action: 'open-options' }); };
       }
     }
 
     // Check empty text selection
     if (!text || !text.trim()) {
-      bodyElem.innerHTML = `<div style="color:var(--muted);font-size:13.5px;padding:12px 4px;">No text selected. Select any text on this page to translate.</div>`;
+      bodyElem.innerHTML = `<div class="makan-empty">No text selected. Select any text on this page to translate.</div>`;
       enginePill.textContent = 'Ready';
       return;
     }
@@ -1038,29 +1036,22 @@
     let completed = 0;
     let lastEngineName = '';
     translatedNodes = [];
+    let lastPageFailure = '';
 
     for (let i = 0; i < targets.length; i += BATCH_SIZE) {
       const chunk = targets.slice(i, i + BATCH_SIZE);
       const texts = chunk.map(el => el.innerText.trim());
 
       try {
-        let res = null;
-        if (window.chrome?.runtime?.sendMessage) {
-          try {
-            res = await chrome.runtime.sendMessage({
-              action: 'translate-text',
-              items: texts,
-              src: 'auto',
-              tgt: tgt,
-              tone: cfg?.tone,
-              subject: cfg?.subject
-            });
-          } catch {}
-        }
-        if (!res && typeof MakanEngine !== 'undefined') {
-          const r = await MakanEngine.translateText(texts, 'auto', tgt, cfg, { tone: cfg?.tone, subject: cfg?.subject });
-          res = { ok: true, results: r.results, engineName: r.engineName };
-        }
+        const res = await askBackground({
+          action: 'translate-text',
+          items: texts,
+          src: 'auto',
+          tgt: tgt,
+          tone: cfg?.tone,
+          subject: cfg?.subject
+        });
+        if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
@@ -1083,13 +1074,14 @@
           showPageBanner(`Translating page… (${completed}/${targets.length})`, true);
         }
       } catch (err) {
-        console.warn('Batch translation error:', err.message);
+        lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
     }
 
     if (completed === 0) {
       isPageTranslated = false;
-      showPageBanner('Translation failed. Could not translate page.', false, false);
+      const why = lastPageFailure || plainFailure('');
+      showPageBanner(`Page not translated: ${why}`, false, false, failureNeedsOptions(why));
       return;
     }
 
@@ -1127,14 +1119,15 @@
   }
 
   // Top Page Translation Banner
-  function showPageBanner(statusText, isLoading, showRestore = false) {
+  function showPageBanner(statusText, isLoading, showRestore = false, showOptions = false) {
     if (currentBannerElem) currentBannerElem.remove();
 
     const banner = document.createElement('div');
     banner.className = 'makan-top-banner';
     banner.innerHTML = `
       <div class="makan-mark-ico">M</div>
-      <span style="font-weight:600">${escapeHtml(statusText)}</span>
+      <span class="makan-banner-text">${escapeHtml(statusText)}</span>
+      ${showOptions ? `<button class="makan-banner-btn cta" id="makanBannerOptions">Open Options</button>` : ''}
       ${showRestore ? `<button class="makan-banner-btn cta" id="makanRestoreBtn">Show Original</button>` : ''}
       <button class="makan-icon-btn" id="makanBannerClose" title="Close banner">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 6 6 18M6 6l12 12"/></svg>
@@ -1149,6 +1142,9 @@
       banner.remove();
       currentBannerElem = null;
     };
+
+    const optBtn = banner.querySelector('#makanBannerOptions');
+    if (optBtn) optBtn.onclick = (e) => { if (e.isTrusted) askBackground({ action: 'open-options' }); };
 
     if (showRestore) {
       const btn = banner.querySelector('#makanRestoreBtn');

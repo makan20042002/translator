@@ -509,3 +509,6 @@ input:checked + .p-slider:before {
   from { opacity: 0.5; }
   to { opacity: 1; }
 }
+
+.p-perm-banner[hidden] { display: none; }
+.p-err { color: var(--err); }
