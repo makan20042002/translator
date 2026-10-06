@@ -234,4 +234,55 @@ test.describe('Web app: the Talk button follows the Microphone engine setting', 
       await expect(page.locator('#vLiveBtn')).not.toHaveClass(/live-on/);
     });
   });
+
+  test.describe('Microphone stream persistence and file protocol notice', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('microphone stream is acquired once and preserved across tab switches and turns', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      await page.evaluate(() => {
+        window.__gumCalls = 0;
+        const orig = navigator.mediaDevices.getUserMedia.bind(navigator.mediaDevices);
+        navigator.mediaDevices.getUserMedia = async (...args) => {
+          window.__gumCalls++;
+          return orig(...args);
+        };
+      });
+
+      // Acquire stream once in Voice tab
+      await page.evaluate(() => getMicStream());
+      const callsAfterFirst = await page.evaluate(() => window.__gumCalls);
+      expect(callsAfterFirst).toBe(1);
+
+      // Switch to text tab, then subtitle tab, then back to voice tab
+      await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      // Re-acquiring stream reuses existing active stream without re-prompting
+      await page.evaluate(() => getMicStream());
+      const callsAfterTabs = await page.evaluate(() => window.__gumCalls);
+      expect(callsAfterTabs, 'getUserMedia should not be called again after switching tabs').toBe(1);
+    });
+
+    test('on file:// protocol shows calm notice about browser permission persistence', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      // Hidden on http
+      const isVisibleOnHttp = await page.locator('#vFileProtoNotice').isVisible();
+      expect(isVisibleOnHttp).toBe(false);
+
+      // Verify text and behavior when displayed
+      await page.evaluate(() => {
+        const el = document.getElementById('vFileProtoNotice');
+        el.hidden = false;
+      });
+      const notice = page.locator('#vFileProtoNotice');
+      await expect(notice).toBeVisible();
+      await expect(notice).toContainText('cannot save microphone permission for local files');
+    });
+  });
 });

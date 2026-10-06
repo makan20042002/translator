@@ -290,6 +290,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .v-empty-state h3{font-family:var(--display);font-size:17.5px;font-weight:700;margin:0 0 6px;color:var(--text)}
 .v-empty-desc{font-size:13.5px;color:var(--muted);max-width:440px;margin:0;line-height:1.5}
 .v-first-use-tip{display:inline-flex;align-items:center;gap:8px;margin-top:14px;padding:8px 14px;border-radius:999px;background:rgba(88,166,255,.07);border:1px solid var(--accent-line);font-size:12.5px;color:var(--text);max-width:540px;text-align:start}
+.v-file-proto-notice{font-size:12px;color:var(--muted);background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px;padding:6px 12px;margin:8px 0;text-align:center;line-height:1.4}
 .v-tip-dot{width:7px;height:7px;border-radius:50%;background:var(--accent);flex:none}
 .v-ask-empty-no-ai{background:rgba(255,180,74,.05);border:1px solid rgba(255,180,74,.25);border-radius:var(--r-m);padding:24px 18px;margin:20px auto}
 .v-ask-empty-no-ai .v-empty-icon{background:rgba(255,180,74,.15);border-color:rgba(255,180,74,.35);color:var(--warn)}
@@ -678,6 +679,9 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
         </div>
       </div>
 
+      <!-- Notice on file:// protocol for microphone permission -->
+      <div class="v-file-proto-notice" id="vFileProtoNotice" hidden data-t="vFileProtoNotice">Browsers cannot save microphone permission for local files (file://). Permission will be remembered when running on localhost or a website.</div>
+
       <!-- Compact Collapsible Settings Panel -->
       <div class="v-settings-panel" id="vSettingsPanel" hidden>
         <div class="v-settings-grid">
@@ -1005,6 +1009,7 @@ const I18N={en:{
  vModeConv:'Conversation',vModeAsk:'Ask AI',
  vLive:'Live',vLiveHint:'Hands-free: listens and speaks continuously',vLiveListening:'Listening…',vLiveListenBrowser:'Listening (Alternating turns — tap speaker to switch)…',vLiveListenDetect:'Listening (Auto-detecting language)…',vLiveTranslating:'Translating…',vLiveSpeaking:'Speaking…',vStopLive:'Stop Live',
  vBrowserNoDetect:'Browser speech recognition cannot detect language before listening. Choose who is speaking:',
+ vFileProtoNotice:'Browsers cannot save microphone permission for local files (file://). Permission will be remembered when running on localhost or a website.',
  stopSpeak:'Stop speaking',replay:'Replay',speed:'Speed',
  vAskHint:'Ask a question by voice or typing. AI answers and speaks back.',vAskPh:'Ask a question or request…',vAskSend:'Ask',vAskNew:'New chat',vAskLang:'Answer language',vAskThinking:'Thinking…',
  noAiEngine:'No AI engine is ready. Open “Engines & keys”.',
@@ -1075,6 +1080,7 @@ const I18N={en:{
  vModeConv:'گفتگو',vModeAsk:'پرسش از هوش مصنوعی',
  vLive:'زنده',vLiveHint:'مکالمه‌ی مداوم و بدون نیاز به فشردن دکمه',vLiveListening:'در حال شنیدن…',vLiveListenBrowser:'در حال شنیدن (نوبتی — برای تغییر گوینده ضربه بزنید)…',vLiveListenDetect:'در حال شنیدن (تشخیص خودکار زبان)…',vLiveTranslating:'در حال ترجمه…',vLiveSpeaking:'در حال خواندن…',vStopLive:'توقف زنده',
  vBrowserNoDetect:'تشخیص خودکار زبان پیش از شنیدن در موتور مرورگر ممکن نیست. انتخاب کنید چه کسی صحبت می‌کند:',
+ vFileProtoNotice:'مرورگرها اجازه دسترسی به میکروفون را برای فایل‌های محلی (//:file) ذخیره نمی‌کنند. در صورت اجرای روی localhost یا وب‌سایت، این اجازه به خاطر سپرده می‌شود.',
  stopSpeak:'قطع صدا',replay:'پخش دوباره',speed:'سرعت',
  vAskHint:'با صدا یا نوشتن سؤال بپرسید؛ هوش مصنوعی پاسخ داده و بلند می‌خواند.',vAskPh:'سؤالتان را بپرسید یا بنویسید…',vAskSend:'پرسش',vAskNew:'گفتگوی جدید',vAskLang:'زبان پاسخ',vAskThinking:'در حال اندیشیدن…',
  noAiEngine:'هیچ موتور هوش مصنوعی آماده نیست. «موتورها و کلیدها» را باز کنید.',
@@ -4864,10 +4870,8 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.tab));
   if(b.dataset.tab!=='voice'){
     stopLive();
-    releaseMicStream();
-  }else{
-    getMicStream().catch(()=>{});
   }
+  if(b.dataset.tab==='voice')checkFileProtoNotice();
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
   if(b.dataset.tab==='sub')updateSubEngineNotice();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
@@ -4883,9 +4887,14 @@ $('swap').onclick=()=>{const s=$('src').value,t=$('tgt').value;if(s==='auto'){to
   $('src').value=t;$('tgt').value=s;const a=$('tIn').value;if($('tOut').value){$('tIn').value=$('tOut').value;$('tOut').value=a}
   $('src').onchange();$('tgt').onchange();$('tIn').dispatchEvent(new Event('input'))};
 $('uiLang').onclick=()=>{ui=ui==='en'?'fa':'en';store.set('ui',ui);boot()};
+function checkFileProtoNotice(){
+  const el=$('vFileProtoNotice');
+  if(el)el.hidden=(location.protocol!=='file:');
+}
 function boot(){
   const s=$('src').value,t=$('tgt').value;
   applyI18n();fillLangs();if(s){$('src').value=s;$('tgt').value=t}
+  checkFileProtoNotice();
   fillEngines();if($('tMode'))$('tMode').value=getDefaultTransMode();$('tone').value=store.get('tone','');voiceLabels();renderGloss();renderVoice();fillAskLangs();
   document.querySelectorAll('select#vSilenceWait').forEach(el=>{el.value=String(cfg.silenceWait||800)});
   if($('vLiveVoiceSpeed'))$('vLiveVoiceSpeed').value=store.get('liveVoiceSpeed','fast');
