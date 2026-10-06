@@ -191,9 +191,11 @@ textarea::placeholder{color:var(--faint)}
 .dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(34,229,138,.6)}
 .note{font-size:13px;color:var(--muted);border-inline-start:2px solid var(--cyan);padding:6px 12px;margin:14px 0 4px;background:rgba(19,200,245,.05);border-radius:0 8px 8px 0}
 
-.toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(420px,calc(100vw - 36px));pointer-events:none}
+.toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(460px,calc(100vw - 36px));pointer-events:none}
 .toast{background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);pointer-events:none}
 .toast.err{border-inline-start-color:var(--err)} .toast.warn{border-inline-start-color:var(--warn)} .toast.ok{border-inline-start-color:var(--ok)}
+.toast.has-action{pointer-events:auto;display:flex;align-items:center;justify-content:space-between;gap:12px;line-height:1.4}
+.toast.has-action button{pointer-events:auto;flex-shrink:0}
 footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font-size:13px}
 @media(prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
  .tier.local,.tier.offline{color:var(--accent);border-color:var(--accent-line)}
@@ -1009,7 +1011,7 @@ const I18N={en:{
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
  ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. To allow this page, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
  customHint:'LM Studio: http://localhost:1234/v1 · any OpenAI-compatible server works.',
- noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',micBlocked:'Microphone is blocked',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
+ noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
  loadModels:'Models',
  vModeConv:'Conversation',vModeAsk:'Ask AI',
  vLive:'Live',vLiveHint:'Hands-free: listens and speaks continuously',vLiveListening:'Listening…',vLiveListenBrowser:'Listening (Alternating turns — tap speaker to switch)…',vLiveListenDetect:'Listening (Auto-detecting language)…',vLiveTranslating:'Translating…',vLiveSpeaking:'Speaking…',vStopLive:'Stop Live',
@@ -1080,7 +1082,7 @@ const I18N={en:{
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
  ollamaHint:'Ollama را نصب کنید، دستور «ollama pull gemma3» را اجرا کنید و سپس «مدل‌ها» را بزنید. برای اجازه دادن به این صفحه، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  customHint:'LM Studio: http://localhost:1234/v1 · هر سرور سازگار با OpenAI کار می‌کند.',
- noOff:'هیچ موتور آفلاینی آماده نیست. در «موتورها و کلیدها» ← آفلاین مدل را دانلود کنید یا Ollama را راه‌اندازی کنید.',micBlocked:'میکروفون مسدود است',noVoice:'برای این زبان صدایی روی این دستگاه نیست. Microsoft Edge را امتحان کنید یا صدای زبان را در ویندوز نصب کنید.',ttsFallback:'از صدای دستگاه استفاده شد',
+ noOff:'هیچ موتور آفلاینی آماده نیست. در «موتورها و کلیدها» ← آفلاین مدل را دانلود کنید یا Ollama را راه‌اندازی کنید.',offHelp:'حالت آفلاین: مدل ترجمه را در موتورها و کلیدها دانلود کنید یا Ollama را اجرا کنید.',micBlocked:'میکروفون مسدود است',noVoice:'برای این زبان صدایی روی این دستگاه نیست. Microsoft Edge را امتحان کنید یا صدای زبان را در ویندوز نصب کنید.',ttsFallback:'از صدای دستگاه استفاده شد',
  loadModels:'مدل‌ها',
  vModeConv:'گفتگو',vModeAsk:'پرسش از هوش مصنوعی',
  vLive:'زنده',vLiveHint:'مکالمه‌ی مداوم و بدون نیاز به فشردن دکمه',vLiveListening:'در حال شنیدن…',vLiveListenBrowser:'در حال شنیدن (نوبتی — برای تغییر گوینده ضربه بزنید)…',vLiveListenDetect:'در حال شنیدن (تشخیص خودکار زبان)…',vLiveTranslating:'در حال ترجمه…',vLiveSpeaking:'در حال خواندن…',vStopLive:'توقف زنده',
@@ -1722,7 +1724,63 @@ const opts=extra=>Object.assign({
 
 /* ---------- ui helpers ---------- */
 function toast(msg,kind='',ms=4200){const d=document.createElement('div');d.className='toast '+kind;d.textContent=scrubKeys(msg);$('toasts').append(d);setTimeout(()=>d.remove(),ms)}
-function fail(e){if(e.name==='AbortError')toast(L('stopped'),'warn');else toast(e.message,'err',7000)}
+function openOfflineSettings(){
+  renderEngines();
+  let ok=0,total=cfg.order.length;
+  cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
+  if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
+  $('ov').classList.add('on');
+  setTimeout(()=>{
+    const target=document.querySelector('[data-t="offH"]')||$('nllbDot');
+    target?.scrollIntoView({behavior:'smooth',block:'center'});
+  },50);
+}
+function showOfflineGuidance(errReason,targetEl){
+  const text=L('offHelp');
+  document.querySelectorAll('#offHelpToast').forEach(t=>t.remove());
+  const d=document.createElement('div');
+  d.className='toast warn has-action';
+  d.id='offHelpToast';
+  const span=document.createElement('span');
+  span.textContent=text;
+  span.style.flex='1';
+  const btn=document.createElement('button');
+  btn.className='btn';
+  btn.id='offHelpBtn';
+  btn.style.padding='4px 10px';
+  btn.style.fontSize='12px';
+  btn.style.whiteSpace='nowrap';
+  btn.textContent=L('engines');
+  btn.onclick=()=>{d.remove();openOfflineSettings()};
+  d.appendChild(span);
+  d.appendChild(btn);
+  $('toasts').append(d);
+  setTimeout(()=>d.remove(),14000);
+
+  if(targetEl){
+    targetEl.innerHTML='';
+    const wrap=document.createElement('span');
+    wrap.id='offHelpMeta';
+    wrap.className='off-help-line';
+    wrap.style.display='inline-flex';
+    wrap.style.alignItems='center';
+    wrap.style.gap='8px';
+    wrap.style.color='var(--warn)';
+    const s=document.createElement('span');
+    s.textContent=text;
+    const b=document.createElement('button');
+    b.className='btn ghost';
+    b.id='offHelpMetaBtn';
+    b.style.padding='2px 8px';
+    b.style.fontSize='11.5px';
+    b.textContent=L('engines');
+    b.onclick=()=>openOfflineSettings();
+    wrap.appendChild(s);
+    wrap.appendChild(b);
+    targetEl.appendChild(wrap);
+  }
+}
+function fail(e){if(e.name==='AbortError')toast(L('stopped'),'warn');else if(isOff())showOfflineGuidance(e.message);else toast(e.message,'err',7000)}
 async function copy(s){try{await navigator.clipboard.writeText(s);toast(L('copied'),'ok',1500)}catch{toast('Clipboard blocked','err')}}
 /* ----- text to speech ----- */
 let speakTok=0,curAudio=null;const noVoiceTold={};
@@ -2606,21 +2664,33 @@ function voiceLabels(){
 /* ---------- TEXT ---------- */
 let tCtl=null;
 function getQuickestNonAiEngine(){
+  if(isOff()){
+    if(usable('nllb'))return 'nllb';
+    if(usable('chrome'))return 'chrome';
+    if(usable('ollama'))return 'ollama';
+    return 'nllb';
+  }
   if(usable('chrome'))return 'chrome';
   if(usable('google'))return 'google';
   if(usable('mymemory'))return 'mymemory';
+  if(usable('nllb'))return 'nllb';
   return 'google';
 }
 function getSmartEngineChain(){
   const cur=$('engine').value;
   if(cur!=='auto'&&usable(cur))return [cur];
-  return cfg.order.filter(usable);
+  const chain=cfg.order.filter(usable);
+  if(chain.length)return chain;
+  if(isOff())return usable('nllb')?['nllb']:usable('ollama')?['ollama']:['nllb'];
+  return ['google'];
 }
 function getAiEngineChain(){
   const cur=$('engine').value;
   if(cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
   const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
-  return aiList.length?aiList:['gemini'];
+  if(aiList.length)return aiList;
+  if(isOff())return ['ollama'];
+  return ['gemini'];
 }
 function getDefaultTransMode(){
   const saved=store.get('tMode',null);
@@ -2639,6 +2709,12 @@ async function doText(){
   $('tOut').addEventListener('copy',onFastInteract,{once:true});
   const copyBtnClick=()=>{userInteractedWithFast=true};
   $('tCopy').addEventListener('click',copyBtnClick,{once:true});
+
+  if(isOff()&&!cfg.order.some(id=>(!isOff()||offCapable(id))&&usable(id))){
+    showOfflineGuidance(L('noOff'),$('tMeta'));
+    busy([$('tGo')],$('tStop'),false);
+    return;
+  }
 
   const mode=$('tMode')?.value||getDefaultTransMode();
   const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
@@ -2724,10 +2800,17 @@ async function doText(){
 
       await Promise.allSettled([fastPromise,smartPromise]);
       if(!fastRes&&!smartRes){
-        throw new Error(L('noEngine'));
+        throw new Error(L(isOff()?'noOff':'noEngine'));
       }
     }
-  }catch(e){$('tMeta').textContent='';fail(e)}
+  }catch(e){
+    if(isOff()){
+      showOfflineGuidance(e.message,$('tMeta'));
+    }else{
+      $('tMeta').textContent='';
+      fail(e);
+    }
+  }
   finally{
     $('tCopy').removeEventListener('click',copyBtnClick);
   }

@@ -185,5 +185,87 @@ test.describe('Web app: Text tab', () => {
       expect(stub.calls('generativelanguage.googleapis.com').length).toBe(0);
     });
   });
+
+  test.describe('in offline mode', () => {
+    test.use({ appOptions: { seed: { cfg: Object.assign(onlyEngines(['nllb']), { offline: true }) } } });
+
+    test('when offline mode is on and offline engine fails or lacks model/pair, shows 1-line guidance with button opening Engines & keys', async ({ app }) => {
+      const { page } = app;
+      await expect(page.locator('#offBtn')).toHaveClass(/on/);
+
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Translate offline');
+      await mouseClick(page, page.locator('#tGo'));
+
+      // 1. One-line guidance message is visible
+      const toastEl = page.locator('#offHelpToast');
+      await expect(toastEl).toBeVisible();
+      await expect(toastEl).toContainText(/Offline mode: download the translation model in Engines & keys, or start Ollama/i);
+
+      // Also check inline in tMeta
+      await expect(page.locator('#tMeta')).toContainText(/Offline mode: download the translation model/i);
+
+      // 2. Action button is present
+      const btn = toastEl.locator('#offHelpBtn');
+      await expect(btn).toBeVisible();
+      await expect(btn).toHaveText('Engines & keys');
+
+      // 3. Clicking button opens settings overlay to Engines & keys section
+      await mouseClick(page, btn);
+      await expect(page.locator('#ov')).toHaveClass(/on/);
+      await expect(page.locator('[data-t="offH"]')).toBeVisible();
+    });
+
+    test('in Persian UI, shows 1-line guidance in Persian with button opening Engines & keys', async ({ app }) => {
+      const { page } = app;
+      await expect(page.locator('#offBtn')).toHaveClass(/on/);
+
+      // Switch UI to Persian
+      await mouseClick(page, page.locator('#uiLang'));
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('تست حالت آفلاین');
+      await mouseClick(page, page.locator('#tGo'));
+
+      const toastEl = page.locator('#offHelpToast');
+      await expect(toastEl).toBeVisible();
+      await expect(toastEl).toContainText(/حالت آفلاین: مدل ترجمه را در موتورها و کلیدها دانلود کنید یا Ollama را اجرا/);
+
+      const btn = toastEl.locator('#offHelpBtn');
+      await expect(btn).toBeVisible();
+      await expect(btn).toHaveText('موتورها و کلیدها');
+
+      await mouseClick(page, btn);
+      await expect(page.locator('#ov')).toHaveClass(/on/);
+    });
+
+    test('when offline translation fails due to missing language pair, shows 1-line guidance with button opening Engines & keys', async ({ app }) => {
+      const { page } = app;
+      // Mark NLLB as downloaded so engine is chosen
+      await page.evaluate(() => localStorage.setItem('mkt_nllb', JSON.stringify(true)));
+      await page.reload();
+      await expect(page.locator('#offBtn')).toHaveClass(/on/);
+
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Testing unsupported pair');
+      // Set unsupported language
+      await page.evaluate(() => {
+        const sel = document.getElementById('src');
+        const opt = document.createElement('option');
+        opt.value = 'xyz';
+        opt.textContent = 'XYZ';
+        sel.appendChild(opt);
+        sel.value = 'xyz';
+      });
+      await mouseClick(page, page.locator('#tGo'));
+
+      const toastEl = page.locator('#offHelpToast');
+      await expect(toastEl).toBeVisible();
+      await expect(toastEl).toContainText(/Offline mode: download the translation model in Engines & keys, or start Ollama/i);
+      const btn = toastEl.locator('#offHelpBtn');
+      await expect(btn).toBeVisible();
+      await mouseClick(page, btn);
+      await expect(page.locator('#ov')).toHaveClass(/on/);
+    });
+  });
 });
 
