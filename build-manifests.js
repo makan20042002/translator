@@ -52,6 +52,9 @@ function buildFirefox() {
   // Firefox does not support chrome.offscreen API, and notifications is dropped
   manifest.permissions = manifest.permissions.filter(p => p !== 'offscreen' && p !== 'notifications');
 
+  // Firefox already hides the extension's address behind a random id per profile, and does not know use_dynamic_url
+  (manifest.web_accessible_resources || []).forEach(w => { delete w.use_dynamic_url; });
+
   // Strict Firefox store compliance
   manifest.browser_specific_settings = {
     gecko: {

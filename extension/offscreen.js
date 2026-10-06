@@ -11,6 +11,9 @@ let curAbortController = null;
 
 chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.target !== 'makan-offscreen') return false;
+  // Only the extension's own background may control the player. Messages broadcast by a web page's
+  // content script reach this page too, and must be ignored.
+  if (!sender || sender.id !== chrome.runtime.id || !String(sender.url || '').startsWith(chrome.runtime.getURL(''))) return false;
 
   // Stream Gemini TTS via Web Audio AudioContext
   if (req.action === 'stream-tts') {

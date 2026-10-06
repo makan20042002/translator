@@ -65,10 +65,18 @@
   let currentSpeakToken = 0;
   let isAudioPlaying = false;
   let activePlayingBtn = null;
+  // Gemini voice plays in the background, and each speech there has a number. Updates about other
+  // speeches (an older one stopping, one in another tab) must not change this card's Speak button.
+  let speakBackendToken = null;      // our speech's number, once the background has told us
+  let speakWaitingForStart = false;  // true between asking the background to speak and its answer
+  let heldStates = [];               // updates that arrive before we know our number
 
-  function stopCurrentSpeech() {
+  function stopCurrentSpeech(tellBackground = true) {
     currentSpeakToken++;
     isAudioPlaying = false;
+    speakBackendToken = null;
+    speakWaitingForStart = false;
+    heldStates = [];
     if (activePlayingBtn) {
       activePlayingBtn.classList.remove('playing');
       activePlayingBtn.setAttribute('title', 'Read aloud');
@@ -79,11 +87,13 @@
     try {
       if (window.speechSynthesis) window.speechSynthesis.cancel();
     } catch {}
-    try {
-      if (window.chrome?.runtime?.sendMessage) {
-        chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {});
-      }
-    } catch {}
+    if (tellBackground) {
+      try {
+        if (window.chrome?.runtime?.sendMessage) {
+          chrome.runtime.sendMessage({ action: 'stop-tts' }).catch(() => {});
+        }
+      } catch {}
+    }
   }
 
   async function handleSpeakClick(text, lang, btn, noticeContainer) {
@@ -95,7 +105,9 @@
       return;
     }
 
-    stopCurrentSpeech();
+    // Starting a new speech: the background replaces any earlier one by itself, so do not send a stop
+    // that could arrive after the new speech has begun and cancel it.
+    stopCurrentSpeech(false);
     const token = ++currentSpeakToken;
     isAudioPlaying = true;
     activePlayingBtn = btn;
@@ -123,6 +135,8 @@
     // Use Gemini TTS if preferGemini is true OR no matching browser voice exists for this language
     if (preferGemini || !voice) {
       let ttsRes = null;
+      speakWaitingForStart = true;
+      heldStates = [];
       try {
         if (window.chrome?.runtime?.sendMessage) {
           ttsRes = await chrome.runtime.sendMessage({
@@ -133,10 +147,15 @@
           });
         }
       } catch {}
+      speakWaitingForStart = false;
 
       if (token !== currentSpeakToken) return;
 
       if (ttsRes && ttsRes.ok) {
+        speakBackendToken = typeof ttsRes.token === 'number' ? ttsRes.token : null;
+        const held = heldStates;
+        heldStates = [];
+        for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
         // Fallback for audio element if returned directly
         if (ttsRes.audioDataUrl) {
           try {
@@ -240,7 +259,7 @@
   async function refreshConfig() {
     try {
       if (window.chrome?.runtime?.sendMessage) {
-        const res = await chrome.runtime.sendMessage({ action: 'get-config' });
+        const res = await chrome.runtime.sendMessage({ action: 'get-public-config' });
         if (res && res.ok) cfg = res.cfg;
       }
     } catch {}
@@ -379,6 +398,8 @@
 
     let hasOpened = false;
     const activateButton = (e) => {
+      // Only a real press by the user opens the card; scripts in the web page can fake events but not this flag.
+      if (!e || !e.isTrusted) return;
       if (e) {
         e.preventDefault();
         e.stopPropagation();
@@ -436,7 +457,7 @@
           <div class="makan-mark-ico">M</div>
           MAKAN<span>Translate</span>
         </div>
-        <span class="makan-pill" id="makanPairPill">${curSrc.toUpperCase()} → ${curTgt.toUpperCase()}</span>
+        <span class="makan-pill" id="makanPairPill">${escapeHtml(curSrc.toUpperCase())} → ${escapeHtml(curTgt.toUpperCase())}</span>
         <span class="makan-pill detected" id="makanDetectedPill">Detected: ${detectedLang.toUpperCase()}</span>
         <span class="makan-pill engine" id="makanEnginePill">Translating…</span>
         <button class="makan-icon-btn" id="makanCardClose" title="Close (Esc)">
@@ -483,6 +504,7 @@
     closeBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
     closeBtn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
     closeBtn.onclick = (e) => {
+      if (!e.isTrusted) return;
       e.preventDefault();
       e.stopPropagation();
       removeCard();
@@ -492,7 +514,7 @@
     const openAppBtn = card.querySelector('#makanOpenApp');
     openAppBtn.addEventListener('pointerdown', e => e.stopPropagation());
     openAppBtn.addEventListener('mousedown', e => e.stopPropagation());
-    openAppBtn.addEventListener('click', e => e.stopPropagation());
+    openAppBtn.addEventListener('click', e => { e.stopPropagation(); if (!e.isTrusted) e.preventDefault(); });
 
     function updateAppUrl(sourceText, sLang, tLang) {
       const appBase = cfg?.webAppUrl || 'http://localhost:8080';
@@ -618,6 +640,7 @@
     copyBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
     copyBtn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
     copyBtn.onclick = async (e) => {
+      if (!e.isTrusted) return;
       e.preventDefault();
       e.stopPropagation();
       if (!translatedResult) return;
@@ -654,6 +677,7 @@
     speakBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
     speakBtn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
     speakBtn.onclick = (e) => {
+      if (!e.isTrusted) return;
       e.preventDefault();
       e.stopPropagation();
       const targetText = translatedResult || text;
@@ -666,6 +690,7 @@
     swapBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); });
     swapBtn.addEventListener('mousedown', e => { e.preventDefault(); e.stopPropagation(); });
     swapBtn.onclick = async (e) => {
+      if (!e.isTrusted) return;
       e.preventDefault();
       e.stopPropagation();
       const prevSrc = curSrc === 'auto' ? detectedLang : curSrc;
@@ -683,6 +708,8 @@
 
   // Handle text selection on page
   document.addEventListener('mouseup', e => {
+    // Ignore events a web page's own script made up; only real mouse input counts.
+    if (!e.isTrusted) return;
     // If the event originated inside any extension component, ignore completely
     if (isExtensionEvent(e)) return;
     if (isSensitiveOrEditable(e.target)) return;
@@ -721,6 +748,7 @@
 
   // Handle double-click on word for dictionary lookup
   document.addEventListener('dblclick', e => {
+    if (!e.isTrusted) return;
     if (isExtensionEvent(e)) return;
     if (isSensitiveOrEditable(e.target)) return;
 
@@ -904,14 +932,15 @@
     shadow.appendChild(banner);
     currentBannerElem = banner;
 
-    banner.querySelector('#makanBannerClose').onclick = () => {
+    banner.querySelector('#makanBannerClose').onclick = (e) => {
+      if (!e.isTrusted) return;
       banner.remove();
       currentBannerElem = null;
     };
 
     if (showRestore) {
       const btn = banner.querySelector('#makanRestoreBtn');
-      if (btn) btn.onclick = restoreOriginalPage;
+      if (btn) btn.onclick = (e) => { if (e.isTrusted) restoreOriginalPage(); };
     }
   }
 
@@ -940,29 +969,40 @@
     });
   }
 
+  // What the background tells us about the speech it is playing for this card.
+  function applyTtsState(req) {
+    if (req.state === 'playing') {
+      if (activePlayingBtn) {
+        activePlayingBtn.classList.remove('preparing');
+        activePlayingBtn.classList.add('playing');
+        activePlayingBtn.setAttribute('title', 'Stop read-aloud');
+        const span = activePlayingBtn.querySelector('span');
+        if (span) span.textContent = 'Stop';
+      }
+    } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
+      if (activePlayingBtn) {
+        activePlayingBtn.classList.remove('preparing', 'playing');
+        activePlayingBtn.setAttribute('title', 'Read aloud');
+        const span = activePlayingBtn.querySelector('span');
+        if (span) span.textContent = 'Speak';
+      }
+      isAudioPlaying = false;
+      activePlayingBtn = null;
+      speakBackendToken = null;
+    }
+  }
+
   // Listen to messages from background / popup
   try {
     if (typeof chrome !== 'undefined' && chrome.runtime?.onMessage) {
       chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
+        // Only the extension itself can reach this listener; refuse anything else (and anything from another content script).
+        if (!sender || sender.id !== chrome.runtime.id || !req || typeof req !== 'object') return false;
         if (req.target === 'makan-ui' && req.action === 'tts-state-update') {
-          if (req.state === 'playing') {
-            if (activePlayingBtn) {
-              activePlayingBtn.classList.remove('preparing');
-              activePlayingBtn.classList.add('playing');
-              activePlayingBtn.setAttribute('title', 'Stop read-aloud');
-              const span = activePlayingBtn.querySelector('span');
-              if (span) span.textContent = 'Stop';
-            }
-          } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
-            if (activePlayingBtn) {
-              activePlayingBtn.classList.remove('preparing', 'playing');
-              activePlayingBtn.setAttribute('title', 'Read aloud');
-              const span = activePlayingBtn.querySelector('span');
-              if (span) span.textContent = 'Speak';
-            }
-            isAudioPlaying = false;
-            activePlayingBtn = null;
-          }
+          if (speakWaitingForStart) { heldStates.push(req); return false; }
+          // Only follow the background's speech if it is ours (a device voice speaks without the background).
+          if (speakBackendToken === null || req.token !== speakBackendToken) return false;
+          applyTtsState(req);
           return false;
         }
 
@@ -1011,20 +1051,8 @@
     }
   } catch {}
 
-  // Expose handles on window and listen for custom DOM events for automation / cross-world commands
-  window.__makanTranslateWholePage = translateWholePage;
-  window.__makanRestoreOriginalPage = restoreOriginalPage;
-  window.__makanOpenCard = openTranslationCard;
-
-  document.addEventListener('__makan_page_translate_action', () => {
-    translateWholePage();
-  });
-  document.addEventListener('__makan_restore_page_action', () => {
-    restoreOriginalPage();
-  });
-  document.addEventListener('__makan_open_card_action', (e) => {
-    const d = e.detail || {};
-    openTranslationCard(d.rect, d.text, d.isDict);
-  });
+  // Nothing here listens for commands from the web page itself: no window handles, no custom DOM
+  // events, no window messages. Translation starts only from real user input (see isTrusted checks above)
+  // or from a message sent by the extension's own background or popup.
 
 })();

@@ -21,17 +21,6 @@ class Handler(http.server.SimpleHTTPRequestHandler):
         self.send_response(200)
         self.end_headers()
 
-    def do_POST(self):
-        if self.path == '/api/sync_keys':
-            length = int(self.headers.get('Content-Length', 0))
-            body = self.rfile.read(length)
-            self.send_response(200)
-            self.send_header('Content-Type', 'application/json')
-            self.end_headers()
-            self.wfile.write(b'{"ok":true}')
-            return
-        super().do_POST()
-
 if __name__ == '__main__':
     os.chdir(DIRECTORY)
     with socketserver.TCPServer(('127.0.0.1', PORT), Handler) as httpd:

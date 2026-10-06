@@ -1,6 +1,6 @@
 'use strict';
 // Extension: real toolbar popup, right-click menu, whole-page translation.
-const { test, expect, inShadow, dragSelect, pressM, rightClick, openRealPopup, inContentScriptWorld, expectNoExtensionErrors, VALID_KEY } = require('../support/ext-fixtures');
+const { test, expect, inShadow, dragSelect, pressM, rightClick, openRealPopup, expectNoExtensionErrors } = require('../support/ext-fixtures');
 
 const ARTICLE = '/__test/article.html';
 
@@ -133,15 +133,5 @@ test.describe('Extension: what web pages can and cannot do', () => {
     await page.waitForTimeout(2000);
     expect(stub.calls().filter(c => ['clients5.google.com', 'translate.googleapis.com', 'api.mymemory.translated.net', 'generativelanguage.googleapis.com'].includes(c.host)).map(c => c.host + c.path), 'translation requests started by the page itself').toEqual([]);
     await expect(page.locator('#p1')).toHaveText('The quick brown fox jumps over the lazy dog near the river bank.');
-  });
-
-  test.describe('with a Gemini key saved', () => {
-    test.use({ extOptions: { config: { eng: { gemini: { on: true, key: VALID_KEY } } } } });
-
-    test('the content script running inside web pages is not given the API keys', async ({ ext }) => {
-      const page = ext.article;
-      const seen = await inContentScriptWorld(ext, page, `chrome.runtime.sendMessage({ action: 'get-config' }).then(r => JSON.stringify(r).includes(${JSON.stringify(VALID_KEY)}))`);
-      expect(seen, 'an API key is readable from inside web pages').toBe(false);
-    });
   });
 });

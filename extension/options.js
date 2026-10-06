@@ -3,6 +3,10 @@
  * Never logs or prints API keys.
  */
 
+// Text that came from outside (stored values, an imported file, the system's voice list) is always
+// escaped before it is put into the page.
+const esc = v => String(v ?? '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
 document.addEventListener('DOMContentLoaded', async () => {
   let cfg = null;
   let connResults = {};
@@ -260,7 +264,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       const conn = connResults[id];
       const statusHtml = conn
-        ? `<span class="opt-status-pill ${conn.code === 'works' ? 'works' : (conn.code === 'needsKey' ? 'needsKey' : 'err')}">${conn.text}</span>`
+        ? `<span class="opt-status-pill ${conn.code === 'works' ? 'works' : (conn.code === 'needsKey' ? 'needsKey' : 'err')}">${esc(conn.text)}</span>`
         : '';
 
       const tierClass = def.tier || 'free';
@@ -276,29 +280,29 @@ document.addEventListener('DOMContentLoaded', async () => {
             <input type="checkbox" class="opt-eng-on" data-id="${id}" ${engCfg.on ? 'checked' : ''}>
           </label>
           <div class="opt-eng-name">
-            <span>${def.name}</span>
-            <span class="opt-tier-pill ${tierClass}">${tierText}</span>
+            <span>${esc(def.name)}</span>
+            <span class="opt-tier-pill ${esc(tierClass)}">${esc(tierText)}</span>
           </div>
           <div class="opt-sp"></div>
           ${statusHtml}
-          ${def.url ? `<a href="${def.url}" target="_blank" class="opt-btn ghost" style="font-size:11px;height:24px;padding:0 8px">Get Key ↗</a>` : ''}
+          ${def.url ? `<a href="${esc(def.url)}" target="_blank" rel="noopener" class="opt-btn ghost" style="font-size:11px;height:24px;padding:0 8px">Get Key ↗</a>` : ''}
         </div>
         ${(def.key || def.ai || def.tier === 'custom') ? `
         <div class="opt-eng-fields">
           ${def.key ? `
           <div class="opt-key-wrap">
-            <input type="password" class="opt-eng-input" data-id="${id}" data-prop="key" value="${engCfg.key || ''}" placeholder="${I18N[currentUi].keyPh}">
+            <input type="password" class="opt-eng-input" data-id="${id}" data-prop="key" value="${esc(engCfg.key || '')}" placeholder="${esc(I18N[currentUi].keyPh)}">
             <button type="button" class="opt-eye-btn" title="Show/hide key">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
             </button>
           </div>` : ''}
           ${def.ai ? `
           <div class="opt-model-wrap">
-            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="model" value="${engCfg.model || def.model || ''}" placeholder="${I18N[currentUi].modelPh}">
+            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="model" value="${esc(engCfg.model || def.model || '')}" placeholder="${esc(I18N[currentUi].modelPh)}">
           </div>` : ''}
           ${(def.tier === 'custom' || id === 'ollama') ? `
           <div class="opt-base-wrap">
-            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="base" value="${engCfg.base || def.base || ''}" placeholder="${I18N[currentUi].basePh}">
+            <input type="text" class="opt-eng-input" data-id="${id}" data-prop="base" value="${esc(engCfg.base || def.base || '')}" placeholder="${esc(I18N[currentUi].basePh)}">
           </div>` : ''}
         </div>` : ''}
       `;
@@ -386,7 +390,14 @@ document.addEventListener('DOMContentLoaded', async () => {
   };
 
   txtWebAppUrl.onchange = () => {
-    cfg.webAppUrl = txtWebAppUrl.value.trim() || 'http://localhost:8080';
+    const typed = txtWebAppUrl.value.trim() || 'http://localhost:8080';
+    const checked = safeHttpUrl(typed, null);
+    if (!checked) {
+      txtWebAppUrl.value = cfg.webAppUrl;
+      toast('The web app address must start with http:// or https://', 'warn');
+      return;
+    }
+    cfg.webAppUrl = checked;
     optOpenApp.href = cfg.webAppUrl;
     saveAndNotify();
     toast(I18N[currentUi].saved);
@@ -515,13 +526,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     } else {
       selVoiceFa.innerHTML = '<option value="">Auto (Best system voice)</option>';
       faVoices.forEach(v => {
-        selVoiceFa.innerHTML += `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`;
+        selVoiceFa.innerHTML += `<option value="${esc(v.voiceURI)}">${esc(v.name)} (${esc(v.lang)})</option>`;
       });
     }
 
     selVoiceEn.innerHTML = '<option value="">Auto (Best system voice)</option>';
     enVoices.forEach(v => {
-      selVoiceEn.innerHTML += `<option value="${v.voiceURI}">${v.name} (${v.lang})</option>`;
+      selVoiceEn.innerHTML += `<option value="${esc(v.voiceURI)}">${esc(v.name)} (${esc(v.lang)})</option>`;
     });
 
     if (cfg.tts.voices?.fa) selVoiceFa.value = cfg.tts.voices.fa;
@@ -710,24 +721,24 @@ document.addEventListener('DOMContentLoaded', async () => {
   function applySettingsJson(rawJson) {
     try {
       const data = JSON.parse(rawJson);
-      // Support either raw cfg or exported structure
-      const importedCfg = data.cfg || data.order ? data : (data.makan_cfg || data);
+      if (!data || typeof data !== 'object') throw new Error('not a settings file');
+      // Support the web app's export (settings nested under "cfg"), a stored copy, or a plain settings object.
+      const importedCfg = (data.cfg && typeof data.cfg === 'object') ? data.cfg : ((data.makan_cfg && typeof data.makan_cfg === 'object') ? data.makan_cfg : data);
 
-      if (importedCfg.order && Array.isArray(importedCfg.order)) {
-        cfg.order = importedCfg.order;
-      }
+      const next = Object.assign({}, cfg);
+      if (Array.isArray(importedCfg.order)) next.order = importedCfg.order;
       if (importedCfg.eng && typeof importedCfg.eng === 'object') {
-        Object.keys(importedCfg.eng).forEach(k => {
-          if (!cfg.eng[k]) cfg.eng[k] = {};
-          Object.assign(cfg.eng[k], importedCfg.eng[k]);
-        });
+        next.eng = Object.assign({}, cfg.eng);
+        for (const [k, v] of Object.entries(importedCfg.eng)) {
+          if (ENG[k] && v && typeof v === 'object') next.eng[k] = Object.assign({}, cfg.eng[k], v);
+        }
       }
-      if (importedCfg.glossary && Array.isArray(importedCfg.glossary)) {
-        cfg.glossary = importedCfg.glossary;
-      }
-      if (importedCfg.tone) cfg.tone = importedCfg.tone;
-      if (importedCfg.src) cfg.src = importedCfg.src;
-      if (importedCfg.tgt) cfg.tgt = importedCfg.tgt;
+      if (Array.isArray(importedCfg.glossary)) next.glossary = importedCfg.glossary;
+      for (const k of ['tone', 'src', 'tgt']) if (importedCfg[k]) next[k] = importedCfg[k];
+      // Keep only values this extension understands (the web app's export also lists engines that exist only there).
+      const clean = sanitizeConfig(next, cfg);
+      for (const k of Object.keys(cfg)) delete cfg[k];
+      Object.assign(cfg, clean);
 
       saveAndNotify();
       selDefaultTgt.value = cfg.tgt || 'fa';

@@ -1289,3 +1289,107 @@ RESULT: 23 problem(s) found. Details above; full report: tests/.results/report.t
 (finished in 360 s)
 npm test exit code: 1
 ```
+
+---
+
+# Run after the first round of fixes
+
+Fixes covered: all key leaks, keys kept away from web pages, web pages unable
+to start translation, the follow-up review, settings import (bug 4),
+read-aloud with device voices (bug 5), the Speak button (bug 6) and the
+endless rate-limit retry (bug 7).
+
+* **One full run** (`npm test`, final code, 6 minutes): 71 passed, 18 failed,
+  3 skipped, 92 tests. Mozilla's checker: 0 errors, 20 warnings.
+* **Two of those 18 failures were my test helper, not the app.** The helper
+  that drags the mouse over text let go before the browser had finished
+  highlighting the last few characters, so the translation was of
+  slightly shorter text. The helper now waits until the whole text is
+  highlighted. Those two tests were then run again, 5 times each: 10 of 10
+  passed. No second full run was made (to save time), so the expected
+  full-run result is 73 passed, 16 failed, 3 skipped, but that exact
+  number was not observed.
+* **The 16 remaining failures are the bugs that were deliberately left
+  alone this round** (bugs 8 to 11 and the smaller problems: glossary not
+  saved, Show Original, Open in App, Talk button ignoring the microphone
+  setting, wrong messages, missing interface texts, Silence wait, the Done
+  message over Download, JSON byte-order mark, Word element order, banner
+  texts, "Detected" language, wrong Gemini key message, HTTP 500 shown as
+  key rejected).
+* Failures that were in the first report and are now fixed: keys sent to the
+  site's own server, keys readable by web pages, a page starting
+  translation, importing the web app's settings, the card ignoring device
+  voices, the Speak button resetting, the endless 429 retry.
+
+Complete output of the full run: `tests/.results/report.txt` after running
+`npm test` (it is not committed because it is regenerated every run).
+
+## Final full-run summary (as printed)
+
+```text
+Web app (index.html)                31 passed   11 failed    0 skipped
+Extension, Chrome/Edge build        40 passed    7 failed    0 skipped
+Real services (need keys)            0 passed    0 failed    3 skipped
+Build dist/chrome and dist/firefox                   PASSED
+web-ext lint dist/firefox                            PASSED  (0 errors, 20 warnings, 0 notices)
+Firefox: load the extension, popup, selection card   SKIPPED  (skipped: Firefox is not installed here)
+──────────────────────────────────────────────────────────────────────────────
+Browser tests: 71 passed, 18 failed, 3 skipped (92 in total)
+──────────────────────────────────────────────────────────────────────────────
+FAILED — each line is something that did not behave as expected:
+  ✘ [web] Web app: Glossary tab › with Gemini › "+ Add to Glossary" in the Document tab keeps the terms after a reload
+      Error: glossary rows after reload (MAKAN from before + cache from the document) / expect(locator).toHaveCount(expected) failed / Locator:  locator('#gList .gl')
+  ✘ [web] Web app: Document tab › the Download button can be clicked as soon as translation finishes (nothing covers it)
+      Error: element under the middle of the Download button right after "Done" / expect(received).toBe(expected) // Object.is equality / Expected: "dSave"
+      window size: 1280 x 900
+  ✘ [web] Web app: Document tab › JSON: the downloaded file can be read by a strict JSON reader (no byte-order mark)
+      Error: first character of the file (65279 = invisible byte-order mark, which strict JSON readers reject) / expect(received).not.toBe(expected) // Object.is equality / Expected: not 65279
+  ✘ [web] Web app: Document tab › DOCX: elements the app adds are in the order the Office file format requires
+      Error: elements out of schema order (Word may refuse or "repair" such files) / expect(received).toEqual(expected) // deep equality / - Expected  -  1
+  ✘ [web] Web app: Engines & keys › voice settings › "Silence wait" in Engines & keys is saved
+      Error: saved silence wait (ms) / expect(received).toBe(expected) // Object.is equality / Expected: 1500
+  ✘ [web] Web app: Engines & keys › a provider outage (HTTP 500) is not reported as "key rejected"
+      Error: a server error says nothing about the key / expect(locator).not.toHaveText(expected) failed / Locator:  locator('#engList .eng[data-id="gemini"] .eng-status')
+  ✘ [web] Web app: interface language › every interface text the page uses exists in both English and Persian
+      Error: text keys with no English / Persian wording (the raw key name is shown instead) / expect(received).toEqual(expected) // deep equality / - Expected  -  2
+  ✘ [web] Web app: interface language › the Ask AI answer-language menu shows a readable first choice
+      Error: expect(locator).not.toHaveText(expected) failed / Locator:  locator('#vAskLang option').first() / Expected: not "vAskLangAuto"
+  ✘ [web] Web app: Text tab › with only Google switched on › opening the app with ?text=…&src=…&tgt=… (what the extension's "Open in App" does) fills the Text tab
+      Error: the text passed in the address should appear in the source box / expect(locator).toHaveValue(expected) failed / Locator:  locator('#tIn')
+  ✘ [web] Web app: Voice tab › saved microphone setting › the Voice panel's "Microphone engine" menu shows the saved choice
+      Error: the Voice panel menu / expect(locator).toHaveValue(expected) failed / Locator:  locator('#vSttChoice')
+  ✘ [web] Web app: Voice tab › without any AI key › with "Microphone engine: Browser", Talk does not start downloading the offline Whisper model
+      Error: requests for the offline AI library / Whisper model / expect(received).toEqual(expected) // deep equality / - Expected  - 1
+  ✘ [ext] Extension: options page › a wrong Gemini key is reported as "Key rejected"
+      Error: Gemini answers "API key not valid" for a wrong key / expect(locator).toHaveText(expected) failed / Locator:  locator('#optEngineList .opt-eng-row[data-id="gemini"]').locator('.opt-status-pill')
+  ✘ [ext] Extension: a web page cannot drive the extension › page scripts cannot press the buttons on the M bubble or on the card
+      Error: expect(locator).toHaveText(expected) failed / Locator:  locator('#makan-translate-root .makan-result-text') / Expected: "[fa] First item in the list of things."
+  ✘ [ext] Extension: right-click menu › "Show Original" brings back links and bold text inside translated paragraphs
+      Error: the link inside the paragraph / expect(locator).toHaveCount(expected) failed / Locator:  locator('#p2 a#link1')
+  ✘ [ext] Extension: right-click menu › the page banner names the engine that was actually used
+      Error: expect(locator).toContainText(expected) failed / Locator: locator('#makan-translate-root .makan-top-banner') / Timeout: 10000ms
+  ✘ [ext] Extension: right-click menu › when every engine fails, the page banner says so instead of "Page translated"
+      Error: nothing was translated / expect(locator).not.toContainText(expected) failed / Locator: locator('#makan-translate-root .makan-top-banner')
+  ✘ [ext] Extension: selection card › drag-selecting text shows the M button; a real mouse press on it opens a translated card
+      Error: expect(locator).toHaveText(expected) failed / Locator:  locator('#makan-translate-root .makan-result-text') / Expected: "[fa] The quick brown fox jumps over the lazy dog near the river bank."
+  ✘ [ext] Extension: selection card › "Detected" shows FA when Persian text is selected
+      Error: expect(locator).toHaveText(expected) failed / Locator:  locator('#makan-translate-root #makanDetectedPill') / Expected: "Detected: FA"
+──────────────────────────────────────────────────────────────────────────────
+SKIPPED — not tested, so not counted as passed:
+  - [live] Live services (real internet) › real Google Translate translates a sentence: skipped: needs live service (set MAKAN_LIVE=1 to run)
+  - [live] Live services (real internet) › real Gemini translates a sentence: skipped: needs key (set MAKAN_GEMINI_KEY to run)
+  - [live] Live services (real internet) › real Gemini read-aloud returns audio: skipped: needs key (set MAKAN_GEMINI_KEY to run)
+  - Firefox: load the extension, popup, selection card: skipped: Firefox is not installed here
+──────────────────────────────────────────────────────────────────────────────
+Notes recorded by passing tests:
+  - [web] Web app: Document tab › DOCX: valid file, same paragraphs and table, text translated, right-to-left set, footnote kept: LibreOffice: LibreOffice converted it to a 22851-byte PDF
+  - [web] Web app: Document tab › PPTX: valid file, same slides, text translated, right-to-left set: LibreOffice: LibreOffice converted it to a 21467-byte PDF
+  - [web] Web app: Document tab › XLSX: valid file, same sheets, formulas and numbers kept, text translated, sheets right-to-left: LibreOffice: LibreOffice converted it to a 13058-byte PDF
+  - [ext] Extension: after the extension is reloaded › selecting text in a tab that was already open still translates: copies of the extension UI layer in the tab after reload: 1
+  - [ext] Extension: selection card › Speak button › without a Gemini key or a device voice, Speak shows a clear "no voice" message: device voices in this browser: 0
+══════════════════════════════════════════════════════════════════════════════
+RESULT: 18 problem(s) found. Details above; full report: tests/.results/report.txt
+══════════════════════════════════════════════════════════════════════════════
+(finished in 466 s)
+exit 1
+```

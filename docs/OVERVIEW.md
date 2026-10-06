@@ -31,7 +31,7 @@ Neither has a build step for the app code itself. The only "build" is
 | `ai-worker.js` | A background worker for the "offline" features. It downloads the NLLB translation model and the Whisper speech model from Hugging Face (through the `cdn.jsdelivr.net` library `@huggingface/transformers`) and runs them in the browser. |
 | `sw.js` | Service worker. Keeps a saved copy of the app files so the page can open without internet. Files from the same site are fetched fresh when online and taken from the saved copy when offline. Fonts and the AI library are taken from the saved copy first. Translation services are never cached. |
 | `manifest.webmanifest`, `icon-192.png`, `icon-512.png` | Make the web app installable ("Add to home screen" / "Install app"). |
-| `test-server.py` | A small local web server on port 8080 used during development. It also accepts `POST /api/sync_keys` and throws the body away (see section 6, item 1). |
+| `test-server.py` | A small local web server on port 8080 used during development. It used to accept `POST /api/sync_keys` and throw the body away; that endpoint is removed (section 6, item 1). |
 | `ENGINE_SYNC.md` | A note about keeping the web app and the extension in step. **It is out of date**: it lists engines (DeepL, an "offline" entry) and settings that no longer match the code. |
 | `test-assets/`, `test_docs/` | Old ad-hoc scripts and sample files from earlier work. They are not part of the new test suite and nothing the user loads depends on them. Note: you said these were meant to be left out of the repository, but they are committed. |
 | `translator` | A broken "sub-repository" link (git calls it a submodule entry) pointing at an old commit of this same repository. It has no content and no `.gitmodules` file. It was probably added by accident. |
@@ -225,6 +225,8 @@ versions of many of the same names. Because those declarations come later,
 | `loadConfig` / `saveConfig` | `store.get('cfg')` / `saveCfg` |
 | `lookupWordDictionary` | (no equivalent in the web app) |
 
+(After the first round of fixes, `extension/engine.js` is also loaded into web pages next to `content.js`, so the card can pick a computer voice. It never holds keys there: the content script gets a settings summary without keys, and cannot read stored settings.)
+
 ### What the web app really uses from engine.js
 
 Only the Gemini streaming read-aloud: `streamGeminiTts`,
@@ -245,7 +247,22 @@ Each item says how it is known:
   given so you can find it in the `npm test` summary.
 * **From reading**: seen in the code but not run by a test.
 
-None of these has been fixed yet; this list is for deciding what to fix.
+### Status after the first round of fixes
+
+| Item | Status |
+| --- | --- |
+| 1 Keys sent to the web app's own server (and every other way a key could reach the wrong place) | **Fixed, proven by tests** |
+| 2 Keys readable from inside web pages (and the content script could even overwrite settings) | **Fixed, proven by tests** |
+| 3 A web page can start translation | **Fixed, proven by tests** |
+| 5 Settings from the web app break the extension | **Fixed, proven by tests** |
+| 6 Read-aloud in the card ignores the computer's voices | **Fixed, proven by a test with a pretend voice engine; a real Windows or Edge voice still needs your hand check** |
+| 7 Speak button forgets it is playing (and, found while fixing it: replaying the same text was silent) | **Fixed, proven by tests; hearing the sound needs your hand check** |
+| 8 Endless retry on a rate limit | **Fixed, proven by tests** |
+| Review findings (markup from outside, the extension detectable by websites, the hidden audio player) | **Fixed, proven by tests** (see "Found while reviewing" below) |
+| 4 (key in web addresses) | **Fixed** (part of item 1) |
+| Everything else in this list | **Not fixed yet** |
+
+Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
 
 ### Security and privacy
 
@@ -409,6 +426,36 @@ None of these has been fixed yet; this list is for deciding what to fix.
     without escaping it: `popup.js` line 296 inserts an error message that can
     come from a provider's reply, and `options.js` puts stored key and model
     values into the page this way. Low risk, but easy to make safe.
+
+### Found while reviewing the security fixes
+
+* **Fixed:** the popup, the options page and the card put text that does not
+  come from us (a provider's error message, stored settings, the system's
+  voice names, the language setting) into the page as markup. It is now
+  escaped or set as plain text, and settings are cleaned when loaded or
+  imported (unknown engines, odd language codes and non-http(s) addresses
+  are replaced).
+* **Fixed:** any website could tell that the extension is installed by
+  fetching its stylesheet or icons. The icons are no longer exposed and the
+  stylesheet has a changing address.
+* **Fixed:** the hidden audio player obeyed messages broadcast by a web
+  page's content script.
+* **Not fixed, needs your decision:** `index.html` loads JSZip from the
+  public CDN `cdn.jsdelivr.net` without an integrity check. Anything loaded
+  that way can read the API keys saved for the site. This could not be fixed
+  safely here because that CDN is blocked from this environment, so the
+  correct integrity hash could not be checked against the real file.
+  Recommended: put a copy of JSZip 3.10.1 in the repository and load it from
+  the site itself (this adds one file to the website).
+* **Not fixed, noted:** the extension's card lives in an "open" shadow root,
+  so a web page's script can read what the card shows (the selected text and
+  its translation). It cannot press the card's buttons any more. A "closed"
+  root would hide the card from the page but the test tooling used here
+  cannot see into a closed root.
+* **New, not fixed:** in Word files the app marks tables right-to-left with
+  an element called `w:tblBidi`. The Office format has no such element (the
+  real one is `w:bidiVisual`). LibreOffice ignores it; Microsoft Word may
+  report the file as damaged. Needs your hand check in Word.
 
 ### Withdrawn after testing
 

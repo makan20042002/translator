@@ -35,6 +35,8 @@ const JSZIP_FILE = require.resolve('jszip/dist/jszip.min.js');
 
 const VALID_KEY = 'stub-valid-key';
 const BAD_KEY = 'stub-bad-key';
+/** Any key that starts with VALID_KEY is accepted, so tests can give each provider its own key. */
+const isValidKey = k => typeof k === 'string' && k.startsWith(VALID_KEY);
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -188,7 +190,7 @@ async function startStub() {
     if (host === 'generativelanguage.googleapis.com') {
       const key = req.headers['x-goog-api-key'] || q.get('key') || '';
       if (!key) return sendJson(res, 403, { error: { code: 403, message: "Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.", status: 'PERMISSION_DENIED' } });
-      if (key !== VALID_KEY) return sendJson(res, 400, { error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT', details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID', domain: 'googleapis.com' }] } });
+      if (!isValidKey(key)) return sendJson(res, 400, { error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT', details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID', domain: 'googleapis.com' }] } });
       if (req.method === 'GET' && /^\/v1beta\/models\/?$/.test(p)) {
         return sendJson(res, 200, { models: [{ name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] }] });
       }
@@ -217,7 +219,7 @@ async function startStub() {
     // --- Anthropic ---
     if (host === 'api.anthropic.com') {
       const key = req.headers['x-api-key'] || '';
-      if (key !== VALID_KEY) return sendJson(res, 401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } });
+      if (!isValidKey(key)) return sendJson(res, 401, { type: 'error', error: { type: 'authentication_error', message: 'invalid x-api-key' } });
       if (p === '/v1/models') return sendJson(res, 200, { data: [{ id: 'claude-haiku-4-5' }] });
       if (p === '/v1/messages') {
         const user = (json?.messages || []).map(m => typeof m.content === 'string' ? m.content : '').pop();
@@ -229,7 +231,7 @@ async function startStub() {
     const OPENAI_HOSTS = ['api.openai.com', 'api.groq.com', 'openrouter.ai', 'api.mistral.ai', 'api.cerebras.ai'];
     if (OPENAI_HOSTS.includes(host)) {
       const auth = req.headers.authorization || '';
-      if (auth !== `Bearer ${VALID_KEY}`) return sendJson(res, 401, { error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } });
+      if (!isValidKey(auth.replace(/^Bearer /, ''))) return sendJson(res, 401, { error: { message: 'Incorrect API key provided.', type: 'invalid_request_error', code: 'invalid_api_key' } });
       if (/\/models$/.test(p)) return sendJson(res, 200, { data: [{ id: 'stub-model' }] });
       if (/\/chat\/completions$/.test(p)) {
         const msgs = json?.messages || [];
