@@ -1708,11 +1708,13 @@ async function translateItems(items,o){
       if(ci+1<chain.length){
         if(!isBlockError(e)) toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn');
         ci++;
-      }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):(toPlainReason(e)||e.message)}`);
+      }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):plainWithDetail(e)}`);
     }
   }
   return {out,notes,used:[...used].map(i=>ENG[i].name).join(' + ')};
 }
+// Plain reason first ("key rejected"), then what the provider said (already scrubbed of keys).
+function plainWithDetail(e){const p=toPlainReason(e),m=String(e.message||'');return p&&m&&p!==m?`${p} — ${m}`:(p||m)}
 const opts=extra=>Object.assign({
   src:$('src').value,
   tgt:$('tgt').value,
