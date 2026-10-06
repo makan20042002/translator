@@ -373,6 +373,12 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .v-live-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
 .v-live-btn.live-on .v-live-dot{animation:pulse 1s infinite}
 .v-stop-speak-btn{min-height:38px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13px}
+.v-live-browser-box{display:flex;flex-direction:column;align-items:center;gap:10px;padding:12px 16px;background:rgba(255,255,255,.04);border:1px dashed var(--accent-line);border-radius:14px;max-width:520px;width:100%;text-align:center;margin:0 auto}
+.v-live-browser-notice{font-size:13px;color:var(--muted);line-height:1.4}
+.v-live-spk-btns{display:flex;gap:10px;justify-content:center;flex-wrap:wrap;width:100%}
+.v-live-spk-btn{display:inline-flex;align-items:center;gap:8px;padding:10px 18px;border-radius:999px;font-weight:600;font-size:13px;background:var(--card-bg);border:1px solid var(--accent-line);color:var(--text);cursor:pointer;transition:all .15s}
+.v-live-spk-btn:hover{background:var(--accent);color:#fff;border-color:transparent}
+.v-live-spk-btn.listening{border-color:var(--err);background:rgba(255,107,122,.15);color:var(--err);animation:pulse 1s infinite}
 
 /* Ask AI View */
 .v-ask-top-ctrls{display:flex;align-items:center;gap:12px;width:100%;margin-bottom:8px}
@@ -764,7 +770,21 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
               </button>
             </div>
 
-            <div class="ptt-wrap">
+            <div class="v-live-browser-box" id="vLiveBrowserBox" hidden>
+              <div class="v-live-browser-notice" id="vLiveBrowserNotice" data-t="vBrowserNoDetect">Browser speech recognition cannot detect language before listening. Choose who is speaking:</div>
+              <div class="v-live-spk-btns">
+                <button class="btn v-live-spk-btn" id="vLiveSpkABtn" type="button">
+                  <span class="v-live-spk-icon">🎙️</span>
+                  <span id="vLiveSpkAName">Speaker A</span>
+                </button>
+                <button class="btn v-live-spk-btn" id="vLiveSpkBBtn" type="button">
+                  <span class="v-live-spk-icon">🎙️</span>
+                  <span id="vLiveSpkBName">Speaker B</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="ptt-wrap" id="vPttWrap">
               <div class="ptt-ripple" aria-hidden="true"></div>
               <button id="vPttBtn" class="ptt-btn" type="button" aria-label="Push to talk" data-state="ready">
                 <span class="ptt-icon-wrap" id="vPttIcon">
@@ -984,6 +1004,7 @@ const I18N={en:{
  loadModels:'Models',
  vModeConv:'Conversation',vModeAsk:'Ask AI',
  vLive:'Live',vLiveHint:'Hands-free: listens and speaks continuously',vLiveListening:'Listening…',vLiveListenBrowser:'Listening (Alternating turns — tap speaker to switch)…',vLiveListenDetect:'Listening (Auto-detecting language)…',vLiveTranslating:'Translating…',vLiveSpeaking:'Speaking…',vStopLive:'Stop Live',
+ vBrowserNoDetect:'Browser speech recognition cannot detect language before listening. Choose who is speaking:',
  stopSpeak:'Stop speaking',replay:'Replay',speed:'Speed',
  vAskHint:'Ask a question by voice or typing. AI answers and speaks back.',vAskPh:'Ask a question or request…',vAskSend:'Ask',vAskNew:'New chat',vAskLang:'Answer language',vAskThinking:'Thinking…',
  noAiEngine:'No AI engine is ready. Open “Engines & keys”.',
@@ -1053,6 +1074,7 @@ const I18N={en:{
  loadModels:'مدل‌ها',
  vModeConv:'گفتگو',vModeAsk:'پرسش از هوش مصنوعی',
  vLive:'زنده',vLiveHint:'مکالمه‌ی مداوم و بدون نیاز به فشردن دکمه',vLiveListening:'در حال شنیدن…',vLiveListenBrowser:'در حال شنیدن (نوبتی — برای تغییر گوینده ضربه بزنید)…',vLiveListenDetect:'در حال شنیدن (تشخیص خودکار زبان)…',vLiveTranslating:'در حال ترجمه…',vLiveSpeaking:'در حال خواندن…',vStopLive:'توقف زنده',
+ vBrowserNoDetect:'تشخیص خودکار زبان پیش از شنیدن در موتور مرورگر ممکن نیست. انتخاب کنید چه کسی صحبت می‌کند:',
  stopSpeak:'قطع صدا',replay:'پخش دوباره',speed:'سرعت',
  vAskHint:'با صدا یا نوشتن سؤال بپرسید؛ هوش مصنوعی پاسخ داده و بلند می‌خواند.',vAskPh:'سؤالتان را بپرسید یا بنویسید…',vAskSend:'پرسش',vAskNew:'گفتگوی جدید',vAskLang:'زبان پاسخ',vAskThinking:'در حال اندیشیدن…',
  noAiEngine:'هیچ موتور هوش مصنوعی آماده نیست. «موتورها و کلیدها» را باز کنید.',
@@ -3610,12 +3632,22 @@ function updateAskAiView() {
   if (askEmpty) askEmpty.hidden = !hasAi || (askHistory.length > 0) || ($('askBubbles')?.children.length > 0);
 }
 
+function updateLiveSpeakerLabels() {
+  const s = $('src').value, t = $('tgt').value;
+  const effectiveA = (s === 'auto') ? (t.startsWith('fa') ? 'en' : (t.startsWith('en') ? 'fa' : 'en')) : s;
+  const nameA = `${L('speakerA')} (${langName(effectiveA)})`;
+  const nameB = `${L('speakerB')} (${langName(t)})`;
+  if ($('vLiveSpkAName')) $('vLiveSpkAName').textContent = nameA;
+  if ($('vLiveSpkBName')) $('vLiveSpkBName').textContent = nameB;
+}
+
 function updateVoiceLangPills() {
   const s = $('src').value, t = $('tgt').value;
   const aText = s === 'auto' ? L('detect') : langName(s);
   const bText = langName(t);
   if ($('vLangA')) $('vLangA').textContent = aText;
   if ($('vLangB')) $('vLangB').textContent = bText;
+  updateLiveSpeakerLabels();
 }
 
 function fillVoiceTransEngines() {
@@ -3879,7 +3911,64 @@ function addBubble(container, side, said, trans, fromLang, toLang, meta = {}) {
   return d;
 }
 
-// Hands-free Live conversation loop
+// Hands-free Live conversation loop / speaker-directed live mode
+async function triggerLiveBrowserSpeaker(side) {
+  if (!liveActive) return;
+  if (isSpeaking()) stopSpeak();
+  const s = $('src').value, t = $('tgt').value;
+  const effectiveA = (s === 'auto') ? (t.startsWith('fa') ? 'en' : 'fa') : s;
+  const from = (side === 'a') ? effectiveA : t;
+  const to = (side === 'a') ? t : effectiveA;
+  const listenLang = from;
+  const spkBtn = (side === 'a') ? $('vLiveSpkABtn') : $('vLiveSpkBBtn');
+  if (spkBtn) spkBtn.classList.add('listening');
+  setVoiceState('listening', L('vLiveListening'));
+
+  try {
+    let tx = await new Promise(resolve => {
+      listen(listenLang, null, rText => resolve(rText), interim => {
+        $('vPartial').hidden = false;
+        $('vPartial').textContent = interim;
+      }).then(res => {
+        if (res && res.started === false) resolve('');
+      });
+    });
+    $('vPartial').hidden = true;
+    $('vPartial').textContent = '';
+    if (spkBtn) spkBtn.classList.remove('listening');
+    if (!liveActive) return;
+    if (!tx || !tx.trim() || isSilenceHallucination(tx)) {
+      setVoiceState('ready');
+      return;
+    }
+    tx = tx.trim();
+    setVoiceState('working', L('vLiveTranslating'));
+    const t0 = performance.now();
+    const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
+    const r = await translateItems([tx], opts({ src: from, tgt: to, engine: activeTransEng }));
+    if (!liveActive) return;
+    const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
+    const voiceObj = pickVoice(to);
+    const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : L('ttsFallback');
+    addBubble($('bubbles'), side, tx, r.out[0] || '…', from, to, {
+      stt: 'Browser',
+      engine: r.used,
+      voice: voiceName,
+      dur: dt
+    });
+    if (r.out[0] && $('vAuto').checked) {
+      setVoiceState('speaking', L('vLiveSpeaking'));
+      const forceFast = $('vLiveVoiceSpeed')?.value !== 'quality';
+      await speakFast(r.out[0], to, forceFast);
+    }
+    if (liveActive) setVoiceState('ready');
+  } catch (err) {
+    if (spkBtn) spkBtn.classList.remove('listening');
+    setVoiceState('ready');
+    toast(err.message || 'Turn error', 'warn', 3000);
+  }
+}
+
 async function runLiveLoop() {
   liveActive = true;
   liveSide = 'a';
@@ -3900,6 +3989,28 @@ async function runLiveLoop() {
     return;
   }
 
+  const curStt = sttMode();
+  const hasGeminiKey = !!(cfg.eng.gemini.key || (cfg.tts.mode==='gemini'&&cfg.tts.key)) && !sessionBlocked.has('gemini') && cfg.eng.gemini.on !== false;
+  const isGemini = hasGeminiKey && curStt !== 'whisper' && curStt !== 'browser';
+
+  if (!isGemini) {
+    // With browser engine, language cannot be detected before listening.
+    // Display clear notice and offer two speaker buttons.
+    const box = $('vLiveBrowserBox');
+    if (box) box.hidden = false;
+    const pttWrap = $('vPttWrap');
+    if (pttWrap) pttWrap.style.display = 'none';
+    updateLiveSpeakerLabels();
+    setVoiceState('ready', L('vStatusReady'));
+    return;
+  }
+
+  // With Gemini, detect between the two selected languages continuously
+  const box = $('vLiveBrowserBox');
+  if (box) box.hidden = true;
+  const pttWrap = $('vPttWrap');
+  if (pttWrap) pttWrap.style.display = '';
+
   while (liveActive) {
     while (liveActive && isSpeaking()) {
       setVoiceState('speaking');
@@ -3910,79 +4021,32 @@ async function runLiveLoop() {
 
     try {
       const s = $('src').value, t = $('tgt').value;
-      const hasGeminiKey = !!cfg.eng.gemini.key && !sessionBlocked.has('gemini');
-      const curStt = sttMode();
+      const effectiveA = (s === 'auto') ? (t.startsWith('fa') ? 'en' : (t.startsWith('en') ? 'fa' : 'en')) : s;
+      const effectiveB = t;
       setVoiceState('listening', L('vLiveListening'));
 
       let turnResult = null;
       const t0 = performance.now();
 
-      if (hasGeminiKey && curStt !== 'whisper' && curStt !== 'browser') {
-        const blob = await record(null, interim => {
-          $('vPartial').hidden = false;
-          $('vPartial').textContent = interim;
-        });
-        if (!liveActive || !blob || blob.size < 1200) {
-          $('vPartial').hidden = true;
-          $('vPartial').textContent = '';
-          await sleep(200);
-          continue;
-        }
-        setVoiceState('working', L('vLiveTranslating'));
-        const res = await interpretGemini(blob, s, t);
-        turnResult = {
-          lang: res.lang,
-          transcript: res.transcript,
-          translation: res.translation,
-          stt: 'Gemini',
-          engine: 'Gemini'
-        };
-      } else {
-        const isBrowserStt = curStt === 'browser';
-        const listenLang = isBrowserStt ? (liveSide === 'a' ? (s === 'auto' ? (navigator.language || 'en') : s) : t) : 'auto';
-        let tx = await new Promise(resolve => {
-          listen(listenLang, null, rText => resolve(rText), interim => {
-            $('vPartial').hidden = false;
-            $('vPartial').textContent = interim;
-          }).then(res => {
-            if (res && res.started === false) resolve('');
-          });
-        });
+      const blob = await record(null, interim => {
+        $('vPartial').hidden = false;
+        $('vPartial').textContent = interim;
+      });
+      if (!liveActive || !blob || blob.size < 1200) {
         $('vPartial').hidden = true;
         $('vPartial').textContent = '';
-        if (!liveActive || !tx || !tx.trim()) {
-          await sleep(250);
-          continue;
-        }
-        tx = tx.trim();
-
-        if (isSilenceHallucination(tx)) {
-          await sleep(200);
-          continue;
-        }
-
-        let detected = s;
-        const hasFarsi = /[\u0600-\u06FF]/.test(tx);
-        const sFa = s.startsWith('fa') || s.startsWith('ar'), tFa = t.startsWith('fa') || t.startsWith('ar');
-        if (hasFarsi && tFa && !sFa) detected = t;
-        else if (hasFarsi && sFa && !tFa) detected = s;
-        else if (!hasFarsi && sFa && !tFa) detected = t;
-        else if (!hasFarsi && !sFa && tFa) detected = s;
-        else detected = (liveSide === 'a' ? s : t);
-
-        const from = detected;
-        const to = (detected === s ? t : s);
-        setVoiceState('working', L('vLiveTranslating'));
-        const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
-        const r = await translateItems([tx], opts({ src: from, tgt: to, engine: activeTransEng }));
-        turnResult = {
-          lang: detected,
-          transcript: tx,
-          translation: r.out[0],
-          stt: isBrowserStt ? 'Browser' : 'Whisper',
-          engine: r.used
-        };
+        await sleep(200);
+        continue;
       }
+      setVoiceState('working', L('vLiveTranslating'));
+      const res = await interpretGemini(blob, effectiveA, effectiveB);
+      turnResult = {
+        lang: res.lang,
+        transcript: res.transcript,
+        translation: res.translation,
+        stt: 'Gemini',
+        engine: 'Gemini'
+      };
 
       $('vPartial').hidden = true;
       $('vPartial').textContent = '';
@@ -3991,11 +4055,12 @@ async function runLiveLoop() {
         continue;
       }
 
-      const spokenLang = turnResult.lang;
-      const isSideA = (spokenLang === s || (s === 'auto' && spokenLang !== t));
+      const spokenLang = (turnResult.lang || '').toLowerCase();
+      const normA = effectiveA.split('-')[0].toLowerCase();
+      const isSideA = (spokenLang === effectiveA.toLowerCase() || spokenLang.startsWith(normA));
       const side = isSideA ? 'a' : 'b';
-      const to = isSideA ? t : (s === 'auto' ? 'en' : s);
-      const from = isSideA ? s : t;
+      const from = isSideA ? effectiveA : effectiveB;
+      const to = isSideA ? effectiveB : effectiveA;
       const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
       const voiceObj = pickVoice(to);
       const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : L('ttsFallback');
@@ -4017,7 +4082,6 @@ async function runLiveLoop() {
       }
 
       if (!liveActive) break;
-      liveSide = (side === 'a' ? 'b' : 'a');
       setVoiceState('listening');
       await sleep(200);
     } catch (turnErr) {
@@ -4039,13 +4103,21 @@ function stopLive() {
     liveBtn.setAttribute('aria-pressed', 'false');
     $('vLiveTxt').textContent = L('vLive');
   }
+  const box = $('vLiveBrowserBox');
+  if (box) box.hidden = true;
+  const pttWrap = $('vPttWrap');
+  if (pttWrap) pttWrap.style.display = '';
+  if ($('vLiveSpkABtn')) $('vLiveSpkABtn').classList.remove('listening');
+  if ($('vLiveSpkBBtn')) $('vLiveSpkBBtn').classList.remove('listening');
   $('vPartial').hidden = true;
   $('vPartial').textContent = '';
-  if (rec) { rec.stop(); }
+  if (rec) { try { rec.stop(); } catch {} }
   stopSpeak();
   setVoiceState('ready');
 }
 $('vLiveBtn').onclick = () => { if (liveActive) stopLive(); else runLiveLoop(); };
+if ($('vLiveSpkABtn')) $('vLiveSpkABtn').onclick = () => triggerLiveBrowserSpeaker('a');
+if ($('vLiveSpkBBtn')) $('vLiveSpkBBtn').onclick = () => triggerLiveBrowserSpeaker('b');
 $('vStopSpeak').onclick = stopSpeak;
 $('vAskStopSpeak').onclick = stopSpeak;
 

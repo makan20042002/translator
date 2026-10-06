@@ -109,6 +109,26 @@ test.describe('Web app: the Talk button follows the Microphone engine setting', 
       await expect(bub.locator('.bub-text')).toHaveText('[fa] set alarm');
       expect(errors).toEqual([]);
     });
+
+    test('in Live mode with browser engine, explains detection cannot happen beforehand and offers two speaker buttons', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await mouseClick(page, page.locator('#vLiveBtn'));
+
+      const box = page.locator('#vLiveBrowserBox');
+      await expect(box).toBeVisible();
+      const notice = page.locator('#vLiveBrowserNotice');
+      await expect(notice).toContainText('cannot detect language');
+      await expect(page.locator('#vLiveSpkABtn')).toBeVisible();
+      await expect(page.locator('#vLiveSpkBBtn')).toBeVisible();
+      await expect(page.locator('#vLiveSpkAName')).toContainText('English');
+      await expect(page.locator('#vLiveSpkBName')).toContainText('Persian');
+
+      // Clicking Live again stops and hides the box
+      await mouseClick(page, page.locator('#vLiveBtn'));
+      await expect(box).toBeHidden();
+      await expect(page.locator('#vPttBtn')).toBeVisible();
+    });
   });
 
   test.describe('Groq', () => {
@@ -193,6 +213,25 @@ test.describe('Web app: the Talk button follows the Microphone engine setting', 
       // Check that Voice tab now displays Gemini again
       await expect(page.locator('#vListenEngName')).toHaveText('Google Gemini');
       await expect(page.locator('#vTransEngName')).toHaveText('Google Gemini');
+    });
+
+    test('in Live mode with Gemini, automatically detects between the two languages without showing browser limitations', async ({ app }) => {
+      test.setTimeout(60_000);
+      const { page, stub } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await mouseClick(page, page.locator('#vLiveBtn'));
+
+      // Gemini handles auto-detection hands-free: no manual browser speaker selection box
+      await expect(page.locator('#vLiveBrowserBox')).toBeHidden();
+      await expect(page.locator('#vLiveBtn')).toHaveClass(/live-on/);
+
+      // Wait for a live turn to complete via stub
+      const bub = page.locator('#bubbles .bub').first();
+      await expect(bub.locator('.bub-text')).toBeVisible({ timeout: 20_000 });
+      expect(stub.calls('generativelanguage.googleapis.com').length).toBeGreaterThan(0);
+
+      await mouseClick(page, page.locator('#vLiveBtn'));
+      await expect(page.locator('#vLiveBtn')).not.toHaveClass(/live-on/);
     });
   });
 });
