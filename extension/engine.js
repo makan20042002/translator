@@ -530,7 +530,7 @@ async function translateItemsWithFallback(items, options = {}, cfg) {
   let chain;
   if (options.mode === 'fast') {
     const nonAi = ['google', 'mymemory'].filter(id => !ENG[id]?.ai && isEngineUsable(id, cfg));
-    chain = nonAi.slice(0, 1);
+    chain = nonAi.length ? nonAi : ['google', 'mymemory'].filter(id => !ENG[id]?.ai);
   } else if (options.mode === 'smart') {
     const aiChain = (options.engine && options.engine !== 'auto' && ENG[options.engine]?.ai)
       ? [options.engine]

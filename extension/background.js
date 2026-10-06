@@ -385,7 +385,7 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language']);
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
@@ -466,6 +466,16 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'set-language') {
+      // The card's language choice is remembered; only these two fields, only known language codes.
+      const known = c => typeof c === 'string' && (LANGS || []).some(l => l[0] === c);
+      if (!known(req.src) && req.src !== 'auto') return { ok: false, error: 'Bad language' };
+      if (!known(req.tgt) || req.tgt === 'auto') return { ok: false, error: 'Bad language' };
+      cfg.src = req.src; cfg.tgt = req.tgt;
+      await saveConfig(cfg);
+      return { ok: true };
     }
 
     if (req.action === 'save-config') {
