@@ -131,7 +131,7 @@ test.describe('Web app: Document tab', () => {
     ]);
     // Right-to-left for Persian: every translated paragraph and the table.
     expect(count(a, 'w:bidi')).toBe(7);
-    expect(count(a, 'w:tblBidi')).toBe(1);
+    // Whether the table is marked right-to-left, and with which element, is checked in the next test.
     // The footnote text was translated too.
     expect(textsOf(after.parts['word/footnotes.xml'], 'w:p', 'w:t').filter(Boolean)).toContain('[fa] An original footnote.');
     checkWithLibreOffice(out.bytes, 'docx', files.docx);
@@ -148,6 +148,17 @@ test.describe('Web app: Document tab', () => {
       ...schemaOrderProblems(after.parts['word/footnotes.xml'], 'word/footnotes.xml')
     ];
     expect(problems, 'elements out of schema order (Word may refuse or "repair" such files)').toEqual([]);
+  });
+
+  test('DOCX: tables are marked right-to-left with elements the Office format has (there is no w:tblBidi)', async ({ app, files }) => {
+    // The Office format's table property for right-to-left is <w:bidiVisual/>. <w:tblBidi/> does not exist,
+    // so Microsoft Word may report a file containing it as damaged (LibreOffice just ignores it).
+    const out = await translateDocument(app.page, files.docx, 8);
+    const after = await openOffice(out.bytes);
+    const all = Object.entries(after.parts).filter(([n]) => /^word\/.*\.xml$/.test(n));
+    const offenders = all.filter(([, xml]) => xml.includes('w:tblBidi')).map(([n]) => n);
+    expect(offenders, 'parts of the .docx that contain w:tblBidi').toEqual([]);
+    expect(count(after.parts['word/document.xml'], 'w:bidiVisual'), 'tables marked right-to-left with w:bidiVisual').toBe(1);
   });
 
   test('PPTX: valid file, same slides, text translated, right-to-left set', async ({ app, files }) => {

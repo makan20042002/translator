@@ -260,7 +260,7 @@ Each item says how it is known:
 | 8 Endless retry on a rate limit | **Fixed, proven by tests** |
 | Review findings (markup from outside, the extension detectable by websites, the hidden audio player) | **Fixed, proven by tests** (see "Found while reviewing" below) |
 | 4 (key in web addresses) | **Fixed** (part of item 1) |
-| Everything else in this list | **Not fixed yet** |
+| Everything else in this list | **Not fixed yet.** Tests for items 10 (Open in App) and 12 (Talk ignores the microphone engine) are already in the suite and fail until those are fixed (`tests/web/handoff.spec.js`, `tests/ext/open-in-app.spec.js`, `tests/web/microphone-engine.spec.js`) |
 
 Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
 
@@ -445,17 +445,29 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
   that way can read the API keys saved for the site. This could not be fixed
   safely here because that CDN is blocked from this environment, so the
   correct integrity hash could not be checked against the real file.
-  Recommended: put a copy of JSZip 3.10.1 in the repository and load it from
-  the site itself (this adds one file to the website).
-* **Not fixed, noted:** the extension's card lives in an "open" shadow root,
-  so a web page's script can read what the card shows (the selected text and
-  its translation). It cannot press the card's buttons any more. A "closed"
-  root would hide the card from the page but the test tooling used here
-  cannot see into a closed root.
+  Decision: it should be self-hosted (a copy of JSZip 3.10.1 in the
+  repository, loaded from the site itself; this adds one file to the
+  website). The owner will do this on a computer where the download works.
+  The test `tests/web/external-scripts.spec.js` fails until then, because it
+  allows scripts from other hosts only if they are on an explicit allow-list
+  (currently only the offline-model library, which runs in a worker that
+  cannot read the saved keys). Once JSZip is served from the site the test
+  passes.
+* **Accepted, low-risk (owner's decision):** the extension's card lives in
+  an "open" shadow root, so a web page's script can read what the card
+  shows (the selected text and its translation, which the page already has
+  or can derive). It cannot press the card's buttons or start anything: that
+  is blocked and tested. A "closed" root would hide the card from the page,
+  but the test tooling used here cannot see into a closed root. Revisit if
+  the card ever shows anything the page does not already know.
 * **New, not fixed:** in Word files the app marks tables right-to-left with
   an element called `w:tblBidi`. The Office format has no such element (the
   real one is `w:bidiVisual`). LibreOffice ignores it; Microsoft Word may
-  report the file as damaged. Needs your hand check in Word.
+  report the file as damaged. The owner will fix it. The test
+  "DOCX: tables are marked right-to-left with elements the Office format has
+  (there is no w:tblBidi)" in `tests/web/document.spec.js` fails while the
+  output contains `w:tblBidi`, and also expects the table to carry
+  `w:bidiVisual`. A hand check in Word is still needed afterwards.
 
 ### Withdrawn after testing
 
