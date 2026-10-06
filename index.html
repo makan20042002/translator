@@ -1147,7 +1147,7 @@ const ENG={
  google:{name:'Google Translate (web)',tier:'free',items:40,chars:1800},
  mymemory:{name:'MyMemory',tier:'free',items:1,chars:450},
  chrome:{name:'Chrome on-device',tier:'free',off:1,items:30,chars:4000},
- gemini:{name:'Google Gemini',tier:'freekey',ai:1,key:1,model:'gemini-3.8-flash',url:'https://aistudio.google.com/apikey'},
+ gemini:{name:'Google Gemini',tier:'freekey',ai:1,key:1,model:'gemini-2.5-flash',url:'https://aistudio.google.com/apikey'},
  openrouter:{name:'OpenRouter',tier:'freekey',ai:1,key:1,base:'https://openrouter.ai/api/v1',model:'meta-llama/llama-3.3-70b-instruct:free',url:'https://openrouter.ai/keys'},
  mistral:{name:'Mistral AI',tier:'freekey',ai:1,key:1,base:'https://api.mistral.ai/v1',model:'mistral-small-latest',url:'https://console.mistral.ai/api-keys/'},
  cerebras:{name:'Cerebras',tier:'freekey',ai:1,key:1,base:'https://api.cerebras.ai/v1',model:'gpt-oss-120b',url:'https://cloud.cerebras.ai/'},
@@ -1290,11 +1290,11 @@ async function checkEngineConn(id){
   // Key-based AI provider with a key: tiny real request
   try{
     if(id==='gemini'){
-      const res=await fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model||'gemini-3.5-flash')}:generateContent`,{
+      await withGeminiModel(e.key,'text',e.model,m=>fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{
         method:'POST',
         headers:{'Content-Type':'application/json','x-goog-api-key':e.key},
         body:JSON.stringify({contents:[{parts:[{text:'Hi'}]}]})
-      },1);
+      },1));
       sessionBlocked.delete(id);
       return {code:'works',text:L('connWorks')};
     }else if(id==='claude'){
@@ -1524,9 +1524,10 @@ function parseArr(txt,n,includeNotes=false){
 async function eAI(id,items,o){
   const e=cfg.eng[id],sys=sysPrompt(o.src,o.tgt,o.tone,o.kind,o.subStyle,o.familyFriendly,o),user=JSON.stringify(items),signal=o.signal;let txt;
   if(id==='gemini'){
-    const j=await fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model)}:generateContent`,{method:'POST',signal,
+    // Ask the key which Gemini models it can use (a built-in model name may not exist for this key).
+    const j=await withGeminiModel(e.key,'text',e.model,m=>fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{method:'POST',signal,
       headers:{'Content-Type':'application/json','x-goog-api-key':e.key},
-      body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0.2,responseMimeType:'application/json'}})});
+      body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents:[{role:'user',parts:[{text:user}]}],generationConfig:{temperature:0.2,responseMimeType:'application/json'}})}),signal);
     txt=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
     if(!txt)throw new Error(j.promptFeedback?.blockReason||'empty reply');
   }else if(id==='claude'){
@@ -1560,10 +1561,10 @@ async function eAIChat(id,messages,o){
   const e=cfg.eng[id],sys=o.system||'Answer concisely.',signal=o.signal;let txt='';
   if(id==='gemini'){
     const contents=messages.map(m=>({role:m.role==='assistant'?'model':'user',parts:[{text:m.content}]}));
-    const j=await fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model)}:generateContent`,{
+    const j=await withGeminiModel(e.key,'text',e.model,m=>fx(`https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`,{
       method:'POST',signal,
       headers:{'Content-Type':'application/json','x-goog-api-key':e.key},
-      body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents,generationConfig:{temperature:0.7}})});
+      body:JSON.stringify({systemInstruction:{parts:[{text:sys}]},contents,generationConfig:{temperature:0.7}})}),signal);
     txt=(j.candidates?.[0]?.content?.parts||[]).map(p=>p.text||'').join('');
     if(!txt)throw new Error(j.promptFeedback?.blockReason||'empty reply');
   }else if(id==='claude'){
@@ -1871,8 +1872,7 @@ function pcmToWav(pcmBytes,sampleRate=24000,numChannels=1){
 }
 async function playGeminiTts(text,lang,tok,key){
   const GEM_VOICES=['Kore','Puck','Charon','Fenrir','Aoede'];
-  let model=cfg.tts.model||'gemini-3.8-flash-lite-tts',voice=GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore';
-  const altModel=model.includes('3.8')?'gemini-3.1-flash-tts-preview':'gemini-3.8-flash-lite-tts';
+  let model=cfg.tts.model||'gemini-2.5-flash-preview-tts',voice=GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore';
   const rate=cfg.tts.rate||1.0;
 
   // 1. Session Cache check for instant replay
@@ -1956,16 +1956,7 @@ async function playGeminiTts(text,lang,tok,key){
         generationConfig:{responseModalities:['AUDIO'],speechConfig:{voiceConfig:{prebuiltVoiceConfig:{voiceName:voice}}}}
       })
     });
-    let j;
-    try{
-      j=await callApi(model);
-    }catch(err){
-      if(/not found|404|quota|429|unavailable|high demand/i.test(err.message||'')){
-        console.warn(`Gemini TTS model ${model} unavailable, falling back to ${altModel}`);
-        j=await callApi(altModel);
-        cfg.tts.model=model=altModel;saveCfg();
-      }else throw err;
-    }
+    const j=await withGeminiModel(key,'tts',model,callApi,undefined);
     const inlineData=j.candidates?.[0]?.content?.parts?.[0]?.inlineData;
     if(!inlineData?.data)throw new Error('Gemini TTS: empty audio');
     const bin=atob(inlineData.data),bytes=new Uint8Array(bin.length);
@@ -2214,8 +2205,7 @@ async function transcribeGemini(blob, lang){
   const base64Audio=await blobToBase64(wavBlob);
   const langHint=lang&&lang!=='auto'?` The spoken language is ${langShort(lang)} (${lang}).`:'';
   const prompt=`Transcribe the spoken audio verbatim.${langHint} Output only the exact transcript in the spoken language, with no commentary, no markdown, and no extra text.`;
-  const m0=cfg.eng.gemini.model||'gemini-3.8-flash';
-  const models=[m0,'gemini-3.5-flash','gemini-2.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const models=(await geminiModelOrder(key,'text',cfg.eng.gemini.model)).slice(0,4);
   let lastErr;
   for(const model of models){
     try{
@@ -2309,8 +2299,7 @@ Respond ONLY with a valid JSON object in this exact schema:
   "transcript": "exact verbatim transcript in spoken language",
   "translation": "natural fluent translation into the other language"
 }`;
-  const m0=cfg.eng.gemini.model||'gemini-3.8-flash';
-  const models=[m0,'gemini-3.5-flash','gemini-2.5-flash','gemini-flash-lite-latest','gemini-3.1-flash-lite','gemini-flash-latest'].filter((v,i,a)=>v&&a.indexOf(v)===i);
+  const models=(await geminiModelOrder(key,'text',cfg.eng.gemini.model)).slice(0,4);
   let lastErr;
   for(const model of models){
     try{
@@ -4895,7 +4884,7 @@ function renderVoice(){
   }
   const hEl=$('ttsHint');
   if(hEl){
-    if(isGemini)hEl.textContent='Google Gemini TTS: high quality speech in 130 languages using gemini-3.1-flash-tts-preview or gemini-3.8-flash-tts. Voices: Kore, Puck, Charon, Fenrir, Aoede.';
+    if(isGemini)hEl.textContent='Google Gemini TTS: high quality speech in 130 languages using a speech model that your key can use (picked automatically). Voices: Kore, Puck, Charon, Fenrir, Aoede.';
     else if(isOpenAi)hEl.textContent='OpenAI TTS: high quality speech in 57+ languages using tts-1 or tts-1-hd. Voices: alloy, ash, coral, echo, fable, onyx, nova, sage, shimmer.';
     else hEl.textContent=L('ttsHint');
   }
@@ -4917,7 +4906,7 @@ $('ttsMode').onchange=()=>{
   // The voice key box belongs to one voice provider; never carry it over to another one.
   if(cfg.tts.mode!==$('ttsMode').value)cfg.tts.key='';
   cfg.tts.mode=$('ttsMode').value;
-  if(cfg.tts.mode==='gemini'){cfg.tts.model='gemini-3.8-flash-tts';if(!cfg.tts.voice||!['Kore','Puck','Charon','Fenrir','Aoede'].includes(cfg.tts.voice))cfg.tts.voice='Kore'}
+  if(cfg.tts.mode==='gemini'){cfg.tts.model='gemini-2.5-flash-preview-tts';if(!cfg.tts.voice||!['Kore','Puck','Charon','Fenrir','Aoede'].includes(cfg.tts.voice))cfg.tts.voice='Kore'}
   else if(cfg.tts.mode==='openai'){if(!cfg.tts.model)cfg.tts.model='tts-1';if(!cfg.tts.voice)cfg.tts.voice='alloy'}
   saveCfg();renderVoice();
 };
@@ -4928,7 +4917,7 @@ if($('ttsSpeed'))$('ttsSpeed').onchange=()=>{
 $('voiceSel').onchange=()=>{cfg.tts.voices[$('tgt').value.split('-')[0].toLowerCase()]=$('voiceSel').value;saveCfg()};
 ['base','key','model','voice'].forEach(k=>{if($('tts_'+k))$('tts_'+k).onchange=()=>{cfg.tts[k]=$('tts_'+k).value.trim();saveCfg()}});
 const TTS_PRE={
-  gemini:{mode:'gemini',base:'',model:'gemini-3.8-flash-tts',voice:'Kore'},
+  gemini:{mode:'gemini',base:'',model:'gemini-2.5-flash-preview-tts',voice:'Kore'},
   openai:{mode:'openai',base:'https://api.openai.com/v1',model:'tts-1',voice:'alloy'},
   sesame:{mode:'api',base:'http://localhost:8000/v1',model:'csm-1b',voice:'alloy'}
 };

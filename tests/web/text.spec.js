@@ -89,7 +89,8 @@ test.describe('Web app: Text tab', () => {
       await mouseClick(page, page.locator('#tGo'));
       await expect(page.locator('#tOut')).toHaveValue('[fa] Use the AI engine');
       await expect(page.locator('#tMeta')).toContainText('Google Gemini');
-      const g = stub.calls('generativelanguage.googleapis.com');
+      // The model list request (GET) is separate from the translation request; there must be exactly one translation request.
+      const g = stub.calls('generativelanguage.googleapis.com').filter(c => c.method !== 'GET');
       expect(g.length).toBe(1);
       // The key travels in a header, not in the address.
       expect(g[0].headers['x-goog-api-key']).toBe(VALID_KEY);
@@ -126,7 +127,7 @@ test.describe('Web app: Text tab', () => {
 
       // Both engines were called concurrently
       expect(stub.calls('clients5.google.com').length).toBe(1);
-      expect(stub.calls('generativelanguage.googleapis.com').length).toBe(1);
+      expect(stub.calls('generativelanguage.googleapis.com').filter(c => c.method !== 'GET').length).toBe(1);
     });
 
     test('if user copies Fast result before Smart finishes, Show improved button appears without overwriting under hands', async ({ app }) => {

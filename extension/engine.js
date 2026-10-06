@@ -99,7 +99,7 @@ const DEFAULT_CFG = {
     rate: 1.0,
     preferGemini: false,
     geminiVoice: 'Kore',
-    model: 'gemini-3.8-flash-tts',
+    model: 'gemini-2.5-flash-preview-tts',
     voices: {}
   }
 };
@@ -364,6 +364,73 @@ async function callMyMemory(items, src, tgt, email = '', signal) {
   return out;
 }
 
+// ---- Gemini models: ask the key which models it can really use ----
+// Model names change and differ between keys, so never trust a built-in name. The models endpoint tells us
+// what this key can call; we rank those and try them in order. The key is sent in the x-goog-api-key header.
+const geminiListCache = new Map(); // key -> { at, models } (kept in memory only)
+async function listGeminiModels(key, signal) {
+  const hit = geminiListCache.get(key);
+  if (hit && Date.now() - hit.at < 30 * 60 * 1000) return hit.models;
+  const out = [];
+  let pageToken = '';
+  for (let page = 0; page < 5; page++) {
+    const url = 'https://generativelanguage.googleapis.com/v1beta/models?pageSize=200' + (pageToken ? '&pageToken=' + encodeURIComponent(pageToken) : '');
+    const j = await fx(url, { headers: { 'x-goog-api-key': key }, signal }, 1);
+    for (const m of (j && j.models) || []) out.push({ name: String(m.name || '').replace(/^models\//, ''), methods: m.supportedGenerationMethods || [] });
+    if (!j || !j.nextPageToken) break;
+    pageToken = j.nextPageToken;
+  }
+  geminiListCache.set(key, { at: Date.now(), models: out });
+  return out;
+}
+// Best first: ordinary "flash" before "flash-lite" before "pro"; finished models before previews; newer before older.
+function rankGeminiModels(models, kind) {
+  const notText = /embedding|aqa|imagen|image|veo|live|native-audio|robotics|computer-use|learnlm|gemma|vision|tts/i;
+  const usable = models.filter(m => kind === 'tts'
+    ? /tts/i.test(m.name) && m.methods.some(x => /generateContent/i.test(x))
+    : /^gemini-/.test(m.name) && !notText.test(m.name) && m.methods.includes('generateContent'));
+  const tier = n => (/flash-lite|lite/i.test(n) ? 1 : /flash/i.test(n) ? 0 : /pro/i.test(n) ? 2 : 3);
+  const version = n => { const x = /gemini-(\d+(?:\.\d+)?)/.exec(n); return x ? parseFloat(x[1]) : 0; };
+  const preview = n => (/preview|exp/i.test(n) ? 1 : 0);
+  return usable.map(m => m.name).sort((a, b) => tier(a) - tier(b) || preview(a) - preview(b) || version(b) - version(a) || a.localeCompare(b));
+}
+function geminiModelProblem(kind) {
+  const err = new Error(kind === 'tts'
+    ? 'model not found: this Gemini key cannot use any speech (read-aloud) model'
+    : 'model not found: this Gemini key cannot use any translation model');
+  err.status = 404; err.code = 'model-not-found';
+  return err;
+}
+// The models to try, best first. A key problem (rejected, blocked) is reported as it is; if the list cannot be
+// fetched for another reason (offline) we fall back to sensible names and let the real call report the problem.
+async function geminiModelOrder(key, kind, configured, signal) {
+  let models;
+  try { models = await listGeminiModels(key, signal); }
+  catch (e) {
+    if (e.name === 'AbortError' || e.status === 400 || e.status === 401 || e.status === 403 || e.status === 429) throw e;
+    return [configured, ...(kind === 'tts' ? ['gemini-2.5-flash-preview-tts'] : ['gemini-2.5-flash', 'gemini-flash-latest'])].filter((m, i, a) => m && a.indexOf(m) === i);
+  }
+  const ranked = rankGeminiModels(models, kind);
+  if (!ranked.length) throw geminiModelProblem(kind);
+  return [...(configured && ranked.includes(configured) ? [configured] : []), ...ranked.filter(n => n !== configured)];
+}
+// Run fn(modelName) with the best model, moving on to the next one when a model is not found or out of quota.
+async function withGeminiModel(key, kind, configured, fn, signal) {
+  const order = await geminiModelOrder(key, kind, configured, signal);
+  let last = null;
+  for (const m of order.slice(0, 5)) {
+    try { return await fn(m); }
+    catch (e) {
+      if (e.name === 'AbortError') throw e;
+      last = e;
+      if (e.status === 404 || e.status === 429 || /not found|not supported|unavailable|high demand/i.test(e.message || '')) continue;
+      throw e;
+    }
+  }
+  if (last && last.status === 404) throw geminiModelProblem(kind);
+  throw last || geminiModelProblem(kind);
+}
+
 // Single-key AI translation caller with exponential backoff on 429
 async function callAi(id, items, o, cfg) {
   const e = cfg.eng[id];
@@ -375,44 +442,19 @@ async function callAi(id, items, o, cfg) {
   if (id === 'gemini') {
     const key = (e.key || '').trim();
     if (!key) throw new Error('key missing');
-    const modelChain = [
-      e.model || 'gemini-2.5-flash',
-      'gemini-2.5-flash',
-      'gemini-2.0-flash',
-      'gemini-1.5-flash',
-      'gemini-flash-latest'
-    ].filter((m, i, a) => m && a.indexOf(m) === i);
-
-    let lastGemErr = null;
-    let gotResult = false;
-    for (const m of modelChain) {
-      try {
-        const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
-        const j = await fx(url, {
-          method: 'POST',
-          signal,
-          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
-          body: JSON.stringify({
-            systemInstruction: { parts: [{ text: sys }] },
-            contents: [{ role: 'user', parts: [{ text: user }] }],
-            generationConfig: { temperature: 0.15, responseMimeType: 'application/json' }
-          })
-        });
-        txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
-        if (!txt) throw new Error(j.promptFeedback?.blockReason || 'Empty Gemini response');
-        gotResult = true;
-        break;
-      } catch (gemErr) {
-        lastGemErr = gemErr;
-        if (gemErr.status === 404 || /not found|is not supported for generatecontent/i.test(gemErr.message || '')) {
-          continue;
-        }
-        throw gemErr;
-      }
-    }
-    if (!gotResult) {
-      throw lastGemErr || new Error('model not found');
-    }
+    const j = await withGeminiModel(key, 'text', e.model, m => fx(
+      `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+        method: 'POST',
+        signal,
+        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': key },
+        body: JSON.stringify({
+          systemInstruction: { parts: [{ text: sys }] },
+          contents: [{ role: 'user', parts: [{ text: user }] }],
+          generationConfig: { temperature: 0.15, responseMimeType: 'application/json' }
+        })
+      }), signal);
+    txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
+    if (!txt) throw new Error(j.promptFeedback?.blockReason || 'Empty Gemini response');
   } else if (id === 'claude') {
     const j = await fx('https://api.anthropic.com/v1/messages', {
       method: 'POST',
@@ -582,15 +624,15 @@ Return ONLY a valid JSON object in this exact schema:
     const e = cfg.eng[aiEngine];
     let txt = '';
     if (aiEngine === 'gemini') {
-      const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(e.model)}:generateContent`;
-      const j = await fx(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
-        body: JSON.stringify({
-          contents: [{ role: 'user', parts: [{ text: prompt }] }],
-          generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
-        })
-      });
+      const j = await withGeminiModel(e.key, 'text', e.model, m => fx(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
+          body: JSON.stringify({
+            contents: [{ role: 'user', parts: [{ text: prompt }] }],
+            generationConfig: { temperature: 0.1, responseMimeType: 'application/json' }
+          })
+        }));
       txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
     } else {
       const h = { 'Content-Type': 'application/json' };
@@ -670,27 +712,13 @@ async function testEngineConnection(id, cfg) {
 
   try {
     if (id === 'gemini') {
-      const models = [e.model || 'gemini-2.5-flash', 'gemini-2.5-flash', 'gemini-2.0-flash', 'gemini-1.5-flash', 'gemini-flash-latest'].filter((m, i, a) => m && a.indexOf(m) === i);
-      let testErr = null;
-      let ok = false;
-      for (const m of models) {
-        try {
-          const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
-          await fx(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
-            body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
-          });
-          ok = true;
-          break;
-        } catch (mErr) {
-          testErr = mErr;
-          if (mErr.status === 404 || /not found/i.test(mErr.message || '')) continue;
-          throw mErr;
-        }
-      }
-      if (ok) return { code: 'works', text: 'Works' };
-      throw testErr || new Error('model not found');
+      await withGeminiModel(e.key, 'text', e.model, m => fx(
+        `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', 'x-goog-api-key': e.key },
+          body: JSON.stringify({ contents: [{ parts: [{ text: 'Hi' }] }] })
+        }));
+      return { code: 'works', text: 'Works' };
     } else if (id === 'claude') {
       await fx('https://api.anthropic.com/v1/messages', {
         method: 'POST',
@@ -883,7 +911,7 @@ async function callGeminiTts(text, key, options = {}) {
   if (!key) throw new Error('Gemini API key is required for AI speech synthesis.');
   const GEM_VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede'];
   const voice = GEM_VOICES.includes(options.voice) ? options.voice : 'Kore';
-  const model = options.model || 'gemini-3.8-flash-tts';
+  const model = options.model || 'gemini-2.5-flash-preview-tts';
   const rate = options.rate || 1.0;
 
   const cacheKey = getTtsCacheKey(text, voice, rate, model);
@@ -891,12 +919,8 @@ async function callGeminiTts(text, key, options = {}) {
     return { ...ttsSessionCache.get(cacheKey), cached: true };
   }
 
-  const candidateModels = [
-    model,
-    model.includes('3.8') ? 'gemini-3.1-flash-tts-preview' : 'gemini-3.8-flash-tts',
-    'gemini-3.8-flash-lite-tts'
-  ];
-  const uniqueModels = [...new Set(candidateModels)];
+  // Speech models this key can really use, best first (a built-in name may not exist for this key).
+  const uniqueModels = (await geminiModelOrder(key, 'tts', options.model, options.signal)).slice(0, 5);
 
   const doFetch = async (m) => {
     const url = `https://generativelanguage.googleapis.com/v1beta/models/${encodeURIComponent(m)}:generateContent`;
@@ -1114,7 +1138,7 @@ async function streamGeminiTts(text, key, options = {}) {
   if (!key) throw new Error('Gemini API key is required for AI speech synthesis.');
   const GEM_VOICES = ['Kore', 'Puck', 'Charon', 'Fenrir', 'Aoede'];
   const voice = GEM_VOICES.includes(options.voice) ? options.voice : 'Kore';
-  const model = options.model || 'gemini-3.8-flash-lite-tts';
+  const model = options.model || 'gemini-2.5-flash-preview-tts';
   const rate = options.rate || 1.0;
 
   const cacheKey = getTtsCacheKey(text, voice, rate, model);
@@ -1134,13 +1158,8 @@ async function streamGeminiTts(text, key, options = {}) {
     return { ...cached, cached: true };
   }
 
-  const candidateModels = [
-    model,
-    'gemini-3.8-flash-lite-tts',
-    'gemini-3.1-flash-tts-preview',
-    'gemini-3.8-flash-tts'
-  ];
-  const uniqueModels = [...new Set(candidateModels)];
+  // Speech models this key can really use, best first (a built-in name may not exist for this key).
+  const uniqueModels = (await geminiModelOrder(key, 'tts', options.model, options.signal)).slice(0, 5);
 
   const player = options.player;
   let chunksReceived = 0;
@@ -1254,6 +1273,9 @@ if (root) {
   if (!root.DEFAULT_CFG) root.DEFAULT_CFG = DEFAULT_CFG;
   root.loadConfig = loadConfig;
   root.sanitizeConfig = sanitizeConfig;
+  root.geminiModelOrder = geminiModelOrder;
+  root.withGeminiModel = withGeminiModel;
+  root.rankGeminiModels = rankGeminiModels;
   root.safeHttpUrl = safeHttpUrl;
   root.saveConfig = saveConfig;
   root.translateItemsWithFallback = translateItemsWithFallback;

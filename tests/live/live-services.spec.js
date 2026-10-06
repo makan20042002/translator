@@ -52,12 +52,35 @@ test.describe('Live services (real internet)', () => {
   test('real Gemini translates a sentence', async ({ live }) => {
     test.skip(!GEMINI_KEY, 'skipped: needs key (set MAKAN_GEMINI_KEY to run)');
     test.setTimeout(60_000);
-    const page = await openApp(live, { cfg: onlyEngines(['gemini'], { gemini: GEMINI_KEY }), src: 'en', tgt: 'fa' });
+    const page = await openApp(live, { cfg: onlyEngines(['gemini'], { gemini: GEMINI_KEY }), tMode: 'smart', src: 'en', tgt: 'fa' });
     await mouseClick(page, page.locator('#tIn'));
     await page.keyboard.type('Good morning, how are you?');
     await mouseClick(page, page.locator('#tGo'));
-    await expect(page.locator('#tOut')).toHaveValue(/[؀-ۿ]/, { timeout: 30_000 });
-    await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+    await expect(page.locator('#tOut')).toHaveValue(/[؀-ۿ]/, { timeout: 40_000 });
+    await expect(page.locator('#tMeta')).toContainText('Google Gemini', { timeout: 10_000 });
+  });
+
+  test('real Gemini result replaces the Fast result in Both mode (waits for the Smart result)', async ({ live }) => {
+    test.skip(!GEMINI_KEY, 'skipped: needs key (set MAKAN_GEMINI_KEY to run)');
+    test.setTimeout(90_000);
+    const page = await openApp(live, { cfg: onlyEngines(['gemini'], { gemini: GEMINI_KEY }), tMode: 'both', src: 'en', tgt: 'fa' });
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Good morning, how are you?');
+    await mouseClick(page, page.locator('#tGo'));
+    // The Fast result (Google web) shows first; the Smart one arrives later, so wait long for it.
+    await expect(page.locator('#tMeta')).toContainText('Google Gemini', { timeout: 60_000 });
+    await expect(page.locator('#tOut')).toHaveValue(/[؀-ۿ]/);
+  });
+
+  test('real Gemini: the key lists models, and a speech model and a translation model are found', async () => {
+    test.skip(!GEMINI_KEY, 'skipped: needs key (set MAKAN_GEMINI_KEY to run)');
+    test.setTimeout(60_000);
+    const engine = require('../../extension/engine.js');
+    const text = await engine.geminiModelOrder(GEMINI_KEY, 'text', 'no-such-model-name');
+    const tts = await engine.geminiModelOrder(GEMINI_KEY, 'tts', 'no-such-model-name');
+    expect(text.length, 'translation models this key can use').toBeGreaterThan(0);
+    expect(tts.length, 'speech models this key can use').toBeGreaterThan(0);
+    expect(text).not.toContain('no-such-model-name');
   });
 
   test('real Gemini read-aloud returns audio', async ({ live }) => {

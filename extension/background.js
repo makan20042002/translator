@@ -554,7 +554,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       broadcastTtsState({ state: 'stopped', token: previousToken });
       const voice = req.voice || cfg.tts?.geminiVoice || 'Kore';
       const rate = req.rate || cfg.tts?.rate || 1.0;
-      const model = req.model || cfg.tts?.model || 'gemini-3.8-flash-lite-tts';
+      const model = req.model || cfg.tts?.model || 'gemini-2.5-flash-preview-tts';
 
       if (currentPlaybackQueue) {
         try { currentPlaybackQueue.abortController.abort(); } catch {}

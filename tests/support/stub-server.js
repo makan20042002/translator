@@ -36,7 +36,18 @@ const JSZIP_FILE = require.resolve('jszip/dist/jszip.min.js');
 const VALID_KEY = 'stub-valid-key';
 const BAD_KEY = 'stub-bad-key';
 /** Any key that starts with VALID_KEY is accepted, so tests can give each provider its own key. */
-const isValidKey = k => typeof k === 'string' && k.startsWith(VALID_KEY);
+const isValidKey = k => typeof k === 'string' && k.includes(VALID_KEY);  // includes: Google's new keys look like "AQ.<...>"
+
+/** Gemini models the stub offers; null = the default realistic list. */
+let geminiModels = null;
+const DEFAULT_GEMINI_MODELS = [
+  ['gemini-2.5-flash', ['generateContent', 'streamGenerateContent']],
+  ['gemini-2.5-flash-lite', ['generateContent']],
+  ['gemini-2.5-pro', ['generateContent']],
+  ['gemini-2.5-flash-preview-tts', ['generateContent', 'streamGenerateContent']],
+  ['gemini-embedding-001', ['embedContent']],
+  ['imagen-4.0-generate-001', ['predict']]
+];
 
 const MIME = {
   '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8',
@@ -195,7 +206,11 @@ async function startStub() {
       if (!key) return sendJson(res, 403, { error: { code: 403, message: "Method doesn't allow unregistered callers (callers without established identity). Please use API Key or other form of API consumer identity to call this API.", status: 'PERMISSION_DENIED' } });
       if (!isValidKey(key)) return sendJson(res, 400, { error: { code: 400, message: 'API key not valid. Please pass a valid API key.', status: 'INVALID_ARGUMENT', details: [{ '@type': 'type.googleapis.com/google.rpc.ErrorInfo', reason: 'API_KEY_INVALID', domain: 'googleapis.com' }] } });
       if (req.method === 'GET' && /^\/v1beta\/models\/?$/.test(p)) {
-        return sendJson(res, 200, { models: [{ name: 'models/gemini-3.8-flash', supportedGenerationMethods: ['generateContent'] }] });
+        return sendJson(res, 200, { models: (geminiModels || DEFAULT_GEMINI_MODELS.map(m => m[0])).map(n => ({ name: 'models/' + n, supportedGenerationMethods: (DEFAULT_GEMINI_MODELS.find(m => m[0] === n) || [, ['generateContent']])[1] })) });
+      }
+      const mm = p.match(/^\/v1beta\/models\/([^:/]+):/);
+      if (mm && !(geminiModels || DEFAULT_GEMINI_MODELS.map(m => m[0])).includes(mm[1])) {
+        return sendJson(res, 404, { error: { code: 404, message: `models/${mm[1]} is not found for API version v1beta, or is not supported for generateContent. Call ListModels to see the list of available models and their supported methods.`, status: 'NOT_FOUND' } });
       }
       const audio = json?.generationConfig?.responseModalities?.includes('AUDIO');
       if (/:streamGenerateContent$/.test(p)) {
@@ -312,7 +327,9 @@ async function startStub() {
     /** Make the next `times` requests to `host` fail with `status` ('drop' closes the connection). */
     failHost(host, status, times = Infinity, body) { modes[host] = { status, times, body, hits: 0 }; return modes[host]; },
     delayHost(host, ms) { modes[host] = Object.assign(modes[host] || {}, { delayMs: ms }); },
-    resetModes() { for (const k of Object.keys(modes)) delete modes[k]; },
+    /** Restrict the Gemini models this key can use (list of names, or null for the default list). */
+    setGeminiModels(list) { geminiModels = list; },
+    resetModes() { for (const k of Object.keys(modes)) delete modes[k]; geminiModels = null; },
     async close() {
       for (const c of sockets) c.destroy();
       await Promise.all([providerServer, proxyServer, appServer].map(s => new Promise(r => s.close(r))));
