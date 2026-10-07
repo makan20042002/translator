@@ -1,0 +1,114 @@
+{
+ "Xenova/nllb-200-distilled-600M": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/m2m100_418M": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/mbart-large-50-many-to-many-mmt": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-en-ar": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-ar-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-en-de": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-de-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-en-fr": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-fr-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-en-es": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-es-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-en-ru": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-ru-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ],
+ "Xenova/opus-mt-tr-en": [
+  "config.json",
+  "generation_config.json",
+  "onnx/decoder_model_merged_quantized.onnx",
+  "onnx/encoder_model_quantized.onnx",
+  "tokenizer.json",
+  "tokenizer_config.json"
+ ]
+}

@@ -236,6 +236,19 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .setg select,.setg input{width:100%;font-family:var(--body);font-size:14px;letter-spacing:0;text-transform:none;color:var(--text)}
 .dlrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)}
 .dlrow strong{font-size:14.5px}
+.mdl-grp{margin:18px 0 4px;font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
+.mdl-sub{margin:10px 0 0;font-size:12.5px;color:var(--faint)}
+.mdl{padding:10px 0;border-bottom:1px solid var(--border)}
+.mdl-h{display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.mdl-h strong{font-size:14.5px}
+.mdl-m{margin-top:4px;font-size:12.5px;color:var(--muted)}
+.mdl-g{margin-top:2px;font-size:13px}
+.mdl-a{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-top:8px}
+.mdl .badge{font-size:11px;padding:1px 8px;border-radius:999px;border:1px solid var(--border2);color:var(--muted)}
+.mdl .badge.rec{color:var(--accent);border-color:var(--accent-line)}
+.mdl .badge.warn{color:var(--warn);border-color:var(--warn)}
+.mdl .prog{margin-top:8px}
+.mdl.inuse{background:rgba(19,200,245,.04)}
 /* ==================== DOCUMENT TAB REDESIGN ==================== */
 .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-m);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 45px rgba(0,0,0,.35)}
 @media(max-width:640px){.doc-card{padding:12px 10px;border-radius:var(--r-s)}}
@@ -1037,12 +1050,10 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
   <h3 data-t="offH">Offline</h3>
   <p class="note" data-t="offNote"></p>
-  <div class="dlrow"><span class="dot" id="nllbDot"></span><strong data-t="offTr">Translation model · NLLB, 200 languages · about 900 MB</strong><span class="sp"></span><span class="meta" id="nllbSt"></span><button class="btn" id="dlTr" data-t="download">Download</button></div>
-  <div class="dlrow"><span class="dot" id="whDot"></span><strong data-t="offAsr">Speech model · Whisper</strong>
-    <select id="whSel"><option value="base">Base · ~80 MB</option><option value="small">Small · ~250 MB</option></select><span class="sp"></span><span class="meta" id="whSt"></span><button class="btn" id="dlAsr" data-t="download">Download</button></div>
+  <div class="meta" id="mdlTotal" role="status"></div>
+  <div id="mdlCatalog"></div>
   <div id="dictPackRows"></div>
   <p class="hint" data-t="dictPackNote">The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About &amp; credits.</p>
-  <div id="dlBox" hidden><div class="prog"><i id="dlBar"></i></div><span class="meta" id="dlTxt"></span></div>
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
 </div></div>
 <datalist id="models"></datalist>
@@ -1061,6 +1072,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
 <script src="extension/engine.js"></script>
 <script src="extension/dictionary.js"></script>
+<script src="models-catalog.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -1082,7 +1094,7 @@ const store={
 /* ---------- i18n ---------- */
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
- tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
+ tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement. Offline voices: Piper voices from rhasspy/piper-voices (MIT) run with ONNX Runtime Web (MIT) and the eSpeak NG phonemizer (GPL-3.0-or-later; its files are in vendor/piper). The voices Amir and Ganji are CC0; the voice Alba (University of Edinburgh) is CC BY 4.0. Offline translation and speech models come from Hugging Face; each model keeps its own licence (the NLLB-200 models are CC BY-NC 4.0).',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
  engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
@@ -1101,7 +1113,7 @@ const I18N={en:{
  ttsL:'Text to speech (read aloud)',ttsDev:'Device / browser voices',ttsApiO:'Speech server (Sesame CSM, OpenAI…)',preset:'Preset',voiceName:'Voice name',ttsTest:'Test voice',voiceFor:'Voice for',autoVoice:'Auto (best)',
  ttsHint:'Any server with an OpenAI-style /audio/speech endpoint works. Sesame CSM must run on a PC with an NVIDIA GPU; start its server, then press Test voice. If the server is unreachable, the device voice is used.',
  edgeHint:'Tip: Microsoft Edge includes free natural voices for Persian and many other languages. In Chrome the list depends on the voices installed in Windows.',
- offH:'Offline',offNote:'Download once while online, then translate with no internet. Models stay in this browser. Offline mode uses only: this model, Chrome on-device, Ollama and local servers.',
+ offH:'Offline',offNote:'Download once while online, then translate with no internet. Models stay in this browser. Offline mode uses only: the models you download here, Chrome on-device, Ollama and local servers.',
  offTr:'Translation model · NLLB, 200 languages · about 900 MB',offAsr:'Speech model · Whisper (~80 MB WASM / ~155 MB WebGPU)',ready:'ready',notDl:'not downloaded',dlDone:'Download finished. Ready for offline use.',
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
  ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. To allow this page, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
@@ -1153,7 +1165,7 @@ const I18N={en:{
  vListenLabel:'Mic:',vTransLabel:'Translate:'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
- tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
+ tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست. صداهای آفلاین: صداهای Piper از rhasspy/piper-voices (MIT) با ONNX Runtime Web (MIT) و واج‌نگار eSpeak NG (GPL-3.0-or-later؛ فایل‌هایش در vendor/piper است). صداهای امیر و گنجی CC0 و صدای آلبا (دانشگاه ادینبرا) CC BY 4.0 است. مدل‌های ترجمه و گفتار آفلاین از Hugging Face می‌آیند و هر مدل مجوز خودش را دارد (مدل‌های NLLB-200 با مجوز CC BY-NC 4.0 هستند).',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
  engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
@@ -1172,7 +1184,7 @@ const I18N={en:{
  ttsL:'متن به گفتار (خواندن)',ttsDev:'صداهای دستگاه / مرورگر',ttsApiO:'سرور گفتار (Sesame CSM، OpenAI…)',preset:'پیش‌تنظیم',voiceName:'نام صدا',ttsTest:'آزمایش صدا',voiceFor:'صدا برای',autoVoice:'خودکار (بهترین)',
  ttsHint:'هر سروری که نقطه‌ی ‎/audio/speech‎ به سبک OpenAI داشته باشد کار می‌کند. Sesame CSM باید روی رایانه‌ای با کارت گرافیک NVIDIA اجرا شود؛ سرور را روشن کنید و «آزمایش صدا» را بزنید. اگر سرور در دسترس نباشد از صدای دستگاه استفاده می‌شود.',
  edgeHint:'نکته: مرورگر Microsoft Edge صداهای طبیعی رایگان برای فارسی و بسیاری زبان‌های دیگر دارد. در Chrome فهرست به صداهای نصب‌شده در ویندوز بستگی دارد.',
- offH:'آفلاین',offNote:'یک بار با اینترنت دانلود کنید، سپس بدون اینترنت ترجمه کنید. مدل‌ها در همین مرورگر می‌مانند. حالت آفلاین فقط از این مدل، مترجم داخلی Chrome، Ollama و سرورهای محلی استفاده می‌کند.',
+ offH:'آفلاین',offNote:'یک بار با اینترنت دانلود کنید، سپس بدون اینترنت ترجمه کنید. مدل‌ها در همین مرورگر می‌مانند. حالت آفلاین فقط از مدل‌هایی که اینجا دانلود می‌کنید، مترجم داخلی Chrome، Ollama و سرورهای محلی استفاده می‌کند.',
  offTr:'مدل ترجمه · NLLB، ۲۰۰ زبان · حدود ۹۰۰ مگابایت',offAsr:'مدل گفتار · Whisper (حدود ۸۰ مگابایت WASM / حدود ۱۵۵ مگابایت WebGPU)',ready:'آماده',notDl:'دانلود نشده',dlDone:'دانلود تمام شد. آماده‌ی استفاده‌ی آفلاین.',
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
  ollamaHint:'Ollama را نصب کنید، دستور «ollama pull gemma3» را اجرا کنید و سپس «مدل‌ها» را بزنید. برای اجازه دادن به این صفحه، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
@@ -1223,6 +1235,26 @@ const I18N={en:{
  pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال',
  vListenLabel:'میکروفون:',vTransLabel:'ترجمه:'
 }};
+Object.assign(I18N.en,{
+ mdlGrpListen:'Listening · speech to text (Whisper)',mdlGrpTr:'Translation',mdlGrpSpeak:'Speaking · text to speech',
+ mdlPairs:'Small single-pair models: fast and light, but only for the one pair they are named for.',mdlPairsPrefer:'Use a small pair model when one is downloaded for the pair (faster, usually lower quality)',
+ mdlSize:'Download',mdlMem:'Memory',mdlGpu:'WebGPU',mdlLangs:'Languages',mdlGpuNo:'not needed',mdlGpuOpt:'optional (faster if your browser has it)',
+ mdlSizeTip:'Size of the files this browser downloads, taken from the Hugging Face model page.',mdlMemTip:'Highest memory use measured while running this model on a 4-core test computer. Your computer may use somewhat more or less.',
+ mdlRecNonEn:'Recommended for languages other than English',mdlWeak:'Mostly English; weak in other languages',
+ mdlDelete:'Delete',mdlUse:'Use',mdlInUse:'In use',mdlDeleted:'deleted from this browser',mdlDownloading:'Downloading…',
+ mdlOfflineVoice:'offline voice',mdlSpeed:'Speed',mdlSpeedUnit:'s of waiting per second of speech (test computer, no WebGPU)',mdlEngineOnce:'speech engine, once',offlineVoicesGrp:'Offline voices (downloaded)',noVoiceOffline:'Or download an offline voice in Engines & keys → Offline.',
+ mdlTotal:'Stored on this device by these models',mdlSiteTotal:'all data of this site',vTranscribing:'Transcribing…'
+});
+Object.assign(I18N.fa,{
+ mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
+ mdlPairs:'مدل‌های کوچک تک‌جفتی: سریع و سبک، ولی فقط برای همان جفت زبانی که نامشان نشان می‌دهد.',mdlPairsPrefer:'اگر برای این جفت زبان مدل کوچک دانلود شده، از آن استفاده کن (سریع‌تر، معمولاً با کیفیت کمتر)',
+ mdlSize:'دانلود',mdlMem:'حافظه',mdlGpu:'WebGPU',mdlLangs:'زبان‌ها',mdlGpuNo:'لازم نیست',mdlGpuOpt:'اختیاری (اگر مرورگر داشته باشد سریع‌تر است)',
+ mdlSizeTip:'حجم فایل‌هایی که این مرورگر دانلود می‌کند، از صفحه‌ی مدل در Hugging Face.',mdlMemTip:'بیشترین حافظه‌ی مصرفی در اجرای این مدل روی یک رایانه‌ی آزمایشی ۴ هسته‌ای. رایانه‌ی شما ممکن است کمی بیشتر یا کمتر مصرف کند.',
+ mdlRecNonEn:'برای زبان‌های غیر از انگلیسی توصیه می‌شود',mdlWeak:'بیشتر برای انگلیسی؛ در زبان‌های دیگر ضعیف',
+ mdlDelete:'حذف',mdlUse:'استفاده',mdlInUse:'در حال استفاده',mdlDeleted:'از این مرورگر حذف شد',mdlDownloading:'در حال دانلود…',
+ mdlOfflineVoice:'صدای آفلاین',mdlSpeed:'سرعت',mdlSpeedUnit:'ثانیه انتظار برای هر ثانیه گفتار (رایانه‌ی آزمایشی، بدون WebGPU)',mdlEngineOnce:'موتور گفتار، یک بار',offlineVoicesGrp:'صداهای آفلاین (دانلودشده)',noVoiceOffline:'یا در «موتورها و کلیدها ← آفلاین» یک صدای آفلاین دانلود کنید.',
+ mdlTotal:'فضای اشغال‌شده در این دستگاه توسط این مدل‌ها',mdlSiteTotal:'کل داده‌های این سایت',vTranscribing:'در حال تبدیل گفتار به متن…'
+});
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
 function applyI18n(){
@@ -1271,7 +1303,7 @@ if(!store.get('groq_order_fixed',false)){
 cfg.order=cfg.order.filter(id=>ENG[id]);
 let engineConnStatus=store.get('eng_conn',{});
 const saveCfg=()=>{store.set('cfg',cfg)};
-cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||'base';cfg.offline=!!cfg.offline;
+cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||'base';cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||'tr-nllb-600';cfg.trPair=!!cfg.trPair;
 cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',key:'',model:'csm-1b',voice:'alloy',rate:1.0},cfg.tts);
 cfg.tts.rate=+cfg.tts.rate||1.0;
 const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u||'');
@@ -1284,7 +1316,7 @@ function why(id){const e=cfg.eng[id];
   if(id==='custom'&&!e.base)return L('needUrl');
   if(ENG[id].ai&&!e.model)return L('needModel');
   if(id==='chrome'&&!('Translator' in self))return L('notHere');
-  if(id==='nllb'&&!store.get('nllb',false))return L('needDl');
+  if(id==='nllb'&&!trAnyReady())return L('needDl');
   return '';}
 const sessionBlocked=new Set();
 function isBlockError(err){
@@ -1319,7 +1351,7 @@ async function checkEngineConn(id){
     return {code:'notHere',text:L('notHere')};
   }
   if(id==='nllb'){
-    if(store.get('nllb',false))return {code:'works',text:L('connWorks')};
+    if(trAnyReady())return {code:'works',text:L('connWorks')};
     return {code:'needsDl',text:L('needDl')};
   }
   if(id==='google'){
@@ -1533,24 +1565,128 @@ function guessLang(s){
   if(/[\u0400-\u04FF]/.test(s))return 'ru';if(/[\u0590-\u05FF]/.test(s))return 'he';if(/[\u0900-\u097F]/.test(s))return 'hi';
   if(/[\u0E00-\u0E7F]/.test(s))return 'th';if(/[\u0370-\u03FF]/.test(s))return 'el';return 'en';
 }
-let wk=null,rid=0;const pend={};let dlFiles={};
+let wk=null,rid=0;const pend={};
+const inWorker=new Set();                  // repos the worker already holds in memory (so loading them again is quick)
+const asrGuard=import('./asr-guard.js').catch(()=>null);
 function worker(){
   if(wk)return wk;
   wk=new Worker('ai-worker.js',{type:'module'});
-  wk.onmessage=e=>{const m=e.data;if(m.type==='progress'){onProg(m.p);return}const p=pend[m.id];if(!p)return;delete pend[m.id];m.ok?p.res(m.res):p.rej(new Error(m.err))};
-  wk.onerror=()=>{for(const k in pend){pend[k].rej(new Error('offline engine could not start (the app must be opened from a website or localhost, with ai-worker.js next to it)'));delete pend[k]}wk=null};
+  wk.onmessage=e=>{const m=e.data;if(m.type==='progress'){onProg(m.p,m.repo);return}if(m.type==='asr'){onAsrProg(m);return}const p=pend[m.id];if(!p)return;delete pend[m.id];m.ok?p.res(m.res):p.rej(new Error(m.err))};
+  wk.onerror=()=>{for(const k in pend){pend[k].rej(new Error('offline engine could not start (the app must be opened from a website or localhost, with ai-worker.js next to it)'));delete pend[k]}wk=null;inWorker.clear()};
   return wk;
 }
-const rpc=(cmd,a,tr)=>new Promise((res,rej)=>{let w;try{w=worker()}catch(e){return rej(new Error('offline engine needs the hosted app, not a local file'))}const id=++rid;pend[id]={res,rej};w.postMessage({id,cmd,a},tr||[])});
-function onProg(p){
-  if(p.status!=='progress'||!p.total)return;dlFiles[p.file]=[p.loaded,p.total];let a=0,b=0;for(const k in dlFiles){a+=dlFiles[k][0];b+=dlFiles[k][1]}
-  $('dlBox').hidden=false;$('dlBar').style.width=(a/b*100)+'%';$('dlTxt').textContent=`${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)} MB`;
+// Tells the worker which model files to use, from the catalogue and the user's choices. Older callers send only a model name.
+async function withSpec(cmd,a){
+  if(cmd==='asr'||cmd==='loadAsr'){
+    const m=asrModel(a.model);
+    if(m&&!a.spec)a={...a,spec:{repo:m.repo,gpu:m.gpu&&await checkWebGpu()?m.gpu:null}};
+  }
+  return a;
+}
+const rpc=(cmd,a,tr)=>new Promise(async(res,rej)=>{
+  let w;try{w=worker()}catch(e){return rej(new Error('offline engine needs the hosted app, not a local file'))}
+  const id=++rid;
+  try{a=await withSpec(cmd,a||{})}catch(e){return rej(e)}
+  let end=()=>{};
+  if(cmd==='asr'&&a.audio){                // a longer recording gets more time, and progress keeps the timer alive
+    const m=asrModel(a.model),sec=a.audio.length/16000,g=await asrGuard;
+    asrJob={id,sec};
+    armWorking(g?g.asrBudgetMs(sec,m?.speed,!inWorker.has(a.spec?.repo)):60000+sec*3000);
+    end=()=>{if(asrJob?.id===id){asrJob=null;armWorking(20000)}};
+  }
+  pend[id]={res:v=>{if(a.spec?.repo)inWorker.add(a.spec.repo);end();res(v)},rej:e=>{end();rej(e)}};
+  w.postMessage({id,cmd,a},tr||[]);
+});
+let asrJob=null;
+function onAsrProg(m){
+  if(!asrJob||asrJob.id!==m.id)return;
+  const pct=Math.round(Math.min(1,m.frac||0)*100);
+  const txt=`${L('vTranscribing')} ${pct}%`+(m.chunks>1?` · ${m.chunk}/${m.chunks}`:'');
+  ['vStatusText','vAskStatusText'].forEach(i=>{if($(i)&&voiceState==='working')$(i).textContent=txt});
+  armWorking(60000);                       // it is alive: wait at least another minute from now
+}
+function onProg(p,repo){
+  const m=MC.models.find(x=>x.repo===repo&&mcDownloading[x.id]);
+  if(m&&p.status==='progress'&&p.total)mcFileProgress(m,p.file,p.loaded,p.total);
+}
+// Bar and text of one row while its files come in.
+function mcFileProgress(m,file,loaded,total){
+  const d=mcDownloading[m.id];if(!d||!total)return;
+  d.files[file]=[loaded,total];let a=0,b=0;for(const k in d.files){a+=d.files[k][0];b+=d.files[k][1]}
+  const bar=$('mdlBar-'+m.id),st=$('mdlSt-'+m.id),box=$('mdlProg-'+m.id);
+  if(box)box.hidden=false;if(bar)bar.style.width=(a/b*100)+'%';
+  if(st)st.textContent=`${L('mdlDownloading')} ${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)} MB`;
 }
 async function eNllb(items,src,tgt){
   if(src==='auto')src=guessLang(items.join(' '));
-  const a=NLLB[src],b=NLLB[tgt];if(!a||!b)throw new Error('language not in the offline model');
-  if(a===b)return items.slice();
-  return rpc('translate',{items,src:a,tgt:b});
+  if(NLLB[src]&&NLLB[src]===NLLB[tgt])return items.slice();
+  const m=pickTr(src,tgt);
+  if(!m)throw new Error('language not in the offline model');
+  const codes=m.kind==='opus'?null:trCodes(m.kind);
+  return rpc('translate',{items,src:codes?.[src],tgt:codes?.[tgt],spec:{repo:m.repo,kind:m.kind}});
+}
+
+/* offline voices (Piper): a separate worker, all of its code is in vendor/piper/ */
+let pwk=null,prid=0;const ppend={};
+function pworker(){
+  if(pwk)return pwk;
+  pwk=new Worker('piper-worker.js');
+  pwk.onmessage=e=>{const m=e.data,p=ppend[m.id];if(!p)return;
+    if(m.type==='progress'){p.progress?.(m);return}
+    if(m.type==='audio'){p.audio?.(m);return}
+    delete ppend[m.id];m.ok?p.res(m.res):p.rej(new Error(m.err))};
+  pwk.onerror=()=>{for(const k in ppend){ppend[k].rej(new Error('offline voice could not start'));delete ppend[k]}pwk=null};
+  return pwk;
+}
+const prpc=(cmd,a,h={})=>new Promise((res,rej)=>{let w;try{w=pworker()}catch(e){return rej(new Error('offline voices need the hosted app, not a local file'))}const id=++prid;ppend[id]={res,rej,...h};w.postMessage({id,cmd,a})});
+const PIPER_ENGINE=['vendor/piper/ort.wasm.min.js','vendor/piper/ort-wasm-simd.wasm','vendor/piper/piper_phonemize.js','vendor/piper/piper_phonemize.wasm','vendor/piper/piper_phonemize.data'];
+async function piperEngineFiles(m){
+  const total=m.extraBytes||0;let done=0;
+  for(const f of PIPER_ENGINE){
+    const r=await fetch(f);if(!r.ok)throw new Error('speech engine file missing: '+f);
+    const reader=r.body.getReader();let got=0;
+    for(;;){const {done:d,value}=await reader.read();if(d)break;got+=value.length;mcFileProgress(m,'engine/'+f,done+got,total||done+got)}
+    done+=got;
+  }
+}
+// Speaks one piece of text with a downloaded voice; resolves with a WAV blob. Sentences are joined with a short pause.
+async function piperBlob(m,text){
+  const parts=[];let rate=22050;
+  await prpc('speak',{voice:{path:m.voice},text},{audio:a=>{rate=a.rate;parts.push(a.pcm)}});
+  if(!parts.length)throw new Error('the offline voice produced no sound');
+  const gap=Math.round(rate*0.18),n=parts.reduce((s,p)=>s+p.length,0)+gap*(parts.length-1),pcm=new Int16Array(n);
+  let o=0;for(const p of parts){for(let i=0;i<p.length;i++){const v=Math.max(-1,Math.min(1,p[i]));pcm[o++]=v<0?v*0x8000:v*0x7FFF}o+=gap}
+  return pcmToWav(new Uint8Array(pcm.buffer),rate,1);
+}
+const piperVoices=()=>MC.models.filter(m=>m.kind==='piper'&&mcReady(m));
+// The offline voice for a language: the one chosen in the voice menu, else the first downloaded.
+function piperFor(b){
+  const pref=cfg.tts.voices[b]||'';
+  const chosen=pref.startsWith('piper:')&&piperVoices().find(m=>m.id===pref.slice(6)&&m.lang===b);
+  return chosen||piperVoices().find(m=>m.lang===b)||null;
+}
+const piperLabel=m=>`${mcText(m.name)} (${L('mdlOfflineVoice')})`;
+let piperStats=null;                       // last time to first sound, for the record
+async function playPiper(text,tok,m){
+  const t0=performance.now(),parts=splitLong(text,200);
+  if(!parts.length)return;
+  let next=piperBlob(m,parts[0]);
+  for(let i=0;i<parts.length;i++){
+    const blob=await next;
+    if(tok!==speakTok)return;
+    if(i+1<parts.length)next=piperBlob(m,parts[i+1]);       // the next piece is made while this one plays
+    if(i===0)piperStats={voice:m.id,firstSoundMs:Math.round(performance.now()-t0)};
+    updateSpeakUI('speaking');
+    const url=URL.createObjectURL(blob);
+    try{
+      await new Promise((res,rej)=>{
+        const a=curAudio=new Audio(url);if(cfg.tts.rate)a.playbackRate=cfg.tts.rate;
+        const end=()=>{if(curAudio===a)curAudio=null;res()};
+        a.onended=end;a.onpause=end;a.onerror=()=>{if(curAudio===a)curAudio=null;rej(new Error('audio playback failed'))};
+        a.play().catch(e=>{if(curAudio===a)curAudio=null;rej(e)});
+      });
+    }finally{URL.revokeObjectURL(url);curAudio=null}
+  }
 }
 
 /* AI engines */
@@ -2171,9 +2307,11 @@ function resolveVoice(lang){
   const b=lang.split('-')[0].toLowerCase(),pref=cfg.tts.voices[b]||'',key=geminiTtsKey(),gemOk=!!key&&!isOff();
   const dev=('speechSynthesis' in self)?pickVoice(lang):null;
   const gem=name=>({kind:'gemini',key,voiceName:GEM_VOICES.includes(name)?name:(GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore')});
+  if(pref.startsWith('piper:')){const m=piperFor(b);if(m&&pref==='piper:'+m.id)return {kind:'piper',m}}
   if(pref.startsWith('gemini:')&&gemOk)return gem(pref.slice(7));
   if(dev)return {kind:'device',voice:dev};
   if(gemOk)return gem('');
+  const off=piperFor(b);if(off)return {kind:'piper',m:off};      // no device voice, and Gemini is off, offline, or failed
   return {kind:'none'};
 }
 function showVoiceUsed(label){document.querySelectorAll('.voice-used').forEach(el=>{el.textContent=label?`${L('voiceUsed')}: ${label}`:'';el.title=el.textContent})}
@@ -2192,13 +2330,27 @@ function speakFailureLine(e){return `${L('geminiWord')} ${L('voiceUsed').toLower
 async function speakResolved(flat,lang,tok,finish,retry,skipGemini){
   hideSpeakNotice();
   let r=resolveVoice(lang);
-  if(skipGemini&&r.kind==='gemini')r=('speechSynthesis' in self&&pickVoice(lang))?{kind:'device',voice:pickVoice(lang)}:{kind:'none',failedGemini:true};
+  if(skipGemini&&r.kind==='gemini'){
+    const off=piperFor(lang.split('-')[0].toLowerCase());
+    r=('speechSynthesis' in self&&pickVoice(lang))?{kind:'device',voice:pickVoice(lang)}:off?{kind:'piper',m:off}:{kind:'none',failedGemini:true};
+  }
   if(r.kind==='none'){
     showVoiceUsed('');
     if(!r.failedGemini){
-      showSpeakNotice(L('noVoiceNoKey')+(!isEdge()&&!store.get('edgeHintOff',false)?' '+L('edgeHint'):''));
+      showSpeakNotice(L('noVoiceNoKey')+(MC.models.some(m=>m.kind==='piper'&&m.lang===lang.split('-')[0].toLowerCase())?' '+L('noVoiceOffline'):'')+(!isEdge()&&!store.get('edgeHintOff',false)?' '+L('edgeHint'):''));
     }
     finish();return;
+  }
+  if(r.kind==='piper'){
+    showVoiceUsed(piperLabel(r.m));
+    try{await playPiper(flat,tok,r.m);finish()}
+    catch(e){
+      if(tok!==speakTok)return;
+      curAudio=null;finish();
+      console.warn('Offline voice failed:',scrubKeys(e&&e.message||e));
+      showSpeakNotice(`${mcText(r.m.name)}: ${toPlainReason(e)||plainFailure(e)}`,retry);
+    }
+    return;
   }
   if(r.kind==='gemini'){
     showVoiceUsed(`${L('geminiWord')} (${r.voiceName})`);
@@ -2263,7 +2415,7 @@ async function speak(text,lang,skipGemini){
     if(tok!==speakTok)return;curAudio=null;
     // The voice the user chose failed: say why in one line (with Retry); a device voice still takes over if there is one.
     const dev=('speechSynthesis' in self)&&pickVoice(lang);
-    if(!dev){finish();showSpeakNotice(`${cfg.tts.mode==='gemini'?L('geminiWord'):cfg.tts.mode==='openai'?'OpenAI':L('ttsApiO')}: ${toPlainReason(e)||plainFailure(e)}`,retry);return}
+    if(!dev&&!piperFor(lang.split('-')[0].toLowerCase())){finish();showSpeakNotice(`${cfg.tts.mode==='gemini'?L('geminiWord'):cfg.tts.mode==='openai'?'OpenAI':L('ttsApiO')}: ${toPlainReason(e)||plainFailure(e)}`,retry);return}
     toast(`${scrubKeys(e.message)} — ${L('ttsFallback')}`,'warn');
     skipGemini=true;
   }
@@ -2504,6 +2656,18 @@ function resetMeterLevel(){
 
 let voiceState='ready';
 let voiceStateTimer=null;
+// (Re)starts the clock for the 'working' state. Recognition of a long recording asks for more time and
+// calls this again whenever the worker reports progress, so a job that is alive is never cut off.
+function armWorking(ms){
+  if(voiceState!=='working')return;
+  clearTimeout(voiceStateTimer);
+  voiceStateTimer=setTimeout(()=>{
+    if(voiceState==='working'){
+      toast(L('timeoutWorking'),'err');
+      setVoiceState('ready',L('timeoutWorking'));
+    }
+  },ms);
+}
 function setVoiceState(state,message='',opts={}){
   voiceState=state;clearTimeout(voiceStateTimer);
   const statusLine=$('vStatusLine'),statusText=$('vStatusText');
@@ -2548,12 +2712,7 @@ function setVoiceState(state,message='',opts={}){
     labelTxt=L('working');subTxt=L('workingWait');
     if(pttIcon)pttIcon.innerHTML=SVG_ICONS.spinner;
     resetMeterLevel();
-    voiceStateTimer=setTimeout(()=>{
-      if(voiceState==='working'){
-        toast(L('timeoutWorking'),'err');
-        setVoiceState('ready',L('timeoutWorking'));
-      }
-    },20000);
+    armWorking(opts.timeoutMs||20000);
   }else if(state==='preparing'){
     txt=message||L('vStatusPreparing');
     labelTxt=L('vPreparingPtt')||'Preparing…';subTxt=L('vPreparingTapStop')||'Tap to cancel';
@@ -2674,7 +2833,7 @@ async function listen(lang,btn,onText,onPartial){
   }
   try{
     if(mode==='groq'&&!cfg.eng.groq.key)throw new Error('Groq: '+L('needKey'));
-    if(mode==='whisper'&&store.get('whisper','')!==cfg.whisper)throw new Error('Whisper: '+L('needDl'));
+    if(mode==='whisper'&&!asrReady())throw new Error('Whisper: '+L('needDl'));
     const blob=await record(btn,onPartial);
     if(isSpeaking()||!blob||blob.size<1500){finish('');return {started:true,recorded:false,reason:'empty or playback active'}}
     btn?.classList?.add('work');let text;
@@ -2690,7 +2849,7 @@ async function listen(lang,btn,onText,onPartial){
           if(cfg.eng.gemini.key&&!sessionBlocked.has('gemini')){
             text=await transcribeGemini(blob,l2);
           }else{
-            if(store.get('whisper','')!==cfg.whisper)throw new Error('Whisper: '+L('needDl'));
+            if(!asrReady())throw new Error('Whisper: '+L('needDl'));
             const audio=await to16k(blob);
             text=await rpc('asr',{audio,lang:l2,model:cfg.whisper,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
           }
@@ -4273,7 +4432,7 @@ async function triggerLiveBrowserSpeaker(side) {
     if (!liveActive) return;
     const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
     const voiceObj = pickVoice(to);
-    const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : L('ttsFallback');
+    const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : (resolveVoice(to).kind === 'piper' ? mcText(resolveVoice(to).m.name).slice(0, 16) : L('ttsFallback'));
     addBubble($('bubbles'), side, tx, r.out[0] || '…', from, to, {
       stt: 'Browser',
       engine: r.used,
@@ -4387,7 +4546,7 @@ async function runLiveLoop() {
       const to = isSideA ? effectiveB : effectiveA;
       const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
       const voiceObj = pickVoice(to);
-      const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : L('ttsFallback');
+      const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : (resolveVoice(to).kind === 'piper' ? mcText(resolveVoice(to).m.name).slice(0, 16) : L('ttsFallback'));
 
       const d = addBubble($('bubbles'), side, turnResult.transcript, turnResult.translation || '…', from, to, {
         stt: turnResult.stt,
@@ -4666,7 +4825,7 @@ async function handleConvPttAudio(audioInput) {
           engine: 'Auto'
         };
       } else if (mode === 'whisper') {
-        if (store.get('whisper', '') !== cfg.whisper) {
+        if (!asrReady()) {
           toast(L('needDl'), 'warn');
           setVoiceState('ready');
           return;
@@ -4691,7 +4850,7 @@ async function handleConvPttAudio(audioInput) {
           if (/quota|429|403|blocked/i.test(gemErr.message || '')) {
             toast('Gemini: ' + L('switching') + ' Google', 'warn', 4000);
           }
-          if (store.get('whisper', '') !== cfg.whisper) {
+          if (!asrReady()) {
             toast(L('needDl'), 'warn');
             setVoiceState('ready');
             return;
@@ -4702,7 +4861,7 @@ async function handleConvPttAudio(audioInput) {
           turnResult = { lang: s, transcript: tx.trim(), translation: '', stt: 'Whisper', engine: 'Auto' };
         }
       } else {
-        if (store.get('whisper', '') !== cfg.whisper) {
+        if (!asrReady()) {
           toast(L('needDl'), 'warn');
           setVoiceState('ready');
           return;
@@ -4746,9 +4905,9 @@ async function handleConvPttAudio(audioInput) {
 
     const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
     const voiceObj = pickVoice(to);
-    const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : L('ttsFallback');
+    const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : (resolveVoice(to).kind === 'piper' ? mcText(resolveVoice(to).m.name).slice(0, 16) : L('ttsFallback'));
 
-    if (!voiceObj && !noVoiceTold[to]) {
+    if (!voiceObj && resolveVoice(to).kind !== 'piper' && !noVoiceTold[to]) {
       noVoiceTold[to] = 1;
       toast(L('noVoiceWarn'), 'warn', 7000);
     }
@@ -4785,7 +4944,7 @@ async function handleAskPttAudio(audioInput) {
       if (mode === 'groq') {
         tx = await transcribeGroq(blob, askL);
       } else if (mode === 'whisper') {
-        if (store.get('whisper', '') !== cfg.whisper) {
+        if (!asrReady()) {
           toast(L('needDl'), 'warn');
           setVoiceState('ready');
           return;
@@ -4795,7 +4954,7 @@ async function handleAskPttAudio(audioInput) {
       } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
         tx = await transcribeGemini(blob, l2);
       } else {
-        if (store.get('whisper', '') !== cfg.whisper) {
+        if (!asrReady()) {
           toast(L('needDl'), 'warn');
           setVoiceState('ready');
           return;
@@ -5075,6 +5234,168 @@ $('btnSaveDone').onclick=()=>{saveAllInputs();$('ov').classList.remove('on');toa
 $('ov').addEventListener('click',e=>{if(e.target===$('ov')){saveAllInputs();$('ov').classList.remove('on')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){saveAllInputs();$('ov').classList.remove('on')}});
 
+/* ---------- offline model catalogue (Engines & keys → Offline) ---------- */
+const MC=self.MODEL_CATALOG||{models:[],codes:{}};
+const MC_CACHE='transformers-cache';       // the cache the model library writes to
+const mcDownloading={};                    // model id -> files being downloaded
+let mcCache=null;                          // repo -> {bytes,files} once the cache was read; null before that or without Cache Storage
+const trCodes=kind=>kind==='nllb'?NLLB:MC.codes?.[kind];
+const mcSize=b=>b<=0?'0 MB':b>=1073741824?(b/1073741824).toFixed(1)+' GB':Math.max(1,Math.round(b/1048576))+' MB';
+const mcText=(o)=>o&&typeof o==='object'?(o[ui]||o.en||''):(o||'');
+// Flags older versions of the app wrote when a download finished.
+function mcLegacy(m){
+  if(m.id==='tr-nllb-600')return !!store.get('nllb',false);
+  if(m.kind==='whisper'&&(m.key==='base'||m.key==='small'))return store.get('whisper_wasm','')===m.key||store.get('whisper_webgpu','')===m.key;
+  return false;
+}
+const mcDone=()=>store.get('mdl',{});
+async function mcScan(){
+  if(!('caches' in self)){mcCache=null;return null}
+  const out={};
+  try{
+    const c=await caches.open(MC_CACHE);
+    for(const req of await c.keys()){
+      const k=req.url.match(/^https:\/\/huggingface\.co\/([^/]+\/[^/]+)\/resolve\/[^/]+\/([^?]+)/);if(!k)continue;
+      const res=await c.match(req),m=MC.models.find(x=>x.repo===k[1]);
+      let n=+(res?.headers.get('content-length')||0);
+      if(!n&&m)n=(m.files.find(f=>f[0]===k[2])||[0,0])[1];
+      const r=out[k[1]]||(out[k[1]]={bytes:0,files:new Map()});r.bytes+=n;r.files.set(k[2],n);
+    }
+    mcCache=out;
+  }catch{mcCache=null}
+  return mcCache;
+}
+// A model is ready when its download finished and its files are still in this browser's storage.
+function mcReady(m){
+  if(!m)return false;
+  const rec=mcDone()[m.id];
+  if(m.kind==='piper'){                    // judged by the files in storage alone
+    if(mcCache===null)return !!rec;
+    const r=mcCache[m.repo];return !!r&&m.files.every(f=>r.files.has(f[0]));
+  }
+  if(!rec&&!mcLegacy(m))return false;
+  if(mcCache===null)return true;           // storage could not be read: trust the saved flag
+  const r=mcCache[m.repo];
+  return !!r&&(!rec||rec.files.every(f=>r.files.has(f)));
+}
+// What this model takes up in browser storage (a voice shares its repository with other voices, so only its own files count).
+const mcBytes=m=>{const r=mcCache?.[m.repo];if(!r)return 0;return m.kind==='piper'?m.files.reduce((a,f)=>a+(r.files.get(f[0])||0),0):r.bytes};
+const trModels=()=>MC.models.filter(m=>m.job==='translate');
+const trAnyReady=()=>trModels().some(mcReady);
+const asrModel=key=>MC.models.find(m=>m.kind==='whisper'&&m.key===(key||cfg.whisper))||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+const asrReady=()=>mcReady(asrModel());
+function trCovers(m,src,tgt){
+  if(m.kind==='opus')return m.pair[0]===src&&m.pair[1]===tgt;
+  const c=trCodes(m.kind);return !!(c&&c[src]&&c[tgt]);
+}
+// Which downloaded model translates this pair: the user's multilingual choice, unless they asked for the small pair models.
+function pickTr(src,tgt){
+  const ok=trModels().filter(m=>mcReady(m)&&trCovers(m,src,tgt));
+  if(!ok.length)return null;
+  const pair=ok.find(m=>m.kind==='opus');
+  if(cfg.trPair&&pair)return pair;
+  return ok.find(m=>m.id===cfg.trModel)||ok.find(m=>m.kind!=='opus')||pair;
+}
+function mcMark(m,files){
+  const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
+  // keep the older flags in step, so an older copy of the app still sees these two
+  if(m.id==='tr-nllb-600')store.set('nllb',true);
+  if(m.kind==='whisper'&&(m.key==='base'||m.key==='small')){store.set('whisper_'+(hasWebGpu&&m.gpu?'webgpu':'wasm'),m.key);store.set('whisper',m.key)}
+}
+function mcUnmark(m){
+  const d=mcDone();delete d[m.id];store.set('mdl',d);
+  if(m.id==='tr-nllb-600')store.set('nllb',false);
+  if(m.kind==='whisper'){for(const k of ['whisper_wasm','whisper_webgpu','whisper'])if(store.get(k,'')===m.key)store.set(k,'')}
+}
+async function mcDownload(m){
+  if(mcDownloading[m.id])return;
+  mcDownloading[m.id]={files:{}};
+  try{await navigator.storage?.persist?.()}catch{}
+  await checkWebGpu();mcRender();
+  try{
+    if(m.kind==='piper'){
+      await piperEngineFiles(m);           // the speech engine ships with the app; fetching it now lets the app keep a copy for offline use
+      await prpc('load',{voice:{path:m.voice}},{progress:p=>mcFileProgress(m,p.file,p.loaded,p.total)});
+    }
+    else if(m.job==='translate')await rpc('loadTr',{spec:{repo:m.repo,kind:m.kind}});
+    else await rpc('loadAsr',{model:m.key});
+    const seen=Object.keys(mcDownloading[m.id].files).filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data'));
+    await mcScan();
+    mcMark(m,(mcCache?.[m.repo]?[...mcCache[m.repo].files.keys()].filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')):seen));
+    // the first model of a kind becomes the one in use
+    if(m.job==='listen'&&!asrReady())cfg.whisper=m.key;
+    if(m.job==='translate'&&m.kind!=='opus'&&!mcReady(MC.models.find(x=>x.id===cfg.trModel)))cfg.trModel=m.id;
+    saveCfg();
+    toast(L('dlDone'),'ok',6000);
+  }catch(e){toast(e.message,'err',9000)}
+  delete mcDownloading[m.id];
+  await mcScan();mcRender();renderEngines();fillEngines();
+}
+async function mcDelete(m){
+  try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else await rpc('unload',{repo:m.repo})}catch{}
+  try{
+    const c=await caches.open(MC_CACHE);
+    for(const req of await c.keys())if(m.kind==='piper'?m.files.some(f=>req.url.endsWith('/'+f[0])):req.url.includes('/'+m.repo+'/resolve/'))await c.delete(req);
+  }catch{}
+  inWorker.delete(m.repo);mcUnmark(m);
+  await mcScan();mcRender();renderEngines();fillEngines();
+  toast(`${mcText(m.name)}: ${L('mdlDeleted')}`,'ok');
+}
+function mcRow(m){
+  const ready=mcReady(m),busy=!!mcDownloading[m.id];
+  const inUse=ready&&(m.job==='listen'?cfg.whisper===m.key:(m.kind==='opus'?false:cfg.trModel===m.id));
+  const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
+  const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
+  const gpuText=m.job==='speak'?L('mdlGpuNo'):gpu;
+  const badges=(m.rec?`<span class="badge rec">${esc(L('mdlRecNonEn'))}</span>`:'')+(m.weak?`<span class="badge warn">${esc(L('mdlWeak'))}</span>`:'');
+  const dlId=m.id==='tr-nllb-600'?' id="dlTr"':'';
+  const st=busy?L('mdlDownloading'):ready?L('ready')+(mcBytes(m)?' · '+mcSize(mcBytes(m)):''):L('notDl');
+  return `<div class="mdl${inUse?' inuse':''}" data-mdl="${m.id}" data-state="${busy?'busy':ready?'ready':'none'}">
+    <div class="mdl-h"><span class="dot${ready?' ok':''}"></span><strong>${esc(mcText(m.name))}</strong>${badges}<span class="sp"></span><span class="meta" id="mdlSt-${m.id}">${esc(st)}</span></div>
+    <div class="mdl-m"><span title="${esc(L('mdlSizeTip'))}">${esc(L('mdlSize'))} ${mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes)}${m.extraBytes?` (+${mcSize(m.extraBytes)} ${esc(L('mdlEngineOnce'))})`:''}</span> · <span title="${esc(L('mdlMemTip'))}">${esc(L('mdlMem'))} ≈ ${mcSize(m.memMB*1048576)}</span> · ${esc(L('mdlGpu'))}: ${esc(gpuText)}${m.speed?` · ${esc(L('mdlSpeed'))} ${m.speed<1?m.speed.toFixed(1):Math.round(m.speed*10)/10} ${esc(L('mdlSpeedUnit'))}`:''} · ${esc(L('mdlLangs'))}: ${esc(langs)}</div>
+    <div class="mdl-g">${esc(mcText(m.good))}</div>
+    <div class="prog" id="mdlProg-${m.id}"${busy?'':' hidden'}><i id="mdlBar-${m.id}"></i></div>
+    <div class="mdl-a">
+      <button class="btn"${dlId} data-act="dl" ${ready||busy?'hidden':''}>${esc(L('download'))}</button>
+      <button class="btn ghost" data-act="rm" ${ready&&!busy?'':'hidden'}>${esc(L('mdlDelete'))}</button>
+      ${ready&&(m.job==='listen'||(m.job==='translate'&&m.kind!=='opus'))?`<label class="chk"><input type="radio" name="use-${m.job}" data-act="use" ${inUse?'checked':''}>${esc(L(inUse?'mdlInUse':'mdlUse'))}</label>`:''}
+    </div></div>`;
+}
+function mcRender(){
+  const box=$('mdlCatalog');if(!box)return;
+  const by=(job,f)=>MC.models.filter(m=>m.job===job&&(!f||f(m)));
+  let h='';
+  const listen=by('listen');
+  if(listen.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpListen'))}</div>`+listen.map(mcRow).join('');
+  const multi=by('translate',m=>m.kind!=='opus'),pairs=by('translate',m=>m.kind==='opus');
+  if(multi.length||pairs.length){
+    h+=`<div class="mdl-grp">${esc(L('mdlGrpTr'))}</div>`+multi.map(mcRow).join('');
+    if(pairs.length)h+=`<div class="mdl-sub">${esc(L('mdlPairs'))}</div><label class="chk" style="margin:6px 0"><input type="checkbox" id="mdlPrefPair" ${cfg.trPair?'checked':''}>${esc(L('mdlPairsPrefer'))}</label>`+pairs.map(mcRow).join('');
+  }
+  const speak=by('speak');
+  if(speak.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpSpeak'))}</div>`+speak.map(mcRow).join('');
+  box.innerHTML=h;
+  // total storage used by the models listed here
+  const mine=MC.models.filter(m=>mcBytes(m)>0);
+  const total=mine.reduce((a,m)=>a+mcBytes(m),0);
+  const t=$('mdlTotal');
+  if(t){
+    t.textContent=mcCache===null?'':`${L('mdlTotal')}: ${mcSize(total)} (${mine.length})`;
+    navigator.storage?.estimate?.().then(e=>{if(e&&e.usage&&$('mdlTotal')&&mcCache!==null)$('mdlTotal').textContent+=` · ${L('mdlSiteTotal')}: ${mcSize(e.usage)}`}).catch(()=>{});
+  }
+}
+$('mdlCatalog').addEventListener('click',e=>{
+  const b=e.target.closest('[data-act]');if(!b)return;
+  const m=MC.models.find(x=>x.id===b.closest('[data-mdl]')?.dataset.mdl);if(!m)return;
+  if(b.dataset.act==='dl')mcDownload(m);
+  else if(b.dataset.act==='rm')mcDelete(m);
+  else if(b.dataset.act==='use'){
+    if(m.job==='listen')cfg.whisper=m.key;else cfg.trModel=m.id;
+    saveCfg();mcRender();fillEngines();
+  }
+});
+$('mdlCatalog').addEventListener('change',e=>{if(e.target.id==='mdlPrefPair'){cfg.trPair=e.target.checked;saveCfg()}});
+
 /* voice + offline settings */
 function fillVoices(){
   const b=$('tgt').value.split('-')[0].toLowerCase(),vs=('speechSynthesis' in self?speechSynthesis.getVoices():[]).filter(v=>v.lang.toLowerCase().startsWith(b));
@@ -5082,7 +5403,8 @@ function fillVoices(){
   // Automatic (default), every device voice for this language, then the Gemini voices.
   $('voiceSel').innerHTML=`<option value="">${esc(L('autoVoice'))} · ${vs.length}</option>`
     +(vs.length?`<optgroup label="${esc(L('deviceVoicesGrp'))}">`+vs.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)}</option>`).join('')+'</optgroup>':'')
-    +`<optgroup label="${esc(L('geminiVoicesGrp'))}">`+GEM_VOICES.map(n=>`<option value="gemini:${n}">${L('geminiWord')} · ${n}</option>`).join('')+'</optgroup>';
+    +`<optgroup label="${esc(L('geminiVoicesGrp'))}">`+GEM_VOICES.map(n=>`<option value="gemini:${n}">${L('geminiWord')} · ${n}</option>`).join('')+'</optgroup>'
+    +(piperVoices().filter(m=>m.lang===b).length?`<optgroup label="${esc(L('offlineVoicesGrp'))}">`+piperVoices().filter(m=>m.lang===b).map(m=>`<option value="piper:${m.id}">${esc(mcText(m.name))}</option>`).join('')+'</optgroup>':'');
   $('voiceSel').value=cfg.tts.voices[b]||'';if($('voiceSel').selectedIndex<0)$('voiceSel').value='';
 }
 let hasWebGpu=null;
@@ -5094,25 +5416,15 @@ async function checkWebGpu(){
   return hasWebGpu;
 }
 async function offStatus(){
-  const a=store.get('nllb',false);
-  const gpu=await checkWebGpu();
-  const pathKey=gpu?'webgpu':'wasm';
-  if($('whSel')){
-    const curVal=$('whSel').value||cfg.whisper||'base';
-    $('whSel').innerHTML=gpu?
-      `<option value="base">Base · ~155 MB (WebGPU)</option><option value="small">Small · ~485 MB (WebGPU)</option>`:
-      `<option value="base">Base · ~80 MB (WASM)</option><option value="small">Small · ~250 MB (WASM)</option>`;
-    $('whSel').value=curVal;
-  }
-  const w=store.get('whisper_'+pathKey,'')===cfg.whisper;
-  $('nllbSt').textContent=L(a?'ready':'notDl');$('nllbDot').classList.toggle('ok',a);
-  $('whSt').textContent=L(w?'ready':'notDl');$('whDot').classList.toggle('ok',w);
   $('offBtn').classList.toggle('on',isOff());$('offBtn').querySelector('.dot').classList.toggle('ok',isOff());
+  mcRender();
+  await Promise.all([mcScan(),checkWebGpu()]);       // what is stored, and whether WebGPU exists (it changes the download size)
+  mcRender();fillEngines();
 }
 function renderVoice(){
   $('sttSel').value=cfg.stt;
   if($('vSttChoice'))$('vSttChoice').value=cfg.stt;
-  $('whSel').value=cfg.whisper;$('ttsMode').value=cfg.tts.mode;
+  $('ttsMode').value=cfg.tts.mode;
   if($('ttsSpeed'))$('ttsSpeed').value=String(cfg.tts.rate||1.0);
   if($('vSpeed'))$('vSpeed').value=String(cfg.tts.rate||1.0);
   const isDev=cfg.tts.mode==='device';
@@ -5138,7 +5450,6 @@ function renderVoice(){
 }
 if('speechSynthesis' in self)speechSynthesis.onvoiceschanged=fillVoices;
 $('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();if($('vSttChoice'))$('vSttChoice').value=cfg.stt;voiceLabels()};
-$('whSel').onchange=()=>{cfg.whisper=$('whSel').value;saveCfg();offStatus()};
 document.querySelectorAll('select#vSilenceWait').forEach(el=>{
   el.onchange=()=>{
     cfg.silenceWait=+el.value||800;
@@ -5167,20 +5478,6 @@ const TTS_PRE={
 };
 $('ttsPre').onchange=()=>{const p=TTS_PRE[$('ttsPre').value];if(p){cfg.tts.key='';Object.assign(cfg.tts,p);saveCfg();renderVoice()}};
 $('ttsTest').onclick=()=>{const t=$('tgt').value,smp={fa:'سلام، این یک آزمایش صدا برای مترجم ماکان است.',ar:'مرحبا، هذا اختبار للصوت.',tr:'Merhaba, bu bir ses testidir.',de:'Hallo, dies ist ein Stimmtest.',fr:'Bonjour, ceci est un test de voix.',es:'Hola, esta es una prueba de voz.'};speak.last='';speak(smp[t]||'Hello, this is a voice test for MAKAN Translate.',smp[t]?t:'en')};
-async function dl(kind,btn){
-  btn.disabled=true;dlFiles={};try{await navigator.storage?.persist?.()}catch{}
-  try{
-    if(kind==='tr'){await rpc('loadTr');store.set('nllb',true)}else{
-      const gpu=await checkWebGpu();
-      await rpc('loadAsr',{model:cfg.whisper});
-      store.set('whisper_'+(gpu?'webgpu':'wasm'),cfg.whisper);
-      store.set('whisper',cfg.whisper);
-    }
-    toast(L('dlDone'),'ok',6000);
-  }catch(e){toast(e.message,'err',9000)}
-  btn.disabled=false;renderEngines();fillEngines();
-}
-$('dlTr').onclick=e=>dl('tr',e.currentTarget);$('dlAsr').onclick=e=>dl('asr',e.currentTarget);
 $('offBtn').onclick=()=>{cfg.offline=!cfg.offline;saveCfg();fillEngines();offStatus();voiceLabels()};
 addEventListener('online',()=>{fillEngines();offStatus()});addEventListener('offline',()=>{fillEngines();offStatus()});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});

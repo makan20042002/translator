@@ -58,4 +58,9 @@ test.describe('Model download hosts', () => {
     expect(swAnswers('https://fonts.googleapis.com/css2?family=x')).toBe(true);
     expect(swAnswers('https://app.example/index.html')).toBe(true);
   });
+
+  test('the files the worker needs are saved with the app for offline use', () => {
+    const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
+    for (const f of ['./ai-worker.js', './asr-guard.js', './models-catalog.js']) expect(sw, f).toContain(`'${f}'`);
+  });
 });

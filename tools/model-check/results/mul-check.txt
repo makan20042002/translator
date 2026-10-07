@@ -1,0 +1,9 @@
+mul-en fa -> This day is the heaven good; therefore we go to the field, and it is good for us to tread.
+mul-en ar -> The beautiful thing today, so we're going to the party.
+mul-en tr -> It's nice to see you today, so we're gonna be on the road.
+en-mul >>pes<< -> امروز تاخیر نیکو است، پس ما در فرق راه می‌رویم.
+en-mul >>fas<< -> ..Ok, weather is nice, onday, on there's weep in the park.
+en-mul >>prs<< -> ..Ok, weather is nice, onday, on there's weep in the park.
+en-mul >>tur<< -> Bugün hava iyi, yüzden parkaya yürüyeceğiz.
+en-mul >>ara<< -> الواقع جيد اليوم، لذا سنتذهب في المجازة
+en-mul >>deu<< -> Das Wetter ist heute schön, so wir werden im Park gehen.
