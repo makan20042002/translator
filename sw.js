@@ -2,6 +2,7 @@
 const CACHE = 'makan-translate-v14';
 const SHELL = ['./', './ai-worker.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const STATIC_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
+// Model files (huggingface.co, and the *.hf.co hosts it redirects to) are deliberately not handled here: the model library keeps its own copy in browser storage.
 
 self.addEventListener('install', e => e.waitUntil(caches.open(CACHE).then(c => c.addAll(SHELL)).then(() => self.skipWaiting())));
 self.addEventListener('activate', e => e.waitUntil(
