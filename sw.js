@@ -1,6 +1,6 @@
 // MAKAN Translate — lets the app open with no internet.
 const CACHE = 'makan-translate-v15';
-const SHELL = ['./', './ai-worker.js', './asr-guard.js', './models-catalog.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
+const SHELL = ['./', './ai-worker.js', './asr-guard.js', './models-catalog.js', './piper-worker.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const STATIC_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
 // Model files (huggingface.co, and the *.hf.co hosts it redirects to) are deliberately not handled here: the model library keeps its own copy in browser storage.
 

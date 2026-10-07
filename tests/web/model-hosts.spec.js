@@ -61,6 +61,6 @@ test.describe('Model download hosts', () => {
 
   test('the files the worker needs are saved with the app for offline use', () => {
     const sw = fs.readFileSync(path.join(ROOT, 'sw.js'), 'utf8');
-    for (const f of ['./ai-worker.js', './asr-guard.js', './models-catalog.js']) expect(sw, f).toContain(`'${f}'`);
+    for (const f of ['./ai-worker.js', './asr-guard.js', './models-catalog.js', './piper-worker.js']) expect(sw, f).toContain(`'${f}'`);
   });
 });

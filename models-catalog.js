@@ -913,6 +913,120 @@ self.MODEL_CATALOG = {
     "downloadedMB": 111
    },
    "webgpu": "none"
+  },
+  {
+   "id": "tts-fa-amir",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "Persian · Amir (male)",
+    "fa": "فارسی · امیر (مرد)"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx",
+   "lang": "fa",
+   "langs": {
+    "en": "Persian",
+    "fa": "فارسی"
+   },
+   "good": {
+    "en": "Reads Persian aloud with no internet, no Gemini key and no voice installed in Windows.",
+    "fa": "متن فارسی را بدون اینترنت، بدون کلید Gemini و بدون صدای نصب‌شده در ویندوز می‌خواند."
+   },
+   "licence": "CC0",
+   "files": [
+    [
+     "fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx",
+     63531379
+    ],
+    [
+     "fa/fa_IR/amir/medium/fa_IR-amir-medium.onnx.json",
+     4958
+    ]
+   ],
+   "bytes": 63536337,
+   "extraBytes": 29571146,
+   "memMB": 500,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 61
+   }
+  },
+  {
+   "id": "tts-fa-ganji",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "Persian · Ganji",
+    "fa": "فارسی · گنجی"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx",
+   "lang": "fa",
+   "langs": {
+    "en": "Persian",
+    "fa": "فارسی"
+   },
+   "good": {
+    "en": "A second Persian voice, for comparison.",
+    "fa": "صدای فارسی دوم، برای مقایسه."
+   },
+   "licence": "CC0",
+   "files": [
+    [
+     "fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx",
+     63516050
+    ],
+    [
+     "fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx.json",
+     4958
+    ]
+   ],
+   "bytes": 63521008,
+   "extraBytes": 29571146,
+   "memMB": 400,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 61
+   }
+  },
+  {
+   "id": "tts-en-alba",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "English · Alba (British, female)",
+    "fa": "انگلیسی · آلبا (بریتانیایی، زن)"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "en/en_GB/alba/medium/en_GB-alba-medium.onnx",
+   "lang": "en",
+   "langs": {
+    "en": "English",
+    "fa": "انگلیسی"
+   },
+   "good": {
+    "en": "Reads English aloud with no internet and no voice installed on the computer.",
+    "fa": "متن انگلیسی را بدون اینترنت و بدون صدای نصب‌شده روی رایانه می‌خواند."
+   },
+   "licence": "CC BY 4.0",
+   "files": [
+    [
+     "en/en_GB/alba/medium/en_GB-alba-medium.onnx",
+     63201294
+    ],
+    [
+     "en/en_GB/alba/medium/en_GB-alba-medium.onnx.json",
+     4888
+    ]
+   ],
+   "bytes": 63206182,
+   "extraBytes": 29571146,
+   "memMB": 500,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 60
+   }
   }
  ]
 };
