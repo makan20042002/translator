@@ -3,7 +3,7 @@
 const fs = require('fs');
 const os = require('os');
 const path = require('path');
-const { execFileSync } = require('child_process');
+const { inspectPdf } = require('../support/pdf');
 const JSZip = require('jszip');
 const { test, expect, onlyEngines, mouseClick, chooseFile, downloadOf } = require('../support/fixtures');
 const { findSoffice, libreOfficeOpens } = require('../support/office');
@@ -79,36 +79,32 @@ test.describe('Web app: Document tab output format', () => {
     expect(text).not.toContain('<w:');
   });
 
-  test('PDF output is a valid PDF with the translated text drawn on its pages', async ({ app, files }, testInfo) => {
-    const out = await translateAndDownload(app.page, files.txt, 'pdf');
+  test('PDF output is a valid PDF with the translated text drawn on its pages', async ({ app, files }) => {
+    const { page } = app;
+    const out = await translateAndDownload(page, files.txt, 'pdf');
     expect(out.name).toBe('sample.fa.pdf');
-    expect(out.bytes.subarray(0, 5).toString('latin1')).toBe('%PDF-');
-    expect(out.bytes.subarray(-6).toString('latin1')).toContain('%%EOF');
-    const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'makan-pdf-')), 'out.pdf');
-    fs.writeFileSync(f, out.bytes);
-    const info = execFileSync('pdfinfo', [f]).toString();
-    expect(info).toMatch(/Pages:\s+1/);
-    expect(info).toMatch(/Page size:\s+595/);
-    // The page must not be blank: render it and count dark pixels.
-    execFileSync('pdftoppm', ['-r', '40', '-png', '-singlefile', f, f.replace(/\.pdf$/, '')]);
-    const png = fs.readFileSync(f.replace(/\.pdf$/, '.png'));
-    testInfo.attach('pdf-page.png', { body: png, contentType: 'image/png' });
-    expect(png.length, 'rendered page is not an empty white page').toBeGreaterThan(3000);
+    const info = inspectPdf(out.bytes);
+    expect(info.problems).toEqual([]);
+    expect(info.pages).toBe(1);
+    expect(info.mediaBox[0]).toBeCloseTo(595.28, 1);
+    // Not a blank page: its picture is clearly bigger than the picture of an empty page.
+    const blank = await page.evaluate(async () => Array.from(new Uint8Array(await (await buildPlainPdf([''], 'fa')).arrayBuffer())));
+    const blankInfo = inspectPdf(Buffer.from(blank));
+    expect(info.images[0].bytes, 'picture size of the translated page vs an empty page').toBeGreaterThan(blankInfo.images[0].bytes * 1.05);
   });
 
-  test('PDF of Persian text with a long paragraph: several lines, right-aligned, several pages when long', async ({ app }, testInfo) => {
+  test('PDF of Persian text with a long paragraph: several pages, all valid', async ({ app }, testInfo) => {
     const { page } = app;
     const bytes = await page.evaluate(async () => {
       const para = 'این یک جمله‌ی فارسی برای آزمایش خروجی پی‌دی‌اف است. '.repeat(120);
       const blob = await buildPlainPdf([para, 'پایان'], 'fa');
       return Array.from(new Uint8Array(await blob.arrayBuffer()));
     });
-    const f = path.join(fs.mkdtempSync(path.join(os.tmpdir(), 'makan-pdf-')), 'fa.pdf');
-    fs.writeFileSync(f, Buffer.from(bytes));
-    const pages = +/Pages:\s+(\d+)/.exec(execFileSync('pdfinfo', [f]).toString())[1];
-    expect(pages).toBeGreaterThan(2);
-    execFileSync('pdftoppm', ['-r', '50', '-png', '-f', '1', '-l', '1', '-singlefile', f, f.replace(/\.pdf$/, '')]);
-    testInfo.attach('persian-page-1.png', { body: fs.readFileSync(f.replace(/\.pdf$/, '.png')), contentType: 'image/png' });
+    const info = inspectPdf(Buffer.from(bytes));
+    expect(info.problems).toEqual([]);
+    expect(info.pages).toBeGreaterThan(2);
+    expect(info.images.length).toBe(info.pages);
+    testInfo.annotations.push({ type: 'not checked here', description: 'Pixel-level look of the Persian page was checked by eye on Linux; this test checks structure only.' });
   });
 
   test('the chosen format is remembered', async ({ app, files }) => {
