@@ -149,6 +149,25 @@ Neither has a build step for the app code itself. The only "build" is
      entry instantly (AI explanation after, if an AI engine exists) and shows
      an idiom's meaning instead of a literal translation; credits are in
      Options.
+   * **Dictionary packs list and vulgar words.** `build-dict-list.js` writes
+     `dict/packs.json` from the folders under `dict/` (one `<from>-<to>` folder
+     per language pair, same format); the web app and the extension read that
+     list, so a new pair needs no code change (run `npm run build`). Persian
+     normalisation is applied to Persian only. Cross-filling from the other
+     pack happens only when its whole meaning is the looked-up word, and is
+     shown last; variant, dialect and single-letter entries are ranked last.
+     The packs DO contain vulgar words (the builder keeps them) but carry no
+     flag, so a short list in `dictionary.js` hides them unless "Show vulgar
+     words" (Dictionary tab, extension Options) is on; the default is off.
+   * **Idioms.** The Idioms tab shows the stored entry from the packs'
+     phrases lists at once, then an AI explanation (meaning, literal wording,
+     natural equivalent in the other language, register, two examples) when
+     an AI engine is available; "find by meaning" is AI only and says so.
+     The Text tab underlines stored idioms (no AI needed) and, after an AI
+     translation, the idioms the AI finds; clicking one opens the idiom card.
+     Saved idioms join "My words" marked as idioms. In the extension, a
+     multi-word selection that is not stored but that the AI engine calls an
+     idiom gets the idiom explanation above the (literal) translation.
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.

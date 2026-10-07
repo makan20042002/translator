@@ -126,6 +126,7 @@ function sanitizeConfig(raw, previous) {
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
   cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
   cfg.edgeHintOff = src.edgeHintOff === true;
+  cfg.showVulgar = src.showVulgar === true;
   cfg.subject = isStr(src.subject) ? src.subject : '';
   cfg.subStyle = ['film', 'neutral', 'formal'].includes(src.subStyle) ? src.subStyle : DEFAULT_CFG.subStyle;
   cfg.disabledSites = Array.isArray(src.disabledSites) ? src.disabledSites.filter(isStr) : [];
@@ -453,13 +454,10 @@ async function withGeminiModel(key, kind, configured, fn, signal) {
 }
 
 // Single-key AI translation caller with exponential backoff on 429
-async function callAi(id, items, o, cfg) {
+// One request to one AI engine: system + user text in, the model's raw text out.
+async function aiCallText(id, sys, user, cfg, signal, temperature, json) {
   const e = cfg.eng[id];
-  const sys = buildSysPrompt(o.src, o.tgt, o.tone, o.subject, cfg.glossary, o.subStyle);
-  const user = JSON.stringify(items);
-  const signal = o.signal;
   let txt = '';
-
   if (id === 'gemini') {
     const key = (e.key || '').trim();
     if (!key) throw new Error('key missing');
@@ -471,7 +469,7 @@ async function callAi(id, items, o, cfg) {
         body: JSON.stringify({
           systemInstruction: { parts: [{ text: sys }] },
           contents: [{ role: 'user', parts: [{ text: user }] }],
-          generationConfig: { temperature: 0.15, responseMimeType: 'application/json' }
+          generationConfig: Object.assign({ temperature }, json ? { responseMimeType: 'application/json' } : {})
         })
       }), signal);
     txt = (j.candidates?.[0]?.content?.parts || []).map(p => p.text || '').join('');
@@ -509,15 +507,62 @@ async function callAi(id, items, o, cfg) {
           { role: 'system', content: sys },
           { role: 'user', content: user }
         ],
-        temperature: 0.2
+        temperature
       })
     });
     txt = j.choices?.[0]?.message?.content || '';
   }
+  return txt;
+}
 
+async function callAi(id, items, o, cfg) {
+  const sys = buildSysPrompt(o.src, o.tgt, o.tone, o.subject, cfg.glossary, o.subStyle);
+  const txt = await aiCallText(id, sys, JSON.stringify(items), cfg, o.signal, 0.15, true);
   return parseAiJsonArray(txt, items.length);
 }
 
+// ---- Idioms: ask the AI engines the user has (the first that answers wins) ----
+function parseJsonLoose(txt) {
+  let t = String(txt || '').replace(/```(?:json)?/gi, '').trim();
+  const i = t.indexOf('{'), j = t.lastIndexOf('}');
+  if (i < 0 || j < i) throw new Error('the AI did not answer in the expected form');
+  return JSON.parse(t.slice(i, j + 1));
+}
+async function aiAskJson(system, user, cfg, options = {}) {
+  const chain = options.chain || cfg.order.filter(id => ENG[id]?.ai && isEngineUsable(id, cfg));
+  if (!chain.length) throw new Error('no AI engine available');
+  let last = null;
+  for (const id of chain) {
+    try { return { data: parseJsonLoose(await aiCallText(id, system, user, cfg, options.signal, 0.3, true)), engine: id }; }
+    catch (e) { if (e.name === 'AbortError') throw e; last = e; }
+  }
+  throw last;
+}
+const uiLangName = ui => (ui === 'fa' ? 'Persian' : 'English');
+// Explain one expression: is it an idiom, what it really means, its literal wording, a natural equivalent in the other language, register, examples.
+async function explainIdiomAi(text, o, cfg) {
+  const ui = uiLangName(o.ui);
+  const sys = `IDIOM_EXPLAIN. You are an expert in idioms, proverbs and sayings of English and Persian. The user gives an expression. Reply with JSON only, in this shape:
+{"isIdiom": true|false, "language": "en"|"fa"|other code, "meaning": "the real meaning, in ${ui}", "literal": "the literal wording, translated word for word into ${ui}", "equivalent": "a natural saying people actually use in the OTHER language (English if the idiom is Persian, Persian if it is English) with the same sense: a real idiom, not a word-for-word translation", "register": "casual | neutral | formal | rude | old-fashioned | slang (one or two words)", "examples": [{"text": "an example sentence using the expression, in its own language", "translation": "the same sentence in the other language"}, {"text": "...", "translation": "..."}]}
+If the expression is not an idiom or saying, set isIdiom to false and leave the other fields empty. Keep every field short.`;
+  const r = await aiAskJson(sys, String(text), cfg, o);
+  const d = r.data || {};
+  return { isIdiom: d.isIdiom === true, language: String(d.language || ''), meaning: String(d.meaning || ''), literal: String(d.literal || ''), equivalent: String(d.equivalent || ''), register: String(d.register || ''), examples: (Array.isArray(d.examples) ? d.examples : []).slice(0, 2).map(x => ({ text: String((x && x.text) || ''), translation: String((x && x.translation) || '') })), engine: r.engine };
+}
+// Reverse search: describe a meaning, get idioms in both languages.
+async function findIdiomsAi(description, o, cfg) {
+  const ui = uiLangName(o.ui);
+  const sys = `IDIOM_FIND. You know idioms and sayings of English and Persian. The user describes a meaning. Reply with JSON only: {"idioms": [{"idiom": "the expression", "language": "en"|"fa", "meaning": "short meaning in ${ui}", "equivalent": "the matching saying in the other language"}]}. Give up to 4 English and 4 Persian idioms that really exist and really fit, best first.`;
+  const r = await aiAskJson(sys, String(description), cfg, o);
+  const list = Array.isArray(r.data.idioms) ? r.data.idioms : [];
+  return list.slice(0, 10).map(x => ({ idiom: String((x && x.idiom) || ''), language: String((x && x.language) || ''), meaning: String((x && x.meaning) || ''), equivalent: String((x && x.equivalent) || '') })).filter(x => x.idiom);
+}
+// Which parts of a text are idioms (exact pieces of the text).
+async function detectIdiomsAi(text, o, cfg) {
+  const sys = 'IDIOM_DETECT. List the idioms, proverbs and fixed sayings that occur in the text. Reply with JSON only: {"idioms": ["exact piece of the text", ...]}. Only pieces that appear in the text exactly as written; none if there are none.';
+  const r = await aiAskJson(sys, String(text), cfg, o);
+  return (Array.isArray(r.data.idioms) ? r.data.idioms : []).map(String).filter(x => x && String(text).toLowerCase().includes(x.toLowerCase())).slice(0, 12);
+}
 
 // ---- Plain failure reasons and the last error of each engine (for the card, popup, Options and diagnostics) ----
 const IN_EXTENSION_PAGE = typeof location !== 'undefined' && /^(chrome|moz)-extension:$/.test(location.protocol) || typeof importScripts === 'function';
@@ -1356,6 +1401,9 @@ if (root) {
   root.getTtsCacheKey = getTtsCacheKey;
   root.toPlainReason = toPlainReason;
   root.plainFailure = plainFailure;
+  root.explainIdiomAi = explainIdiomAi;
+  root.findIdiomsAi = findIdiomsAi;
+  root.detectIdiomsAi = detectIdiomsAi;
   root.failureNeedsOptions = failureNeedsOptions;
   root.askBackground = askBackground;
   root.lastEngineErrors = lastEngineErrors;

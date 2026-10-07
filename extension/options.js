@@ -127,6 +127,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const lblWebAppUrl = document.getElementById('lblWebAppUrl');
   const txtWebAppUrl = document.getElementById('txtWebAppUrl');
   const chkDictLookup = document.getElementById('chkDictLookup');
+  const chkShowVulgar = document.getElementById('chkShowVulgar');
   const lblDictLookup = document.getElementById('lblDictLookup');
   const secEngines = document.getElementById('secEngines');
   const subEngines = document.getElementById('subEngines');
@@ -250,6 +251,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   selDefaultTone.value = cfg.tone || 'neutral';
   txtWebAppUrl.value = cfg.webAppUrl || 'http://localhost:8080';
   chkDictLookup.checked = cfg.dictLookup !== false;
+  chkShowVulgar.checked = cfg.showVulgar === true;
   optOpenApp.href = cfg.webAppUrl || 'http://localhost:8080';
 
   applyUi(currentUi);
@@ -413,6 +415,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     toast(I18N[currentUi].saved);
   };
 
+  chkShowVulgar.onchange = () => {
+    cfg.showVulgar = chkShowVulgar.checked;
+    saveAndNotify();
+    toast(I18N[currentUi].saved);
+  };
   chkDictLookup.onchange = () => {
     cfg.dictLookup = chkDictLookup.checked;
     saveAndNotify();

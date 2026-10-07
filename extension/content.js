@@ -649,8 +649,9 @@
 
     // ---- Offline dictionary rendering (text only, never markup from data) ----
     function renderIdiom(idiom) {
-      const dir = idiom.lang === 'en' ? 'rtl' : 'ltr'; // meanings are in the other language
-      translatedResult = idiom.meanings.join(idiom.lang === 'en' ? '، ' : '; ');
+      const rtl = ['fa', 'ar', 'he', 'ur'].includes(idiom.to); // the meanings are in the pack's target language
+      const dir = rtl ? 'rtl' : 'ltr';
+      translatedResult = idiom.meanings.join(rtl ? '، ' : '; ');
       enginePill.textContent = 'Offline dictionary';
       enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
       bodyElem.innerHTML = `<div class="makan-dict-wrap">
@@ -660,7 +661,7 @@
       </div>`;
     }
     function renderDictionaryEntry(res, sourceText, sLang, tLang) {
-      const toFa = res.pair === 'en-fa';
+      const toFa = ['fa', 'ar', 'he', 'ur'].includes(res.to);
       const dir = toFa ? 'rtl' : 'ltr', sep = toFa ? '، ' : '; ';
       const head = (res.groups[0] && res.groups[0].entries[0].headword) || res.query;
       translatedResult = (res.groups[0] ? res.groups[0].entries[0].meanings.slice(0, 3) : res.extra.map(x => x.headword)).join(sep);
@@ -694,7 +695,42 @@
       }
     }
 
+    let executeSeq = 0;
+    function showAiIdiom(i, tLang) {
+      const rtl = isRtl(tLang);
+      const box = document.createElement('div');
+      box.className = 'makan-idiom-ai';
+      const head = document.createElement('div');
+      head.className = 'makan-dict-head';
+      const b = document.createElement('span');
+      b.className = 'makan-dict-badge';
+      b.textContent = 'Idiom (AI)';
+      head.appendChild(b);
+      box.appendChild(head);
+      const line = (label, text) => {
+        if (!text) return;
+        const d = document.createElement('div');
+        d.className = 'makan-dict-ex';
+        d.dir = 'auto';
+        d.textContent = label + ': ' + text;
+        box.appendChild(d);
+      };
+      const m = document.createElement('div');
+      m.className = 'makan-dict-trans makan-idiom-meaning';
+      m.dir = rtl ? 'rtl' : 'auto';
+      m.textContent = i.meaning;
+      box.appendChild(m);
+      line('Natural equivalent', i.equivalent);
+      line('Register', i.register);
+      const lab = document.createElement('div');
+      lab.className = 'makan-dict-pos';
+      lab.textContent = 'Literal translation';
+      bodyElem.prepend(lab);
+      bodyElem.prepend(box);
+    }
+
     async function executeTranslate(sourceText, sLang, tLang, useDict) {
+      executeSeq++;
       bodyElem.innerHTML = `
         <div class="makan-loading">
           <svg class="makan-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
@@ -913,6 +949,15 @@
               throw smartErr || fastErr || new Error(plainFailure(''));
             }
           }
+        }
+        // Not a stored idiom: ask the AI engine whether it is one. If so, its explanation goes above the (literal) translation.
+        const nW = sourceText.trim().split(/\s+/).length;
+        if (!useDict && cfg?.hasAi && nW >= 2 && nW <= 8 && !bodyElem.querySelector('.makan-dict-badge')) {
+          const mySeq = executeSeq;
+          askBackground({ action: 'idiom-check', text: sourceText }).then(r => {
+            if (mySeq !== executeSeq || !r.ok || !r.idiom) return;
+            showAiIdiom(r.idiom, tLang);
+          });
         }
       } catch (err) {
         const why = plainFailure(cspBlockedReason() || err);
