@@ -35,18 +35,31 @@ function copyDirRecursive(src, dest, ignoreFiles = []) {
   }
 }
 
+// The two offline dictionary packs (made from Wiktionary, CC BY-SA) travel inside the extension, with their credits.
+function copyDictionary(outDir) {
+  for (const pair of ['en-fa', 'fa-en']) {
+    const src = path.join(ROOT_DIR, 'dict', pair, 'pack-30000');
+    if (!fs.existsSync(src)) { console.warn('⚠️  dictionary pack missing:', src); continue; }
+    const dest = path.join(outDir, 'dict', pair);
+    copyDirRecursive(src, dest);
+    const credits = path.join(ROOT_DIR, 'dict', pair, 'credits.txt');
+    if (fs.existsSync(credits)) fs.copyFileSync(credits, path.join(dest, 'credits.txt'));
+  }
+}
+
 function buildFirefox() {
   console.log('📦 Building Firefox Manifest & Package...');
   const outDir = path.join(DIST_DIR, 'firefox');
   if (fs.existsSync(outDir)) fs.rmSync(outDir, { recursive: true, force: true });
   // In Firefox, offscreen document is not supported/needed (Audio is supported directly in background event page)
   copyDirRecursive(EXT_DIR, outDir, ['offscreen.html', 'offscreen.js']);
+  copyDictionary(outDir);
 
   const manifest = JSON.parse(JSON.stringify(BASE_MANIFEST));
 
   // Firefox MV3 background uses background.scripts (event page); load engine.js first
   manifest.background = {
-    scripts: ['engine.js', 'background.js']
+    scripts: ['engine.js', 'dictionary.js', 'background.js']
   };
 
   // Firefox does not support chrome.offscreen API, and notifications is dropped
@@ -76,6 +89,7 @@ function buildChrome() {
   const outDir = path.join(DIST_DIR, 'chrome');
   if (fs.existsSync(outDir)) fs.rmSync(outDir, { recursive: true, force: true });
   copyDirRecursive(EXT_DIR, outDir);
+  copyDictionary(outDir);
 
   const manifest = JSON.parse(JSON.stringify(BASE_MANIFEST));
 

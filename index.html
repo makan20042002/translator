@@ -191,6 +191,21 @@ textarea::placeholder{color:var(--faint)}
 .dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(34,229,138,.6)}
 .note{font-size:13px;color:var(--muted);border-inline-start:2px solid var(--cyan);padding:6px 12px;margin:14px 0 4px;background:rgba(19,200,245,.05);border-radius:0 8px 8px 0}
 
+.dict-result{margin-top:14px}
+.dict-pos{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
+.dict-entry{padding:6px 0;border-bottom:1px solid var(--border)}
+.dict-meanings{font-size:16px;line-height:1.6}
+.dict-ex{font-size:13px;color:var(--muted);margin-top:2px}
+.dict-forms,.dict-via,.dict-extra{font-size:12px;color:var(--muted);margin-top:2px}
+.dict-head{display:flex;align-items:center;gap:10px;flex-wrap:wrap}
+.dict-head .w{font-size:20px;font-weight:700}
+.dict-idiom{font-size:11px;border:1px solid var(--border2);border-radius:6px;padding:0 6px;color:var(--muted)}
+.dict-ai{margin-top:12px;padding:10px;border:1px dashed var(--border2);border-radius:10px;font-size:14px;line-height:1.6;white-space:pre-wrap}
+.word-card{position:fixed;z-index:180;width:min(360px,calc(100vw - 24px));max-height:60vh;overflow:auto;background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:12px 14px;box-shadow:0 14px 36px rgba(0,0,0,.5);font-size:14px}
+.word-card[hidden]{display:none}
+.credits-box{position:fixed;z-index:210;inset-inline-end:18px;bottom:60px;width:min(480px,calc(100vw - 36px));background:var(--surface2);border:1px solid var(--border2);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;box-shadow:0 14px 36px rgba(0,0,0,.5)}
+.credits-box[hidden]{display:none}
+.my-word{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)}
 .speak-notice{position:fixed;bottom:18px;inset-inline-start:18px;z-index:190;display:flex;align-items:center;gap:10px;max-width:min(520px,calc(100vw - 36px));background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--warn);border-radius:10px;padding:8px 12px;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
 .speak-notice[hidden]{display:none}
 .speak-notice .btn{min-height:26px;padding:2px 10px;font-size:12px}
@@ -439,6 +454,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
     <button data-tab="sub" data-t="tabSub">Subtitle</button>
     <button data-tab="doc" data-t="tabDoc">Document</button>
     <button data-tab="voice" data-t="tabVoice">Voice</button>
+    <button data-tab="dict" data-t="tabDict">Dictionary</button>
     <button data-tab="cmp" data-t="tabCmp">Compare</button>
     <button data-tab="gls" data-t="tabGls">Glossary</button>
     <button data-tab="hist" data-t="tabHist">History</button>
@@ -915,13 +931,32 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   </section>
 
   <!-- HISTORY -->
+  <section class="tab" id="tab-dict">
+    <div class="card">
+      <div class="row">
+        <input type="search" id="dcSearch" dir="auto" data-tp="dictPh" placeholder="Type an English or Persian word…" style="flex:1;min-width:200px" autocomplete="off">
+        <button class="btn cta" id="dcGo" data-t="dictSearch">Search</button>
+      </div>
+      <div class="hint" id="dcNoPack" hidden>
+        <span id="dcNoPackText"></span> <button class="btn" id="dcOpenSettings" type="button" data-t="dictGetPack">Get the dictionary</button>
+      </div>
+      <div id="dcResult" class="dict-result" aria-live="polite"></div>
+    </div>
+    <div class="card">
+      <div class="row"><strong data-t="dictMyWords">My words</strong><span class="meta" id="dcWordCount"></span><span class="sp"></span>
+        <button class="btn ghost" id="dcExport" type="button" data-t="dictExport">Export CSV</button>
+        <button class="btn ghost danger" id="dcClear" type="button" data-t="dictClear">Clear list</button></div>
+      <div id="dcWords"></div>
+      <p class="hint" data-t="dictLocalOnly">The word list is stored only in this browser.</p>
+    </div>
+  </section>
   <section class="tab" id="tab-hist">
     <div class="row" style="margin-bottom:10px"><span class="hint" data-t="hHint">Saved only in this browser.</span><span class="sp"></span><button class="btn danger" id="hClear" data-t="hClear">Clear history</button></div>
     <div class="card" style="padding:0;overflow:hidden" id="hList"></div>
   </section>
 </main>
 
-<footer><div class="wrap row"><span>© MAKAN LAB</span><span class="sp"></span><span data-t="foot">Keys stay in your browser and are sent only to the provider you choose.</span></div></footer>
+<footer><div class="wrap row"><span>© MAKAN LAB</span> <button class="btn ghost" id="creditsBtn" type="button" style="min-height:24px;font-size:12px" data-t="creditsBtn">About &amp; credits</button><span class="sp"></span><span data-t="foot">Keys stay in your browser and are sent only to the provider you choose.</span></div></footer>
 
 <!-- SETTINGS -->
 <div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="setT">
@@ -974,10 +1009,19 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   <div class="dlrow"><span class="dot" id="nllbDot"></span><strong data-t="offTr">Translation model · NLLB, 200 languages · about 900 MB</strong><span class="sp"></span><span class="meta" id="nllbSt"></span><button class="btn" id="dlTr" data-t="download">Download</button></div>
   <div class="dlrow"><span class="dot" id="whDot"></span><strong data-t="offAsr">Speech model · Whisper</strong>
     <select id="whSel"><option value="base">Base · ~80 MB</option><option value="small">Small · ~250 MB</option></select><span class="sp"></span><span class="meta" id="whSt"></span><button class="btn" id="dlAsr" data-t="download">Download</button></div>
+  <div class="dlrow"><span class="dot" id="dictDot-en-fa"></span><strong data-t="dictPackEnFa">Dictionary · English → Persian · about 1.1 MB</strong><span class="sp"></span><span class="meta" id="dictSt-en-fa"></span><button class="btn" id="dictDl-en-fa" data-t="download">Download</button><button class="btn ghost" id="dictRm-en-fa" data-t="dictRemove" hidden>Remove</button></div>
+  <div class="dlrow"><span class="dot" id="dictDot-fa-en"></span><strong data-t="dictPackFaEn">Dictionary · Persian → English · about 0.9 MB</strong><span class="sp"></span><span class="meta" id="dictSt-fa-en"></span><button class="btn" id="dictDl-fa-en" data-t="download">Download</button><button class="btn ghost" id="dictRm-fa-en" data-t="dictRemove" hidden>Remove</button></div>
+  <p class="hint" data-t="dictPackNote">The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About &amp; credits.</p>
   <div id="dlBox" hidden><div class="prog"><i id="dlBar"></i></div><span class="meta" id="dlTxt"></span></div>
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
 </div></div>
 <datalist id="models"></datalist>
+<div class="credits-box" id="creditsBox" role="dialog" aria-labelledby="creditsTitle" hidden>
+  <div class="row"><strong id="creditsTitle" data-t="creditsBtn">About &amp; credits</strong><span class="sp"></span><button class="btn ghost" id="creditsClose" type="button" aria-label="Close">✕</button></div>
+  <p data-t="creditsText"></p>
+  <p><a href="dict/en-fa/credits.txt" target="_blank" rel="noopener">credits (en → fa)</a> · <a href="dict/fa-en/credits.txt" target="_blank" rel="noopener">credits (fa → en)</a></p>
+</div>
+<div class="word-card" id="wordCard" role="dialog" aria-label="Dictionary" hidden></div>
 <div class="speak-notice" id="speakNotice" role="status" aria-live="polite" hidden>
   <span id="speakNoticeText"></span>
   <button class="btn ghost" id="speakNoticeRetry" type="button" hidden></button>
@@ -986,6 +1030,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 <div class="toasts" id="toasts"></div>
 
 <script src="extension/engine.js"></script>
+<script src="extension/dictionary.js"></script>
 <script>
 'use strict';
 const $=id=>document.getElementById(id);
@@ -1007,7 +1052,7 @@ const store={
 /* ---------- i18n ---------- */
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
- tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
+ tabDict:'Dictionary',dictPh:'Type an English or Persian word…',dictSearch:'Search',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
  engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
@@ -1078,7 +1123,7 @@ const I18N={en:{
  vListenLabel:'Mic:',vTransLabel:'Translate:'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
- tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
+ tabDict:'فرهنگ لغت',dictPh:'یک واژه‌ی انگلیسی یا فارسی بنویسید…',dictSearch:'جستجو',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
  engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
@@ -5171,6 +5216,154 @@ function boot(){
   $('tIn').dispatchEvent(new Event('input'));
 }
 boot();
+
+/* ---------- OFFLINE DICTIONARY (packs from Wiktionary, CC BY-SA; see extension/dictionary.js) ---------- */
+const DICT_PAIRS=['en-fa','fa-en'];
+const dictBytes=pair=>async rel=>{const r=await fetch(`dict/${pair}/pack-30000/${rel}`);if(!r.ok)throw new Error('dictionary file '+rel+': HTTP '+r.status);return r.arrayBuffer()};
+async function dictRefreshPacks(){
+  for(const pair of DICT_PAIRS){
+    const st=await MakanDict.status(pair);
+    const dot=$('dictDot-'+pair),stEl=$('dictSt-'+pair);if(!dot)continue;
+    dot.classList.toggle('ok',!!st);stEl.textContent=st?`${L('ready')} · ${st.entries}`:L('notDl');
+    $('dictRm-'+pair).hidden=!st;$('dictDl-'+pair).hidden=!!st;
+  }
+}
+DICT_PAIRS.forEach(pair=>{
+  $('dictDl-'+pair).onclick=async()=>{
+    const btn=$('dictDl-'+pair),st=$('dictSt-'+pair);btn.disabled=true;
+    try{
+      await MakanDict.install(pair,{getBytes:dictBytes(pair),onProgress:f=>{st.textContent=`${L('dictDownloading')} ${Math.round(f*100)}%`}});
+      toast(L('ready'),'ok');
+    }catch(e){toast(scrubKeys(e.message||e),'err')}
+    btn.disabled=false;dictRefreshPacks();
+  };
+  $('dictRm-'+pair).onclick=async()=>{await MakanDict.remove(pair);dictRefreshPacks()};
+});
+dictRefreshPacks();
+
+// ---- my words (local only) ----
+const myWords=()=>store.get('words',[]);
+function saveWord(w){const l=myWords();if(l.some(x=>x.w===w.w&&x.pair===w.pair&&x.pos===w.pos))return;l.unshift(Object.assign({ts:Date.now()},w));store.set('words',l.slice(0,2000));renderMyWords()}
+function removeWord(i){const l=myWords();l.splice(i,1);store.set('words',l);renderMyWords()}
+function renderMyWords(){
+  const l=myWords(),box=$('dcWords');if(!box)return;
+  $('dcWordCount').textContent=l.length?String(l.length):'';
+  box.innerHTML=l.map((x,i)=>`<div class="my-word"><strong dir="auto">${esc(x.w)}</strong><span class="meta">${esc(x.pos||'')}</span><span dir="auto" style="flex:1">${esc((x.meanings||[]).join(x.pair==='en-fa'?'، ':'; '))}</span><button class="btn ghost" data-rm="${i}" type="button" aria-label="Remove">✕</button></div>`).join('');
+}
+$('dcWords').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)removeWord(+b.dataset.rm)});
+$('dcClear').onclick=()=>{store.set('words',[]);renderMyWords()};
+const csvCell=v=>{let t=String(v==null?'':v);if(/^[=+\-@\t\r]/.test(t))t="'"+t;return /[",\n\r]/.test(t)?'"'+t.replace(/"/g,'""')+'"':t};
+function wordsCsv(){
+  const rows=[['word','pair','part_of_speech','meanings','saved_at'],...myWords().map(x=>[x.w,x.pair,x.pos||'',(x.meanings||[]).join('; '),new Date(x.ts).toISOString()])];
+  return rows.map(r=>r.map(csvCell).join(',')).join('\r\n')+'\r\n';
+}
+$('dcExport').onclick=()=>download('makan-my-words.csv',wordsCsv(),'text/csv');
+renderMyWords();
+
+// ---- rendering an entry (text only) ----
+function dictRender(res,box,opts={}){
+  box.replaceChildren();
+  const toFa=res.pair==='en-fa',sep=toFa?'، ':'; ';
+  const el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n};
+  if(!res.groups.length&&!res.extra.length&&!res.phrases.length){box.append(el('p','hint',L('dictNotFound')));return}
+  for(const g of res.groups){
+    box.append(el('div','dict-pos',g.pos));
+    for(const e of g.entries){
+      const row=el('div','dict-entry');
+      const head=el('div','dict-head');head.append(el('span','w',e.headword));
+      const saved=myWords().some(x=>x.w===e.headword&&x.pair===res.pair&&x.pos===g.pos);
+      const sb=el('button','btn ghost',saved?L('dictSaved'):L('dictSave'));sb.type='button';sb.className+=' dict-save';
+      sb.onclick=()=>{saveWord({w:e.headword,pair:res.pair,pos:g.pos,meanings:e.meanings.slice(0,5)});sb.textContent=L('dictSaved')};
+      head.append(sb);row.append(head);
+      if(e.viaForm)row.append(el('div','dict-via',`${e.viaForm.form} — ${L('dictFormOf')} ${e.headword}${e.viaForm.tags&&e.viaForm.tags.length?' ('+e.viaForm.tags.join(', ')+')':''}`));
+      const m=el('div','dict-meanings',e.meanings.slice(0,6).join(sep));m.dir='auto';row.append(m);
+      if(e.example){const x=el('div','dict-ex',e.example);x.dir='auto';row.append(x)}
+      if(e.forms&&e.forms.length)row.append(el('div','dict-forms',`${L('dictForms')}: ${e.forms.slice(0,8).map(f=>f.form).join(', ')}`));
+      box.append(row);
+    }
+  }
+  if(res.extra.length){const x=el('div','dict-extra',`${L('dictAlso')}: ${res.extra.slice(0,6).map(x=>x.headword).join(sep)}`);x.dir='auto';box.append(x)}
+  if(res.phrases.length){
+    box.append(el('div','dict-pos',L('dictPhrases')));
+    for(const p of res.phrases.slice(0,opts.maxPhrases||12)){
+      const row=el('div','dict-entry');
+      const h=el('div','dict-head');h.append(el('span','w',p.headword),el('span','dict-idiom','idiom'));row.append(h);
+      const m=el('div','dict-meanings',p.meanings.slice(0,3).join(sep));m.dir='auto';row.append(m);
+      if(p.example){const x=el('div','dict-ex',p.example);x.dir='auto';row.append(x)}
+      box.append(row);
+    }
+  }
+}
+// "Explain with AI": usage, register and examples from the Smart engine, shown after (never instead of) the entry.
+async function dictExplain(word,box,btn){
+  const out=document.createElement('div');out.className='dict-ai';out.textContent=L('dictExplaining');box.append(out);
+  if(btn)btn.disabled=true;
+  try{
+    const ui=L('dictAiAsk');
+    const txt=await chat([{role:'user',content:`${ui}\n\n${word}`}],{system:`You are a concise bilingual (English/Persian) dictionary assistant. Answer in ${ui==='fa'?'Persian':'English'}.`});
+    out.textContent=txt;
+  }catch(e){out.textContent=e&&e.message&&!/noAi/.test(e.message)?scrubKeys(e.message):L('dictNoAi')}
+  if(btn)btn.disabled=false;
+}
+const aiAvailable=()=>cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+
+// ---- the Dictionary tab ----
+async function dictSearch(){
+  const word=$('dcSearch').value.trim(),box=$('dcResult');box.replaceChildren();
+  if(!word){$('dcNoPack').hidden=true;return}
+  const lang=MakanDict.detectLang(word),pair=MakanDict.PAIRS[lang];
+  const res=await MakanDict.lookup(word,{lang});
+  if(!res){$('dcNoPackText').textContent=L('dictNoPack')+' '+(lang==='fa'?'(فارسی → English)':'(English → فارسی)');$('dcNoPack').hidden=false;return}
+  $('dcNoPack').hidden=true;
+  dictRender(res,box);
+  const b=document.createElement('button');b.className='btn';b.type='button';b.id='dcExplain';b.textContent=L('dictExplain');b.style.marginTop='12px';
+  b.onclick=()=>dictExplain(word,box,b);box.append(b);
+}
+$('dcGo').onclick=dictSearch;
+$('dcSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();dictSearch()}});
+$('dcOpenSettings').onclick=()=>{$('openSet').click()};
+
+// ---- Text tab: click a word in the source or the result ----
+function wordAt(ta){
+  if(ta.selectionStart!==ta.selectionEnd)return '';
+  const v=ta.value,i=ta.selectionStart,re=/[\p{L}\p{M}\p{N}'’\-]/u;
+  let a=i,b=i;while(a>0&&re.test(v[a-1]))a--;while(b<v.length&&re.test(v[b]))b++;
+  return v.slice(a,b).replace(/^['’\-]+|['’\-]+$/g,'');
+}
+let wordCardSeq=0;
+function hideWordCard(){wordCardSeq++;$('wordCard').hidden=true}
+async function showWordCard(word,x,y){
+  const seq=++wordCardSeq,card=$('wordCard');
+  const lang=MakanDict.detectLang(word);
+  const res=await MakanDict.lookup(word,{lang});
+  if(seq!==wordCardSeq)return;
+  if(!res){hideWordCard();return}
+  card.replaceChildren();
+  const box=document.createElement('div');card.append(box);
+  dictRender(res,box,{maxPhrases:3});
+  if(!res.groups.length&&!res.extra.length){hideWordCard();return}
+  card.style.left=Math.max(8,Math.min(x,innerWidth-380))+'px';card.style.top=Math.min(y+14,innerHeight-120)+'px';
+  card.hidden=false;
+  // The entry above is already there; the AI detail follows when an AI engine is available.
+  if(aiAvailable()){
+    const out=document.createElement('div');out.className='dict-ai';out.textContent=L('dictExplaining');card.append(out);
+    try{
+      const txt=await chat([{role:'user',content:`${L('dictAiAsk')}\n\n${word}`}],{system:`You are a concise bilingual (English/Persian) dictionary assistant. Answer in ${ui==='fa'?'Persian':'English'}.`});
+      if(seq===wordCardSeq)out.textContent=txt;
+    }catch{if(seq===wordCardSeq)out.remove()}
+  }
+}
+['tIn','tOut'].forEach(id=>$(id).addEventListener('click',e=>{
+  const w=wordAt($(id));if(!w||w.length<2){hideWordCard();return}
+  showWordCard(w,e.clientX,e.clientY);
+}));
+document.addEventListener('keydown',e=>{if(e.key==='Escape'){hideWordCard();$('creditsBox').hidden=true}});
+document.addEventListener('mousedown',e=>{if(!e.target.closest('#wordCard')&&!e.target.closest('#tIn,#tOut'))hideWordCard()});
+$('tIn').addEventListener('input',hideWordCard);
+
+// ---- credits ----
+$('creditsBtn').onclick=()=>{$('creditsBox').hidden=!$('creditsBox').hidden};
+$('creditsClose').onclick=()=>{$('creditsBox').hidden=true};
 </script>
 </body>
 </html>

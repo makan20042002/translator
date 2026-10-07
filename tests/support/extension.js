@@ -183,10 +183,26 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
  * Playwright does not list this popup as a page, so this small client talks
  * to it directly.
  */
-async function openRealPopup(ext) {
+async function openRealPopup(ext, options = {}) {
   const sw = await ext.worker();
-  const opened = await sw.evaluate(async () => { try { await chrome.action.openPopup(); return 'ok'; } catch (e) { return e.message; } });
-  if (opened !== 'ok') throw new Error('chrome.action.openPopup failed: ' + opened);
+  // Chrome only opens the popup for a focused window; on some systems (Windows) that needs a nudge and a few tries.
+  let opened = '';
+  for (let attempt = 0; attempt < 8; attempt++) {
+    if (attempt > 0) { // first try as is; later tries focus the window (the tab in front is left alone)
+      try {
+        const { windowId } = await ext.cdp.send('Browser.getWindowForTarget').catch(() => ({}));
+        if (windowId) await ext.cdp.send('Browser.setWindowBounds', { windowId, bounds: { windowState: 'normal' } }).catch(() => {});
+      } catch {}
+    }
+    opened = await sw.evaluate(async () => { try { await chrome.action.openPopup(); return 'ok'; } catch (e) { return e.message; } });
+    if (opened === 'ok') break;
+    await new Promise(r => setTimeout(r, 400));
+  }
+  if (opened !== 'ok') {
+    // Last resort, only when the test says it can live with it: open popup.html as an ordinary tab.
+    if (options.allowPageFallback) return openPopupAsPage(ext, opened);
+    throw new Error('chrome.action.openPopup failed: ' + opened);
+  }
   let target = null;
   for (let i = 0; i < 50 && !target; i++) {
     const { targetInfos } = await ext.cdp.send('Target.getTargets');
@@ -252,6 +268,35 @@ async function openRealPopup(ext) {
     async close() { if (!closed) await ext.cdp.send('Target.closeTarget', { targetId: target.targetId }).catch(() => {}); }
   };
   return popup;
+}
+
+/**
+ * Fallback for systems where the toolbar popup cannot be opened by a script: the same popup.html in a normal tab,
+ * with the same small client (eval, waitFor, click, type, close). It is not the real toolbar popup (the "active tab"
+ * is the popup tab itself), so only tests that do not depend on the page behind the popup may use it.
+ */
+async function openPopupAsPage(ext, reason) {
+  const page = await ext.context.newPage();
+  const consoleErrors = [];
+  page.on('pageerror', e => consoleErrors.push('uncaught: ' + e.message));
+  await page.goto(ext.url('popup.html'));
+  test_annotate(`the toolbar popup could not be opened (${reason}); popup.html was opened as a page instead`);
+  const popup = {
+    consoleErrors, asPage: true,
+    isClosed: () => page.isClosed(),
+    eval: expression => page.evaluate(expression),
+    async waitFor(expression, timeout = 10000) {
+      await page.waitForFunction(expression, null, { timeout });
+      return true;
+    },
+    async click(selector) { await page.locator(selector).click(); },
+    async type(text) { await page.keyboard.type(text); },
+    async close() { await page.close().catch(() => {}); }
+  };
+  return popup;
+}
+function test_annotate(description) {
+  try { require('@playwright/test').test.info().annotations.push({ type: 'popup fallback', description }); } catch {}
 }
 
 /** Locator for something inside the extension's shadow root on a web page. */

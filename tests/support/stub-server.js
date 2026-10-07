@@ -314,7 +314,7 @@ async function startStub() {
     const headers = { 'content-type': MIME[path.extname(file)] || 'application/octet-stream', 'cache-control': 'no-store' };
     // strict.html imitates sites such as addons.mozilla.org: no inline styles or scripts, and every kind of
     // resource limited to the page's own address.
-    if (/\/strict\.html$/.test(file)) headers['content-security-policy'] = STRICT_CSP;
+    if (/\/strict\.html$/.test(rel)) headers['content-security-policy'] = STRICT_CSP; // rel is the URL path (always '/'), unlike the file path on Windows
     res.writeHead(200, headers);
     res.end(req.method === 'HEAD' ? undefined : fs.readFileSync(file));
   });

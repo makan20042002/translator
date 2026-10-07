@@ -559,3 +559,9 @@
 
 .makan-voice-used { font-size: 11px; color: var(--muted); margin-top: 6px; }
 .makan-voice-retry { margin-inline-start: 8px; font-size: 11px; padding: 1px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
+
+.makan-dict-badge { margin-inline-start: 8px; font-size: 10px; padding: 1px 6px; border-radius: 6px; border: 1px solid var(--border); color: var(--muted); }
+.makan-dict-form { font-size: 11px; color: var(--muted); margin-top: 4px; }
+.makan-dict-extra { font-size: 12px; color: var(--muted); margin-top: 6px; }
+.makan-dict-ai { margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border); }
+.makan-dict-ai[hidden] { display: none; }

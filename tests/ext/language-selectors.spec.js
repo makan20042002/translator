@@ -56,12 +56,12 @@ test.describe('Extension: language selectors', () => {
   });
 
   test('the popup has selectors, remembers the last choice, and Swap works', async ({ ext }) => {
-    let popup = await openRealPopup(ext);
+    let popup = await openRealPopup(ext, { allowPageFallback: true });
     expect(await popup.eval(`document.getElementById('pTgtLang').options.length`)).toBeGreaterThan(20);
     await popup.eval(`(() => { const s = document.getElementById('pTgtLang'); s.value = 'de'; s.dispatchEvent(new Event('change', { bubbles: true })); })()`);
     await expect.poll(async () => (await ext.getConfig()).tgt).toBe('de');
     await popup.close();
-    popup = await openRealPopup(ext);
+    popup = await openRealPopup(ext, { allowPageFallback: true });
     expect(await popup.eval(`document.getElementById('pTgtLang').value`)).toBe('de');
     const before = await popup.eval(`[document.getElementById('pSrcLang').value, document.getElementById('pTgtLang').value]`);
     await popup.click('#pSwapLang');
