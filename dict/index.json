@@ -1,0 +1,73 @@
+{
+  "format": "offline-dictionary-index",
+  "format_version": 1,
+  "generated_at": "2026-10-06T16:35:49.221810+00:00",
+  "packs": [
+    {
+      "id": "en-fa-10000",
+      "language": "en",
+      "translation_language": "fa",
+      "entries": 10000,
+      "phrases": 332,
+      "compressed_bytes": 824015,
+      "uncompressed_bytes": 2856389,
+      "version": "2026-10-06T16:35:44.917247+00:00",
+      "path": "packs/en-fa/pack-10000/pack.json"
+    },
+    {
+      "id": "en-fa-30000",
+      "language": "en",
+      "translation_language": "fa",
+      "entries": 14018,
+      "phrases": 332,
+      "compressed_bytes": 1094444,
+      "uncompressed_bytes": 3785284,
+      "version": "2026-10-06T16:35:45.240631+00:00",
+      "path": "packs/en-fa/pack-30000/pack.json"
+    },
+    {
+      "id": "en-fa-100000",
+      "language": "en",
+      "translation_language": "fa",
+      "entries": 14018,
+      "phrases": 332,
+      "compressed_bytes": 1094444,
+      "uncompressed_bytes": 3785284,
+      "version": "2026-10-06T16:35:45.547738+00:00",
+      "path": "packs/en-fa/pack-100000/pack.json"
+    },
+    {
+      "id": "fa-en-10000",
+      "language": "fa",
+      "translation_language": "en",
+      "entries": 10000,
+      "phrases": 148,
+      "compressed_bytes": 593405,
+      "uncompressed_bytes": 2764906,
+      "version": "2026-10-06T16:35:48.457463+00:00",
+      "path": "packs/fa-en/pack-10000/pack.json"
+    },
+    {
+      "id": "fa-en-30000",
+      "language": "fa",
+      "translation_language": "en",
+      "entries": 15604,
+      "phrases": 148,
+      "compressed_bytes": 849812,
+      "uncompressed_bytes": 3931554,
+      "version": "2026-10-06T16:35:48.806063+00:00",
+      "path": "packs/fa-en/pack-30000/pack.json"
+    },
+    {
+      "id": "fa-en-100000",
+      "language": "fa",
+      "translation_language": "en",
+      "entries": 15604,
+      "phrases": 148,
+      "compressed_bytes": 849812,
+      "uncompressed_bytes": 3931554,
+      "version": "2026-10-06T16:35:49.177207+00:00",
+      "path": "packs/fa-en/pack-100000/pack.json"
+    }
+  ]
+}

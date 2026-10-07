@@ -1,0 +1,27 @@
+{
+  "format": "offline-dictionary-pack",
+  "format_version": 1,
+  "language": "fa",
+  "translation_language": "en",
+  "requested_size": 10000,
+  "entry_count": 10000,
+  "phrase_count": 148,
+  "chunk_size": 1000,
+  "compression": "gzip",
+  "files": [
+    "chunk-0001.json.gz",
+    "chunk-0002.json.gz",
+    "chunk-0003.json.gz",
+    "chunk-0004.json.gz",
+    "chunk-0005.json.gz",
+    "chunk-0006.json.gz",
+    "chunk-0007.json.gz",
+    "chunk-0008.json.gz",
+    "chunk-0009.json.gz",
+    "chunk-0010.json.gz",
+    "phrases-0001.json.gz"
+  ],
+  "uncompressed_bytes": 2764906,
+  "compressed_bytes": 593405,
+  "generated_at": "2026-10-06T16:35:48.457463+00:00"
+}
