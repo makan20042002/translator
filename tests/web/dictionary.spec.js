@@ -2,7 +2,7 @@
 // Offline dictionary in the web app: packs, lookup in both directions, forms, reverse meanings, word list, AI after, credits, Persian UI.
 const { test, expect, onlyEngines, mouseClick, downloadOf, VALID_KEY } = require('../support/fixtures');
 
-const installPacks = page => page.evaluate(async () => { for (const p of DICT_PAIRS) await MakanDict.install(p, { getBytes: dictBytes(p) }); return true; });
+const installPacks = page => page.evaluate(async () => { await dictReady; for (const p of DICT_PAIRS) await MakanDict.install(p, { getBytes: dictBytes(p) }); return true; });
 
 async function openDictionary(page) {
   await mouseClick(page, page.locator('#tabs button[data-tab="dict"]'));
@@ -42,7 +42,7 @@ test.describe('Web app: offline dictionary', () => {
     const { page } = app;
     await mouseClick(page, page.locator('#openSet'));
     await expect(page.locator('#dictSt-en-fa')).toHaveText(/not downloaded/i);
-    await expect(page.locator('#ov')).toContainText('about 1.1 MB');
+    await expect(page.locator('#ov')).toContainText('~1.0 MB');
     await mouseClick(page, page.locator('#dictDl-en-fa'));
     await expect(page.locator('#dictSt-en-fa')).toContainText(/ready/i, { timeout: 30_000 });
     await expect(page.locator('#dictDot-en-fa')).toHaveClass(/ok/);
@@ -87,14 +87,14 @@ test.describe('Web app: offline dictionary', () => {
       await openDictionary(page);
       await search(page, 'در');
       await expect(page.locator('#dcResult .dict-meanings').first()).toContainText('door');
-      const normalised = await page.evaluate(async () => (await MakanDict.lookup('كتاب', { lang: 'fa' })).groups.length === (await MakanDict.lookup('کتاب', { lang: 'fa' })).groups.length);
+      const normalised = await page.evaluate(async () => (await MakanDict.lookup('كتاب', { pair: 'fa-en' })).groups.length === (await MakanDict.lookup('کتاب', { pair: 'fa-en' })).groups.length);
       expect(normalised).toBe(true);
     });
 
     test('an idioms and phrases section lists phrases containing the word', async ({ app }) => {
       const { page } = app;
       await installPacks(page);
-      const r = await page.evaluate(async () => (await MakanDict.lookup('how do you do', { lang: 'en' })).phrases.map(p => p.headword));
+      const r = await page.evaluate(async () => (await MakanDict.lookup('how do you do', { pair: 'en-fa' })).phrases.map(p => p.headword));
       expect(r).toContain('how do you do');
       await openDictionary(page);
       await search(page, 'know');
@@ -106,7 +106,7 @@ test.describe('Web app: offline dictionary', () => {
       await installPacks(page);
       const found = await page.evaluate(async () => {
         const words = ['water', 'house', 'book', 'friend', 'love', 'time', 'life', 'food', 'sun', 'moon', 'tree', 'city', 'road', 'night', 'day', 'sea', 'fire', 'bird', 'king', 'war', 'peace', 'door', 'eye', 'hand', 'heart', 'mother', 'father', 'dream', 'stone', 'garden'];
-        for (const w of words) { const r = await MakanDict.lookup(w, { lang: 'en' }); if (r && r.extra.length) return { w, extra: r.extra[0], meanings: r.groups.flatMap(g => g.entries.flatMap(e => e.meanings)) }; }
+        for (const w of words) { const r = await MakanDict.lookup(w, { pair: 'en-fa' }); if (r && r.extra.length) return { w, extra: r.extra[0], meanings: r.groups.flatMap(g => g.entries.flatMap(e => e.meanings)) }; }
         return null;
       });
       expect(found, 'at least one common English word gains a meaning from the Persian pack').toBeTruthy();

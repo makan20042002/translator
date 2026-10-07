@@ -390,19 +390,35 @@ const isContentScript = sender => !!sender && sender.id === chrome.runtime.id &&
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
 const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup']);
 
-// The dictionary packs ship inside the extension; load one into IndexedDB the first time it is needed (no network).
+// The dictionary packs ship inside the extension (the list of packs is dict/packs.json); load one into IndexedDB the
+// first time it is needed (no network).
+let dictPacksPromise = null;
+function dictPacks() {
+  if (!dictPacksPromise) {
+    dictPacksPromise = fetch(chrome.runtime.getURL('dict/packs.json')).then(r => r.json()).then(l => { MakanDict.setPacks(l.packs); return l.packs; })
+      .catch(e => { dictPacksPromise = null; throw e; });
+  }
+  return dictPacksPromise;
+}
 const dictionaryReady = {};
 function ensureDictionary(pair) {
   if (!dictionaryReady[pair]) {
     dictionaryReady[pair] = (async () => {
+      await dictPacks();
+      const info = MakanDict.PAIR_INFO[pair];
+      if (!info) throw new Error('unknown dictionary pack: ' + pair);
       if (await MakanDict.status(pair)) return true;
-      await MakanDict.install(pair, { getBytes: async rel => (await fetch(chrome.runtime.getURL(`dict/${pair}/${rel}`))).arrayBuffer() });
+      await MakanDict.install(pair, { getBytes: async rel => (await fetch(chrome.runtime.getURL(`dict/${info.dir}/${rel}`))).arrayBuffer() });
       return true;
     })().catch(e => { delete dictionaryReady[pair]; throw e; });
   }
   return dictionaryReady[pair];
 }
-try { chrome.runtime.onInstalled.addListener(() => { ensureDictionary('en-fa').catch(() => {}); ensureDictionary('fa-en').catch(() => {}); }); } catch {}
+async function ensureAllDictionaries() {
+  const packs = await dictPacks();
+  await Promise.all(packs.map(p => ensureDictionary(p.id)));
+}
+try { chrome.runtime.onInstalled.addListener(() => { ensureAllDictionaries().catch(() => {}); }); } catch {}
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
@@ -491,14 +507,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       // Offline dictionary: no network. The packs inside the extension are loaded into IndexedDB the first time.
       try {
         const word = String(req.word || '').trim();
-        const lang = MakanDict.detectLang(word);
-        await ensureDictionary(MakanDict.PAIRS[lang]);
-        if (req.phrase) {
-          const idiom = await MakanDict.lookupPhrase(word, { lang });
-          return { ok: true, idiom };
-        }
-        const result = await MakanDict.lookup(word, { lang });
-        return { ok: true, result };
+        await ensureAllDictionaries();
+        const opts = { hints: { to: cfg.tgt }, showVulgar: !!cfg.showVulgar };
+        if (req.phrase) return { ok: true, idiom: await MakanDict.lookupPhrase(word, opts) };
+        return { ok: true, result: await MakanDict.lookup(word, opts) };
       } catch (e) {
         return { ok: false, error: String((e && e.message) || e) };
       }

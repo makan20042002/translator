@@ -11,29 +11,40 @@
 (function (root) {
 'use strict';
 
-const PAIRS = { en: 'en-fa', fa: 'fa-en' };
-const PAIR_INFO = {
-  'en-fa': { from: 'en', to: 'fa', name: 'English → Persian', approxBytes: 1100000 },
-  'fa-en': { from: 'fa', to: 'en', name: 'Persian → English', approxBytes: 850000 }
-};
+// The packs on offer come from a small generated list (dict/packs.json, made by build-dict-list.js from the folders
+// under dict/). setPacks() takes that list; nothing about English or Persian is wired in here.
+const PAIR_INFO = {};   // id -> { id, from, to, entries, phrases, bytes, dir, credits }
+function setPacks(list) {
+  for (const k of Object.keys(PAIR_INFO)) delete PAIR_INFO[k];
+  for (const p of list || []) if (p && p.id && p.from && p.to) PAIR_INFO[p.id] = Object.assign({}, p);
+}
+const pairFor = (from, to) => (PAIR_INFO[from + '-' + to] ? from + '-' + to : null);
+const reverseOf = pair => PAIR_INFO[pair] ? pairFor(PAIR_INFO[pair].to, PAIR_INFO[pair].from) : null;
 
-// The same normalisation the pack builder used for Persian: Arabic ye / alef maksura and kaf to the Persian letters,
-// no zero-width non-joiner, no tatweel, no diacritics. Everything is lower-cased.
+// Words are looked up lower-cased; Persian additionally gets the normalisation the pack builder used for Persian:
+// Arabic ye / alef maksura and kaf to the Persian letters, no zero-width non-joiner, no tatweel, no diacritics.
+// Other languages (Arabic, German, ...) are NOT changed beyond case.
 function normalize(word, lang) {
   let s = String(word == null ? '' : word).normalize('NFC').trim().replace(/\s+/g, ' ');
   s = s.toLowerCase();
   if (lang === 'fa') {
-    s = s.replace(/[يى]/g, 'ی').replace(/ك/g, 'ک').replace(/[‌ـ]/g, '');
+    s = s.replace(/[\u064a\u0649]/g, '\u06cc').replace(/\u0643/g, '\u06a9').replace(/[\u200c\u0640]/g, '');
     s = s.replace(/\p{Mn}/gu, '');
-  } else {
-    s = s.replace(/[’‘]/g, "'");
+  } else if (lang === 'en') {
+    s = s.replace(/[\u2019\u2018]/g, "'");
   }
   return s;
 }
 
-// Persian or Arabic letters mean Persian; anything else is treated as English.
-function detectLang(text) {
-  return /[؀-ۿݐ-ݿﭐ-﷿ﹰ-﻿]/.test(String(text || '')) ? 'fa' : 'en';
+// Arabic-script text: Persian if it has Persian-only letters, otherwise Arabic when an Arabic pack exists. Latin text: English first.
+function scriptOf(text) {
+  return /[\u0600-\u06ff\u0750-\u077f\ufb50-\ufdff\ufe70-\ufeff]/.test(String(text || '')) ? 'arabic' : 'latin';
+}
+function detectLang(text, haveFrom) {
+  if (scriptOf(text) === 'latin') return 'en';
+  const have = haveFrom || Object.values(PAIR_INFO).map(p => p.from);
+  if (/[\u067e\u0686\u0698\u06af\u06a9\u06cc]/.test(text) || !have.includes('ar')) return 'fa';
+  return have.includes('fa') && !/[\u0629\u0649\u064a]/.test(text) ? 'fa' : 'ar';
 }
 
 const dbCache = {};
@@ -111,7 +122,7 @@ async function remove(pair) {
   await done(tx);
 }
 
-// Indexes: headword -> entries, inflected form -> headwords, short gloss -> headwords, phrases.
+// Indexes: headword -> entries, inflected form -> headwords, whole meaning -> headwords, phrases.
 async function load(pair) {
   if (memory[pair]) return memory[pair];
   memory[pair] = (async () => {
@@ -125,31 +136,76 @@ async function load(pair) {
       if (c.phrases) { m.phrases.push(e); push(m.phraseByLookup, e.lookup, e); continue; }
       push(m.entries, e.lookup, e);
       for (const f of e.forms) addHead(m.forms, normalize(f.form, info.from), e.lookup);
-      for (const g of e.meanings) for (const x of glossesOf(g)) addHead(m.gloss, normalize(x, info.to), e.lookup);
+      // Only a WHOLE meaning counts for cross-filling ("dog" means exactly dog), never a piece of a longer text.
+      for (const g of e.meanings) if (g.length <= 40) addHead(m.gloss, normalize(g, info.to), e.lookup);
     }
     return m;
   })().catch(e => { delete memory[pair]; throw e; });
   return memory[pair];
 }
 
-const POS_ORDER = ['noun', 'verb', 'adj', 'adjective', 'adv', 'adverb', 'pron', 'prep', 'conj', 'intj', 'article', 'particle', 'num', 'name', 'phrase', 'prep_phrase', 'character'];
-const posRank = p => { const i = POS_ORDER.indexOf(p); return i < 0 ? 99 : i; };
+const POS_ORDER = ['noun', 'verb', 'adj', 'adjective', 'adv', 'adverb', 'pron', 'pronoun', 'prep', 'preposition', 'conj', 'conjunction', 'intj', 'interjection', 'article', 'particle', 'num', 'numeral', 'name', 'phrase', 'prep_phrase'];
+const posRank = p => (p === 'character' ? 200 : (POS_ORDER.indexOf(p) < 0 ? 99 : POS_ORDER.indexOf(p)));
+
+// Meanings that only say "this is a variant / dialect / old / misspelt form" come after the standard ones.
+const VARIANT_RE = /\b(alternative (form|spelling)|variant|dialectal|dialect|colloquial|obsolete|archaic|dated|misspelling|nonstandard|unhamzated|eye dialect|pronunciation spelling|informal spelling|filter-avoidance|form of)\b/i;
+function variantPenalty(e) {
+  if ([...e.headword].length === 1 || e.pos === 'character') return 3;
+  if (e.meanings.length && e.meanings.every(m => VARIANT_RE.test(m))) return 2;
+  return 0;
+}
+
+// Words many people find vulgar or offensive. The packs carry no such flag, so this short list (normalised words)
+// is what "Show vulgar words" switches. A headword on the list hides its entries; a meaning that is itself on the
+// list (in the pack's target language) is hidden from other entries.
+const VULGAR = {
+  en: new Set(['fuck', 'fucker', 'motherfucker', 'shit', 'cunt', 'dick', 'cock', 'prick', 'pussy', 'bitch', 'bastard', 'whore', 'slut', 'asshole', 'arse', 'arsehole', 'piss', 'wank', 'wanker', 'twat', 'faggot', 'nigger', 'retard', 'bollocks', 'jerk off', 'blow job', 'son of a bitch']),
+  fa: new Set(['کیر', 'کس', 'کص', 'کون', 'کونی', 'جنده', 'کسکش', 'کصکش', 'جاکش', 'مادرجنده', 'مادر جنده', 'گاییدن', 'گائیدن', 'گایید', 'گه', 'ریدن', 'ریدم', 'کیرم', 'کسخل', 'حرامزاده', 'خارکسه', 'مادرقحبه', 'لاشی', 'بیناموس', 'ننه جنده', 'کوس', 'کوص'])
+};
+const isVulgarWord = (text, lang) => !!(VULGAR[lang] && VULGAR[lang].has(normalize(text, lang)));
+function cleanVulgar(entries, info) {
+  const out = [];
+  let hidden = 0;
+  for (const e of entries) {
+    if (isVulgarWord(e.headword, info.from)) { hidden++; continue; }
+    const meanings = e.meanings.filter(m => !isVulgarWord(m, info.to) && !glossesOf(m).some(x => isVulgarWord(x, info.to)));
+    if (!meanings.length) { hidden++; continue; }
+    out.push(meanings.length === e.meanings.length ? e : Object.assign({}, e, { meanings }));
+  }
+  return { entries: out, hidden };
+}
+
+async function installedPairs() {
+  const out = [];
+  for (const id of Object.keys(PAIR_INFO)) if (await status(id)) out.push(id);
+  return out;
+}
+// Which pack answers a word typed without choosing a language pair.
+async function guessPair(text, hints = {}) {
+  const have = await installedPairs();
+  if (!have.length) return null;
+  const from = detectLang(text, have.map(id => PAIR_INFO[id].from));
+  const cands = have.filter(id => PAIR_INFO[id].from === from);
+  if (!cands.length) return null;
+  const pref = hints.to && cands.find(id => PAIR_INFO[id].to === hints.to);
+  return pref || cands.find(id => PAIR_INFO[id].to === 'fa' || PAIR_INFO[id].to === 'en') || cands[0];
+}
 
 /**
- * Look a word up. Returns null when the needed pack is not installed.
+ * Look a word up (options: pair, showVulgar, hints). Returns null when the needed pack is not installed.
  * { query, lang, pair, groups: [{ pos, entries: [{ headword, meanings, example, forms, viaForm? }] }],
- *   extra: [{ headword, source: 'reverse' }]   // lower-ranked meanings found through the other pack
- *   phrases: [...] }                           // idioms / phrases that contain or equal the word
+ *   extra: [{ headword, source: 'reverse' }]   // last-ranked: the other pack has a word whose whole meaning is this word
+ *   phrases: [...], hidden: n }                // hidden = entries left out because they are on the vulgar list
  */
 async function lookup(word, options = {}) {
-  const lang = options.lang || detectLang(word);
-  const pair = PAIRS[lang], info = PAIR_INFO[pair];
-  const meta = await status(pair);
-  if (!meta) return null;
+  const pair = options.pair || await guessPair(word, options.hints);
+  if (!pair || !PAIR_INFO[pair]) return null;
+  const info = PAIR_INFO[pair], lang = info.from;
+  if (!(await status(pair))) return null;
   const mem = await load(pair);
   const norm = normalize(word, lang);
-  if (!norm) return { query: word, lang, pair, groups: [], extra: [], phrases: [] };
-  const found = [];
+  if (!norm) return { query: word, lang, pair, from: info.from, to: info.to, groups: [], extra: [], phrases: [], hidden: 0 };
+  let found = [];
   const seen = new Set();
   const take = (list, via) => list.forEach(e => {
     const key = e.lookup + '|' + e.pos + '|' + e.meanings.join(';');
@@ -164,31 +220,46 @@ async function lookup(word, options = {}) {
     const tags = (list[0] && list[0].forms.find(x => normalize(x.form, lang) === norm) || {}).tags || [];
     take(list, { form: word, tags });
   }
+  let hidden = 0;
+  if (!options.showVulgar) { const c = cleanVulgar(found, info); found = c.entries; hidden = c.hidden; }
+  // Standard meanings first inside an entry; variant-looking entries last.
+  found = found.map(e => {
+    const std = e.meanings.filter(m => !VARIANT_RE.test(m)), odd = e.meanings.filter(m => VARIANT_RE.test(m));
+    return odd.length && std.length ? Object.assign({}, e, { meanings: [...std, ...odd] }) : e;
+  });
   const groups = [];
   for (const e of found) {
     let g = groups.find(x => x.pos === e.pos);
-    if (!g) { g = { pos: e.pos, entries: [] }; groups.push(g); }
-    g.entries.push({ headword: e.headword, meanings: e.meanings, example: e.example, forms: e.forms, viaForm: e.viaForm || null });
+    if (!g) { g = { pos: e.pos, entries: [], penalty: 9 }; groups.push(g); }
+    g.penalty = Math.min(g.penalty, variantPenalty(e));
+    g.entries.push({ headword: e.headword, meanings: e.meanings, example: e.example, forms: e.forms, viaForm: e.viaForm || null, penalty: variantPenalty(e) });
   }
-  groups.sort((a, b) => posRank(a.pos) - posRank(b.pos));
+  for (const g of groups) g.entries.sort((a, b) => a.penalty - b.penalty);
+  groups.sort((a, b) => (a.penalty >= 2) - (b.penalty >= 2) || posRank(a.pos) - posRank(b.pos));
+  groups.forEach(g => { delete g.penalty; g.entries.forEach(e => delete e.penalty); });
 
-  // More coverage without new data: the other pack says which of its words mean this one.
+  // More coverage without new data, ranked last: a word of the other pack whose WHOLE meaning is the looked-up word.
   const extra = [];
-  const other = PAIRS[info.to];
+  const other = reverseOf(pair);
   if (other && (await status(other))) {
     const omem = await load(other);
     const g = omem.gloss.get(norm);
     if (g) {
-      const have = new Set(found.flatMap(e => e.meanings.flatMap(m => glossesOf(m).concat([m]).map(x => normalize(x, info.to)))));
+      const have = new Set(found.flatMap(e => e.meanings.map(m => normalize(m, info.to))));
       for (const head of g) {
         if (have.has(normalize(head, info.to))) continue;
         const es = omem.entries.get(head) || [];
-        if (es[0]) extra.push({ headword: es[0].headword, pos: es[0].pos, source: 'reverse' });
+        if (es[0] && !(!options.showVulgar && isVulgarWord(es[0].headword, info.to))) extra.push({ headword: es[0].headword, pos: es[0].pos, source: 'reverse' });
       }
     }
   }
-  const phrases = phrasesFor(mem, norm);
-  return { query: word, lang, pair, groups, extra, phrases };
+  let phrases = phrasesFor(mem, norm);
+  if (!options.showVulgar) phrases = phrases.filter(p => !isVulgarWord(p.headword, lang) && !p.headword.split(' ').some(w => isVulgarWord(w, lang)));
+  if (!options.showVulgar && isVulgarWord(norm, lang)) {
+    // The word itself is on the vulgar list: show nothing but the fact that something is hidden.
+    return { query: word, lang, pair, from: info.from, to: info.to, groups: [], extra: [], phrases: [], hidden: Math.max(hidden, 1) };
+  }
+  return { query: word, lang, pair, from: info.from, to: info.to, groups, extra, phrases, hidden };
 }
 
 function phrasesFor(mem, norm) {
@@ -205,17 +276,26 @@ function phrasesFor(mem, norm) {
 
 // For selected text of several words: the idiom or phrase entry that is exactly this text, if any.
 async function lookupPhrase(text, options = {}) {
-  const lang = options.lang || detectLang(text);
-  const pair = PAIRS[lang];
-  if (!(await status(pair))) return null;
+  const pair = options.pair || await guessPair(text, options.hints);
+  if (!pair || !PAIR_INFO[pair] || !(await status(pair))) return null;
+  const lang = PAIR_INFO[pair].from;
   const mem = await load(pair);
   const norm = normalize(text.replace(/[.,!?;:،؛؟"“”]+$/g, ''), lang);
   const exact = mem.phraseByLookup.get(norm) || [];
   if (!exact.length) return null;
   const p = exact[0];
-  return { headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, lang, pair };
+  if (!options.showVulgar && (isVulgarWord(p.headword, lang) || p.headword.split(' ').some(w => isVulgarWord(w, lang)))) return null;
+  return { headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, lang, pair, to: PAIR_INFO[pair].to };
 }
 
-root.MakanDict = { PAIRS, PAIR_INFO, normalize, detectLang, install, status, remove, lookup, lookupPhrase, glossesOf };
+// Every phrase of the installed pack for a language, for marking idioms inside a text (longest match wins).
+async function phraseIndex(pair, options = {}) {
+  if (!pair || !PAIR_INFO[pair] || !(await status(pair))) return null;
+  const mem = await load(pair);
+  const lang = PAIR_INFO[pair].from;
+  return { lang, byLookup: mem.phraseByLookup, maxWords: 6 };
+}
+
+root.MakanDict = { PAIR_INFO, setPacks, pairFor, reverseOf, normalize, detectLang, scriptOf, install, status, remove, installedPairs, guessPair, lookup, lookupPhrase, phraseIndex, isVulgarWord, glossesOf };
 if (typeof module !== 'undefined' && module.exports) module.exports = root.MakanDict;
 })(typeof self !== 'undefined' ? self : this);

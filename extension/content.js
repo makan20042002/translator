@@ -649,8 +649,9 @@
 
     // ---- Offline dictionary rendering (text only, never markup from data) ----
     function renderIdiom(idiom) {
-      const dir = idiom.lang === 'en' ? 'rtl' : 'ltr'; // meanings are in the other language
-      translatedResult = idiom.meanings.join(idiom.lang === 'en' ? '، ' : '; ');
+      const rtl = ['fa', 'ar', 'he', 'ur'].includes(idiom.to); // the meanings are in the pack's target language
+      const dir = rtl ? 'rtl' : 'ltr';
+      translatedResult = idiom.meanings.join(rtl ? '، ' : '; ');
       enginePill.textContent = 'Offline dictionary';
       enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
       bodyElem.innerHTML = `<div class="makan-dict-wrap">
@@ -660,7 +661,7 @@
       </div>`;
     }
     function renderDictionaryEntry(res, sourceText, sLang, tLang) {
-      const toFa = res.pair === 'en-fa';
+      const toFa = ['fa', 'ar', 'he', 'ur'].includes(res.to);
       const dir = toFa ? 'rtl' : 'ltr', sep = toFa ? '، ' : '; ';
       const head = (res.groups[0] && res.groups[0].entries[0].headword) || res.query;
       translatedResult = (res.groups[0] ? res.groups[0].entries[0].meanings.slice(0, 3) : res.extra.map(x => x.headword)).join(sep);

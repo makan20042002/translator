@@ -1,0 +1,25 @@
+{
+  "format": "makan-dictionary-list",
+  "packs": [
+    {
+      "id": "en-fa",
+      "from": "en",
+      "to": "fa",
+      "entries": 14018,
+      "phrases": 332,
+      "bytes": 1094444,
+      "dir": "en-fa/pack-30000",
+      "credits": "en-fa/credits.txt"
+    },
+    {
+      "id": "fa-en",
+      "from": "fa",
+      "to": "en",
+      "entries": 15604,
+      "phrases": 148,
+      "bytes": 849812,
+      "dir": "fa-en/pack-30000",
+      "credits": "fa-en/credits.txt"
+    }
+  ]
+}

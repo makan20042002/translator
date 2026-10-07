@@ -126,6 +126,7 @@ function sanitizeConfig(raw, previous) {
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
   cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
   cfg.edgeHintOff = src.edgeHintOff === true;
+  cfg.showVulgar = src.showVulgar === true;
   cfg.subject = isStr(src.subject) ? src.subject : '';
   cfg.subStyle = ['film', 'neutral', 'formal'].includes(src.subStyle) ? src.subStyle : DEFAULT_CFG.subStyle;
   cfg.disabledSites = Array.isArray(src.disabledSites) ? src.disabledSites.filter(isStr) : [];

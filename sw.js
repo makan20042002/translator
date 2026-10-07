@@ -1,5 +1,5 @@
 // MAKAN Translate — lets the app open with no internet.
-const CACHE = 'makan-translate-v13';
+const CACHE = 'makan-translate-v14';
 const SHELL = ['./', './ai-worker.js', './manifest.webmanifest', './icon-192.png', './icon-512.png'];
 const STATIC_HOSTS = ['fonts.googleapis.com', 'fonts.gstatic.com', 'cdn.jsdelivr.net'];
 
@@ -10,6 +10,8 @@ self.addEventListener('activate', e => e.waitUntil(
 self.addEventListener('fetch', e => {
   const req = e.request; if (req.method !== 'GET') return;
   const url = new URL(req.url);
+  // Dictionary packs are big and go to the dictionary's own database; only the small pack list is saved for offline use.
+  if (url.origin === location.origin && url.pathname.includes('/dict/') && !url.pathname.endsWith('/packs.json')) return;
   if (url.origin === location.origin) {            // app files: fresh copy when online, saved copy when not
     e.respondWith(fetch(req).then(r => { if (r.ok) { const c = r.clone(); caches.open(CACHE).then(x => x.put(req, c)); } return r; })
       .catch(() => caches.match(req, { ignoreSearch: true }).then(r => r || caches.match('./'))));
