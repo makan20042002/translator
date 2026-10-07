@@ -7,6 +7,7 @@
 if (typeof importScripts === 'function') {
   try {
     importScripts('engine.js');
+    importScripts('dictionary.js');
   } catch (e) {
     console.error('Failed to import engine.js:', e);
   }
@@ -387,7 +388,21 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup']);
+
+// The dictionary packs ship inside the extension; load one into IndexedDB the first time it is needed (no network).
+const dictionaryReady = {};
+function ensureDictionary(pair) {
+  if (!dictionaryReady[pair]) {
+    dictionaryReady[pair] = (async () => {
+      if (await MakanDict.status(pair)) return true;
+      await MakanDict.install(pair, { getBytes: async rel => (await fetch(chrome.runtime.getURL(`dict/${pair}/${rel}`))).arrayBuffer() });
+      return true;
+    })().catch(e => { delete dictionaryReady[pair]; throw e; });
+  }
+  return dictionaryReady[pair];
+}
+try { chrome.runtime.onInstalled.addListener(() => { ensureDictionary('en-fa').catch(() => {}); ensureDictionary('fa-en').catch(() => {}); }); } catch {}
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
@@ -416,6 +431,7 @@ function requestProblem(req) {
     if (req.text !== undefined && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
   }
   if (req.action === 'translate-dict' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
+  if (req.action === 'dict-lookup' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
   if (req.action === 'play-gemini-tts' && (typeof req.text !== 'string' || req.text.length > 5000)) return 'Bad text';
   for (const k of ['src', 'tgt']) if (req[k] !== undefined && !LANG_RE.test(String(req[k]))) return 'Bad language';
   if (req.engine !== undefined && req.engine !== 'auto' && !(typeof ENG !== 'undefined' && ENG[req.engine])) return 'Bad engine';
@@ -469,6 +485,23 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'dict-lookup') {
+      // Offline dictionary: no network. The packs inside the extension are loaded into IndexedDB the first time.
+      try {
+        const word = String(req.word || '').trim();
+        const lang = MakanDict.detectLang(word);
+        await ensureDictionary(MakanDict.PAIRS[lang]);
+        if (req.phrase) {
+          const idiom = await MakanDict.lookupPhrase(word, { lang });
+          return { ok: true, idiom };
+        }
+        const result = await MakanDict.lookup(word, { lang });
+        return { ok: true, result };
+      } catch (e) {
+        return { ok: false, error: String((e && e.message) || e) };
+      }
     }
 
     if (req.action === 'dismiss-edge-hint') {

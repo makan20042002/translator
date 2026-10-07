@@ -647,6 +647,53 @@
     const pairPill = card.querySelector('#makanPairPill');
     const detectedPill = card.querySelector('#makanDetectedPill');
 
+    // ---- Offline dictionary rendering (text only, never markup from data) ----
+    function renderIdiom(idiom) {
+      const dir = idiom.lang === 'en' ? 'rtl' : 'ltr'; // meanings are in the other language
+      translatedResult = idiom.meanings.join(idiom.lang === 'en' ? '، ' : '; ');
+      enginePill.textContent = 'Offline dictionary';
+      enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
+      bodyElem.innerHTML = `<div class="makan-dict-wrap">
+        <div class="makan-dict-head"><span class="makan-dict-word">${escapeHtml(idiom.headword)}</span><span class="makan-dict-badge">Idiom</span></div>
+        <div class="makan-dict-trans makan-idiom-meaning" dir="${dir}">${escapeHtml(translatedResult)}</div>
+        ${idiom.example ? `<div class="makan-dict-ex">${escapeHtml(idiom.example)}</div>` : ''}
+      </div>`;
+    }
+    function renderDictionaryEntry(res, sourceText, sLang, tLang) {
+      const toFa = res.pair === 'en-fa';
+      const dir = toFa ? 'rtl' : 'ltr', sep = toFa ? '، ' : '; ';
+      const head = (res.groups[0] && res.groups[0].entries[0].headword) || res.query;
+      translatedResult = (res.groups[0] ? res.groups[0].entries[0].meanings.slice(0, 3) : res.extra.map(x => x.headword)).join(sep);
+      enginePill.textContent = 'Offline dictionary';
+      enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
+      const groups = res.groups.map(g => `<div class="makan-dict-pos">${escapeHtml(g.pos)}</div>` + g.entries.map(e => `
+        ${e.viaForm ? `<div class="makan-dict-form">${escapeHtml(e.viaForm.form)} → ${escapeHtml(e.headword)}${e.viaForm.tags && e.viaForm.tags.length ? ' (' + escapeHtml(e.viaForm.tags.join(', ')) + ')' : ''}</div>` : ''}
+        <div class="makan-dict-trans" dir="${dir}">${escapeHtml(e.meanings.slice(0, 5).join(sep))}</div>
+        ${e.example ? `<div class="makan-dict-ex">${escapeHtml(e.example)}</div>` : ''}`).join('')).join('');
+      const extra = res.extra.length ? `<div class="makan-dict-extra" dir="${dir}">Also: ${escapeHtml(res.extra.slice(0, 5).map(x => x.headword).join(sep))}</div>` : '';
+      const idioms = res.phrases.length ? `<div class="makan-dict-pos">phrases</div>` + res.phrases.slice(0, 3).map(p => `<div class="makan-dict-ex"><b>${escapeHtml(p.headword)}</b> — ${escapeHtml(p.meanings.slice(0, 2).join(sep))}</div>`).join('') : '';
+      bodyElem.innerHTML = `<div class="makan-dict-wrap">
+        <div class="makan-dict-head"><span class="makan-dict-word">${escapeHtml(head)}</span><span class="makan-dict-badge">Offline</span></div>
+        ${groups}${extra}${idioms}
+        <div class="makan-dict-ai" id="makanDictAi" hidden></div>
+      </div>`;
+      // The AI explanation comes after, when an AI engine is available (the dictionary entry above never waits for it).
+      if (cfg?.hasAi && cfg?.dictLookup !== false) {
+        askBackground({ action: 'translate-dict', word: sourceText, src: sLang, tgt: tLang }).then(r => {
+          const box = bodyElem.querySelector('#makanDictAi');
+          if (!box || !r.ok || !r.dict) return;
+          const d = r.dict;
+          const parts = [d.definition, ...(d.examples || []).slice(0, 2)].filter(Boolean);
+          if (!parts.length) return;
+          box.replaceChildren();
+          const lab = document.createElement('div'); lab.className = 'makan-dict-pos'; lab.textContent = 'AI explanation';
+          box.appendChild(lab);
+          for (const t of parts) { const p = document.createElement('div'); p.className = 'makan-dict-ex'; p.textContent = t; box.appendChild(p); }
+          box.hidden = false;
+        });
+      }
+    }
+
     async function executeTranslate(sourceText, sLang, tLang, useDict) {
       bodyElem.innerHTML = `
         <div class="makan-loading">
@@ -658,6 +705,20 @@
       detectedLang = isRtlText(sourceText) ? 'fa' : 'en';
       detectedPill.textContent = `Detected: ${detectedLang.toUpperCase()}`;
       updateAppUrl(sourceText, sLang, tLang);
+
+      // Offline dictionary first: instant and without any network call. A selected phrase that is an idiom
+      // shows its meaning (marked as an idiom) instead of a literal translation.
+      try {
+        const nWords = sourceText.trim().split(/\s+/).length;
+        if (useDict || (nWords >= 2 && nWords <= 8)) {
+          const dr = await askBackground({ action: 'dict-lookup', word: sourceText, phrase: !useDict });
+          if (dr.ok && !useDict && dr.idiom) { renderIdiom(dr.idiom); return; }
+          if (dr.ok && useDict && dr.result && (dr.result.groups.length || dr.result.extra.length)) {
+            renderDictionaryEntry(dr.result, sourceText, sLang, tLang);
+            return;
+          }
+        }
+      } catch {}
 
       try {
         if (useDict && cfg?.dictLookup) {

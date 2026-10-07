@@ -42,6 +42,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       works: 'Works',
       saved: 'Saved',
       secSiteCheck: 'Site Compatibility Self-Check',
+      secCredits: 'About & credits',
+      creditsText: 'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',
       subSiteCheck: 'Diagnose whether MAKAN Translate can run on your current site and troubleshoot browser permissions or injection status.',
       btnCheckActiveTab: 'Check Active Tab',
       checkingTab: 'Diagnosing tab…',
@@ -85,6 +87,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       works: 'کار می‌کند',
       saved: 'ذخیره شد',
       secSiteCheck: 'بررسی سازگاری با سایت جاری',
+      secCredits: 'درباره و منابع',
+      creditsText: 'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',
       subSiteCheck: 'بررسی وضعیت اجرای افزونه در برگه فعال و عیب‌یابی دسترسی‌ها و تزریق اسکریپت.',
       btnCheckActiveTab: 'بررسی برگه فعال',
       checkingTab: 'در حال بررسی برگه…',
@@ -220,6 +224,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     optOpenApp.querySelector('span').textContent = I18N[lang].openApp;
 
     if (secSiteCheck) secSiteCheck.textContent = I18N[lang].secSiteCheck;
+    { const a = document.getElementById('secCredits'), b = document.getElementById('creditsText'); if (a) a.textContent = I18N[lang].secCredits; if (b) b.textContent = I18N[lang].creditsText; }
     if (subSiteCheck) subSiteCheck.textContent = I18N[lang].subSiteCheck;
     if (btnRefreshSiteCheckText) btnRefreshSiteCheckText.textContent = I18N[lang].btnCheckActiveTab;
     if (secVoice) secVoice.textContent = I18N[lang].secVoice;

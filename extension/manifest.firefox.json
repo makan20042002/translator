@@ -27,6 +27,7 @@
   "background": {
     "scripts": [
       "engine.js",
+      "dictionary.js",
       "background.js"
     ]
   },
