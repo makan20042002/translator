@@ -518,6 +518,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   let popupBackendToken = null;
   let popupWaitingForStart = false;
   let popupHeldStates = [];
+  let popupLastSpeak = null; // for a playback error that arrives after the background accepted the request
 
   function stopPopupSpeech(tellBackground = true) {
     pSpeakToken++;
@@ -539,6 +540,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       pSpeakBtn.classList.add('playing');
       pSpeakBtn.setAttribute('title', 'Stop read-aloud');
     } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
+      if (req.state === 'error' && popupLastSpeak && popupLastSpeak.token === pSpeakToken) popupLastSpeak.fail(req.error);
       isPopupSpeaking = false;
       popupBackendToken = null;
       pSpeakBtn.classList.remove('preparing', 'playing');
@@ -594,19 +596,48 @@ document.addEventListener('DOMContentLoaded', async () => {
     // Remove any previous voice notice
     const oldNotice = pOutputWrap.querySelector('.p-voice-notice');
     if (oldNotice) oldNotice.remove();
+    const retrySpeak = () => pSpeakBtn.onclick();
+    popupLastSpeak = { token, fail: err => notify('Gemini voice: ' + plainFailure(err), retrySpeak) };
+    const isEdgeBrowser = /\bEdg\//.test(navigator.userAgent || '');
+    const usedLine = label => {
+      let u = pOutputWrap.querySelector('.p-voice-used');
+      if (!u) { u = document.createElement('div'); u.className = 'p-voice-used'; pOutputWrap.appendChild(u); }
+      u.textContent = label ? 'Voice: ' + label : '';
+    };
+    // text: one plain line; retry: shows a Retry button; onClose: called when dismissed.
+    const notify = (text, retry, onClose) => {
+      const n = document.createElement('div');
+      n.className = 'p-voice-notice';
+      const m = document.createElement('span');
+      m.textContent = text;
+      n.appendChild(m);
+      if (retry) {
+        const b = document.createElement('button');
+        b.className = 'p-voice-retry';
+        b.textContent = 'Retry';
+        b.onclick = () => { n.remove(); retry(); };
+        n.appendChild(b);
+      }
+      const x = document.createElement('button');
+      x.className = 'p-voice-retry';
+      x.textContent = '✕';
+      x.title = 'Dismiss';
+      x.onclick = () => { n.remove(); if (onClose) onClose(); };
+      n.appendChild(x);
+      pOutputWrap.appendChild(n);
+    };
 
     if (preferGemini || !voice) {
       let ttsRes = null;
       popupWaitingForStart = true;
       popupHeldStates = [];
-      try {
-        ttsRes = await chrome.runtime.sendMessage({
-          action: 'play-gemini-tts',
-          text,
-          voice: cfg.tts?.geminiVoice,
-          rate: cfg.tts?.rate
-        });
-      } catch {}
+      usedLine(`Gemini (${cfg.tts?.geminiVoice || 'Kore'})`);
+      ttsRes = await askBackground({
+        action: 'play-gemini-tts',
+        text,
+        voice: cfg.tts?.geminiVoice,
+        rate: cfg.tts?.rate
+      });
       popupWaitingForStart = false;
 
       if (token !== pSpeakToken) return;
@@ -629,7 +660,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
           }
         }
-        const check = setInterval(() => {
+        if (!voice && !isEdgeBrowser && !cfg.edgeHintOff) {
+          notify('Microsoft Edge has built-in natural voices for this language.', null, () => {
+            cfg.edgeHintOff = true;
+            chrome.runtime.sendMessage({ action: 'dismiss-edge-hint' }).catch(() => {});
+          });
+        }
+                const check = setInterval(() => {
           if (token !== pSpeakToken) {
             clearInterval(check);
             cleanup();
@@ -643,17 +680,19 @@ document.addEventListener('DOMContentLoaded', async () => {
       } else {
         // NEVER speak with a mismatched language voice
         cleanup();
-        const notice = document.createElement('div');
-        notice.className = 'p-voice-notice';
-        notice.textContent = typeof getNoVoiceMessage === 'function'
-          ? getNoVoiceMessage(targetLang, currentUi)
-          : `No voice installed for ${targetLang}. Configure Gemini API key in Options for AI voice.`;
-        pOutputWrap.appendChild(notice);
-        setTimeout(() => { if (notice.parentNode) notice.remove(); }, 8000);
+        usedLine('');
+        if (/not configured|key missing/i.test(String(ttsRes?.error || ''))) {
+          notify((typeof getNoVoiceMessage === 'function'
+            ? getNoVoiceMessage(targetLang, currentUi)
+            : `No voice installed for ${targetLang}. Configure Gemini API key in Options for AI voice.`) + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''));
+        } else {
+          notify('Gemini voice: ' + plainFailure(ttsRes?.error), retrySpeak);
+        }
         return;
       }
     }
 
+    usedLine(`${voice.name} (device)`);
     if (!window.speechSynthesis) {
       cleanup();
       return;

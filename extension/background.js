@@ -387,7 +387,7 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint']);
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
@@ -402,6 +402,7 @@ function publicConfig(cfg) {
     trigger: cfg.trigger, dictLookup: cfg.dictLookup, disabledSites: cfg.disabledSites || [], ui: cfg.ui,
     webAppUrl: safeWebAppUrl(cfg.webAppUrl),
     transMode: cfg.transMode,
+    edgeHintOff: !!cfg.edgeHintOff,
     hasAi,
     tts: { rate: tts.rate, preferGemini: !!tts.preferGemini, geminiVoice: tts.geminiVoice, voices: tts.voices || {} }
   };
@@ -468,6 +469,12 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'dismiss-edge-hint') {
+      cfg.edgeHintOff = true;
+      await saveConfig(cfg);
+      return { ok: true };
     }
 
     if (req.action === 'open-options') {

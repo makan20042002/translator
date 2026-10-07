@@ -97,7 +97,8 @@ test.describe('Web app: Gemini key in the new "AQ." shape and model discovery', 
       await translate(page, 'Hello');
       await expect(page.locator('#tOut')).not.toHaveValue('', { timeout: 15_000 });
       await mouseClick(page, page.locator('#tSpeak'));
-      await expect(page.locator('#toasts')).toContainText(/model not found/i, { timeout: 15_000 });
+      await expect(page.locator('#speakNotice')).toContainText(/model not found/i, { timeout: 15_000 });
+      await expect(page.locator('#tSpeak')).toHaveText('Speak');
     });
   });
 });

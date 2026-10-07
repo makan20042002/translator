@@ -125,6 +125,7 @@ function sanitizeConfig(raw, previous) {
   cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
   cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
+  cfg.edgeHintOff = src.edgeHintOff === true;
   cfg.subject = isStr(src.subject) ? src.subject : '';
   cfg.subStyle = ['film', 'neutral', 'formal'].includes(src.subStyle) ? src.subStyle : DEFAULT_CFG.subStyle;
   cfg.disabledSites = Array.isArray(src.disabledSites) ? src.disabledSites.filter(isStr) : [];
@@ -533,7 +534,10 @@ function plainFailure(raw) {
   if (/content security policy|securitypolicyviolation|csp\b|refused to (connect|load|execute|apply)|blocked by this site/i.test(msg)) return "blocked by this site's security policy";
   if (/extension context invalidated|updated or reloaded/i.test(msg)) return 'the extension was updated or reloaded: refresh this page';
   if (/receiving end does not exist|could not establish connection|background (is )?not (running|reachable)|no answer from the extension/i.test(msg)) return 'the extension background did not answer: refresh this page';
-  const plain = toPlainReason({ message: msg, status: (raw && raw.status) || 0 });
+  // The provider's status number may only survive inside the text (it crosses message boundaries as text).
+  let status = (raw && raw.status) || 0;
+  if (!status) { const m = /\bHTTP (\d{3})\b/i.exec(msg); if (m) status = +m[1]; }
+  const plain = toPlainReason({ message: msg, status });
   const out = (plain || msg).replace(/^key missing$/i, 'key missing').trim();
   return out || 'unknown reason (use "Copy diagnostics" in Options and send it to the developer)';
 }

@@ -191,6 +191,10 @@ textarea::placeholder{color:var(--faint)}
 .dot.ok{background:var(--ok);box-shadow:0 0 8px rgba(34,229,138,.6)}
 .note{font-size:13px;color:var(--muted);border-inline-start:2px solid var(--cyan);padding:6px 12px;margin:14px 0 4px;background:rgba(19,200,245,.05);border-radius:0 8px 8px 0}
 
+.speak-notice{position:fixed;bottom:18px;inset-inline-start:18px;z-index:190;display:flex;align-items:center;gap:10px;max-width:min(520px,calc(100vw - 36px));background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--warn);border-radius:10px;padding:8px 12px;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.4)}
+.speak-notice[hidden]{display:none}
+.speak-notice .btn{min-height:26px;padding:2px 10px;font-size:12px}
+.voice-used{font-size:12px;opacity:.8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(460px,calc(100vw - 36px));pointer-events:none}
 .toast{background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);pointer-events:none}
 .toast.err{border-inline-start-color:var(--err)} .toast.warn{border-inline-start-color:var(--warn)} .toast.ok{border-inline-start-color:var(--ok)}
@@ -477,6 +481,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       <div class="seam"></div>
       <div class="pane">
         <div class="pane-h"><span class="lbl" data-t="translation">Translation</span><span class="sp"></span>
+          <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
           <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
           <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
         <textarea id="tOut" dir="auto"></textarea>
@@ -816,6 +821,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
             </div>
 
             <div class="v-stop-ctrl-wrap">
+              <span class="meta voice-used" id="vVoiceUsed" aria-live="polite"></span>
               <button class="btn danger v-stop-speak-btn" id="vStopSpeak" hidden type="button" title="Stop speaking" aria-label="Stop speaking">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
                 <span data-t="stopSpeak">Stop</span>
@@ -972,6 +978,11 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
 </div></div>
 <datalist id="models"></datalist>
+<div class="speak-notice" id="speakNotice" role="status" aria-live="polite" hidden>
+  <span id="speakNoticeText"></span>
+  <button class="btn ghost" id="speakNoticeRetry" type="button" hidden></button>
+  <button class="btn ghost" id="speakNoticeClose" type="button" aria-label="Dismiss">✕</button>
+</div>
 <div class="toasts" id="toasts"></div>
 
 <script src="extension/engine.js"></script>
@@ -1020,7 +1031,7 @@ const I18N={en:{
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
  ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. To allow this page, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
  customHint:'LM Studio: http://localhost:1234/v1 · any OpenAI-compatible server works.',
- noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
+ noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',voiceUsed:'Voice',voiceDevice:'device',geminiWord:'Gemini',geminiVoicesGrp:'Gemini voices',deviceVoicesGrp:'This device',edgeHint:'Microsoft Edge has built-in natural voices for this language.',noVoiceNoKey:'No voice for this language on this device, and no Gemini key is set. Add a Gemini key in Engines & keys, or try Microsoft Edge.',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
  loadModels:'Models',
  vModeConv:'Conversation',vModeAsk:'Ask AI',
  vLive:'Live',vLiveHint:'Hands-free: listens and speaks continuously',vLiveListening:'Listening…',vLiveListenBrowser:'Listening (Alternating turns — tap speaker to switch)…',vLiveListenDetect:'Listening (Auto-detecting language)…',vLiveTranslating:'Translating…',vLiveSpeaking:'Speaking…',vStopLive:'Stop Live',
@@ -1091,7 +1102,7 @@ const I18N={en:{
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
  ollamaHint:'Ollama را نصب کنید، دستور «ollama pull gemma3» را اجرا کنید و سپس «مدل‌ها» را بزنید. برای اجازه دادن به این صفحه، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  customHint:'LM Studio: http://localhost:1234/v1 · هر سرور سازگار با OpenAI کار می‌کند.',
- noOff:'هیچ موتور آفلاینی آماده نیست. در «موتورها و کلیدها» ← آفلاین مدل را دانلود کنید یا Ollama را راه‌اندازی کنید.',offHelp:'حالت آفلاین: مدل ترجمه را در موتورها و کلیدها دانلود کنید یا Ollama را اجرا کنید.',micBlocked:'میکروفون مسدود است',noVoice:'برای این زبان صدایی روی این دستگاه نیست. Microsoft Edge را امتحان کنید یا صدای زبان را در ویندوز نصب کنید.',ttsFallback:'از صدای دستگاه استفاده شد',
+ noOff:'هیچ موتور آفلاینی آماده نیست. در «موتورها و کلیدها» ← آفلاین مدل را دانلود کنید یا Ollama را راه‌اندازی کنید.',offHelp:'حالت آفلاین: مدل ترجمه را در موتورها و کلیدها دانلود کنید یا Ollama را اجرا کنید.',micBlocked:'میکروفون مسدود است',voiceUsed:'صدا',voiceDevice:'دستگاه',geminiWord:'جمینای',geminiVoicesGrp:'صداهای جمینای',deviceVoicesGrp:'این دستگاه',edgeHint:'مایکروسافت اج برای این زبان صدای طبیعی داخلی دارد.',noVoiceNoKey:'برای این زبان صدایی روی این دستگاه نیست و کلید Gemini هم تنظیم نشده است. کلید Gemini را در «موتورها و کلیدها» وارد کنید یا Microsoft Edge را امتحان کنید.',noVoice:'برای این زبان صدایی روی این دستگاه نیست. Microsoft Edge را امتحان کنید یا صدای زبان را در ویندوز نصب کنید.',ttsFallback:'از صدای دستگاه استفاده شد',
  loadModels:'مدل‌ها',
  vModeConv:'گفتگو',vModeAsk:'پرسش از هوش مصنوعی',
  vLive:'زنده',vLiveHint:'مکالمه‌ی مداوم و بدون نیاز به فشردن دکمه',vLiveListening:'در حال شنیدن…',vLiveListenBrowser:'در حال شنیدن (نوبتی — برای تغییر گوینده ضربه بزنید)…',vLiveListenDetect:'در حال شنیدن (تشخیص خودکار زبان)…',vLiveTranslating:'در حال ترجمه…',vLiveSpeaking:'در حال خواندن…',vStopLive:'توقف زنده',
@@ -1881,9 +1892,9 @@ function pcmToWav(pcmBytes,sampleRate=24000,numChannels=1){
   view.setUint32(40,totalDataLen,true);
   return new Blob([header,pcmBytes],{type:'audio/wav'});
 }
-async function playGeminiTts(text,lang,tok,key){
-  const GEM_VOICES=['Kore','Puck','Charon','Fenrir','Aoede'];
-  let model=cfg.tts.model||'gemini-2.5-flash-preview-tts',voice=GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore';
+const GEM_VOICES=['Kore','Puck','Charon','Fenrir','Aoede'];
+async function playGeminiTts(text,lang,tok,key,voiceOverride){
+  let model=cfg.tts.model||'gemini-2.5-flash-preview-tts',voice=GEM_VOICES.includes(voiceOverride)?voiceOverride:(GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore');
   const rate=cfg.tts.rate||1.0;
 
   // 1. Session Cache check for instant replay
@@ -2077,51 +2088,61 @@ async function playApi(text,tok){
 function isSpeaking(){
   return !!((curAudio&&!curAudio.paused&&!curAudio.ended)||(self.speechSynthesis?.speaking));
 }
-async function speak(text,lang){
-  if(rec){try{rec.stop()}catch{}rec=null}
-  if(activeSR){try{activeSR.abort()}catch{}activeSR=null}
-  const was=isSpeaking();stopSpeak();if(was&&speak.last===text){speak.last='';return}
-  if(!text||!text.trim())return;speak.last=text;const tok=++speakTok,flat=text.replace(/\s*\n+\s*/g,' ');
-  updateSpeakUI('preparing');
-  const finish=()=>{if(tok===speakTok)updateSpeakUI(false)};
-  try{
-    if(cfg.tts.mode==='gemini'&&!isOff()){
-      const key=cfg.tts.key||cfg.eng.gemini.key;if(!key)throw new Error('Gemini TTS: '+L('needKey'));
-      await playGeminiTts(flat,lang,tok,key);finish();return;
-    }else if(cfg.tts.mode==='openai'&&!isOff()){
-      const key=cfg.tts.key||cfg.eng.openai.key;if(!key)throw new Error('OpenAI TTS: '+L('needKey'));
-      await playOpenAiTts(flat,lang,tok,key);finish();return;
-    }else if(cfg.tts.mode==='api'&&(!isOff()||isLocalUrl(cfg.tts.base))){
-      for(const part of splitLong(flat,500)){if(tok!==speakTok)break;await playApi(part,tok)}
-      finish();return;
+// ---- Which voice speaks: the choice for this language, or Automatic ----
+// Automatic = a device voice that matches the language; if there is none, Gemini voice (when a key is set);
+// if neither, a clear message. A device voice for another language is never used.
+const geminiTtsKey=()=>cfg.tts?.key||cfg.eng?.gemini?.key||'';
+function resolveVoice(lang){
+  const b=lang.split('-')[0].toLowerCase(),pref=cfg.tts.voices[b]||'',key=geminiTtsKey(),gemOk=!!key&&!isOff();
+  const dev=('speechSynthesis' in self)?pickVoice(lang):null;
+  const gem=name=>({kind:'gemini',key,voiceName:GEM_VOICES.includes(name)?name:(GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore')});
+  if(pref.startsWith('gemini:')&&gemOk)return gem(pref.slice(7));
+  if(dev)return {kind:'device',voice:dev};
+  if(gemOk)return gem('');
+  return {kind:'none'};
+}
+function showVoiceUsed(label){document.querySelectorAll('.voice-used').forEach(el=>{el.textContent=label?`${L('voiceUsed')}: ${label}`:'';el.title=el.textContent})}
+// One calm line near the bottom: why there is no sound, with Retry when trying again can help, and a close button.
+function showSpeakNotice(text,retry,onClose){
+  const box=$('speakNotice');if(!box)return;
+  box._onClose=onClose||null;
+  $('speakNoticeText').textContent=text;
+  const rb=$('speakNoticeRetry');rb.hidden=!retry;rb.textContent=L('retry');rb.onclick=()=>{hideSpeakNotice();retry&&retry()};
+  box.hidden=false;
+}
+function hideSpeakNotice(){const box=$('speakNotice');if(box){box.hidden=true;box._onClose=null}}
+if($('speakNoticeClose'))$('speakNoticeClose').onclick=()=>{const box=$('speakNotice'),f=box&&box._onClose;if(f)f();hideSpeakNotice()};
+const isEdge=()=>/\bEdg\//.test(navigator.userAgent);
+function speakFailureLine(e){return `${L('geminiWord')} ${L('voiceUsed').toLowerCase()}: ${toPlainReason(e)||plainFailure(e)}`}
+async function speakResolved(flat,lang,tok,finish,retry,skipGemini){
+  hideSpeakNotice();
+  let r=resolveVoice(lang);
+  if(skipGemini&&r.kind==='gemini')r=('speechSynthesis' in self&&pickVoice(lang))?{kind:'device',voice:pickVoice(lang)}:{kind:'none',failedGemini:true};
+  if(r.kind==='none'){
+    showVoiceUsed('');
+    if(!r.failedGemini){
+      showSpeakNotice(L('noVoiceNoKey')+(!isEdge()&&!store.get('edgeHintOff',false)?' '+L('edgeHint'):''));
     }
-  }catch(e){
-    if(tok!==speakTok)return;curAudio=null;toast(`${e.message} — ${L('ttsFallback')}`,'warn');
+    finish();return;
   }
-  if(!('speechSynthesis' in self)){finish();return}
-  const v=pickVoice(lang);
-  if(!v){
-    const geminiKey=cfg.tts?.key||cfg.eng?.gemini?.key;
-    if(geminiKey&&!isOff()){
-      try{
-        await playGeminiTts(flat,lang,tok,geminiKey);
-        finish();
-        return;
-      }catch(e){
-        console.warn('Gemini TTS fallback failed:', scrubKeys(e&&e.message||e));
-      }
+  if(r.kind==='gemini'){
+    showVoiceUsed(`${L('geminiWord')} (${r.voiceName})`);
+    try{await playGeminiTts(flat,lang,tok,r.key,r.voiceName);finish()}
+    catch(e){
+      if(tok!==speakTok)return;
+      curAudio=null;finish();
+      console.warn('Gemini TTS failed:',scrubKeys(e&&e.message||e));
+      showSpeakNotice(speakFailureLine(e),retry);
     }
-    if(!noVoiceTold[lang]){
-      noVoiceTold[lang]=1;
-      toast(L('noVoice')||L('noVoiceWarn')||'No voice for this language on this device.','warn',8000);
-    }
-    finish();
     return;
   }
+  const v=r.voice;
+  showVoiceUsed(`${v.name} (${L('voiceDevice')})`);
+  // A calm hint when the language has no device voice is only shown in the "none"/Gemini cases below; here a device voice exists.
   await new Promise(resolve=>{
     const parts=splitLong(flat,180);let left=parts.length;if(!left){resolve();return}
     parts.forEach(part=>{
-      const u=new SpeechSynthesisUtterance(part);u.lang=v?v.lang:lang;if(v)u.voice=v;
+      const u=new SpeechSynthesisUtterance(part);u.lang=v.lang;u.voice=v;
       u.rate=cfg.tts.rate||1.0;
       u.onstart=()=>{if(tok===speakTok)updateSpeakUI(true)};
       u.onend=()=>{left--;if(left<=0||tok!==speakTok)resolve()};
@@ -2131,7 +2152,52 @@ async function speak(text,lang){
   });
   finish();
 }
+// The Edge hint: shown once per language that has no device voice while Gemini voice is used instead; dismissible for good.
+function maybeEdgeHint(lang){
+  if(isEdge()||store.get('edgeHintOff',false))return;
+  const b=lang.split('-')[0].toLowerCase();
+  if(('speechSynthesis' in self)&&pickVoice(lang))return;
+  if(noVoiceTold[b])return;noVoiceTold[b]=1;
+  const box=$('speakNotice');if(!box)return;
+  setTimeout(()=>{ // after playback has started, so it never replaces a failure line
+    if(box.hidden)showSpeakNotice(L('edgeHint'),null,()=>store.set('edgeHintOff',true));
+  },1200);
+}
+async function speak(text,lang,skipGemini){
+  if(rec){try{rec.stop()}catch{}rec=null}
+  if(activeSR){try{activeSR.abort()}catch{}activeSR=null}
+  const was=isSpeaking();stopSpeak();if(was&&speak.last===text){speak.last='';return}
+  if(!text||!text.trim())return;speak.last=text;const tok=++speakTok,flat=text.replace(/\s*\n+\s*/g,' ');
+  updateSpeakUI('preparing');
+  const finish=()=>{if(tok===speakTok)updateSpeakUI(false)};
+  const retry=()=>{speak.last='';speak(text,lang)};
+  try{
+    if(cfg.tts.mode==='gemini'&&!isOff()){
+      const key=cfg.tts.key||cfg.eng.gemini.key;if(!key)throw new Error('Gemini TTS: '+L('needKey'));
+      hideSpeakNotice();showVoiceUsed(`${L('geminiWord')} (${GEM_VOICES.includes(cfg.tts.voice)?cfg.tts.voice:'Kore'})`);
+      await playGeminiTts(flat,lang,tok,key);finish();return;
+    }else if(cfg.tts.mode==='openai'&&!isOff()){
+      const key=cfg.tts.key||cfg.eng.openai.key;if(!key)throw new Error('OpenAI TTS: '+L('needKey'));
+      showVoiceUsed('OpenAI');await playOpenAiTts(flat,lang,tok,key);finish();return;
+    }else if(cfg.tts.mode==='api'&&(!isOff()||isLocalUrl(cfg.tts.base))){
+      showVoiceUsed(L('ttsApiO'));
+      for(const part of splitLong(flat,500)){if(tok!==speakTok)break;await playApi(part,tok)}
+      finish();return;
+    }
+  }catch(e){
+    if(tok!==speakTok)return;curAudio=null;
+    // The voice the user chose failed: say why in one line (with Retry); a device voice still takes over if there is one.
+    const dev=('speechSynthesis' in self)&&pickVoice(lang);
+    if(!dev){finish();showSpeakNotice(`${cfg.tts.mode==='gemini'?L('geminiWord'):cfg.tts.mode==='openai'?'OpenAI':L('ttsApiO')}: ${toPlainReason(e)||plainFailure(e)}`,retry);return}
+    toast(`${scrubKeys(e.message)} — ${L('ttsFallback')}`,'warn');
+    skipGemini=true;
+  }
+  await speakResolved(flat,lang,tok,finish,retry,skipGemini);
+  if(tok===speakTok&&resolveVoice(lang).kind==='gemini')maybeEdgeHint(lang);
+}
 async function speakFast(text,lang,forceFast=false){
+  // Fast live speech prefers the quick device voice, but a language with no device voice (Persian on Windows Chrome)
+  // is spoken by Gemini instead of staying silent: the same automatic rule as everywhere.
   if(forceFast){
     if(rec){try{rec.stop()}catch{}rec=null}
     if(activeSR){try{activeSR.abort()}catch{}activeSR=null}
@@ -2140,37 +2206,9 @@ async function speakFast(text,lang,forceFast=false){
     const tok=++speakTok,flat=text.replace(/\s*\n+\s*/g,' ');
     updateSpeakUI(true);
     const finish=()=>{if(tok===speakTok)updateSpeakUI(false)};
-    if(!('speechSynthesis' in self)){finish();return}
-    const v=pickVoice(lang);
-    if(!v){
-      const geminiKey=cfg.tts?.key||cfg.eng?.gemini?.key;
-      if(geminiKey&&!isOff()){
-        try{
-          await playGeminiTts(flat,lang,tok,geminiKey);
-          finish();
-          return;
-        }catch(e){
-          console.warn('Gemini TTS fallback failed in speakFast:', scrubKeys(e&&e.message||e));
-        }
-      }
-      if(!noVoiceTold[lang]){
-        noVoiceTold[lang]=1;
-        toast(L('noVoice')||L('noVoiceWarn')||'No voice for this language on this device.','warn',8000);
-      }
-      finish();
-      return;
-    }
-    await new Promise(resolve=>{
-      const parts=splitLong(flat,180);let left=parts.length;if(!left){resolve();return}
-      parts.forEach(part=>{
-        const u=new SpeechSynthesisUtterance(part);u.lang=v?v.lang:lang;if(v)u.voice=v;
-        u.rate=cfg.tts.rate||1.0;
-        u.onend=()=>{left--;if(left<=0||tok!==speakTok)resolve()};
-        u.onerror=()=>{left--;if(left<=0||tok!==speakTok)resolve()};
-        speechSynthesis.speak(u);
-      });
-    });
-    finish();
+    const retry=()=>{speakFast(text,lang,true)};
+    await speakResolved(flat,lang,tok,finish,retry,false);
+    if(tok===speakTok&&resolveVoice(lang).kind==='gemini')maybeEdgeHint(lang);
   }else{
     await speak(text,lang);
   }
@@ -4965,7 +5003,10 @@ document.addEventListener('keydown',e=>{if(e.key==='Escape'){saveAllInputs();$('
 function fillVoices(){
   const b=$('tgt').value.split('-')[0].toLowerCase(),vs=('speechSynthesis' in self?speechSynthesis.getVoices():[]).filter(v=>v.lang.toLowerCase().startsWith(b));
   $('voiceLbl').textContent=`${L('voiceFor')} ${langShort($('tgt').value)}`;
-  $('voiceSel').innerHTML=`<option value="">${esc(L('autoVoice'))} · ${vs.length}</option>`+vs.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)}</option>`).join('');
+  // Automatic (default), every device voice for this language, then the Gemini voices.
+  $('voiceSel').innerHTML=`<option value="">${esc(L('autoVoice'))} · ${vs.length}</option>`
+    +(vs.length?`<optgroup label="${esc(L('deviceVoicesGrp'))}">`+vs.map(v=>`<option value="${esc(v.voiceURI)}">${esc(v.name)}</option>`).join('')+'</optgroup>':'')
+    +`<optgroup label="${esc(L('geminiVoicesGrp'))}">`+GEM_VOICES.map(n=>`<option value="gemini:${n}">${L('geminiWord')} · ${n}</option>`).join('')+'</optgroup>';
   $('voiceSel').value=cfg.tts.voices[b]||'';if($('voiceSel').selectedIndex<0)$('voiceSel').value='';
 }
 let hasWebGpu=null;

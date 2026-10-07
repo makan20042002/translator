@@ -122,6 +122,17 @@ Neither has a build step for the app code itself. The only "build" is
    * **Subtitle tab:** "Change file" stops a running translation and loads the
      new file; "Close file" returns to the empty drop zone (asking once when
      translated lines would be lost).
+   * **Which voice speaks.** Automatic (the default): a device voice that
+     matches the language; if there is none, Gemini voice when a key is set;
+     if neither, a clear message. This holds in the web app's Text tab,
+     Conversation, Live (the fast device voice is preferred only where one
+     exists) and Ask AI, and in the extension card and popup. The voice in use
+     is always shown ("Voice: Gemini (Kore)" or the device voice name). If
+     Gemini voice is busy, rate limited or rejected, one plain line with Retry
+     is shown and the button returns to Speak. Browsers other than Edge get one
+     dismissible hint that Edge has built-in natural voices. The web app's
+     voice picker (Engines & keys) offers Automatic, the device voices for the
+     language and the Gemini voices.
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.
