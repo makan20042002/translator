@@ -112,6 +112,16 @@ Neither has a build step for the app code itself. The only "build" is
      unreachable, blocked by this site's security policy, extension background
      did not answer), with an "Open Options" button when the user can fix it.
      The last error of each engine is kept for "Copy diagnostics" in Options.
+   * **Output format (Document tab).** "Same as input" keeps the old behaviour
+     (structure-preserving rebuild). Word, PDF, Markdown and Plain text are built
+     from the translated segments only, in order, as plain paragraphs (layout,
+     tables and images of the original are not carried over). Word output is a
+     minimal `.docx` (right-to-left paragraphs for Persian and similar, no table
+     markup). PDF pages are drawn by the browser and stored as pictures, so
+     Persian is shaped correctly but the text in the PDF cannot be selected.
+   * **Subtitle tab:** "Change file" stops a running translation and loads the
+     new file; "Close file" returns to the empty drop zone (asking once when
+     translated lines would be lost).
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.

@@ -496,6 +496,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
             <div class="sub-file-meta">
               <span class="meta" id="sInfo"></span>
               <button class="btn ghost" id="sChangeFile" type="button" style="font-size:12px;min-height:28px">📁 <span data-t="subChangeFile">Change file</span></button>
+              <button class="btn ghost" id="sCloseFile" type="button" style="font-size:12px;min-height:28px">✕ <span id="sCloseFileText" data-t="subCloseFile">Close file</span></button>
             </div>
             <span class="sp"></span>
             <label class="chk"><input type="checkbox" id="sBi"><span data-t="bilingual">Bilingual export</span></label>
@@ -618,6 +619,14 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
             <span data-t="docNotes">Translator notes</span>
           </label>
           <span class="sp"></span>
+          <div class="grp"><label for="dOutFmt" data-t="outFormat">Output format</label>
+            <select id="dOutFmt">
+              <option value="same" data-t="outSame">Same as input</option>
+              <option value="docx" data-t="outWord">Word (.docx)</option>
+              <option value="pdf" data-t="outPdf">PDF (.pdf)</option>
+              <option value="md" data-t="outMd">Markdown (.md)</option>
+              <option value="txt" data-t="outTxt">Plain text (.txt)</option>
+            </select></div>
           <button class="btn danger" id="dStop" hidden data-t="stop">Stop</button>
           <button class="btn cta" id="dGo" data-t="dGo">Translate file</button>
           <button class="btn" id="dSave" disabled data-t="download">Download</button>
@@ -1029,7 +1038,7 @@ const I18N={en:{
  subStyle:'Style',subStyleFilm:'Film / spoken',subStyleNeutral:'Neutral',subStyleFormal:'Formal',
  subFamily:'Family-friendly (soften swearing)',
  subNonAiWarn:'⚠️ Non-AI engines (Google, MyMemory, Offline) cannot follow styles or spoken Persian. Choose an AI engine (Gemini, Groq, OpenRouter) for film subtitles.',
- subChangeFile:'Change file',subColNum:'#',subColTime:'Time',subColOrig:'Original',subColTrans:'Translation',
+ subChangeFile:'Change file',outFormat:'Output format',outSame:'Same as input',outWord:'Word (.docx)',outPdf:'PDF (.pdf)',outMd:'Markdown (.md)',outTxt:'Plain text (.txt)',outTooLong:'This document is too long for PDF output. Choose Word or another format.',subCloseFile:'Close file',subCloseSure:'Click again to discard the translation',subColNum:'#',subColTime:'Time',subColOrig:'Original',subColTrans:'Translation',
  silenceWaitL:'Silence wait (end of speech)',liveVoice:'Live voice',fastVoice:'Fast (Device / Edge)',qualityVoice:'Quality (Gemini voice)',
  saveConv:'Save conversation',convSaved:'Conversation saved to file',convCleared:'Conversation cleared',settings:'Settings',
  readAloud:'Read aloud',enabled:'Enabled',vStatusReady:'Ready · Hold to speak',vStatusListening:'Listening…',
@@ -1100,7 +1109,7 @@ const I18N={en:{
  subStyle:'سبک',subStyleFilm:'فیلم / محاوره‌ای',subStyleNeutral:'معمولی',subStyleFormal:'رسمی',
  subFamily:'مناسب خانواده (تعدیل فحش و اصطلاحات تند)',
  subNonAiWarn:'⚠️ موتورهای غیرهوش مصنوعی (گوگل، مای‌مموری و آفلاین) قادر به اعمال لحن محاوره‌ای یا سبک فیلم نیستند. برای زیرنویس محاوره‌ای فیلم از موتور هوش مصنوعی استفاده کنید.',
- subChangeFile:'تغییر فایل',subColNum:'ردیف',subColTime:'زمان‌بندی',subColOrig:'متن اصلی',subColTrans:'ترجمه',
+ subChangeFile:'تغییر فایل',outFormat:'فرمت خروجی',outSame:'مثل ورودی',outWord:'ورد (.docx)',outPdf:'پی‌دی‌اف (.pdf)',outMd:'مارک‌داون (.md)',outTxt:'متن ساده (.txt)',outTooLong:'این سند برای خروجی PDF خیلی بلند است. ورد یا فرمت دیگری را انتخاب کنید.',subCloseFile:'بستن فایل',subCloseSure:'برای دورریختن ترجمه دوباره کلیک کنید',subColNum:'ردیف',subColTime:'زمان‌بندی',subColOrig:'متن اصلی',subColTrans:'ترجمه',
  silenceWaitL:'مکث تشخیص پایان گفتار',liveVoice:'صدای حالت زنده',fastVoice:'سریع (صدای دستگاه / اج)',qualityVoice:'کیفیت بالا (صدای جمینای)',
  saveConv:'ذخیره گفتگو',convSaved:'گفتگو در فایل متنی ذخیره شد',convCleared:'گفتگو پاک شد',settings:'تنظیمات',
  readAloud:'خواندن با صدا',enabled:'فعال',vStatusReady:'آماده · برای صحبت نگه دارید',vStatusListening:'در حال شنیدن…',
@@ -2876,10 +2885,26 @@ const sInfo=()=>$('sInfo').textContent=`${sName} · ${cues.filter(c=>c.t).length
 $('cues').addEventListener('input',e=>{const i=e.target.dataset?.i;if(i!=null){cues[i].t=e.target.innerText.replace(/\n$/,'');sInfo()}});
 async function loadSubs(f){
   const c=parseSubs(await f.text());if(!c.length){toast('No subtitle lines found in this file','err');return}
+  sCtl?.abort(); // a translation still running belongs to the old file
   cues=c;sName=f.name.replace(/\.[^.]+$/,'');$('sDrop').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
 }
 dropzone($('sDrop'),$('sFile'),loadSubs);
 if($('sChangeFile'))$('sChangeFile').onclick=()=>$('sFile').click();
+// Close file: back to the empty drop zone. If there are translated lines, the first click only asks (second click within 6 s confirms).
+let sCloseTimer=null;
+const sCloseReset=()=>{clearTimeout(sCloseTimer);sCloseTimer=null;if($('sCloseFileText'))$('sCloseFileText').textContent=L('subCloseFile')};
+function closeSubs(){
+  sCtl?.abort();sCloseReset();
+  cues=[];sName='subtitle';$('cues').innerHTML='';$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='';
+  $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;
+}
+if($('sCloseFile'))$('sCloseFile').onclick=()=>{
+  if(cues.some(c=>c.t&&c.t.trim())&&!sCloseTimer){
+    $('sCloseFileText').textContent=L('subCloseSure');
+    sCloseTimer=setTimeout(sCloseReset,6000);return;
+  }
+  closeSubs();
+};
 async function doSubs(onlyEmpty){
   const idx=cues.map((c,i)=>i).filter(i=>!onlyEmpty||!cues[i].t.trim());if(!idx.length)return;
   // unit = one cue, or one dialogue line when every line starts with a dash
@@ -2908,7 +2933,7 @@ function exportSubs(vtt){
 $('sSrt').onclick=()=>exportSubs(false);$('sVtt').onclick=()=>exportSubs(true);
 
 /* ---------- DOCUMENT ---------- */
-let doc=null,dCtl=null,dResult='';
+let doc=null,dCtl=null,dResult='',dOutItems=null;
 const hasWords=s=>/\p{L}{2,}/u.test(s);
 function csvParse(s){const rows=[];let row=[],c='',q=false;
   for(let i=0;i<s.length;i++){const ch=s[i];
@@ -3583,7 +3608,7 @@ async function loadDoc(f){
     return;
   }
 
-  dResult='';
+  dResult='';dOutItems=null;
   $('dSizePill').textContent=doc.meta?.sizeEstimate||`${Math.round(f.size/1024)} KB`;
   $('dInfo').textContent=`${doc.items.length} ${L('segments')}`;
   $('dIn').value=doc.items.slice(0,25).join('\n\n').slice(0,50000);
@@ -3640,6 +3665,7 @@ $('dGo').onclick=async()=>{
     },extraOpts)));
 
     dResult=await doc.build(r.out,r.notes,$('tgt').value,$('src').value);
+    dOutItems=r.out.slice();
     $('dOut').value=r.out.slice(0,25).join('\n\n').slice(0,50000);
     $('dSave').disabled=false;
     $('dEngineUsed').textContent=r.used;
@@ -3653,6 +3679,7 @@ $('dGo').onclick=async()=>{
       }
       try{
         dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+        dOutItems=partialOut.slice();
         $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
         $('dSave').disabled=false;
         $('dProgText').textContent='Stopped (partial translation saved)';
@@ -3668,13 +3695,92 @@ $('dGo').onclick=async()=>{
 };
 
 $('dStop').onclick=()=>dCtl?.abort();
-$('dSave').onclick=()=>{
+/* ---- Output format: the translated text can also be saved as Word, PDF, Markdown or plain text ---- */
+const OUT_FORMATS={docx:{ext:'docx',type:'application/vnd.openxmlformats-officedocument.wordprocessingml.document'},pdf:{ext:'pdf',type:'application/pdf'},md:{ext:'md',type:'text/markdown'},txt:{ext:'txt',type:'text/plain'}};
+const xmlEsc=t=>String(t).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g,'');
+function docParagraphs(items,stripMd){
+  return items.map(x=>String(x??'').replace(/\r\n?/g,'\n')).filter(x=>x.trim()!=='').map(x=>stripMd?x.replace(/^\s{0,3}#{1,6}\s+/gm,'').replace(/(\*\*|__)(.+?)\1/g,'$2'):x);
+}
+async function buildPlainDocx(paras,tgt){
+  const JSZip=await loadJSZip(),z=new JSZip(),rtl=isRtlLang(tgt);
+  z.file('[Content_Types].xml','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/word/document.xml" ContentType="application/vnd.openxmlformats-officedocument.wordprocessingml.document.main+xml"/></Types>');
+  z.file('_rels/.rels','<?xml version="1.0" encoding="UTF-8" standalone="yes"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="word/document.xml"/></Relationships>');
+  const lang=rtl?`<w:lang w:val="${xmlEsc(tgt)}" w:bidi="${xmlEsc(tgt)}"/>`:`<w:lang w:val="${xmlEsc(tgt)}"/>`;
+  const body=paras.map(t=>{
+    const runs=t.split('\n').map((ln,i)=>`${i?'<w:br/>':''}<w:t xml:space="preserve">${xmlEsc(ln)}</w:t>`).join('');
+    return `<w:p><w:pPr>${rtl?'<w:bidi/>':''}<w:spacing w:after="160"/></w:pPr><w:r><w:rPr>${rtl?'<w:rtl/>':''}${lang}</w:rPr>${runs}</w:r></w:p>`;
+  }).join('');
+  z.file('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
+  return z.generateAsync({type:'blob',mimeType:OUT_FORMATS.docx.type});
+}
+// PDF: every page is drawn by the browser (so Persian and other right-to-left text is shaped correctly)
+// and stored as a picture inside a small, valid PDF file. The text in such a PDF cannot be selected.
+async function buildPlainPdf(paras,tgt){
+  const rtl=isRtlLang(tgt),W=1240,H=1754,M=110,FS=30,LH=46,MAXP=150;
+  try{await document.fonts.ready}catch{}
+  const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d');
+  const font=`${FS}px Vazirmatn,"Segoe UI",Tahoma,"Noto Sans Arabic","Noto Sans",Arial,sans-serif`;
+  const pages=[];let y=M+FS,started=false;
+  const fresh=()=>{cx.fillStyle='#fff';cx.fillRect(0,0,W,H);cx.fillStyle='#000';cx.font=font;cx.direction=rtl?'rtl':'ltr';cx.textAlign=rtl?'right':'left';cx.textBaseline='alphabetic';y=M+FS;started=true};
+  const flush=()=>{if(!started)return;pages.push(cv.toDataURL('image/jpeg',0.85));started=false;if(pages.length>MAXP)throw new Error(L('outTooLong'))};
+  const x0=rtl?W-M:M,maxW=W-2*M;
+  for(const para of paras){
+    for(const raw of para.split('\n')){
+      const words=raw.split(/\s+/).filter(Boolean),lines=[];let cur='';
+      if(!started)fresh();
+      for(const w of words){const t=cur?cur+' '+w:w;if(cx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}
+      lines.push(cur);
+      for(const ln of lines){if(y>H-M){flush();fresh()}cx.fillText(ln,x0,y);y+=LH}
+    }
+    y+=LH*0.5;
+  }
+  flush();
+  if(!pages.length){fresh();flush()}
+  const enc=new TextEncoder(),parts=[],offs=[];let len=0;
+  const put=b=>{const u=typeof b==='string'?enc.encode(b):b;parts.push(u);len+=u.length};
+  const obj=(n,fn)=>{offs[n]=len;put(`${n} 0 obj\n`);fn();put('\nendobj\n')};
+  put('%PDF-1.4\n%\xE2\xE3\xCF\xD3\n');
+  const n=pages.length,kids=[];
+  obj(1,()=>put('<< /Type /Catalog /Pages 2 0 R >>'));
+  pages.forEach((_,i)=>kids.push(`${3+i*3+2} 0 R`));
+  obj(2,()=>put(`<< /Type /Pages /Kids [${kids.join(' ')}] /Count ${n} >>`));
+  pages.forEach((d,i)=>{
+    const img=Uint8Array.from(atob(d.split(',')[1]),c=>c.charCodeAt(0)),base=3+i*3;
+    obj(base,()=>{put(`<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`);put(img);put('\nendstream')});
+    const content=`q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`;
+    obj(base+1,()=>put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+    obj(base+2,()=>put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${base} 0 R >> >> /Contents ${base+1} 0 R >>`));
+  });
+  const total=3+n*3,xref=len;
+  put(`xref\n0 ${total}\n0000000000 65535 f \n`);
+  for(let i=1;i<total;i++)put(String(offs[i]).padStart(10,'0')+' 00000 n \n');
+  put(`trailer\n<< /Size ${total} /Root 1 0 R >>\nstartxref\n${xref}\n%%EOF\n`);
+  return new Blob(parts,{type:OUT_FORMATS.pdf.type});
+}
+async function buildOutputFormat(fmt){
+  const tgt=$('tgt').value,paras=docParagraphs(dOutItems||[],doc.ext==='md'||doc.ext==='markdown');
+  if(fmt==='docx')return buildPlainDocx(paras,tgt);
+  if(fmt==='pdf')return buildPlainPdf(paras,tgt);
+  return paras.join('\n\n')+'\n'; // md and txt: plain paragraphs
+}
+$('dOutFmt').value=store.get('dOutFmt','same');
+$('dOutFmt').onchange=()=>store.set('dOutFmt',$('dOutFmt').value);
+$('dSave').onclick=async()=>{
   if(!dResult||!doc)return;
   const p=doc.name.lastIndexOf('.');
   const baseName=p>0?doc.name.slice(0,p):doc.name;
-  const ext=p>0?doc.name.slice(p):'.'+doc.ext;
-  const targetName=`${baseName}.${$('tgt').value}${ext}`;
-  download(targetName,dResult);
+  const fmt=$('dOutFmt').value;
+  if(fmt==='same'||!OUT_FORMATS[fmt]||(OUT_FORMATS[fmt].ext===doc.ext)){
+    const ext=p>0?doc.name.slice(p):'.'+doc.ext;
+    return download(`${baseName}.${$('tgt').value}${ext}`,dResult);
+  }
+  if(!dOutItems){toast('Nothing translated yet','warn');return}
+  try{
+    $('dSave').disabled=true;
+    const data=await buildOutputFormat(fmt);
+    download(`${baseName}.${$('tgt').value}.${OUT_FORMATS[fmt].ext}`,data,OUT_FORMATS[fmt].type);
+  }catch(e){fail(e)}
+  $('dSave').disabled=false;
 };
 
 /* ---------- VOICE ---------- */
