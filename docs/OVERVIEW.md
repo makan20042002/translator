@@ -133,6 +133,22 @@ Neither has a build step for the app code itself. The only "build" is
      dismissible hint that Edge has built-in natural voices. The web app's
      voice picker (Engines & keys) offers Automatic, the device voices for the
      language and the Gemini voices.
+   * **Offline dictionary.** `extension/dictionary.js` (shared by the web app
+     and the extension) reads packs made from Wiktionary data (`dict/en-fa`,
+     `dict/fa-en`, CC BY-SA, credits files kept next to them), stores them in
+     IndexedDB and looks words up by normalised form (Persian: Arabic ye and
+     kaf, alef maksura, zero-width joiner, tatweel, diacritics; everything
+     lower-case). Inflected forms resolve to their headword, every part of
+     speech is returned, idioms come from the packs' phrases lists, and the
+     other direction's pack adds lower-ranked extra meanings. Web app:
+     Dictionary tab, word card when clicking a word in the Text tab (entry
+     first, AI detail after), packs downloadable in Engines & keys > Offline,
+     "My words" list with CSV export (local only), About & credits. Extension:
+     both packs are bundled (`build-manifests.js` copies them into `dist/`),
+     the background answers `dict-lookup` with no network, the card shows the
+     entry instantly (AI explanation after, if an AI engine exists) and shows
+     an idiom's meaning instead of a literal translation; credits are in
+     Options.
 5. If an engine fails, the next one in the chain takes over and a small
    message says so. A "rate limit" (HTTP 429) answer switches engines, or, if
    it was the last engine, waits and tries again.

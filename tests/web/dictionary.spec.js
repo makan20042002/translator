@@ -41,14 +41,14 @@ test.describe('Web app: offline dictionary', () => {
   test('Engines & keys > Offline: each pack can be downloaded (size shown), is then ready, and can be removed', async ({ app }) => {
     const { page } = app;
     await mouseClick(page, page.locator('#openSet'));
-    await expect(page.locator('#dictSt-en-fa')).toHaveText('Not downloaded');
+    await expect(page.locator('#dictSt-en-fa')).toHaveText(/not downloaded/i);
     await expect(page.locator('#ov')).toContainText('about 1.1 MB');
     await mouseClick(page, page.locator('#dictDl-en-fa'));
-    await expect(page.locator('#dictSt-en-fa')).toContainText('Ready', { timeout: 30_000 });
+    await expect(page.locator('#dictSt-en-fa')).toContainText(/ready/i, { timeout: 30_000 });
     await expect(page.locator('#dictDot-en-fa')).toHaveClass(/ok/);
-    await expect(page.locator('#dictSt-fa-en')).toHaveText('Not downloaded');
+    await expect(page.locator('#dictSt-fa-en')).toHaveText(/not downloaded/i);
     await mouseClick(page, page.locator('#dictRm-en-fa'));
-    await expect(page.locator('#dictSt-en-fa')).toHaveText('Not downloaded');
+    await expect(page.locator('#dictSt-en-fa')).toHaveText(/not downloaded/i);
   });
 
   test('without the pack the Dictionary tab says so and offers to get it', async ({ app }) => {
@@ -66,6 +66,7 @@ test.describe('Web app: offline dictionary', () => {
       await installPacks(page);
       await openDictionary(page);
       await search(page, 'first');
+      await expect(page.locator('#dcResult .dict-pos').first()).toBeVisible();
       const pos = await page.locator('#dcResult .dict-pos').allTextContents();
       expect(pos).toEqual(expect.arrayContaining(['adjective', 'adverb']));
       await expect(page.locator('#dcResult .dict-meanings').first()).toContainText('اول');

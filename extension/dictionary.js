@@ -40,14 +40,12 @@ const dbCache = {};
 function openDb(pair) {
   if (dbCache[pair]) return dbCache[pair];
   dbCache[pair] = new Promise((resolve, reject) => {
-    const req = indexedDB.open('makan-dict-' + pair, 1);
+    const req = indexedDB.open('makan-dict-' + pair, 2);
     req.onupgradeneeded = () => {
       const db = req.result;
+      for (const n of Array.from(db.objectStoreNames)) db.deleteObjectStore(n);
       db.createObjectStore('meta');
-      db.createObjectStore('entries', { autoIncrement: true }).createIndex('lookup', 'lookup');
-      db.createObjectStore('phrases', { autoIncrement: true }).createIndex('lookup', 'lookup');
-      db.createObjectStore('forms', { keyPath: 'k' });
-      db.createObjectStore('gloss', { keyPath: 'k' });
+      db.createObjectStore('chunks', { autoIncrement: true }); // whole chunk files: few, big records install fast
     };
     req.onsuccess = () => resolve(req.result);
     req.onerror = () => { delete dbCache[pair]; reject(req.error); };
@@ -64,8 +62,10 @@ async function gunzipJson(buf) {
 
 // Short glosses ("dog", "to run") of a meaning text, for the reverse index.
 function glossesOf(meaning) {
-  return String(meaning || '').split(/[;,،؛()]/).map(x => x.trim()).filter(x => x && x.length <= 32 && x.split(/\s+/).length <= 3);
+  return String(meaning || '').split(/[;,\u060c\u061b()]/).map(x => x.trim()).filter(x => x && x.length <= 32 && x.split(/\s+/).length <= 3);
 }
+
+const memory = {}; // pair -> indexes built from the stored chunks (kept for the session)
 
 async function install(pair, { getBytes, onProgress } = {}) {
   const info = PAIR_INFO[pair];
@@ -74,35 +74,23 @@ async function install(pair, { getBytes, onProgress } = {}) {
   const packMeta = JSON.parse(new TextDecoder().decode(await getBytes('pack.json')));
   const files = packMeta.files || [];
   const db = await openDb(pair);
-  // Start clean so a half-finished earlier install cannot leave a mix.
-  { const tx = db.transaction(['meta', 'entries', 'phrases', 'forms', 'gloss'], 'readwrite');
-    ['meta', 'entries', 'phrases', 'forms', 'gloss'].forEach(n => tx.objectStore(n).clear()); await done(tx); }
-  const forms = new Map(), gloss = new Map();
-  const add = (map, k, head) => { if (!k) return; const a = map.get(k) || []; if (!a.includes(head) && a.length < 8) { a.push(head); map.set(k, a); } };
+  delete memory[pair];
+  // Read everything first, then replace the old copy in one step, so a failed download leaves the old pack intact.
+  const chunks = [];
   let entries = 0, phrases = 0;
   for (let i = 0; i < files.length; i++) {
     const data = await gunzipJson(await getBytes(files[i]));
     const isPhrase = data.type === 'phrases-chunk' || /^phrases/.test(files[i]);
-    const tx = db.transaction([isPhrase ? 'phrases' : 'entries'], 'readwrite');
-    const store = tx.objectStore(isPhrase ? 'phrases' : 'entries');
-    for (const e of data.entries || []) {
-      store.add({ headword: e.headword, lookup: e.lookup, pos: e.pos, meanings: e.meanings || [], example: e.example || null, forms: e.forms || [] });
-      if (isPhrase) { phrases++; continue; }
-      entries++;
-      for (const f of e.forms || []) add(forms, normalize(f.form, info.from), e.lookup);
-      for (const m of e.meanings || []) for (const g of glossesOf(m)) add(gloss, normalize(g, info.to), e.lookup);
-    }
-    await done(tx);
+    chunks.push({ phrases: isPhrase, entries: (data.entries || []).map(e => ({ headword: e.headword, lookup: e.lookup, pos: e.pos, meanings: e.meanings || [], example: e.example || null, forms: e.forms || [] })) });
+    if (isPhrase) phrases += chunks[chunks.length - 1].entries.length; else entries += chunks[chunks.length - 1].entries.length;
     if (onProgress) onProgress((i + 1) / (files.length + 1));
   }
-  for (const [name, map] of [['forms', forms], ['gloss', gloss]]) {
-    const tx = db.transaction([name], 'readwrite');
-    const store = tx.objectStore(name);
-    for (const [k, heads] of map) store.put({ k, heads });
-    await done(tx);
-  }
   const meta = { pair, entries, phrases, version: packMeta.generated_at || '', installedAt: Date.now() };
-  const tx = db.transaction(['meta'], 'readwrite');
+  const tx = db.transaction(['meta', 'chunks'], 'readwrite');
+  tx.objectStore('meta').clear();
+  const store = tx.objectStore('chunks');
+  store.clear();
+  chunks.forEach(c => store.add(c));
   tx.objectStore('meta').put(meta, 'meta');
   await done(tx);
   if (onProgress) onProgress(1);
@@ -116,17 +104,32 @@ async function status(pair) {
 
 async function remove(pair) {
   const db = await openDb(pair);
-  const names = ['meta', 'entries', 'phrases', 'forms', 'gloss'];
-  const tx = db.transaction(names, 'readwrite');
-  names.forEach(n => tx.objectStore(n).clear());
+  delete memory[pair];
+  const tx = db.transaction(['meta', 'chunks'], 'readwrite');
+  tx.objectStore('meta').clear();
+  tx.objectStore('chunks').clear();
   await done(tx);
 }
 
-async function byLookup(db, storeName, key) {
-  return wait(db.transaction([storeName]).objectStore(storeName).index('lookup').getAll(key));
-}
-async function byKey(db, storeName, key) {
-  return wait(db.transaction([storeName]).objectStore(storeName).get(key));
+// Indexes: headword -> entries, inflected form -> headwords, short gloss -> headwords, phrases.
+async function load(pair) {
+  if (memory[pair]) return memory[pair];
+  memory[pair] = (async () => {
+    const info = PAIR_INFO[pair];
+    const db = await openDb(pair);
+    const chunks = await wait(db.transaction(['chunks']).objectStore('chunks').getAll());
+    const m = { entries: new Map(), forms: new Map(), gloss: new Map(), phrases: [], phraseByLookup: new Map() };
+    const push = (map, k, v) => { const a = map.get(k); if (a) a.push(v); else map.set(k, [v]); };
+    const addHead = (map, k, head) => { if (!k) return; const a = map.get(k); if (!a) map.set(k, [head]); else if (a.length < 8 && !a.includes(head)) a.push(head); };
+    for (const c of chunks) for (const e of c.entries) {
+      if (c.phrases) { m.phrases.push(e); push(m.phraseByLookup, e.lookup, e); continue; }
+      push(m.entries, e.lookup, e);
+      for (const f of e.forms) addHead(m.forms, normalize(f.form, info.from), e.lookup);
+      for (const g of e.meanings) for (const x of glossesOf(g)) addHead(m.gloss, normalize(x, info.to), e.lookup);
+    }
+    return m;
+  })().catch(e => { delete memory[pair]; throw e; });
+  return memory[pair];
 }
 
 const POS_ORDER = ['noun', 'verb', 'adj', 'adjective', 'adv', 'adverb', 'pron', 'prep', 'conj', 'intj', 'article', 'particle', 'num', 'name', 'phrase', 'prep_phrase', 'character'];
@@ -143,7 +146,7 @@ async function lookup(word, options = {}) {
   const pair = PAIRS[lang], info = PAIR_INFO[pair];
   const meta = await status(pair);
   if (!meta) return null;
-  const db = await openDb(pair);
+  const mem = await load(pair);
   const norm = normalize(word, lang);
   if (!norm) return { query: word, lang, pair, groups: [], extra: [], phrases: [] };
   const found = [];
@@ -153,11 +156,11 @@ async function lookup(word, options = {}) {
     if (seen.has(key)) return; seen.add(key);
     found.push(Object.assign({}, e, via ? { viaForm: via } : {}));
   });
-  take(await byLookup(db, 'entries', norm));
+  take(mem.entries.get(norm) || []);
   // Inflected forms: "ran" -> run, "mice" -> mouse. Shown after the exact matches, with the form's tags.
-  const f = await byKey(db, 'forms', norm);
-  if (f) for (const head of f.heads) {
-    const list = await byLookup(db, 'entries', head);
+  const f = mem.forms.get(norm);
+  if (f) for (const head of f) {
+    const list = mem.entries.get(head) || [];
     const tags = (list[0] && list[0].forms.find(x => normalize(x.form, lang) === norm) || {}).tags || [];
     take(list, { form: word, tags });
   }
@@ -173,28 +176,26 @@ async function lookup(word, options = {}) {
   const extra = [];
   const other = PAIRS[info.to];
   if (other && (await status(other))) {
-    const odb = await openDb(other);
-    const g = await byKey(odb, 'gloss', norm);
+    const omem = await load(other);
+    const g = omem.gloss.get(norm);
     if (g) {
       const have = new Set(found.flatMap(e => e.meanings.flatMap(m => glossesOf(m).concat([m]).map(x => normalize(x, info.to)))));
-      for (const head of g.heads) {
+      for (const head of g) {
         if (have.has(normalize(head, info.to))) continue;
-        const es = await byLookup(odb, 'entries', head);
+        const es = omem.entries.get(head) || [];
         if (es[0]) extra.push({ headword: es[0].headword, pos: es[0].pos, source: 'reverse' });
       }
     }
   }
-  const phrases = await phrasesFor(db, norm, lang);
+  const phrases = phrasesFor(mem, norm);
   return { query: word, lang, pair, groups, extra, phrases };
 }
 
-async function phrasesFor(db, norm, lang) {
-  const exact = await byLookup(db, 'phrases', norm);
-  const out = exact.map(p => ({ headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, exact: true }));
+function phrasesFor(mem, norm) {
+  const out = (mem.phraseByLookup.get(norm) || []).map(p => ({ headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, exact: true }));
   if (norm.indexOf(' ') < 0 && norm.length > 1) {
     // Phrases that contain this single word (whole word), a few of them, for the idioms section.
-    const all = await wait(db.transaction(['phrases']).objectStore('phrases').getAll());
-    for (const p of all) {
+    for (const p of mem.phrases) {
       if (out.length >= 12) break;
       if (p.lookup !== norm && (' ' + p.lookup + ' ').includes(' ' + norm + ' ')) out.push({ headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, exact: false });
     }
@@ -207,9 +208,9 @@ async function lookupPhrase(text, options = {}) {
   const lang = options.lang || detectLang(text);
   const pair = PAIRS[lang];
   if (!(await status(pair))) return null;
-  const db = await openDb(pair);
+  const mem = await load(pair);
   const norm = normalize(text.replace(/[.,!?;:،؛؟"“”]+$/g, ''), lang);
-  const exact = await byLookup(db, 'phrases', norm);
+  const exact = mem.phraseByLookup.get(norm) || [];
   if (!exact.length) return null;
   const p = exact[0];
   return { headword: p.headword, pos: p.pos, meanings: p.meanings, example: p.example, lang, pair };
