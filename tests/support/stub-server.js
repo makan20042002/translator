@@ -124,6 +124,23 @@ function aiAnswer(system, user) {
     const w = (/term "([^"]+)"/.exec(all) || [])[1] || 'word';
     return JSON.stringify({ word: w, phonetic: '/wɜːd/', pos: 'noun', translations: [fakeTranslate(w, 'fa'), 'second meaning'], definition: 'A stub definition.', examples: ['Example sentence.', '[fa] Example sentence.'] });
   }
+  if (/IDIOM_EXPLAIN/.test(all)) {
+    const known = /break the ice|piece of cake|spill the beans/i.test(user || '');
+    return JSON.stringify(known
+      ? { isIdiom: true, language: 'en', meaning: 'to start a friendly conversation', literal: 'to crack the frozen water', equivalent: 'یخ را شکستن', register: 'casual', examples: [{ text: 'He told a joke to break the ice.', translation: '[fa] He told a joke to break the ice.' }, { text: 'A small gift can break the ice.', translation: '[fa] A small gift can break the ice.' }] }
+      : { isIdiom: false, language: 'en', meaning: '', literal: '', equivalent: '', register: '', examples: [] });
+  }
+  if (/IDIOM_FIND/.test(all)) {
+    return JSON.stringify({ idioms: [
+      { idiom: 'talk the hind legs off a donkey', language: 'en', meaning: 'talks without stopping', equivalent: 'زبان درازی کردن' },
+      { idiom: 'a chatterbox', language: 'en', meaning: 'someone who talks too much', equivalent: 'وراج' },
+      { idiom: 'پرحرفی کردن', language: 'fa', meaning: 'talking too much', equivalent: 'to run off at the mouth' }
+    ] });
+  }
+  if (/IDIOM_DETECT/.test(all)) {
+    const found = ['break the ice', 'piece of cake', 'spill the beans'].filter(x => String(user || '').toLowerCase().includes(x));
+    return JSON.stringify({ idioms: found });
+  }
   if (/voice assistant/i.test(all)) return 'This is the stub assistant answer.';
   // Translation: the user content is a JSON array of strings.
   let items = null;

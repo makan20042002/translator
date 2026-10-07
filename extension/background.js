@@ -388,7 +388,7 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check']);
 
 // The dictionary packs ship inside the extension (the list of packs is dict/packs.json); load one into IndexedDB the
 // first time it is needed (no network).
@@ -447,6 +447,7 @@ function requestProblem(req) {
     if (req.text !== undefined && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
   }
   if (req.action === 'translate-dict' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
+  if (req.action === 'idiom-check' && (typeof req.text !== 'string' || req.text.length > 300)) return 'Bad text';
   if (req.action === 'dict-lookup' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
   if (req.action === 'play-gemini-tts' && (typeof req.text !== 'string' || req.text.length > 5000)) return 'Bad text';
   for (const k of ['src', 'tgt']) if (req[k] !== undefined && !LANG_RE.test(String(req[k]))) return 'Bad language';
@@ -514,6 +515,14 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       } catch (e) {
         return { ok: false, error: String((e && e.message) || e) };
       }
+    }
+
+    if (req.action === 'idiom-check') {
+      // Is the selection an idiom? Asked of the AI engine (no keys leave the background).
+      try {
+        const r = await explainIdiomAi(String(req.text || '').trim(), { ui: cfg.ui }, cfg);
+        return { ok: true, idiom: r.isIdiom ? r : null };
+      } catch (e) { return { ok: false, error: plainFailure(e) }; }
     }
 
     if (req.action === 'dismiss-edge-hint') {

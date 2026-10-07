@@ -79,3 +79,30 @@ test.describe('Extension: credits', () => {
     await expect(page.locator('#creditsText')).toContainText('ویکی‌واژه');
   });
 });
+
+test.describe('Extension: AI-recognised idioms', () => {
+  test.use({ extOptions: { preOpen: ['/__test/words.html'], config: { eng: { gemini: { on: true, key: VALID_KEY } } } } });
+
+  test('a selection that is not stored but is an idiom: the idiom explanation comes first, the literal translation second', async ({ ext }) => {
+    const page = ext.article;
+    await dragSelect(page, '#w7');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-result-text')).toHaveText('[fa] He wants to break the ice', { timeout: 20_000 });
+    const body = inShadow(page, '.makan-card-body');
+    await expect(inShadow(page, '.makan-idiom-ai .makan-dict-badge')).toHaveText('Idiom (AI)', { timeout: 20_000 });
+    await expect(inShadow(page, '.makan-idiom-ai .makan-idiom-meaning')).toContainText('to start a friendly conversation');
+    await expect(inShadow(page, '.makan-idiom-ai')).toContainText('یخ را شکستن');
+    const order = await body.evaluate(el => Array.from(el.children).map(c => c.className));
+    expect(order.indexOf('makan-idiom-ai'), order.join(' | ')).toBeLessThan(order.findIndex(c => /makan-result-text/.test(c)));
+    await expect(inShadow(page, '.makan-card-body > .makan-dict-pos')).toHaveText('Literal translation');
+  });
+
+  test('an ordinary sentence gets no idiom block', async ({ ext }) => {
+    const page = ext.article;
+    await dragSelect(page, '#w6');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-result-text')).toHaveText('[fa] This sentence is no idiom at all really.', { timeout: 20_000 });
+    await page.waitForTimeout(1500);
+    await expect(inShadow(page, '.makan-idiom-ai')).toHaveCount(0);
+  });
+});

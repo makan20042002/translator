@@ -194,6 +194,13 @@ textarea::placeholder{color:var(--faint)}
 input[type=search]{-webkit-appearance:none;appearance:none}
 input::placeholder{color:var(--muted);opacity:1}
 input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
+.mark-wrap{position:relative}
+.mark-back{position:absolute;inset:0;padding:16px;font-size:17px;line-height:1.7;white-space:pre-wrap;word-wrap:break-word;overflow:hidden;color:transparent;pointer-events:none;scrollbar-gutter:stable}
+.mark-wrap textarea{position:relative;scrollbar-gutter:stable}
+.mark-back mark{background:transparent;color:transparent;text-decoration:underline dotted var(--accent);text-decoration-thickness:1.5px;text-underline-offset:5px}
+.idiom-box{margin-top:10px;display:grid;grid-template-columns:max-content 1fr;gap:4px 12px;font-size:14px;line-height:1.6}
+.idiom-box dt{color:var(--muted)}
+.idiom-box dd{margin:0}
 .dict-result{margin-top:14px}
 .dict-pos{font-family:var(--mono);font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--muted);margin:14px 0 4px}
 .dict-entry{padding:6px 0;border-bottom:1px solid var(--border)}
@@ -458,6 +465,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
     <button data-tab="doc" data-t="tabDoc">Document</button>
     <button data-tab="voice" data-t="tabVoice">Voice</button>
     <button data-tab="dict" data-t="tabDict">Dictionary</button>
+    <button data-tab="idiom" data-t="tabIdiom">Idioms</button>
     <button data-tab="cmp" data-t="tabCmp">Compare</button>
     <button data-tab="gls" data-t="tabGls">Glossary</button>
     <button data-tab="hist" data-t="tabHist">History</button>
@@ -916,6 +924,24 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   </section>
 
   <!-- COMPARE -->
+  <section class="tab" id="tab-idiom">
+    <div class="card">
+      <div class="row">
+        <input type="search" id="idSearch" dir="auto" data-tp="idPh" placeholder="Type an idiom or saying…" style="flex:1;min-width:220px" autocomplete="off">
+        <button class="btn cta" id="idGo" data-t="dictSearch">Search</button>
+      </div>
+      <div id="idResult" class="dict-result" aria-live="polite"></div>
+    </div>
+    <div class="card">
+      <strong data-t="idFindH">Find an idiom by its meaning</strong>
+      <p class="hint" data-t="idFindHint">Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.</p>
+      <div class="row">
+        <input type="search" id="idDescribe" dir="auto" data-tp="idDescPh" placeholder="Describe a meaning…" style="flex:1;min-width:220px" autocomplete="off">
+        <button class="btn cta" id="idFind" data-t="idFindBtn">Find idioms</button>
+      </div>
+      <div id="idFindResult" class="dict-result" aria-live="polite"></div>
+    </div>
+  </section>
   <section class="tab" id="tab-cmp">
     <div class="card">
       <textarea id="cIn" dir="auto" style="min-height:110px;padding:4px 0 12px" data-tp="phCmp" placeholder="Text to compare across engines…"></textarea>
@@ -1056,7 +1082,7 @@ const store={
 /* ---------- i18n ---------- */
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
- tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
+ tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
  engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
@@ -1127,7 +1153,7 @@ const I18N={en:{
  vListenLabel:'Mic:',vTransLabel:'Translate:'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
- tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
+ tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
  engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
@@ -2921,6 +2947,7 @@ async function doText(){
     $('tCopy').removeEventListener('click',copyBtnClick);
   }
   busy([$('tGo')],$('tStop'),false);
+  if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(text);
 }
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
 $('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});
@@ -5272,7 +5299,7 @@ function removeWord(i){const l=myWords();l.splice(i,1);store.set('words',l);rend
 function renderMyWords(){
   const l=myWords(),box=$('dcWords');if(!box)return;
   $('dcWordCount').textContent=l.length?String(l.length):'';
-  box.innerHTML=l.map((x,i)=>`<div class="my-word"><strong dir="auto">${esc(x.w)}</strong><span class="meta">${esc(x.pos||'')}</span><span dir="auto" style="flex:1">${esc((x.meanings||[]).join(x.pair==='en-fa'?'، ':'; '))}</span><button class="btn ghost" data-rm="${i}" type="button" aria-label="Remove">✕</button></div>`).join('');
+  box.innerHTML=l.map((x,i)=>`<div class="my-word"><strong dir="auto">${esc(x.w)}</strong><span class="meta">${x.idiom?esc(L('idIdiomBadge')):esc(x.pos||'')}</span><span dir="auto" style="flex:1">${esc((x.meanings||[]).join(x.pair==='en-fa'?'، ':'; '))}</span><button class="btn ghost" data-rm="${i}" type="button" aria-label="Remove">✕</button></div>`).join('');
 }
 $('dcWords').addEventListener('click',e=>{const b=e.target.closest('[data-rm]');if(b)removeWord(+b.dataset.rm)});
 $('dcClear').onclick=()=>{store.set('words',[]);renderMyWords()};
@@ -5397,6 +5424,149 @@ $('tIn').addEventListener('input',hideWordCard);
 // ---- credits ----
 $('creditsBtn').onclick=()=>{$('creditsBox').hidden=!$('creditsBox').hidden};
 $('creditsClose').onclick=()=>{$('creditsBox').hidden=true};
+
+/* ---------- IDIOMS ---------- */
+const mk=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text!=null)n.textContent=text;return n};
+const idiomOpts=()=>({ui,chain:getAiEngineChain(),src:$('src').value,tgt:$('tgt').value});
+// The stored entry (from the packs' phrases lists) comes first and at once; the AI explanation follows when an AI engine exists.
+async function renderIdiomInto(box,text){
+  box.replaceChildren();
+  await dictReady;
+  const stored=await MakanDict.lookupPhrase(text,{hints:{to:$('tgt').value},showVulgar:showVulgar()}).catch(()=>null);
+  let aiMeaning='';
+  const sep=stored&&['fa','ar','he','ur'].includes(stored.to)?'، ':'; ';
+  if(stored){
+    const head=mk('div','dict-head');head.append(mk('span','w',stored.headword),mk('span','dict-idiom',L('idStored')));
+    box.append(head);
+    const m=mk('div','dict-meanings',stored.meanings.slice(0,4).join(sep));m.dir='auto';box.append(m);
+    if(stored.example){const x=mk('div','dict-ex',stored.example);x.dir='auto';box.append(x)}
+  }
+  const save=mk('button','btn ghost',L('idSave'));save.type='button';save.id='idSave';
+  save.onclick=()=>{saveWord({w:stored?stored.headword:text,pair:'idiom',pos:'idiom',idiom:true,meanings:[stored?stored.meanings[0]:aiMeaning].filter(Boolean)});save.textContent=L('dictSaved')};
+  if(!aiAvailable()){
+    box.append(mk('p','hint',stored?L('idNoAiStored'):L('idNoAiNone')));
+    if(stored)box.append(save);
+    return;
+  }
+  const out=mk('div','dict-ai',L('idAsking'));box.append(out);
+  try{
+    const r=await explainIdiomAi(text,idiomOpts(),cfg);
+    out.replaceChildren();out.style.whiteSpace='normal';
+    if(!r.isIdiom&&!stored){out.textContent=L('idNotIdiom');return}
+    aiMeaning=r.meaning;
+    out.append(mk('div','dict-pos',L('idAiH')));
+    const dl=mk('dl','idiom-box');
+    const row=(k,v)=>{if(!v)return;dl.append(mk('dt',null,L(k)));const dd=mk('dd',null,v);dd.dir='auto';dl.append(dd)};
+    row('idMeaning',r.meaning);row('idLiteral',r.literal);row('idEquivalent',r.equivalent);row('idRegister',r.register);
+    if(r.examples.length){dl.append(mk('dt',null,L('idExamples')));const dd=mk('dd');
+      for(const x of r.examples){const a=mk('div',null,x.text);a.dir='auto';const b=mk('div','dict-ex',x.translation);b.dir='auto';dd.append(a,b)}
+      dl.append(dd)}
+    out.append(dl);
+    box.append(save);
+  }catch(e){out.textContent=scrubKeys(plainFailure(e))}
+}
+async function idSearch(){const t=$('idSearch').value.trim();const box=$('idResult');if(!t){box.replaceChildren();return}await renderIdiomInto(box,t)}
+$('idGo').onclick=idSearch;
+$('idSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();idSearch()}});
+// Reverse search: describe a meaning, get idioms in both languages (AI only).
+async function idFind(){
+  const d=$('idDescribe').value.trim(),box=$('idFindResult');box.replaceChildren();if(!d)return;
+  if(!aiAvailable()){box.append(mk('p','hint',L('idFindNoAi')));return}
+  const wait=mk('div','dict-ai',L('idAsking'));box.append(wait);
+  try{
+    const list=await findIdiomsAi(d,idiomOpts(),cfg);
+    box.replaceChildren();
+    if(!list.length){box.append(mk('p','hint',L('idNoMatch')));return}
+    for(const lang of ['en','fa']){
+      const part=list.filter(x=>x.language===lang);if(!part.length)continue;
+      box.append(mk('div','dict-pos',lang==='fa'?'فارسی':'English'));
+      for(const x of part){
+        const row=mk('div','dict-entry');const h=mk('div','dict-head');const w=mk('button','btn ghost',x.idiom);w.type='button';w.className+=' id-hit';w.dir='auto';
+        w.onclick=()=>{$('idSearch').value=x.idiom;idSearch();$('idSearch').scrollIntoView({block:'center'})};
+        h.append(w);row.append(h);
+        const m=mk('div','dict-meanings',x.meaning);m.dir='auto';row.append(m);
+        if(x.equivalent){const q=mk('div','dict-ex',`${L('idEquivalent')}: ${x.equivalent}`);q.dir='auto';row.append(q)}
+        box.append(row);
+      }
+    }
+  }catch(e){box.replaceChildren(mk('p','hint',scrubKeys(plainFailure(e))))}
+}
+$('idFind').onclick=idFind;
+$('idDescribe').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();idFind()}});
+
+// ---- the idiom card (Text tab) ----
+async function showIdiomCard(text,x,y){
+  const seq=++wordCardSeq,card=$('wordCard');
+  card.replaceChildren();const box=document.createElement('div');card.append(box);
+  card.style.left=Math.max(8,Math.min(x,innerWidth-380))+'px';card.style.top=Math.min(y+14,innerHeight-160)+'px';card.hidden=false;
+  await renderIdiomInto(box,text);
+  if(seq!==wordCardSeq)hideWordCard();
+}
+
+// ---- Text tab: idioms in the source text get a subtle underline ----
+// Stored idioms are marked with no AI; when an AI engine translated the text, the idioms it finds are marked too.
+let idiomAiList=[];
+const markBack=mk('div','mark-back');markBack.id='tInBack';markBack.dir='auto';markBack.setAttribute('aria-hidden','true');
+{const ta=$('tIn'),wrap=mk('div','mark-wrap');ta.parentNode.insertBefore(wrap,ta);wrap.append(markBack,ta);ta.addEventListener('scroll',()=>{markBack.scrollTop=ta.scrollTop})}
+let idiomRanges=[];
+const isMarkable=p=>{const n=p.headword.trim().split(/\s+/).length;return n>=2&&p.pos!=='interjection'&&!(p.pos==='phrase'&&n<=3)};
+async function storedIdiomRanges(text){
+  const pair=await MakanDict.guessPair(text,{to:$('tgt').value});if(!pair)return [];
+  const idx=await MakanDict.phraseIndex(pair);if(!idx)return [];
+  const toks=[...text.matchAll(/[\p{L}\p{M}\p{N}'’]+/gu)].map(m=>({s:m.index,e:m.index+m[0].length,n:MakanDict.normalize(m[0],idx.lang)}));
+  const out=[];
+  for(let i=0;i<toks.length;){
+    let hit=0;
+    for(let n=Math.min(idx.maxWords,toks.length-i);n>=2;n--){
+      const key=toks.slice(i,i+n).map(t=>t.n).join(' ');
+      const list=idx.byLookup.get(key);
+      if(list&&list.some(isMarkable)&&!(!showVulgar()&&list.every(p=>MakanDict.isVulgarWord(p.headword,idx.lang)))){hit=n;break}
+    }
+    if(hit){out.push({s:toks[i].s,e:toks[i+hit-1].e});i+=hit}else i++;
+  }
+  return out;
+}
+function aiIdiomRanges(text){
+  const out=[],low=text.toLowerCase();
+  for(const x of idiomAiList){const k=x.toLowerCase();let i=0;while((i=low.indexOf(k,i))>=0){out.push({s:i,e:i+k.length});i+=k.length}}
+  return out;
+}
+function mergeRanges(a){
+  a.sort((x,y)=>x.s-y.s||y.e-x.e);const out=[];
+  for(const r of a){const last=out[out.length-1];if(last&&r.s<last.e)last.e=Math.max(last.e,r.e);else out.push({s:r.s,e:r.e})}
+  return out;
+}
+function paintMarks(){
+  const t=$('tIn').value;let html='',pos=0;
+  for(const r of idiomRanges){html+=esc(t.slice(pos,r.s))+'<mark>'+esc(t.slice(r.s,r.e))+'</mark>';pos=r.e}
+  markBack.innerHTML=html+esc(t.slice(pos))+'\n';
+  markBack.scrollTop=$('tIn').scrollTop;
+}
+let marksSeq=0;
+async function refreshMarks(){
+  const seq=++marksSeq,text=$('tIn').value;
+  if(!text.trim()){idiomRanges=[];paintMarks();return}
+  let stored=[];try{stored=await storedIdiomRanges(text)}catch{}
+  if(seq!==marksSeq)return;
+  idiomRanges=mergeRanges([...stored,...aiIdiomRanges(text)]);paintMarks();
+}
+let marksTimer=null;
+$('tIn').addEventListener('input',()=>{clearTimeout(marksTimer);marksTimer=setTimeout(refreshMarks,250)});
+new ResizeObserver(()=>paintMarks()).observe($('tIn'));
+async function markIdiomsAi(text){
+  try{
+    const list=await detectIdiomsAi(text,idiomOpts(),cfg);
+    if($('tIn').value!==text)return;
+    idiomAiList=list;refreshMarks();
+  }catch{}
+}
+// Clicking a marked idiom opens the idiom card instead of the word card.
+$('tIn').addEventListener('click',e=>{
+  const ta=$('tIn');if(ta.selectionStart!==ta.selectionEnd)return;
+  const i=ta.selectionStart,r=idiomRanges.find(x=>i>=x.s&&i<=x.e);
+  if(r){e.stopImmediatePropagation();showIdiomCard(ta.value.slice(r.s,r.e),e.clientX,e.clientY)}
+},true);
+refreshMarks();
 </script>
 </body>
 </html>
