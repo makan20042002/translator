@@ -285,3 +285,32 @@ test.describe('Web app: speech recognition guards', () => {
     expect(await page.evaluate(() => voiceState)).toBe('ready');
   });
 });
+
+test.describe('Web app: the result says which offline model translated', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['nllb']) } } });
+
+  test('the engine label names the downloaded model that was used', async ({ app }) => {
+    const { page } = app;
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    for (const id of ['tr-nllb-600', 'tr-opus-en-de']) {
+      const m = cat.models.find(x => x.id === id);
+      await page.evaluate(({ id, f }) => { const d = store.get('mdl', {}); d[id] = { at: 1, files: f }; store.set('mdl', d); }, { id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
+      await fakeDownloaded(page, m.repo, m.files);
+    }
+    await page.evaluate(() => mcScan());
+    // stand-in worker that "translates" by marking the text
+    const labels = await page.evaluate(async () => {
+      window.rpc2 = null;
+      const real = Worker.prototype.postMessage;
+      Worker.prototype.postMessage = function (m) { setTimeout(() => this.onmessage({ data: { id: m.id, ok: true, res: m.a.items.map(t => 'X' + t) } }), 5); };
+      const out = [];
+      try {
+        cfg.trPair = false; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
+        cfg.trPair = true; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
+      } finally { Worker.prototype.postMessage = real; }
+      return out;
+    });
+    expect(labels[0]).toContain('NLLB-200 600M');
+    expect(labels[1]).toContain('OPUS-MT EN → DE');
+  });
+});

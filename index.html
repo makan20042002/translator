@@ -1617,11 +1617,15 @@ function mcFileProgress(m,file,loaded,total){
   if(box)box.hidden=false;if(bar)bar.style.width=(a/b*100)+'%';
   if(st)st.textContent=`${L('mdlDownloading')} ${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)} MB`;
 }
+// The name shown for an engine; the offline engine also says which downloaded model did the work.
+let offlineUsed='';
+const engLabel=i=>i==='nllb'&&offlineUsed?`${ENG.nllb.name} — ${offlineUsed}`:ENG[i].name;
 async function eNllb(items,src,tgt){
   if(src==='auto')src=guessLang(items.join(' '));
   if(NLLB[src]&&NLLB[src]===NLLB[tgt])return items.slice();
   const m=pickTr(src,tgt);
   if(!m)throw new Error('language not in the offline model');
+  offlineUsed=mcText(m.name);
   const codes=m.kind==='opus'?null:trCodes(m.kind);
   return rpc('translate',{items,src:codes?.[src],tgt:codes?.[tgt],spec:{repo:m.repo,kind:m.kind}});
 }
@@ -1942,7 +1946,7 @@ async function translateItems(items,o){
       }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):plainWithDetail(e)}`);
     }
   }
-  return {out,notes,used:[...used].map(i=>ENG[i].name).join(' + ')};
+  return {out,notes,used:[...used].map(engLabel).join(' + ')};
 }
 // Plain reason first ("key rejected"), then what the provider said (already scrubbed of keys).
 function plainWithDetail(e){const p=toPlainReason(e),m=String(e.message||'');return p&&m&&p!==m?`${p} — ${m}`:(p||m)}
