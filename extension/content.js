@@ -96,6 +96,50 @@
     }
   }
 
+  // ---- Voice line under the translation: which voice is used, why there is no sound (with Retry), and the Edge hint ----
+  const isEdgeBrowser = /\bEdg\//.test(navigator.userAgent || '');
+  let lastSpeak = null;
+  function voiceLine(container, kind) {
+    if (!container) return null;
+    let n = container.querySelector('.makan-voice-' + kind);
+    if (!n) {
+      n = document.createElement('div');
+      n.className = 'makan-voice-' + kind;
+      container.appendChild(n);
+    }
+    return n;
+  }
+  function showVoiceUsed(container, label) {
+    const n = voiceLine(container, 'used');
+    if (n) n.textContent = label ? 'Voice: ' + label : '';
+  }
+  // text: one plain line. retry: a function (shows a Retry button), onClose: called when the user dismisses it.
+  function showVoiceNotice(container, text, retry, onClose) {
+    const n = voiceLine(container, 'notice');
+    if (!n) return;
+    n.replaceChildren();
+    const msg = document.createElement('span');
+    msg.textContent = text;
+    n.appendChild(msg);
+    if (retry) {
+      const b = document.createElement('button');
+      b.className = 'makan-voice-retry';
+      b.textContent = 'Retry';
+      b.onclick = e => { if (!e.isTrusted) return; e.stopPropagation(); n.remove(); retry(); };
+      n.appendChild(b);
+    }
+    const x = document.createElement('button');
+    x.className = 'makan-voice-retry';
+    x.textContent = '✕';
+    x.title = 'Dismiss';
+    x.onclick = e => { if (!e.isTrusted) return; e.stopPropagation(); n.remove(); if (onClose) onClose(); };
+    n.appendChild(x);
+    n.style.display = 'block';
+  }
+  function speakFailure(container, rawError, retry) {
+    showVoiceNotice(container, 'Gemini voice: ' + plainFailure(rawError), retry);
+  }
+
   async function handleSpeakClick(text, lang, btn, noticeContainer) {
     if (!text || !text.trim()) return;
 
@@ -131,22 +175,22 @@
     const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
     const voice = typeof pickBestVoice === 'function' ? pickBestVoice(lang, voices, cfg?.tts?.voices) : null;
     const preferGemini = !!cfg?.tts?.preferGemini;
+    lastSpeak = { token, text, lang, btn, noticeContainer };
+    const retrySpeak = () => handleSpeakClick(text, lang, btn, noticeContainer);
+    { const old = noticeContainer && noticeContainer.querySelector('.makan-voice-notice'); if (old) old.remove(); }
 
     // Use Gemini TTS if preferGemini is true OR no matching browser voice exists for this language
     if (preferGemini || !voice) {
       let ttsRes = null;
       speakWaitingForStart = true;
       heldStates = [];
-      try {
-        if (window.chrome?.runtime?.sendMessage) {
-          ttsRes = await chrome.runtime.sendMessage({
-            action: 'play-gemini-tts',
-            text,
-            voice: cfg?.tts?.geminiVoice,
-            rate: cfg?.tts?.rate
-          });
-        }
-      } catch {}
+      showVoiceUsed(noticeContainer, `Gemini (${cfg?.tts?.geminiVoice || 'Kore'})`);
+      ttsRes = await askBackground({
+        action: 'play-gemini-tts',
+        text,
+        voice: cfg?.tts?.geminiVoice,
+        rate: cfg?.tts?.rate
+      });
       speakWaitingForStart = false;
 
       if (token !== currentSpeakToken) return;
@@ -156,6 +200,11 @@
         const held = heldStates;
         heldStates = [];
         for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
+        // No device voice for this language, so Gemini was chosen automatically: say once that Edge has natural voices.
+        if (!voice && !isEdgeBrowser && !cfg?.edgeHintOff) {
+          showVoiceNotice(noticeContainer, 'Microsoft Edge has built-in natural voices for this language.', null,
+            () => { cfg.edgeHintOff = true; askBackground({ action: 'dismiss-edge-hint' }); });
+        }
         // Playing via background offscreen or background page
         const monitorInterval = setInterval(() => {
           if (token !== currentSpeakToken) {
@@ -166,32 +215,26 @@
         return;
       }
 
-      // Gemini TTS did not work (e.g. key missing)
-      // If a local voice exists, fall back to it
+      // Gemini voice did not start. With a device voice, that voice takes over; without one, say why.
       if (voice) {
         // proceed below to browser speech synthesis
       } else {
         // CRITICAL: NEVER speak with a voice of a different language!
         cleanup();
-        const msg = typeof getNoVoiceMessage === 'function'
-          ? getNoVoiceMessage(lang, cfg?.ui || 'en')
-          : `No voice installed for ${lang}. Add voice in Windows settings or configure Gemini API key in MAKAN Options.`;
-
-        if (noticeContainer) {
-          let n = noticeContainer.querySelector('.makan-voice-notice');
-          if (!n) {
-            n = document.createElement('div');
-            n.className = 'makan-voice-notice';
-            noticeContainer.appendChild(n);
-          }
-          n.textContent = msg;
-          n.style.display = 'block';
-          setTimeout(() => { if (n && n.parentNode) n.style.display = 'none'; }, 8000);
+        showVoiceUsed(noticeContainer, '');
+        if (/not configured|key missing/i.test(String(ttsRes?.error || ''))) {
+          const msg = typeof getNoVoiceMessage === 'function'
+            ? getNoVoiceMessage(lang, cfg?.ui || 'en')
+            : `No voice installed for ${lang}. Add voice in Windows settings or configure Gemini API key in MAKAN Options.`;
+          showVoiceNotice(noticeContainer, msg + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''));
+        } else {
+          speakFailure(noticeContainer, ttsRes?.error, retrySpeak);
         }
         return;
       }
     }
 
+    showVoiceUsed(noticeContainer, `${voice.name} (device)`);
     // Browser Speech Synthesis with proper language matching & chunk splitting
     if (!window.speechSynthesis) {
       cleanup();
@@ -1188,6 +1231,10 @@
         if (span) span.textContent = 'Stop';
       }
     } else if (req.state === 'ended' || req.state === 'stopped' || req.state === 'error') {
+      if (req.state === 'error' && lastSpeak && activePlayingBtn === lastSpeak.btn && (speakBackendToken === null || req.token === speakBackendToken)) {
+        const ls = lastSpeak;
+        speakFailure(ls.noticeContainer, req.error, () => handleSpeakClick(ls.text, ls.lang, ls.btn, ls.noticeContainer));
+      }
       if (activePlayingBtn) {
         activePlayingBtn.classList.remove('preparing', 'playing');
         activePlayingBtn.setAttribute('title', 'Read aloud');

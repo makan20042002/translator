@@ -512,3 +512,5 @@ input:checked + .p-slider:before {
 
 .p-perm-banner[hidden] { display: none; }
 .p-err { color: var(--err); }
+.p-voice-used { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.p-voice-retry { margin-inline-start: 8px; font-size: 11px; padding: 1px 8px; border-radius: 6px; background: var(--surface2, transparent); border: 1px solid var(--border, #444); color: inherit; cursor: pointer; }

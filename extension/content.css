@@ -556,3 +556,6 @@
 .makan-err { color: var(--err); font-size: 13px; margin-bottom: 8px; }
 .makan-empty { color: var(--muted); font-size: 13.5px; padding: 12px 4px; }
 .makan-dict-ex2 { color: #94a3b8; }
+
+.makan-voice-used { font-size: 11px; color: var(--muted); margin-top: 6px; }
+.makan-voice-retry { margin-inline-start: 8px; font-size: 11px; padding: 1px 8px; border-radius: 6px; background: var(--surface2); border: 1px solid var(--border); color: var(--text); cursor: pointer; }
