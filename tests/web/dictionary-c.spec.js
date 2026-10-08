@@ -24,12 +24,26 @@ test.describe('Dictionary pack list (generated)', () => {
       fs.writeFileSync(path.join(d, 'pack.json'), JSON.stringify({ entry_count: count, phrase_count: 1, requested_size: size, compressed_bytes: 1234, files: [] }));
       fs.writeFileSync(path.join(root, pair, 'credits.txt'), 'credits');
     };
-    mk('en-ar', 500, 10000); mk('en-ar', 900, 30000); mk('ar-en', 700, 10000); mk('de-en', 100, 10000);
+    mk('en-ar', 900, 30000); mk('ar-en', 700, 10000); mk('de-en', 100, 10000);
     fs.mkdirSync(path.join(root, 'not-a-pack'), { recursive: true });
     const list = buildList(root);
     expect(list.map(p => p.id)).toEqual(['ar-en', 'de-en', 'en-ar']);
     const enar = list.find(p => p.id === 'en-ar');
     expect(enar).toMatchObject({ from: 'en', to: 'ar', entries: 900, dir: 'en-ar/pack-30000', credits: 'en-ar/credits.txt' });
+  });
+
+  test('the generator fails if one language pair holds more than one pack size, and the repository holds one size each', () => {
+    const root = fs.mkdtempSync(path.join(os.tmpdir(), 'makan-dict-'));
+    for (const size of [10000, 30000]) {
+      const d = path.join(root, 'en-ar', `pack-${size}`);
+      fs.mkdirSync(d, { recursive: true });
+      fs.writeFileSync(path.join(d, 'pack.json'), JSON.stringify({ entry_count: size / 100, requested_size: size, compressed_bytes: 1, files: [] }));
+    }
+    expect(() => buildList(root)).toThrow(/en-ar holds 2 pack sizes/);
+    const real = path.join(__dirname, '..', '..', 'dict');
+    for (const pair of fs.readdirSync(real).filter(n => /^[a-z]{2,3}-[a-z]{2,3}$/.test(n))) {
+      expect(fs.readdirSync(path.join(real, pair)).filter(n => /^pack-\d+$/.test(n)), pair).toHaveLength(1);
+    }
   });
 });
 
@@ -39,7 +53,10 @@ test.describe('Web app: dictionary language pairs and normalisation per language
   // An Arabic -> English pack made on the fly and served in place of the real list (no real Arabic pack exists yet).
   async function withFakeArabicPack(page) {
     const real = JSON.parse(fs.readFileSync(path.join(__dirname, '..', '..', 'dict', 'packs.json'), 'utf8'));
-    const list = { format: 'makan-dictionary-list', packs: [...real.packs, { id: 'ar-en', from: 'ar', to: 'en', entries: 2, phrases: 0, bytes: 300, dir: 'ar-en/pack-1', credits: null }] };
+    // Only the two packs this test needs from the real list, so the number of real packs (ten or two) does not matter.
+    const small = real.packs.filter(p => p.id === 'en-fa' || p.id === 'fa-en');
+    expect(small.map(p => p.id).sort()).toEqual(['en-fa', 'fa-en']);
+    const list = { format: 'makan-dictionary-list', packs: [...small, { id: 'ar-en', from: 'ar', to: 'en', entries: 2, phrases: 0, bytes: 300, dir: 'ar-en/pack-1', credits: null }] };
     const chunk = zlib.gzipSync(JSON.stringify({ type: 'dictionary-chunk', entries: [
       { headword: 'كتاب', lookup: 'كتاب', pos: 'noun', meanings: ['book'], example: null, forms: [] },
       { headword: 'ياسمين', lookup: 'ياسمين', pos: 'noun', meanings: ['jasmine'], example: null, forms: [] }

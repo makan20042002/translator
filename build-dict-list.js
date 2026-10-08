@@ -1,7 +1,7 @@
 /**
  * Writes dict/packs.json: the small list of dictionary packs the app and the extension offer.
- * Every folder dict/<from>-<to>/ with at least one pack-N/pack.json is a language pair; the pack with the most
- * entries is used (the smaller one on a tie). Add a language pair by adding its folder, then run `npm run build`.
+ * Every folder dict/<from>-<to>/ with a pack-N/pack.json is a language pair. A pair must hold exactly one pack size
+ * (the sizes overlap); the generator fails otherwise. Add a language pair by adding its folder, then run `npm run build`.
  *
  *   node build-dict-list.js
  */
@@ -18,6 +18,9 @@ function buildList(root = DICT_DIR) {
     const dir = path.join(root, name);
     if (!m || !fs.statSync(dir).isDirectory()) continue;
     let best = null;
+    const sizes = fs.readdirSync(dir).filter(sub => /^pack-\d+$/.test(sub) && fs.existsSync(path.join(dir, sub, 'pack.json')));
+    // The sizes of one pair overlap (each holds the words of the smaller ones), so keeping several only wastes space.
+    if (sizes.length > 1) throw new Error(`dict/${name} holds ${sizes.length} pack sizes (${sizes.join(', ')}); keep only one`);
     for (const sub of fs.readdirSync(dir)) {
       const pj = path.join(dir, sub, 'pack.json');
       if (!/^pack-\d+$/.test(sub) || !fs.existsSync(pj)) continue;
