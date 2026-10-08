@@ -291,6 +291,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .doc-actions-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:2px}
 .doc-prog-meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:4px}
 .pill-fast{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(59,107,255,.15);color:var(--pri,#3b6bff);border:1px solid var(--pri,#3b6bff)}
+.pill-tm{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.35)}
 .calm-fade{animation:calmFade .35s ease-out}
 @keyframes calmFade{0%{opacity:.45}100%{opacity:1}}
 
@@ -1100,7 +1101,7 @@ const store={
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
  tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement. Offline voices: Piper voices from rhasspy/piper-voices (MIT) run with ONNX Runtime Web (MIT) and the eSpeak NG phonemizer (GPL-3.0-or-later; its files are in vendor/piper). The voices Amir and Ganji are CC0; the voice Alba (University of Edinburgh) is CC BY 4.0. Offline translation and speech models come from Hugging Face; each model keeps its own licence (the NLLB-200 models are CC BY-NC 4.0).',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
- engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
+  engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',fromMemory:'from memory',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
  sDrop:'Drop an SRT or VTT file',sDrop2:'or click to choose. Timings are kept exactly.',bilingual:'Bilingual export',sRest:'Translate empty lines',sAll:'Translate all',
@@ -1171,7 +1172,7 @@ const I18N={en:{
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
  tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست. صداهای آفلاین: صداهای Piper از rhasspy/piper-voices (MIT) با ONNX Runtime Web (MIT) و واج‌نگار eSpeak NG (GPL-3.0-or-later؛ فایل‌هایش در vendor/piper است). صداهای امیر و گنجی CC0 و صدای آلبا (دانشگاه ادینبرا) CC BY 4.0 است. مدل‌های ترجمه و گفتار آفلاین از Hugging Face می‌آیند و هر مدل مجوز خودش را دارد (مدل‌های NLLB-200 با مجوز CC BY-NC 4.0 هستند).',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
- engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
+ engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',fromMemory:'از حافظه',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
  sDrop:'فایل SRT یا VTT را اینجا رها کنید',sDrop2:'یا برای انتخاب کلیک کنید. زمان‌بندی دقیقاً حفظ می‌شود.',bilingual:'خروجی دوزبانه',sRest:'ترجمه‌ی خط‌های خالی',sAll:'ترجمه‌ی همه',
@@ -3012,6 +3013,31 @@ function getDefaultTransMode(){
   const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
   return hasAi?'both':'fast';
 }
+async function saveToMemory(params){
+  try{
+    if(typeof TranslationMemory==='undefined'||!params)return;
+    const src=String(params.text||'').trim();
+    const tr=String(params.translatedText||'').trim();
+    if(!src||!tr)return;
+    if(params.hasError)return;
+    // Never save errors, empty results, partial results, rate-limit (429/503) or timeout results
+    if(/^(error|failed|http\s*\d+|rate limit|quota|timeout|unavailable)/i.test(tr))return;
+    if(/429|503|resource_exhausted/i.test(tr))return;
+    if(Array.isArray(params.lines)&&Array.isArray(params.out)){
+      if(params.lines.length!==params.out.length)return;
+      if(params.out.some(s=>typeof s!=='string'||!s.trim()||/^(error|failed|http\s*\d+|rate limit|quota|timeout|unavailable)/i.test(s.trim())))return;
+    }
+    await TranslationMemory.put({
+      sourceText:params.text,
+      translatedText:params.translatedText,
+      src:params.src,
+      tgt:params.tgt,
+      modeClass:params.modeClass,
+      tone:params.tone,
+      subject:params.subject
+    });
+  }catch(_){}
+}
 async function doText(){
   const text=$('tIn').value;if(!text.trim())return;
   tCtl=new AbortController();busy([$('tGo')],$('tStop'),true);$('tMeta').textContent='…';const t0=performance.now();
@@ -3024,14 +3050,38 @@ async function doText(){
   const copyBtnClick=()=>{userInteractedWithFast=true};
   $('tCopy').addEventListener('click',copyBtnClick,{once:true});
 
+  const mode=$('tMode')?.value||getDefaultTransMode();
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+
+  // Look up memory before calling any engine
+  const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
+  let memHit=null;
+  try{
+    if(typeof TranslationMemory!=='undefined'){
+      memHit=await TranslationMemory.get({
+        text,
+        src:$('src').value==='finglish'?'auto':$('src').value,
+        tgt:$('tgt').value,
+        modeClass:memMode,
+        tone:$('tone')?.value||'',
+        subject:$('tSubject')?.value?.trim()||''
+      });
+    }
+  }catch(_){memHit=null;}
+  if(memHit&&memHit.translatedText){
+    busy([$('tGo')],$('tStop'),false);
+    $('tOut').value=memHit.translatedText;
+    $('tMeta').innerHTML=`<span class="pill-tm">${esc(L('fromMemory'))}</span>`;
+    const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:'memory',i:text.slice(0,4000),o:memHit.translatedText.slice(0,4000)});store.set('hist',h.slice(0,60));
+    $('tCopy').removeEventListener('click',copyBtnClick);
+    return;
+  }
+
   if(isOff()&&!cfg.order.some(id=>(!isOff()||offCapable(id))&&usable(id))){
     showOfflineGuidance(L('noOff'),$('tMeta'));
     busy([$('tGo')],$('tStop'),false);
     return;
   }
-
-  const mode=$('tMode')?.value||getDefaultTransMode();
-  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
 
   // A slow AI engine must not look like a hang: after 4 s say what is being waited for.
   const aiName=ENG[(mode==='smart'?getSmartEngineChain():getAiEngineChain())[0]]?.name||'';
@@ -3065,12 +3115,14 @@ async function doText(){
       const res=r.out.join('\n');$('tOut').value=res;
       $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
       const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+      saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
     }else if(mode==='smart'){
       const smartChain=getSmartEngineChain();
       const r=await translateItems(lines,opts({chain:smartChain,signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
       const res=r.out.join('\n');$('tOut').value=res;
       $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
       const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+      saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'smart',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
     }else{
       const nonAiEng=getFastChain()[0];
       const aiChain=getAiEngineChain();
@@ -3127,6 +3179,7 @@ async function doText(){
           if(fastErr)noteFastFailed();
           const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:smartUsed,i:text.slice(0,4000),o:smartRes.slice(0,4000)});store.set('hist',h.slice(0,60));
         }
+        saveToMemory({text,translatedText:smartRes,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'smart',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
         return r;
       }).catch(err=>{
         smartDone=true;
@@ -3135,6 +3188,7 @@ async function doText(){
           const plain=toPlainReason(err);const reason=is429?L('aiRateLimited'):(plain?`${L('aiUnavailable')} (${plain})`:L('aiUnavailable'));
           $('tMeta').textContent=`${L('fastLabel')} (${esc(fastUsed)}) · ${reason}`;
           const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fastUsed,i:text.slice(0,4000),o:fastRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+          saveToMemory({text,translatedText:fastRes,lines,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
         }else{
           throw err;
         }

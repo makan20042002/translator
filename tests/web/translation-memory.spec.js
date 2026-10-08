@@ -1,6 +1,6 @@
 'use strict';
 // ITEM 1: Translation Memory store backed by IndexedDB.
-const { test, expect } = require('../support/fixtures');
+const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
 
 test.describe('Web app: Translation Memory store (Item 1)', () => {
   test.beforeEach(async ({ app }) => {
@@ -194,3 +194,91 @@ test.describe('Web app: Translation Memory store (Item 1)', () => {
     expect(record.token).toBeUndefined();
   });
 });
+
+test.describe('Web app: Translation Memory in Text tab (Item 2)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
+  test.beforeEach(async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(async () => {
+      if (window.TranslationMemory) await window.TranslationMemory.clear();
+    });
+  });
+
+  test('a second identical request makes zero engine calls and shows from memory badge', async ({ app }) => {
+    const { page, stub } = app;
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Hello friend');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Hello friend');
+    const firstCalls = stub.calls('clients5.google.com').length;
+    expect(firstCalls).toBeGreaterThanOrEqual(1);
+
+    // Clear output to confirm memory refills it
+    await page.locator('#tOut').fill('');
+    await page.locator('#tMeta').evaluate(el => el.textContent = '');
+
+    // Request the same text again
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Hello friend');
+    await expect(page.locator('#tMeta')).toContainText('from memory');
+    await expect(page.locator('#tMeta .pill-tm')).toBeVisible();
+
+    const secondCalls = stub.calls('clients5.google.com').length;
+    expect(secondCalls).toBe(firstCalls); // Zero new engine calls!
+  });
+
+  test('a failed or empty engine result is not saved', async ({ app }) => {
+    const { page, stub } = app;
+
+    // Make the engine fail
+    stub.failHost('clients5.google.com', 500);
+    stub.failHost('translate.googleapis.com', 500);
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('This should fail completely');
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Wait until translate button is enabled again (finishes failure handling)
+    await expect(page.locator('#tGo')).toBeEnabled({ timeout: 15_000 });
+
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'This should fail completely',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: ''
+      });
+    });
+
+    expect(entry).toBeNull();
+    const count = await page.evaluate(async () => await window.TranslationMemory.count());
+    expect(count).toBe(0);
+  });
+
+  test('an IndexedDB failure does not break translation', async ({ app }) => {
+    const { page } = app;
+
+    // Simulate complete IndexedDB breakdown
+    await page.evaluate(() => {
+      if (window.TranslationMemory) {
+        window.TranslationMemory.get = () => Promise.reject(new Error('IndexedDB corrupted'));
+        window.TranslationMemory.put = () => Promise.reject(new Error('IndexedDB corrupted'));
+      }
+    });
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Translate despite IDB error');
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Translation should still work normally with no error shown
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Translate despite IDB error');
+    await expect(page.locator('#tMeta')).toContainText('Google Translate (web)');
+  });
+});
+
