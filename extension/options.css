@@ -599,3 +599,8 @@ select:hover, input:hover, select:focus, input:focus {
   line-height: 1.55;
 }
 
+
+/* More dictionaries */
+.opt-dict-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; padding: 8px 0; border-bottom: 1px solid var(--border, #2a3340); }
+.opt-dict-row strong { min-width: 180px; }
+.opt-dict-row .opt-btn { margin-inline-start: auto; }

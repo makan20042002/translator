@@ -395,11 +395,17 @@ const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', '
 let dictPacksPromise = null;
 function dictPacks() {
   if (!dictPacksPromise) {
-    dictPacksPromise = fetch(chrome.runtime.getURL('dict/packs.json')).then(r => r.json()).then(l => { MakanDict.setPacks(l.packs); return l.packs; })
-      .catch(e => { dictPacksPromise = null; throw e; });
+    dictPacksPromise = fetch(chrome.runtime.getURL('dict/packs.json')).then(r => r.json()).then(async l => {
+      // Pairs downloaded in Options ("More dictionaries") are known too; they are already in the browser's database, never bundled.
+      let extra = [];
+      try { extra = ((await chrome.storage.local.get('makanDictExtra')).makanDictExtra || []).filter(p => p && /^[a-z]{2,3}-[a-z]{2,3}$/.test(p.id) && !l.packs.some(b => b.id === p.id)); } catch {}
+      MakanDict.setPacks([...l.packs, ...extra]);
+      return l.packs;                                   // only the bundled ones are installed by ensureAllDictionaries()
+    }).catch(e => { dictPacksPromise = null; throw e; });
   }
   return dictPacksPromise;
 }
+try { chrome.storage.onChanged.addListener((ch, area) => { if (area === 'local' && ch.makanDictExtra) dictPacksPromise = null; }); } catch {}
 const dictionaryReady = {};
 function ensureDictionary(pair) {
   if (!dictionaryReady[pair]) {

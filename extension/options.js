@@ -43,6 +43,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       saved: 'Saved',
       secSiteCheck: 'Site Compatibility Self-Check',
       secCredits: 'About & credits',
+      secDictPacks: 'More dictionaries',
+      dictPacksNote: 'Other language pairs are not inside the extension. They are downloaded once from your web app address ({url}) and kept in this browser.',
+      dictNone: 'Your web app address offers no other dictionaries.', dictUnreachable: 'The web app address could not be reached, so no more dictionaries can be offered now.',
+      dictDownload: 'Download', dictDelete: 'Delete', dictReady: 'Ready', dictNotDl: 'Not downloaded', dictDownloading: 'Downloading', dictFailed: 'Download failed', dictRemoved: 'Dictionary deleted',
       creditsText: 'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement.',
       subSiteCheck: 'Diagnose whether MAKAN Translate can run on your current site and troubleshoot browser permissions or injection status.',
       btnCheckActiveTab: 'Check Active Tab',
@@ -88,6 +92,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       saved: 'ذخیره شد',
       secSiteCheck: 'بررسی سازگاری با سایت جاری',
       secCredits: 'درباره و منابع',
+      secDictPacks: 'دیکشنری‌های بیشتر',
+      dictPacksNote: 'جفت‌زبان‌های دیگر داخل افزونه نیستند. یک بار از نشانی برنامه‌ی وب شما ({url}) دانلود می‌شوند و در همین مرورگر می‌مانند.',
+      dictNone: 'نشانی برنامه‌ی وب شما دیکشنری دیگری ارائه نمی‌دهد.', dictUnreachable: 'به نشانی برنامه‌ی وب دسترسی نشد، پس فعلاً دیکشنری بیشتری پیشنهاد نمی‌شود.',
+      dictDownload: 'دانلود', dictDelete: 'حذف', dictReady: 'آماده', dictNotDl: 'دانلود نشده', dictDownloading: 'در حال دانلود', dictFailed: 'دانلود ناموفق بود', dictRemoved: 'دیکشنری حذف شد',
       creditsText: 'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست.',
       subSiteCheck: 'بررسی وضعیت اجرای افزونه در برگه فعال و عیب‌یابی دسترسی‌ها و تزریق اسکریپت.',
       btnCheckActiveTab: 'بررسی برگه فعال',
@@ -199,6 +207,67 @@ document.addEventListener('DOMContentLoaded', async () => {
     setTimeout(() => d.remove(), 4000);
   }
 
+  /* ----- More dictionaries: pairs the web app offers that are not inside the extension ----- */
+  const DICT_EXTRA_KEY = 'makanDictExtra';
+  const dictBase = () => String(cfg.webAppUrl || 'http://localhost:8080').replace(/\/+$/, '');
+  const validPack = p => p && /^[a-z]{2,3}-[a-z]{2,3}$/.test(p.id) && /^[a-z]{2,3}-[a-z]{2,3}\/pack-\d+$/.test(p.dir || '') && p.from && p.to;
+  const dictExtras = async () => ((await chrome.storage.local.get(DICT_EXTRA_KEY))[DICT_EXTRA_KEY] || []).filter(validPack);
+  async function renderDictPacks() {
+    const box = document.getElementById('dictPackRows');
+    if (!box || !cfg) return;
+    const T = I18N[currentUi];
+    document.getElementById('secDictPacks').textContent = T.secDictPacks;
+    document.getElementById('dictPacksNote').textContent = T.dictPacksNote.replace('{url}', dictBase());
+    const mySeq = ++dictRenderSeq;
+    let bundled = [], offered = [], reachable = true;
+    try { bundled = (await (await fetch(chrome.runtime.getURL('dict/packs.json'))).json()).packs.map(p => p.id); } catch {}
+    try {
+      const r = await fetch(dictBase() + '/dict/packs.json', { cache: 'no-store' });
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      offered = (await r.json()).packs.filter(p => validPack(p) && !bundled.includes(p.id));
+    } catch { reachable = false; }
+    const extras = await dictExtras();
+    const list = [...offered, ...extras.filter(e => !offered.some(o => o.id === e.id))];   // a downloaded pair can always be deleted, even offline
+    if (mySeq !== dictRenderSeq) return;
+    MakanDict.setPacks(list);
+    box.replaceChildren();
+    if (!list.length) {
+      const p = document.createElement('p'); p.className = 'opt-sub'; p.textContent = reachable ? T.dictNone : T.dictUnreachable;
+      box.append(p); return;
+    }
+    const nameOf = c => ((LANGS.find(l => l[0] === c) || [])[currentUi === 'fa' ? 2 : 1] || c).split(' · ').pop();
+    for (const info of list) {
+      const ready = !!(await MakanDict.status(info.id));
+      const row = document.createElement('div'); row.className = 'opt-dict-row'; row.dataset.pack = info.id;
+      const name = document.createElement('strong'); name.textContent = `${nameOf(info.from)} → ${nameOf(info.to)}`;
+      const size = document.createElement('span'); size.className = 'opt-sub opt-dict-size'; size.textContent = `${(info.bytes / 1048576).toFixed(1)} MB`;
+      const state = document.createElement('span'); state.className = 'opt-sub opt-dict-state'; state.textContent = ready ? T.dictReady : T.dictNotDl;
+      const btn = document.createElement('button'); btn.className = 'opt-btn' + (ready ? ' ghost' : ' cta'); btn.type = 'button'; btn.textContent = ready ? T.dictDelete : T.dictDownload;
+      btn.onclick = async () => {
+        btn.disabled = true;
+        try {
+          if (ready) {
+            await MakanDict.remove(info.id);
+            await chrome.storage.local.set({ [DICT_EXTRA_KEY]: (await dictExtras()).filter(p => p.id !== info.id) });
+            toast(T.dictRemoved);
+          } else {
+            await MakanDict.install(info.id, {
+              getBytes: async rel => { const r = await fetch(`${dictBase()}/dict/${info.dir}/${rel}`); if (!r.ok) throw new Error(`${rel}: HTTP ${r.status}`); return r.arrayBuffer(); },
+              onProgress: f => { state.textContent = `${T.dictDownloading} ${Math.round(f * 100)}%`; }
+            });
+            const keep = (await dictExtras()).filter(p => p.id !== info.id);
+            await chrome.storage.local.set({ [DICT_EXTRA_KEY]: [...keep, { id: info.id, from: info.from, to: info.to, entries: info.entries, phrases: info.phrases, bytes: info.bytes, dir: info.dir, credits: null }] });
+            toast(T.dictReady);
+          }
+        } catch (e) { toast(`${T.dictFailed}: ${e.message}`, 'err'); }
+        renderDictPacks();
+      };
+      row.append(name, size, state, btn);
+      box.append(row);
+    }
+  }
+  let dictRenderSeq = 0;
+
   function applyUi(lang) {
     currentUi = lang;
     document.body.dir = I18N[lang].dir;
@@ -225,6 +294,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     optOpenApp.querySelector('span').textContent = I18N[lang].openApp;
 
     if (secSiteCheck) secSiteCheck.textContent = I18N[lang].secSiteCheck;
+    renderDictPacks();
     { const a = document.getElementById('secCredits'), b = document.getElementById('creditsText'); if (a) a.textContent = I18N[lang].secCredits; if (b) b.textContent = I18N[lang].creditsText; }
     if (subSiteCheck) subSiteCheck.textContent = I18N[lang].subSiteCheck;
     if (btnRefreshSiteCheckText) btnRefreshSiteCheckText.textContent = I18N[lang].btnCheckActiveTab;

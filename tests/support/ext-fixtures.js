@@ -10,6 +10,7 @@
  *            install (test setup only; the options-page tests use the UI)
  */
 const { test: base, expect, watchConsole, VALID_KEY, BAD_KEY } = require('./fixtures');
+const path = require('path');
 const { prepareTestCopy, launchWithExtension, openRealPopup, inShadow, dragSelect } = require('./extension');
 
 const test = base.extend({
@@ -21,7 +22,9 @@ const test = base.extend({
     stub.clearLog();
     stub.resetModes();
     const preOpen = (extOptions.preOpen || ['/__test/article.html']).map(p => stub.appOrigin + p);
-    const ext = await launchWithExtension({ stub, files, preOpen, extPath: extCopy });
+    // dropPairs: dictionary pairs left out of the bundle for this test (see prepareTestCopy)
+    const extPath = extOptions.dropPairs ? prepareTestCopy({ dropPairs: extOptions.dropPairs, dir: path.resolve(__dirname, '..', '.generated', 'ext-chrome-under-test-' + extOptions.dropPairs.join('-')) }) : extCopy;
+    const ext = await launchWithExtension({ stub, files, preOpen, extPath });
     if (extOptions.config) {
       await ext.patchConfig(extOptions.config);
       // Pages read settings when they load; reload the pre-opened ones.
