@@ -55,11 +55,15 @@ Upload these, keeping the same names and folders:
 ```
 index.html
 ai-worker.js
+asr-guard.js
+models-catalog.js
+piper-worker.js
 sw.js
 manifest.webmanifest
 icon-192.png
 icon-512.png
 extension/engine.js      ← must stay in a folder called "extension"; index.html loads it from there
+vendor/piper/            ← the whole folder (5 files, about 29 MB): the offline voice engine, loaded by piper-worker.js
 ```
 
 Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test-assets/`,

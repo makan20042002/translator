@@ -1,0 +1,11 @@
+[bc] open settings
+[bc] click download
+node:internal/modules/run_main:123
+    triggerUncaughtException(
+    ^
+
+page.evaluate: Error: Can't create a session. failed to allocate a buffer of size 313468028.
+    at wk.onmessage (http://127.0.0.1:32995/index.html:1574:198)
+    at /home/user/translator/tools/model-check/browser-check.mjs:67:29
+
+Node.js v22.22.0

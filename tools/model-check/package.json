@@ -1,0 +1,7 @@
+{
+  "name": "model-check",
+  "private": true,
+  "description": "Developer tool: downloads each offline model listed in the app and runs it once on this computer. Not loaded by the app.",
+  "type": "module",
+  "dependencies": { "@huggingface/transformers": "3.8.1" }
+}
