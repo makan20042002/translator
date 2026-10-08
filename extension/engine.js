@@ -107,7 +107,7 @@ const DEFAULT_CFG = {
 // Make a settings object safe to use. Anything unexpected (an engine this extension does not know,
 // a language code containing markup, a web address that is not http/https) is replaced by the previous
 // valid value, or by the default. Used when settings are loaded and when a settings file is imported.
-const LANG_CODE_RE = /^(auto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
+const LANG_CODE_RE = /^(auto|finglish|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
 const isStr = v => typeof v === 'string';
 function safeHttpUrl(u, fallback) {
   try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return String(u).trim(); } catch {}
@@ -119,7 +119,7 @@ function sanitizeConfig(raw, previous) {
   const pick = (v, ok, key) => (ok(v) ? v : (ok(prev[key]) ? prev[key] : DEFAULT_CFG[key]));
   const cfg = Object.assign({}, DEFAULT_CFG, src);
   cfg.src = pick(src.src, v => isStr(v) && LANG_CODE_RE.test(v), 'src');
-  cfg.tgt = pick(src.tgt, v => isStr(v) && LANG_CODE_RE.test(v) && v !== 'auto', 'tgt');
+  cfg.tgt = pick(src.tgt, v => isStr(v) && LANG_CODE_RE.test(v) && v !== 'auto' && v !== 'finglish', 'tgt');
   cfg.tone = pick(src.tone, v => ['neutral', 'technical', 'formal', 'film'].includes(v), 'tone');
   cfg.trigger = pick(src.trigger, v => ['auto', 'alt', 'never'].includes(v), 'trigger');
   cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
@@ -537,6 +537,74 @@ async function aiAskJson(system, user, cfg, options = {}) {
     catch (e) { if (e.name === 'AbortError') throw e; last = e; }
   }
   throw last;
+}
+/* ---------- Finglish: Persian written in Latin letters ("salam khoobi mikham harf bezanam") ---------- */
+// Words that are Finglish and almost nothing else. Spelling varies a lot, so the common variants are listed.
+const FINGLISH_STRONG = new Set(`salam slm salaam khoobi khubi khoob khoobam khobi khobam khub khobe khoobe mamnoon mamnun mamnoonam mersi kheili kheyli kheyly khyli khaili
+chetori chetoori chetore chetor chetoore chikar chekar chera kojai koja kojayi kojast kodam kodoom cheghadr cheghadar hamishe hichi hichvaght hichvagh hamoon hamintor oonja unja onja
+emrooz emruz farda fardaa diroz dirooz shabbekheir shabkhosh sobhbekheir khodahafez khodafez khodahafiz bedrood dorood doroud azizam azizm joon joonam jonam doost doostam doosti doostet dooset dosset dusset
+khaste khasteh nabashi bebakhshid bebakhshin bebakhsh lotfan khahesh ghorbanat ghorbanet ghorbonet ghorbunet ghorban chakeram mokhlesam ghashang khoshgel khoshhal khoshbakht khoshomadi khoshamadid
+shoma oonha onha inha ishoon ishon oonaa baraye baraaye barae agar agha khanom khanoom khanum bache bachche bacheha pesar dokhtar pedar madar maman mamanam babam baradar khahar khaharam
+hastam hasti hastim hastid hastand nistam nisti nist nistim bashe bashi bashid boodam boodi boodim boodan shodam shode shodim kardam kardi kardim kardid kardan goftam gofti goftim goftid gofte
+bezanam bezani bezane bezanim beram beri bere berim berid beran bedam bede bedim bedid bedan begam begi bege begim begid began bekonam bekoni bekone bekonim bekonid bekonan bebinam bebini bebine bebinim
+bokhoram bokhori bokhore bokhorim bokhorid bokhoran bekhabam bekhabi bekhabe bekhabim bekhabid bekhaban
+khob dige bayad shayad hatman albate masalan fekr zendegi donya doonya eshgh ghalbam mikhastam mikhastim nemikham nemikhay nemikhad harfe harfam harfet salamati
+chizi chiz chiye chie chiya kheyr nakhair nakhayr ghorbanet sepas sepaas manam toham tooham taazegi tazegi alaki jeddi vaghean vaghan vaghti hamchin hamintor`.split(/\s+/));
+// Words that are Finglish but also real words elsewhere: they only add a little.
+const FINGLISH_WEAK = new Set(`man to ma in un oon een een ke ya va ba be az dar ra ro ham hamash hast ast ye yek yeh do se char panj shesh haft hasht noh dah chon chonke pas ta na nah bale areh are ari aziz jan khosh bad zan harf saat age vali valee omid`.split(/\s+/));
+// Verb forms: mi- (is doing) and nemi- (is not doing) with a stem and a personal ending: mikham, mirim, nemidoonam, mitoonid.
+const FINGLISH_VERB = /^(?:ne)?mi(?:kon|dun|doon|tun|toon|zan|bin|gir|gu|g|r|d|sh|kh|resh|pars|gh)(?:am|ay|aym|ayd|i|e|im|id|an|ad|oonam|oonim|oonid|oonan)$/;
+// Frequent words of English and of the languages most often mistaken for Finglish (Turkish, German, French, Spanish, Italian, Portuguese).
+const NOT_FINGLISH_WORDS = new Set(`the a an is are was were be been of and you your i we they he she it that this with for on at by from have has had do does not but or if can will would could should my me what how why when where who which there here hello hi please thanks thank want like know think going today tomorrow very much really good morning night
+ve bir bu icin için ile ama ben sen biz siz var yok degil değil nasil nasilsin merhaba tesekkurler istiyorum cok çok
+ich du er sie es wir ihr und nicht ist der die das ein eine mit für auch aber dass ja nein heute morgen gehen wollen kann habe haben bin sind
+je tu il elle nous vous ils elles et est pas le la les un une des du de que qui avec pour dans sur mais ou oui non bonjour merci suis sommes
+yo el nosotros ellos los las una por para con pero muy hoy mañana hola gracias estoy esta estamos
+io lui lei noi voi loro il gli che per con ma molto oggi domani ciao grazie sono
+eu ele nós eles uma não sim hoje amanhã olá obrigado estou`.split(/\s+/));
+
+// Does this text look like Finglish? src is the source language chosen ('auto', 'fa', 'finglish', anything else).
+// 'finglish' always says yes for Latin text; 'auto' and 'fa' need evidence; any other source says no.
+function detectFinglish(text, src = 'auto') {
+  const t = String(text || '').trim();
+  if (!t) return { finglish: false, score: 0 };
+  if (/[؀-ۿݐ-ݿ]/.test(t)) return { finglish: false, score: 0 };                  // already Persian script
+  if (!/[A-Za-z]/.test(t)) return { finglish: false, score: 0 };
+  if (src === 'finglish') return { finglish: true, score: 1 };
+  if (src !== 'auto' && src !== 'fa') return { finglish: false, score: 0 };
+  if (/[À-ɏḀ-ỿ]/.test(t) || /[^\u0000-ɏ -⁯ -ÿ\s]/.test(t.replace(/[\u{1F000}-\u{1FFFF}☀-➿]/gu, ''))) return { finglish: false, score: 0 };   // accents (Turkish, German, French...) or another script
+  const words = (t.toLowerCase().match(/[a-z]+(?:['’-][a-z]+)*/g) || []).map(w => w.replace(/['’-]/g, ''));
+  if (!words.length) return { finglish: false, score: 0 };
+  let strong = 0, weak = 0, foreign = 0;
+  for (const w of words) {
+    if (FINGLISH_STRONG.has(w) || FINGLISH_VERB.test(w)) strong++;
+    else if (NOT_FINGLISH_WORDS.has(w)) foreign++;
+    else if (FINGLISH_WEAK.has(w)) weak++;
+  }
+  const score = (strong + 0.5 * weak) / words.length;
+  const foreignRatio = foreign / words.length;
+  const need = src === 'fa' ? 0.25 : 0.4;                  // with Persian chosen, Latin letters already point to Finglish
+  const finglish = strong >= 1 && score >= need && foreignRatio <= (src === 'fa' ? 0.34 : 0.2) && (words.length > 1 || FINGLISH_STRONG.has(words[0]));
+  return { finglish, score: +score.toFixed(2) };
+}
+const FINGLISH_PROMPT = `FINGLISH_TO_PERSIAN. The user's text is Persian (Farsi) written in Latin letters (Finglish / Pinglish), usually informal chat spelling. Rewrite it in correct Persian script with natural spelling, keeping the meaning, the tone and the punctuation. Do not translate it. Keep names and clearly English words as they are. Reply with JSON only, in exactly this shape: {"persian": "<the text in Persian script>"}`;
+// Step before translating: { kind: 'no' } (not Finglish), { kind: 'needs-ai' }, or { kind: 'ok', persian, engine }.
+// options.chain: the AI engines to try, in order (the web app passes only the ones that are usable right now).
+async function prepareFinglish(text, src, cfg, options = {}) {
+  if (!detectFinglish(text, src).finglish) return { kind: 'no' };
+  const chain = options.chain || cfg.order.filter(id => ENG[id]?.ai && isEngineUsable(id, cfg));
+  if (!chain.length) return { kind: 'needs-ai' };
+  let r;
+  try {
+    r = await aiAskJson(FINGLISH_PROMPT, String(text), cfg, { chain, signal: options.signal });
+  } catch (e) {
+    // Only local engines that need no key (Ollama is on by default here) and none answered: for this person there is no AI engine.
+    if (e.name !== 'AbortError' && !chain.some(id => ENG[id].key || id === 'custom')) return { kind: 'needs-ai' };
+    throw e;
+  }
+  const persian = String(r.data?.persian || '').trim();
+  if (!/[؀-ۿ]/.test(persian)) throw new Error('the AI did not return Persian text');
+  return { kind: 'ok', persian, engine: ENG[r.engine]?.name || r.engine };
 }
 const uiLangName = ui => (ui === 'fa' ? 'Persian' : 'English');
 // Explain one expression: is it an idiom, what it really means, its literal wording, a natural equivalent in the other language, register, examples.
@@ -1401,6 +1469,8 @@ if (root) {
   root.getTtsCacheKey = getTtsCacheKey;
   root.toPlainReason = toPlainReason;
   root.plainFailure = plainFailure;
+  root.detectFinglish = detectFinglish;
+  root.prepareFinglish = prepareFinglish;
   root.explainIdiomAi = explainIdiomAi;
   root.findIdiomsAi = findIdiomsAi;
   root.detectIdiomsAi = detectIdiomsAi;

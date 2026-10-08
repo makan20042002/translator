@@ -124,6 +124,11 @@ function aiAnswer(system, user) {
     const w = (/term "([^"]+)"/.exec(all) || [])[1] || 'word';
     return JSON.stringify({ word: w, phonetic: '/wɜːd/', pos: 'noun', translations: [fakeTranslate(w, 'fa'), 'second meaning'], definition: 'A stub definition.', examples: ['Example sentence.', '[fa] Example sentence.'] });
   }
+  // Finglish to Persian: the "conversion" wraps the text so tests can see exactly what was converted.
+  if (/FINGLISH_TO_PERSIAN/.test(all)) {
+    const t = String(user || '').trim();
+    return JSON.stringify({ persian: t.toLowerCase() === 'salam' ? 'سلام' : `فارسی(${t})` });   // one real word, so the Dictionary finds it
+  }
   if (/IDIOM_EXPLAIN/.test(all)) {
     const known = /break the ice|piece of cake|spill the beans/i.test(user || '');
     return JSON.stringify(known

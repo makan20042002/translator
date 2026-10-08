@@ -236,6 +236,9 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .setg select,.setg input{width:100%;font-family:var(--body);font-size:14px;letter-spacing:0;text-transform:none;color:var(--text)}
 .dlrow{display:flex;align-items:center;gap:10px;flex-wrap:wrap;padding:10px 0;border-bottom:1px solid var(--border)}
 .dlrow strong{font-size:14.5px}
+.fg-box{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 8px;padding:8px 12px;border:1px solid var(--accent-line);border-radius:var(--r-s);background:var(--surface2)}
+.fg-box .lbl{color:var(--accent)}
+.fg-box .fg-t{flex:1;min-width:160px;font-size:16px;unicode-bidi:plaintext}
 .mdl-grp{margin:18px 0 4px;font-size:13px;font-weight:700;letter-spacing:.02em;color:var(--muted)}
 .mdl-sub{margin:10px 0 0;font-size:12.5px;color:var(--faint)}
 .mdl{padding:10px 0;border-bottom:1px solid var(--border)}
@@ -524,6 +527,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
           <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
           <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
           <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
+        <div class="fg-box" id="tFinglish" hidden></div>
         <textarea id="tOut" dir="auto"></textarea>
         <div class="pane-f"><span class="meta" id="tMeta"></span></div>
       </div>
@@ -1242,6 +1246,7 @@ Object.assign(I18N.en,{
  mdlSizeTip:'Size of the files this browser downloads, taken from the Hugging Face model page.',mdlMemTip:'Highest memory use measured while running this model on a 4-core test computer. Your computer may use somewhat more or less.',
  mdlRecNonEn:'Recommended for languages other than English',mdlWeak:'Mostly English; weak in other languages',
  mdlDelete:'Delete',mdlUse:'Use',mdlInUse:'In use',mdlDeleted:'deleted from this browser',mdlDownloading:'Downloading…',
+ fgOpt:'Finglish · Persian in Latin letters',fgSpelling:'Persian spelling',fgNeedsAi:'Finglish (Persian written in Latin letters) needs an AI engine. Add a free Gemini or Groq key in Engines & keys.',fgVia:'Finglish → Persian',
  mdlOfflineVoice:'offline voice',mdlSpeed:'Speed',mdlSpeedUnit:'s of waiting per second of speech (test computer, no WebGPU)',mdlEngineOnce:'speech engine, once',offlineVoicesGrp:'Offline voices (downloaded)',noVoiceOffline:'Or download an offline voice in Engines & keys → Offline.',
  mdlTotal:'Stored on this device by these models',mdlSiteTotal:'all data of this site',vTranscribing:'Transcribing…'
 });
@@ -1252,6 +1257,7 @@ Object.assign(I18N.fa,{
  mdlSizeTip:'حجم فایل‌هایی که این مرورگر دانلود می‌کند، از صفحه‌ی مدل در Hugging Face.',mdlMemTip:'بیشترین حافظه‌ی مصرفی در اجرای این مدل روی یک رایانه‌ی آزمایشی ۴ هسته‌ای. رایانه‌ی شما ممکن است کمی بیشتر یا کمتر مصرف کند.',
  mdlRecNonEn:'برای زبان‌های غیر از انگلیسی توصیه می‌شود',mdlWeak:'بیشتر برای انگلیسی؛ در زبان‌های دیگر ضعیف',
  mdlDelete:'حذف',mdlUse:'استفاده',mdlInUse:'در حال استفاده',mdlDeleted:'از این مرورگر حذف شد',mdlDownloading:'در حال دانلود…',
+ fgOpt:'فینگلیش · فارسی با حروف لاتین',fgSpelling:'املای فارسی',fgNeedsAi:'فینگلیش (فارسی با حروف لاتین) به یک موتور هوش مصنوعی نیاز دارد. در «موتورها و کلیدها» یک کلید رایگان Gemini یا Groq اضافه کنید.',fgVia:'فینگلیش ← فارسی',
  mdlOfflineVoice:'صدای آفلاین',mdlSpeed:'سرعت',mdlSpeedUnit:'ثانیه انتظار برای هر ثانیه گفتار (رایانه‌ی آزمایشی، بدون WebGPU)',mdlEngineOnce:'موتور گفتار، یک بار',offlineVoicesGrp:'صداهای آفلاین (دانلودشده)',noVoiceOffline:'یا در «موتورها و کلیدها ← آفلاین» یک صدای آفلاین دانلود کنید.',
  mdlTotal:'فضای اشغال‌شده در این دستگاه توسط این مدل‌ها',mdlSiteTotal:'کل داده‌های این سایت',vTranscribing:'در حال تبدیل گفتار به متن…'
 });
@@ -1266,8 +1272,8 @@ function applyI18n(){
 
 /* ---------- languages ---------- */
 const LANGS=[['en','English'],['fa','فارسی · Persian'],['ar','العربية · Arabic'],['tr','Türkçe · Turkish'],['de','Deutsch · German'],['fr','Français · French'],['es','Español · Spanish'],['it','Italiano · Italian'],['pt','Português · Portuguese'],['ru','Русский · Russian'],['zh-CN','简体中文 · Chinese (Simplified)'],['zh-TW','繁體中文 · Chinese (Traditional)'],['ja','日本語 · Japanese'],['ko','한국어 · Korean'],['hi','हिन्दी · Hindi'],['ur','اردو · Urdu'],['ku','Kurdî · Kurdish'],['az','Azərbaycanca · Azerbaijani'],['ps','پښتو · Pashto'],['tg','Тоҷикӣ · Tajik'],['hy','Հայերեն · Armenian'],['nl','Nederlands · Dutch'],['sv','Svenska · Swedish'],['no','Norsk · Norwegian'],['da','Dansk · Danish'],['fi','Suomi · Finnish'],['pl','Polski · Polish'],['uk','Українська · Ukrainian'],['cs','Čeština · Czech'],['ro','Română · Romanian'],['hu','Magyar · Hungarian'],['el','Ελληνικά · Greek'],['he','עברית · Hebrew'],['id','Indonesia · Indonesian'],['ms','Melayu · Malay'],['th','ไทย · Thai'],['vi','Tiếng Việt · Vietnamese'],['bn','বাংলা · Bengali']];
-const langName=c=>c==='auto'?'the detected language':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ').pop();
-const langShort=c=>((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ')[0];
+const langName=c=>c==='auto'?'the detected language':c==='finglish'?'Persian (written in Latin letters)':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ').pop();
+const langShort=c=>c==='finglish'?'Finglish':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ')[0];
 
 /* ---------- engines ---------- */
 const ENG={
@@ -1950,8 +1956,10 @@ async function translateItems(items,o){
 }
 // Plain reason first ("key rejected"), then what the provider said (already scrubbed of keys).
 function plainWithDetail(e){const p=toPlainReason(e),m=String(e.message||'');return p&&m&&p!==m?`${p} — ${m}`:(p||m)}
+// Finglish is not a language any engine knows: the text is converted to Persian first (see finglishStep), other tabs treat it as 'detect'.
+let srcOverride=null;
 const opts=extra=>Object.assign({
-  src:$('src').value,
+  src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),
   tgt:$('tgt').value,
   engine:$('engine').value,
   tone:$('tone').value,
@@ -2886,7 +2894,7 @@ function dropzone(drop,input,onFile){
 function busy(goBtns,stopBtn,on){goBtns.forEach(b=>b.disabled=on);stopBtn.hidden=!on}
 
 function fillLangs(){
-  $('src').innerHTML=`<option value="auto">${esc(L('detect'))}</option>`+LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+  $('src').innerHTML=`<option value="auto">${esc(L('detect'))}</option>`+LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('')+`<option value="finglish">${esc(L('fgOpt'))}</option>`;
   $('tgt').innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   $('src').value=store.get('src','auto');$('tgt').value=store.get('tgt',(navigator.language||'').startsWith('fa')?'en':'fa');
 }
@@ -2935,6 +2943,27 @@ function voiceLabels(){
   if($('vNo')) $('vNo').hidden=sttMode()!=='browser'||!!SR;
   if(typeof updateVoiceLangPills==='function') updateVoiceLangPills();
   updateVoiceAutoEngineDisplay();
+}
+
+/* ---------- Finglish (Persian in Latin letters) ---------- */
+const aiChainNow=()=>cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+// Converts Finglish to Persian script with one AI request. { kind: 'no' | 'needs-ai' | 'ok', persian, engine }
+async function finglishStep(text,signal,src){
+  src=src||$('src').value;
+  if(src!=='auto'&&src!=='fa'&&src!=='finglish')return {kind:'no'};
+  return prepareFinglish(text,src,cfg,{chain:aiChainNow(),signal});
+}
+// The "Persian spelling" line with a Copy button.
+function fgBox(persian,into){
+  const box=into||mk('div','fg-box');box.replaceChildren();
+  const l=mk('span','lbl',L('fgSpelling')),t=mk('span','fg-t',persian);t.dir='rtl';t.lang='fa';
+  const b=mk('button','btn ghost',L('copy'));b.type='button';b.onclick=()=>copy(persian);
+  box.append(l,t,b);box.hidden=false;return box;
+}
+// For one searched word (Dictionary, Idioms): Persian spelling when it was Finglish and an AI engine can convert it; otherwise unchanged.
+async function finglishWord(word){
+  try{const r=await finglishStep(word,undefined,'auto');if(r.kind==='ok')return {text:r.persian,persian:r.persian}}catch{}
+  return {text:word};
 }
 
 /* ---------- TEXT ---------- */
@@ -3010,8 +3039,26 @@ async function doText(){
     if(mode==='smart'&&!$('tOut').value)m.textContent=`${L('waitingFor')} ${aiName}…`;
     else if(mode==='both'){const sp=document.createElement('span');sp.className='waiting-ai';sp.textContent=` · ${L('waitingFor')} ${aiName}…`;m.appendChild(sp)}
   },4000);
+  let fgPersian='';
   try{
-    const lines=text.split('\n');
+    let lines=text.split('\n');
+    // Finglish: one AI request turns it into Persian script; that is shown above the translation and translated from.
+    $('tFinglish').hidden=true;
+    const fg=await finglishStep(text,tCtl.signal);
+    if(fg.kind==='needs-ai'){
+      $('tOut').value='';$('tMeta').textContent=L('fgNeedsAi');
+      busy([$('tGo')],$('tStop'),false);return;
+    }
+    if(fg.kind==='ok'){
+      fgPersian=fg.persian;fgBox(fgPersian,$('tFinglish'));
+      if($('tgt').value==='fa'){                      // the conversion is the result
+        $('tOut').value=fgPersian;
+        $('tMeta').textContent=`${L('fgVia')} · ${fg.engine} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+        const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fg.engine,i:text.slice(0,4000),o:fgPersian.slice(0,4000)});store.set('hist',h.slice(0,60));
+        busy([$('tGo')],$('tStop'),false);return;
+      }
+      lines=fgPersian.split('\n');srcOverride='fa';
+    }
     if(mode==='fast'||(mode==='both'&&!hasAi)){
       const r=await translateItems(lines,opts({chain:getFastChain(),signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
       const res=r.out.join('\n');$('tOut').value=res;
@@ -3106,11 +3153,11 @@ async function doText(){
     }
   }
   finally{
-    clearTimeout(waitTimer);
+    clearTimeout(waitTimer);srcOverride=null;
     $('tCopy').removeEventListener('click',copyBtnClick);
   }
   busy([$('tGo')],$('tStop'),false);
-  if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(text);
+  if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(fgPersian||text);
 }
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
 $('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});
@@ -5050,11 +5097,15 @@ async function doAsk(query) {
     return;
   }
 
+  // Finglish typed here is turned into Persian script first (best effort: if that fails, the text is sent as typed).
+  let fgNote = '';
+  try { const fg = await finglishStep(query, undefined, 'auto'); if (fg.kind === 'ok') { fgNote = query; query = fg.persian; } } catch { /* send as typed */ }
   const ansCode = $('vAskLang').value === 'auto' ? ($('tgt').value || 'en') : $('vAskLang').value;
   const ansLName = langName(ansCode);
   const sys = `You are a friendly, helpful voice assistant. Answer the user's request in ${ansLName}. Keep your answer short (1 to 3 sentences), clear, conversational, and natural to hear when read aloud. Do NOT use any Markdown formatting, asterisks, bullet points, numbered lists, URLs, or emojis. Plain conversational text only.`;
 
-  const userBub = addBubble($('askBubbles'), 'a', query, '…', 'auto', ansCode, { stt: 'Input' });
+  const userBub = addBubble($('askBubbles'), 'a', query, '…', 'auto', ansCode, { stt: fgNote ? 'Finglish' : 'Input' });
+  if (fgNote) userBub.title = fgNote;
   userBub.querySelector('.bub-text')?.remove();
   const d = addBubble($('askBubbles'), 'b', query, L('vAskThinking') || 'Thinking…', ansCode, ansCode, { engine: 'AI' });
   d.querySelector('.bub-orig')?.remove();
@@ -5505,7 +5556,7 @@ if($('tMode'))$('tMode').onchange=()=>store.set('tMode',$('tMode').value);
 $('tone').onchange=()=>store.set('tone',$('tone').value);
 if($('subStyle'))$('subStyle').onchange=()=>{store.set('subStyle',$('subStyle').value);updateSubEngineNotice()};
 if($('subFamily'))$('subFamily').onchange=()=>{store.set('subFamily',$('subFamily').checked)};
-$('swap').onclick=()=>{const s=$('src').value,t=$('tgt').value;if(s==='auto'){toast(L('sameLang'),'warn');return}
+$('swap').onclick=()=>{const s=$('src').value,t=$('tgt').value;if(s==='auto'||s==='finglish'){toast(L('sameLang'),'warn');return}
   $('src').value=t;$('tgt').value=s;const a=$('tIn').value;if($('tOut').value){$('tIn').value=$('tOut').value;$('tOut').value=a}
   $('src').onchange();$('tgt').onchange();$('tIn').dispatchEvent(new Event('input'))};
 $('uiLang').onclick=()=>{ui=ui==='en'?'fa':'en';store.set('ui',ui);boot()};
@@ -5663,20 +5714,22 @@ const aiAvailable=()=>cfg.order.some(id=>ENG[id]?.ai&&usable(id));
 // ---- the Dictionary tab ----
 async function dictSearch(){
   await dictReady;
-  const word=$('dcSearch').value.trim(),box=$('dcResult');box.replaceChildren();
+  let word=$('dcSearch').value.trim();const box=$('dcResult');box.replaceChildren();
   if(!word){$('dcNoPack').hidden=true;return}
+  const fg=await finglishWord(word);word=fg.text;
   let pair=$('dcPair').value;
   if(!pair){
     pair=await MakanDict.guessPair(word,{to:$('tgt').value});
     if(!pair){ // nothing installed for this script: say which pack would help
       const from=MakanDict.detectLang(word),want=DICT_PAIRS.find(id=>MakanDict.PAIR_INFO[id].from===from);
-      $('dcNoPackText').textContent=L('dictNoPack')+(want?` (${packName(want)})`:'');$('dcNoPack').hidden=false;return;
+      $('dcNoPackText').textContent=L('dictNoPack')+(want?` (${packName(want)})`:'');$('dcNoPack').hidden=false;if(fg.persian)box.prepend(fgBox(fg.persian));return;
     }
   }
   const res=await MakanDict.lookup(word,{pair,showVulgar:showVulgar()});
-  if(!res){$('dcNoPackText').textContent=L('dictNoPack')+` (${packName(pair)})`;$('dcNoPack').hidden=false;return}
+  if(!res){$('dcNoPackText').textContent=L('dictNoPack')+` (${packName(pair)})`;$('dcNoPack').hidden=false;if(fg.persian)box.prepend(fgBox(fg.persian));return}
   $('dcNoPack').hidden=true;
   dictRender(res,box);
+  if(fg.persian)box.prepend(fgBox(fg.persian));
   const b=document.createElement('button');b.className='btn';b.type='button';b.id='dcExplain';b.textContent=L('dictExplain');b.style.marginTop='12px';
   b.onclick=()=>dictExplain(word,box,b);box.append(b);
 }
@@ -5766,7 +5819,7 @@ async function renderIdiomInto(box,text){
     box.append(save);
   }catch(e){out.textContent=scrubKeys(plainFailure(e))}
 }
-async function idSearch(){const t=$('idSearch').value.trim();const box=$('idResult');if(!t){box.replaceChildren();return}await renderIdiomInto(box,t)}
+async function idSearch(){const raw=$('idSearch').value.trim();const box=$('idResult');if(!raw){box.replaceChildren();return}const fg=await finglishWord(raw);await renderIdiomInto(box,fg.text);if(fg.persian)box.prepend(fgBox(fg.persian))}
 $('idGo').onclick=idSearch;
 $('idSearch').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();idSearch()}});
 // Reverse search: describe a meaning, get idioms in both languages (AI only).

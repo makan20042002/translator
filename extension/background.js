@@ -388,7 +388,7 @@ const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id &&
 const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish']);
 
 // The dictionary packs ship inside the extension (the list of packs is dict/packs.json); load one into IndexedDB the
 // first time it is needed (no network).
@@ -440,7 +440,7 @@ function publicConfig(cfg) {
 }
 
 // Check the shape of requests before using them.
-const LANG_RE = /^(auto|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
+const LANG_RE = /^(auto|finglish|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
 function requestProblem(req) {
   if (req.action === 'translate-text') {
     if (req.items !== undefined && (!Array.isArray(req.items) || req.items.length > 200 || req.items.some(x => typeof x !== 'string' || x.length > 20000))) return 'Bad items';
@@ -449,6 +449,7 @@ function requestProblem(req) {
   if (req.action === 'translate-dict' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
   if (req.action === 'idiom-check' && (typeof req.text !== 'string' || req.text.length > 300)) return 'Bad text';
   if (req.action === 'dict-lookup' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
+  if (req.action === 'finglish' && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
   if (req.action === 'play-gemini-tts' && (typeof req.text !== 'string' || req.text.length > 5000)) return 'Bad text';
   for (const k of ['src', 'tgt']) if (req[k] !== undefined && !LANG_RE.test(String(req[k]))) return 'Bad language';
   if (req.engine !== undefined && req.engine !== 'auto' && !(typeof ENG !== 'undefined' && ENG[req.engine])) return 'Bad engine';
@@ -517,6 +518,16 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       }
     }
 
+    if (req.action === 'finglish') {
+      // Persian written in Latin letters: one AI request turns it into Persian script (kind 'ok'); without an AI engine kind is 'needs-ai'.
+      try {
+        const r = await prepareFinglish(String(req.text || ''), req.src || cfg.src || 'auto', cfg);
+        return { ok: true, kind: r.kind, persian: r.persian, engineName: r.engine };
+      } catch (e) {
+        return { ok: false, error: plainFailure(e) };
+      }
+    }
+
     if (req.action === 'idiom-check') {
       // Is the selection an idiom? Asked of the AI engine (no keys leave the background).
       try {
@@ -542,7 +553,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     if (req.action === 'set-language') {
       // The card's language choice is remembered; only these two fields, only known language codes.
       const known = c => typeof c === 'string' && (LANGS || []).some(l => l[0] === c);
-      if (!known(req.src) && req.src !== 'auto') return { ok: false, error: 'Bad language' };
+      if (!known(req.src) && req.src !== 'auto' && req.src !== 'finglish') return { ok: false, error: 'Bad language' };
       if (!known(req.tgt) || req.tgt === 'auto') return { ok: false, error: 'Bad language' };
       cfg.src = req.src; cfg.tgt = req.tgt;
       await saveConfig(cfg);
@@ -569,7 +580,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     if (req.action === 'translate-text') {
       const items = Array.isArray(req.items) ? req.items : [String(req.text || '')];
       const options = {
-        src: req.src || cfg.src || 'auto',
+        src: (req.src || cfg.src || 'auto') === 'finglish' ? 'auto' : (req.src || cfg.src || 'auto'),   // Finglish is converted first (action 'finglish'); no engine knows it
         tgt: req.tgt || cfg.tgt || 'fa',
         engine: req.engine || 'auto',
         tone: req.tone || cfg.tone || 'neutral',
