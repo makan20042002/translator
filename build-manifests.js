@@ -36,10 +36,12 @@ function copyDirRecursive(src, dest, ignoreFiles = []) {
 }
 
 // The two offline dictionary packs (made from Wiktionary, CC BY-SA) travel inside the extension, with their credits.
+const BUNDLED_PAIRS = ['en-fa', 'fa-en'];   // only these travel inside the extension; the others stay out so it does not grow with every pack
 function copyDictionary(outDir) {
-  const list = require('./build-dict-list').writeList();
+  const all = require('./build-dict-list').writeList();
+  const list = { ...all, packs: all.packs.filter(p => BUNDLED_PAIRS.includes(p.id)) };
   fs.mkdirSync(path.join(outDir, 'dict'), { recursive: true });
-  fs.copyFileSync(path.join(ROOT_DIR, 'dict', 'packs.json'), path.join(outDir, 'dict', 'packs.json'));
+  fs.writeFileSync(path.join(outDir, 'dict', 'packs.json'), JSON.stringify(list, null, 2) + '\n');
   for (const pack of list.packs) {
     const pair = pack.id;
     const src = path.join(ROOT_DIR, 'dict', pack.dir);

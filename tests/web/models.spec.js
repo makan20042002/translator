@@ -17,11 +17,13 @@ test.describe('Web app: offline model catalogue', () => {
     await openSettings(page);
     await expect(page.locator('.mdl-grp')).toContainText([/Listening/, /Translation/]);
     expect(cat.models.length).toBeGreaterThan(5);
+    // With WebGPU the app downloads other files for Tiny/Base/Small (gpuBytes): expect the size of the path this browser takes.
+    const gpu = await page.evaluate(async () => { await checkWebGpu(); mcRender(); return hasWebGpu; });
     for (const m of cat.models) {
       const r = row(page, m.id);
       await expect(r, m.id).toHaveCount(1);
       await expect(r.locator('strong').first()).toHaveText(m.name.en || m.name);
-      await expect(r.locator('.mdl-m')).toContainText(`Download ${mb(m.bytes)}`);
+      await expect(r.locator('.mdl-m')).toContainText(`Download ${mb(gpu && m.gpuBytes ? m.gpuBytes : m.bytes)}`);
       await expect(r.locator('.mdl-m')).toContainText('Memory ≈');
       await expect(r.locator('.mdl-m')).toContainText('WebGPU:');
       await expect(r.locator('.mdl-m')).toContainText('Languages:');
@@ -299,15 +301,16 @@ test.describe('Web app: the result says which offline model translated', () => {
     }
     await page.evaluate(() => mcScan());
     // stand-in worker that "translates" by marking the text
+    // The stand-in replaces Worker before the app creates one: the real worker cannot start in the test and would report an error first.
     const labels = await page.evaluate(async () => {
-      window.rpc2 = null;
-      const real = Worker.prototype.postMessage;
-      Worker.prototype.postMessage = function (m) { setTimeout(() => this.onmessage({ data: { id: m.id, ok: true, res: m.a.items.map(t => 'X' + t) } }), 5); };
+      window.Worker = class {
+        constructor(url) { this.url = String(url); }
+        postMessage(m) { setTimeout(() => this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: m.a.items.map(t => 'X' + t) } }), 5); }
+      };
+      wk = null;                                   // drop any worker the app already made
       const out = [];
-      try {
-        cfg.trPair = false; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
-        cfg.trPair = true; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
-      } finally { Worker.prototype.postMessage = real; }
+      cfg.trPair = false; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
+      cfg.trPair = true; await eNllb(['hello'], 'en', 'de'); out.push(engLabel('nllb'));
       return out;
     });
     expect(labels[0]).toContain('NLLB-200 600M');
