@@ -223,6 +223,12 @@
 
     <!-- Toast Notifications Container -->
     <div class="opt-toasts" id="optToasts"></div>
+    <!-- Dictionary pairs that are not inside the extension: downloaded from the web app's address on demand -->
+    <div class="opt-card" id="cardDictPacks">
+      <h2 id="secDictPacks">More dictionaries</h2>
+      <p class="opt-sub" id="dictPacksNote"></p>
+      <div id="dictPackRows"></div>
+    </div>
     <!-- Credits for the offline dictionary data -->
     <div class="opt-card" id="cardCredits">
       <h2 id="secCredits">About &amp; credits</h2>
@@ -232,6 +238,7 @@
   </main>
 
   <script src="engine.js"></script>
+  <script src="dictionary.js"></script>
   <script src="options.js"></script>
 </body>
 </html>

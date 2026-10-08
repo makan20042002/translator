@@ -43,15 +43,26 @@ function copyDir(src, dst) {
   }
 }
 
-function prepareTestCopy() {
+/**
+ * A copy of dist/chrome for the tests. dropPairs: dictionary pairs left OUT of the copy (they are then, like every
+ * pair that is not bundled, offered as a download from the web app's dict/ folder, which holds the real packs).
+ */
+function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
   if (!fs.existsSync(path.join(DIST_CHROME, 'manifest.json'))) {
     throw new Error('dist/chrome is missing. Run "node build-manifests.js" first (npm test does this for you).');
   }
-  fs.rmSync(TEST_COPY, { recursive: true, force: true });
-  copyDir(DIST_CHROME, TEST_COPY);
-  const bg = path.join(TEST_COPY, 'background.js');
+  fs.rmSync(dir, { recursive: true, force: true });
+  copyDir(DIST_CHROME, dir);
+  const bg = path.join(dir, 'background.js');
   fs.writeFileSync(bg, SHIM + fs.readFileSync(bg, 'utf8'));
-  return TEST_COPY;
+  if (dropPairs.length) {
+    const listFile = path.join(dir, 'dict', 'packs.json');
+    const list = JSON.parse(fs.readFileSync(listFile, 'utf8'));
+    list.packs = list.packs.filter(p => !dropPairs.includes(p.id));
+    fs.writeFileSync(listFile, JSON.stringify(list, null, 2));
+    for (const pair of dropPairs) fs.rmSync(path.join(dir, 'dict', pair), { recursive: true, force: true });
+  }
+  return dir;
 }
 
 /**
