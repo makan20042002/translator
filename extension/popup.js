@@ -28,6 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       clear: 'Clear',
       translate: 'Translate',
       translating: 'Translating…',
+      fgSpelling: 'Persian spelling', fgCopy: 'Copy', fgVia: 'Finglish → Persian', fgOpt: 'Finglish · Persian in Latin letters',
+      fgNeedsAi: 'Finglish (Persian written in Latin letters) needs an AI engine. Add a free Gemini or Groq key in Options.',
       openApp: 'Open full Web App',
       copied: 'Copied!'
     },
@@ -50,6 +52,8 @@ document.addEventListener('DOMContentLoaded', async () => {
       clear: 'پاک کردن',
       translate: 'ترجمه',
       translating: 'در حال ترجمه…',
+      fgSpelling: 'املای فارسی', fgCopy: 'کپی', fgVia: 'فینگلیش ← فارسی', fgOpt: 'فینگلیش · فارسی با حروف لاتین',
+      fgNeedsAi: 'فینگلیش (فارسی با حروف لاتین) به یک موتور هوش مصنوعی نیاز دارد. در تنظیمات یک کلید رایگان Gemini یا Groq اضافه کنید.',
       openApp: 'باز کردن وب‌اپلیکیشن کامل',
       copied: 'کپی شد!'
     }
@@ -190,6 +194,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     pSrcLang.innerHTML += `<option value="${code}">${label}</option>`;
     pTgtLang.innerHTML += `<option value="${code}">${label}</option>`;
   });
+  pSrcLang.innerHTML += `<option value="finglish">${I18N[currentUi].fgOpt}</option>`;
 
   pSrcLang.value = cfg.src || 'auto';
   pTgtLang.value = cfg.tgt || 'fa';
@@ -271,7 +276,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   pSwapLang.onclick = () => {
     const oldSrc = pSrcLang.value;
     const oldTgt = pTgtLang.value;
-    if (oldSrc === 'auto') {
+    if (oldSrc === 'auto' || oldSrc === 'finglish') {
       pSrcLang.value = oldTgt;
       pTgtLang.value = 'en';
     } else {
@@ -307,14 +312,45 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   // Translate
   async function doTranslate() {
-    const text = pInputText.value.trim();
-    if (!text) return;
+    const rawText = pInputText.value.trim();
+    if (!rawText) return;
 
     pTransBtn.disabled = true;
     pTransBtn.textContent = I18N[currentUi].translating;
     pOutputWrap.hidden = false;
     pOutputText.innerHTML = '<span style="color:var(--muted)">Translating…</span>';
     pOutputEngine.textContent = '…';
+
+    // Finglish: one AI request turns it into Persian script, shown above the result; the translation starts from it.
+    const pFg = document.getElementById('pFg');
+    pFg.hidden = true;
+    let text = rawText, srcCode = pSrcLang.value;
+    {
+      let fg = null;
+      try { fg = await askBackground({ action: 'finglish', text: rawText, src: srcCode }); } catch {}
+      if (fg && fg.ok && fg.kind === 'needs-ai') {
+        pOutputText.textContent = I18N[currentUi].fgNeedsAi; pOutputText.dir = currentUi === 'fa' ? 'rtl' : 'ltr';
+        pOutputEngine.textContent = 'Finglish'; pTransBtn.disabled = false; pTransBtn.textContent = I18N[currentUi].translate;
+        return;
+      }
+      if (fg && fg.ok && fg.kind === 'ok') {
+        pFg.textContent = '';
+        const lab = document.createElement('span'); lab.className = 'p-fg-lab'; lab.textContent = I18N[currentUi].fgSpelling;
+        const fgText = document.createElement('span'); fgText.className = 'p-fg-text'; fgText.dir = 'rtl'; fgText.lang = 'fa'; fgText.textContent = fg.persian;
+        const fgBtn = document.createElement('button'); fgBtn.type = 'button'; fgBtn.className = 'p-icon-btn p-fg-copy'; fgBtn.textContent = I18N[currentUi].fgCopy;
+        fgBtn.onclick = () => navigator.clipboard?.writeText(fg.persian).catch(() => {});
+        pFg.append(lab, fgText, fgBtn); pFg.hidden = false;
+        text = fg.persian; srcCode = 'fa';
+        if (pTgtLang.value === 'fa') {
+          pOutputText.textContent = fg.persian; pOutputText.dir = 'rtl';
+          pOutputEngine.textContent = `${I18N[currentUi].fgVia} · ${fg.engineName || 'AI'}`;
+          pTransBtn.disabled = false; pTransBtn.textContent = I18N[currentUi].translate;
+          return;
+        }
+      } else if (srcCode === 'finglish') {
+        srcCode = 'auto';
+      }
+    }
 
     const hasAiAvailable = cfg.order?.some(id => ENG[id]?.ai && (typeof isEngineUsable === 'function' ? isEngineUsable(id, cfg) : (cfg.eng?.[id]?.on && cfg.eng?.[id]?.key)) && (ENG[id]?.key ? Boolean(cfg.eng?.[id]?.key) : (id === 'custom' ? Boolean(cfg.eng?.[id]?.base) : false)));
     const mode = pModeSel?.value || (hasAiAvailable ? 'both' : 'fast');
@@ -329,19 +365,19 @@ document.addEventListener('DOMContentLoaded', async () => {
         resp = await askBackground({
               action: 'translate-text',
               items: [text],
-              src: pSrcLang.value,
+              src: srcCode,
               tgt: pTgtLang.value,
               mode: 'fast'
             });
         if (!resp && typeof MakanEngine !== 'undefined') {
-          const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, { mode: 'fast' });
+          const r = await MakanEngine.translateText([text], srcCode, pTgtLang.value, cfg, { mode: 'fast' });
           resp = { ok: true, results: r.results, engineName: r.engineName };
         }
         if (resp && resp.ok && resp.results?.length) {
           pOutputText.textContent = resp.results[0];
           pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
           pOutputEngine.textContent = resp.engineName || 'Translated';
-          updateOpenWebAppHref(text);
+          updateOpenWebAppHref(rawText);
         } else {
           throw new Error(plainFailure(resp?.error));
         }
@@ -350,14 +386,14 @@ document.addEventListener('DOMContentLoaded', async () => {
         resp = await askBackground({
               action: 'translate-text',
               items: [text],
-              src: pSrcLang.value,
+              src: srcCode,
               tgt: pTgtLang.value,
               engine: pEngineSel.value,
               tone: pToneSel.value,
               mode: 'smart'
             });
         if (!resp && typeof MakanEngine !== 'undefined') {
-          const r = await MakanEngine.translateText([text], pSrcLang.value, pTgtLang.value, cfg, {
+          const r = await MakanEngine.translateText([text], srcCode, pTgtLang.value, cfg, {
             engineName: pEngineSel.value,
             tone: pToneSel.value,
             mode: 'smart'
@@ -368,7 +404,7 @@ document.addEventListener('DOMContentLoaded', async () => {
           pOutputText.textContent = resp.results[0];
           pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
           pOutputEngine.textContent = resp.engineName || 'Translated';
-          updateOpenWebAppHref(text);
+          updateOpenWebAppHref(rawText);
         } else {
           throw new Error(plainFailure(resp?.error));
         }
@@ -382,7 +418,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const fastReq = askBackground({
           action: 'translate-text',
           items: [text],
-          src: pSrcLang.value,
+          src: srcCode,
           tgt: pTgtLang.value,
           mode: 'fast'
         }).then(resp => {
@@ -408,7 +444,7 @@ document.addEventListener('DOMContentLoaded', async () => {
         const smartReq = askBackground({
           action: 'translate-text',
           items: [text],
-          src: pSrcLang.value,
+          src: srcCode,
           tgt: pTgtLang.value,
           engine: pEngineSel.value,
           tone: pToneSel.value,
@@ -446,7 +482,7 @@ document.addEventListener('DOMContentLoaded', async () => {
               pOutputText.dir = isRtlLang(pTgtLang.value) ? 'rtl' : 'ltr';
               pOutputEngine.textContent = smartEngine;
             }
-            updateOpenWebAppHref(text);
+            updateOpenWebAppHref(rawText);
           } else {
             throw new Error(plainFailure(resp?.error));
           }

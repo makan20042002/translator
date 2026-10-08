@@ -530,6 +530,7 @@
         <span class="makan-lang-arrow">→</span>
         <select class="makan-mode-select makan-lang-select" id="makanTgtSel" aria-label="Target language"></select>
       </div>
+      <div class="makan-fg" id="makanFg" hidden></div>
       <div class="makan-card-body" id="makanCardBody">
         <div class="makan-loading">
           <svg class="makan-spin" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><circle cx="12" cy="12" r="10" stroke-opacity="0.25"/><path d="M12 2a10 10 0 0 1 10 10" stroke-linecap="round"/></svg>
@@ -608,7 +609,7 @@
     const tgtSel = card.querySelector('#makanTgtSel');
     const langList = (typeof globalThis.LANGS !== 'undefined' && globalThis.LANGS) || [];
     const langOpt = ([code, name]) => `<option value="${escapeHtml(code)}">${escapeHtml(String(name).split(' · ').pop())}</option>`;
-    srcSel.innerHTML = '<option value="auto">Auto-detect</option>' + langList.filter(l => l[0] !== 'auto').map(langOpt).join('');
+    srcSel.innerHTML = '<option value="auto">Auto-detect</option>' + langList.filter(l => l[0] !== 'auto').map(langOpt).join('') + `<option value="finglish">${cfg?.ui === 'fa' ? 'فینگلیش · فارسی با حروف لاتین' : 'Finglish · Persian in Latin letters'}</option>`;
     tgtSel.innerHTML = langList.filter(l => l[0] !== 'auto').map(langOpt).join('');
     const syncLangSelects = () => { srcSel.value = curSrc; tgtSel.value = curTgt; };
     syncLangSelects();
@@ -729,6 +730,23 @@
       bodyElem.prepend(box);
     }
 
+    // Finglish (Persian written in Latin letters): texts for the card, in both interface languages.
+    const FG_TEXT = {
+      en: { spelling: 'Persian spelling', copy: 'Copy', via: 'Finglish → Persian', needsAi: 'Finglish (Persian written in Latin letters) needs an AI engine. Add a free Gemini or Groq key in Options.' },
+      fa: { spelling: 'املای فارسی', copy: 'کپی', via: 'فینگلیش ← فارسی', needsAi: 'فینگلیش (فارسی با حروف لاتین) به یک موتور هوش مصنوعی نیاز دارد. در تنظیمات یک کلید رایگان Gemini یا Groq اضافه کنید.' }
+    };
+    const fgT = () => FG_TEXT[cfg?.ui === 'fa' ? 'fa' : 'en'];
+    function showFinglish(persian) {
+      const box = card.querySelector('#makanFg');
+      box.textContent = '';
+      const lab = document.createElement('span'); lab.className = 'makan-fg-lab'; lab.textContent = fgT().spelling;
+      const txt = document.createElement('span'); txt.className = 'makan-fg-text'; txt.dir = 'rtl'; txt.lang = 'fa'; txt.textContent = persian;
+      const btn = document.createElement('button'); btn.className = 'makan-action-btn makan-fg-copy'; btn.type = 'button'; btn.textContent = fgT().copy;
+      btn.onclick = (e) => { e.stopPropagation(); if (e.isTrusted) navigator.clipboard?.writeText(persian).catch(() => {}); };
+      box.append(lab, txt, btn);
+      box.hidden = false;
+    }
+
     async function executeTranslate(sourceText, sLang, tLang, useDict) {
       executeSeq++;
       bodyElem.innerHTML = `
@@ -741,6 +759,37 @@
       detectedLang = isRtlText(sourceText) ? 'fa' : 'en';
       detectedPill.textContent = `Detected: ${detectedLang.toUpperCase()}`;
       updateAppUrl(sourceText, sLang, tLang);
+
+      // Finglish: one AI request turns it into Persian script, shown above the result; the translation starts from it.
+      card.querySelector('#makanFg').hidden = true;
+      {
+        const mySeq = executeSeq;
+        let fg = null;
+        try { fg = await askBackground({ action: 'finglish', text: sourceText, src: sLang }); } catch {}
+        if (mySeq !== executeSeq) return;
+        if (fg && fg.ok && fg.kind === 'needs-ai') {
+          enginePill.textContent = 'Finglish';
+          bodyElem.innerHTML = `<div class="makan-err">${escapeHtml(fgT().needsAi)}</div>`;
+          return;
+        }
+        if (fg && !fg.ok && fg.error) {
+          bodyElem.innerHTML = `<div class="makan-err">⚠️ Translation failed: ${escapeHtml(fg.error)}</div>`;
+          return;
+        }
+        if (fg && fg.ok && fg.kind === 'ok') {
+          showFinglish(fg.persian);
+          sourceText = fg.persian; sLang = 'fa';
+          if (tLang === 'fa') {
+            translatedResult = fg.persian;
+            enginePill.textContent = `${fgT().via} · ${fg.engineName || 'AI'}`;
+            bodyElem.innerHTML = `<div class="makan-result-text" dir="rtl">${escapeHtml(fg.persian)}</div>`;
+            return;
+          }
+        } else if (sLang === 'finglish') {
+          sLang = 'auto';
+        }
+      }
+
 
       // Offline dictionary first: instant and without any network call. A selected phrase that is an idiom
       // shows its meaning (marked as an idiom) instead of a literal translation.
