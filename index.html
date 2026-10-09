@@ -897,6 +897,16 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
                 <span class="ptt-label" id="vPttLabel" data-t="talk">Talk</span>
               </button>
               <div class="ptt-subtext" id="vPttSub" data-t="pttHold">Hold to speak · Release to send · <kbd>Space</kbd> or tap</div>
+              <div class="v-mic-stt-picker-wrap" id="vMicSttPickerWrap" style="margin-top:6px;display:flex;justify-content:center;position:relative">
+                <button class="btn ghost compact-voice-btn" id="vMicSttBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Speech recognition" aria-label="Speech recognition" style="font-size:11.5px;padding:2px 10px;border-radius:12px;background:var(--surface2)">
+                  <span class="mic-stt-icon">🎙️</span>
+                  <span class="mic-stt-cur" id="vMicSttCurLabel">Auto</span>
+                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
+                </button>
+                <div class="compact-voice-popup popup-up" id="vMicSttPopup" role="dialog" aria-label="Speech recognition options" hidden style="left:50%;transform:translateX(-50%);inset-inline-end:auto;min-width:320px;max-width:390px;max-height:380px;overflow-y:auto">
+                  <div class="stt-picker-list" id="vMicSttList"></div>
+                </div>
+              </div>
             </div>
 
             <div class="v-stop-ctrl-wrap">
@@ -4602,6 +4612,7 @@ if ($('vSttChoice')) $('vSttChoice').onchange = () => {
   saveCfg();
   if ($('sttSel')) $('sttSel').value = cfg.stt;
   voiceLabels();
+  if (typeof updateSttPickerDisplay === 'function') updateSttPickerDisplay();
 };
 if ($('vTransEngine')) $('vTransEngine').onchange = () => {
   store.set('voiceTransEngine', $('vTransEngine').value);
@@ -4883,6 +4894,7 @@ async function runLiveLoop() {
 
       const d = addBubble($('bubbles'), side, turnResult.transcript, turnResult.translation || '…', from, to, {
         stt: turnResult.stt,
+        sttModel: turnResult.sttModel,
         engine: turnResult.engine,
         voice: voiceName,
         dur: dt
@@ -5271,15 +5283,19 @@ async function handleAskPttAudio(audioInput) {
   setVoiceState('working', L('vStatusWorking'));
   try {
     let tx = '';
+    let sttName = '';
+    let sttModelName = '';
     const askL = $('vAskLang').value, l2 = askL === 'auto' ? null : askL.split('-')[0];
     const mode = sttMode();
 
     if (audioInput && typeof audioInput === 'object' && audioInput.transcript) {
       tx = audioInput.transcript;
+      sttName = 'Browser';
     } else {
       const blob = audioInput;
       if (mode === 'groq') {
         tx = await transcribeGroq(blob, askL);
+        sttName = 'Groq';
       } else if (mode === 'whisper') {
         if (!asrReady()) {
           toast(L('needDl'), 'warn');
@@ -5288,8 +5304,11 @@ async function handleAskPttAudio(audioInput) {
         }
         const audio = await to16k(blob);
         tx = await rpc('asr', { audio, lang: l2, model: asrModel().key, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+        sttName = 'Whisper';
+        sttModelName = asrModel() ? mcText(asrModel().name) : '';
       } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
         tx = await transcribeGemini(blob, l2);
+        sttName = 'Gemini';
       } else {
         if (!asrReady()) {
           toast(L('needDl'), 'warn');
@@ -5298,12 +5317,14 @@ async function handleAskPttAudio(audioInput) {
         }
         const audio = await to16k(blob);
         tx = await rpc('asr', { audio, lang: l2, model: asrModel().key, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+        sttName = 'Whisper';
+        sttModelName = asrModel() ? mcText(asrModel().name) : '';
       }
     }
     tx = (tx || '').trim();
     if (tx && !isSilenceHallucination(tx)) {
       $('vAskIn').value = tx;
-      doAsk(tx);
+      doAsk(tx, { stt: sttName, sttModel: sttModelName });
     } else {
       setVoiceState('ready');
     }
@@ -5371,7 +5392,7 @@ document.addEventListener('visibilitychange', () => {
 });
 
 // Ask AI mode
-async function doAsk(query) {
+async function doAsk(query, sttMeta) {
   query = (query || '').trim();
   if (!query) return;
   if (isSilenceHallucination(query)) return;
@@ -5390,7 +5411,7 @@ async function doAsk(query) {
   const ansLName = langName(ansCode);
   const sys = `You are a friendly, helpful voice assistant. Answer the user's request in ${ansLName}. Keep your answer short (1 to 3 sentences), clear, conversational, and natural to hear when read aloud. Do NOT use any Markdown formatting, asterisks, bullet points, numbered lists, URLs, or emojis. Plain conversational text only.`;
 
-  const userBub = addBubble($('askBubbles'), 'a', query, '…', 'auto', ansCode, { stt: fgNote ? 'Finglish' : 'Input' });
+  const userBub = addBubble($('askBubbles'), 'a', query, '…', 'auto', ansCode, { stt: fgNote ? 'Finglish' : (sttMeta?.stt || 'Input'), sttModel: sttMeta?.sttModel || null });
   if (fgNote) userBub.title = fgNote;
   userBub.querySelector('.bub-text')?.remove();
   const d = addBubble($('askBubbles'), 'b', query, L('vAskThinking') || 'Thinking…', ansCode, ansCode, { engine: 'AI' });
@@ -6058,6 +6079,7 @@ function mcRender(){
   }
   fillTestLangs();
   if(typeof renderUnifiedVoicePicker==='function')renderUnifiedVoicePicker();
+  if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
 }
 $('mdlCatalog').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
@@ -6080,6 +6102,7 @@ if($('offWhisperSel'))$('offWhisperSel').onchange=e=>{
   cfg.whisper=e.target.value;
   saveCfg();mcRender();
   if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
+  if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
 };
 
 function fillTestLangs(){
@@ -6587,7 +6610,180 @@ if(typeof document!=='undefined'){
         if(btn)btn.setAttribute('aria-expanded','false');
       }
     }
+    const micSttBtn=e.target.closest('#vMicSttBtn');
+    if(micSttBtn){
+      e.stopPropagation();
+      const pop=$('vMicSttPopup');
+      if(pop){
+        const isHidden=pop.hidden;
+        document.querySelectorAll('.compact-voice-popup').forEach(p=>{
+          p.hidden=true;
+          const btn=p.parentElement?.querySelector('.compact-voice-btn');
+          if(btn)btn.setAttribute('aria-expanded','false');
+        });
+        if(isHidden){
+          pop.hidden=false;
+          micSttBtn.setAttribute('aria-expanded','true');
+          const list=$('vMicSttList');
+          if(list)list.innerHTML=renderSttPickerListHTML();
+        }
+      }
+      return;
+    }
+    if(!e.target.closest('.compact-voice-picker-wrap') && !e.target.closest('.v-mic-stt-picker-wrap')){
+      document.querySelectorAll('.compact-voice-popup').forEach(p=>{
+        p.hidden=true;
+        const btn=p.parentElement?.querySelector('.compact-voice-btn');
+        if(btn)btn.setAttribute('aria-expanded','false');
+      });
+    }
+    const sttDlBtn=e.target.closest('#vMicSttList [data-act="dl-whisper"]');
+    if(sttDlBtn){
+      e.stopPropagation();
+      const m=MC.models.find(x=>x.id===sttDlBtn.dataset.id);
+      if(m){
+        await mcDownload(m);
+        updateSttPickerDisplay();
+      }
+      return;
+    }
+    const sttCard=e.target.closest('#vMicSttList .voice-card');
+    if(sttCard && sttCard.dataset.stt){
+      selectSttChoice(sttCard.dataset.stt, sttCard.dataset.whisper);
+      const pop=$('vMicSttPopup');
+      if(pop){
+        pop.hidden=true;
+        $('vMicSttBtn')?.setAttribute('aria-expanded','false');
+      }
+      return;
+    }
   });
+}
+
+function getSttCurName(){
+  const curStt=cfg.stt||'auto';
+  if(curStt==='auto')return L('sttAuto')?L('sttAuto').split(' ')[0]:'Auto';
+  if(curStt==='browser')return 'Browser';
+  if(curStt==='gemini')return 'Gemini';
+  if(curStt==='groq')return 'Groq Whisper';
+  if(curStt==='whisper'){
+    const wKey=cfg.whisper||'auto';
+    const m=(self.MODEL_CATALOG?.models||MC?.models||[]).find(x=>x.kind==='whisper'&&x.key===wKey);
+    return m?mcText(m.name):('Whisper '+(wKey==='auto'?'Auto':wKey));
+  }
+  return curStt;
+}
+
+function renderSttPickerListHTML(){
+  const curStt=cfg.stt||'auto';
+  const curWh=cfg.whisper||'auto';
+  const isAuto=(curStt==='auto');
+
+  let html='';
+  html+=`<div class="voice-group" data-group="auto-stt" style="margin-bottom:8px">
+    <div class="voice-group-title" style="padding:4px 8px 2px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${esc(L('autoVoice')||'Auto')}</div>
+    <div class="voice-card voice-card-auto ${isAuto?'selected':''}" data-stt="auto" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid ${isAuto?'var(--accent)':'var(--border)'};border-radius:6px;background:${isAuto?'var(--accent-dim)':'var(--surface2)'};cursor:pointer">
+      <div class="row" style="gap:10px;align-items:center">
+        <input type="radio" name="sttRadio" value="auto" ${isAuto?'checked':''} style="cursor:pointer">
+        <div>
+          <strong>${esc(L('sttAuto')||'Auto (best available)')}</strong>
+          <div style="font-size:12px;color:var(--muted)">${isOff()?(esc(L('offMode'))+' · Whisper'):'Groq / Gemini / Browser / Whisper'}</div>
+        </div>
+      </div>
+      <span class="badge" style="font-size:11px">Auto</span>
+    </div>
+  </div>`;
+
+  const whisperModels=(self.MODEL_CATALOG?.models||MC?.models||[]).filter(m=>m.kind==='whisper');
+  html+=`<div class="voice-group" data-group="offline-whisper" style="margin-bottom:10px">
+    <div class="voice-group-title" style="padding:4px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">${esc(L('offH')||'Offline')} · Whisper</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+
+  for(const m of whisperModels){
+    const ready=mcReady(m);
+    const isSel=(curStt==='whisper'&&curWh===m.key);
+    const sz=mcFmt(mcModelBytes(m,hasWebGpu));
+    if(ready){
+      html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="whisper" data-whisper="${esc(m.key)}" data-status="ready" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
+        <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
+          <input type="radio" name="sttRadio" value="whisper:${esc(m.key)}" ${isSel?'checked':''} style="cursor:pointer">
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
+            <div style="font-size:11.5px;color:var(--muted)">${esc(sz)} · 99 langs (Fa, En…)</div>
+          </div>
+        </div>
+        <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">${esc(L('offMode')||'Offline')}</span>
+      </div>`;
+    }else{
+      html+=`<div class="voice-card voice-card-undl" data-whisper="${esc(m.key)}" data-status="available" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);opacity:0.9;gap:8px">
+        <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
+            <div style="font-size:11.5px;color:var(--muted)">${esc(sz)} · ${esc(L('notDownloaded')||'Not downloaded')}</div>
+          </div>
+        </div>
+        <div class="row" style="gap:4px;align-items:center">
+          <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--muted)">${esc(L('offMode')||'Offline')}</span>
+          <button class="btn ghost btn-sm" type="button" data-act="dl-whisper" data-id="${esc(m.id)}" title="${esc(L('dlBtn')||'Download')}" style="padding:2px 8px;font-size:11.5px;white-space:nowrap">
+            ⬇️ ${esc(L('dlBtn')||'Download')}
+          </button>
+        </div>
+      </div>`;
+    }
+  }
+  html+=`</div></div>`;
+
+  const onlineOpts=[
+    { id:'browser', name:L('sttBrowser')||'Browser (online)', desc:'Web Speech API' },
+    { id:'gemini', name:L('sttGemini')||'Gemini (online)', desc:'Google Gemini API' },
+    { id:'groq', name:L('sttGroq')||'Groq Whisper', desc:'Cloud Whisper API' }
+  ];
+  html+=`<div class="voice-group" data-group="online-stt" style="margin-bottom:6px">
+    <div class="voice-group-title" style="padding:4px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">آنلاین / Online</div>
+    <div style="display:flex;flex-direction:column;gap:6px">`;
+
+  for(const o of onlineOpts){
+    const isSel=(curStt===o.id);
+    html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="${esc(o.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
+      <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
+        <input type="radio" name="sttRadio" value="${esc(o.id)}" ${isSel?'checked':''} style="cursor:pointer">
+        <div style="min-width:0">
+          <div style="font-weight:600;font-size:13px">${esc(o.name)}</div>
+          <div style="font-size:11.5px;color:var(--muted)">${esc(o.desc)}</div>
+        </div>
+      </div>
+      <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">Online</span>
+    </div>`;
+  }
+  html+=`</div></div>`;
+
+  return html;
+}
+
+function selectSttChoice(stt, whisperKey){
+  cfg.stt = stt;
+  if(stt === 'whisper' && whisperKey){
+    cfg.whisper = whisperKey;
+  }
+  saveCfg();
+  if($('sttSel')) $('sttSel').value = cfg.stt;
+  if($('vSttChoice')) $('vSttChoice').value = cfg.stt;
+  if($('offWhisperSel') && stt === 'whisper' && whisperKey){
+    $('offWhisperSel').value = whisperKey;
+  }
+  if(typeof mcRender === 'function') mcRender();
+  if(typeof voiceLabels === 'function') voiceLabels();
+  if(typeof updateVoiceAutoEngineDisplay === 'function') updateVoiceAutoEngineDisplay();
+  updateSttPickerDisplay();
+}
+
+function updateSttPickerDisplay(){
+  const lbl=$('vMicSttCurLabel');
+  if(lbl)lbl.textContent=getSttCurName();
+  const list=$('vMicSttList');
+  if(list && !$('vMicSttPopup')?.hidden){
+    list.innerHTML=renderSttPickerListHTML();
+  }
 }
 
 /* voice + offline settings */
@@ -6644,9 +6840,10 @@ function renderVoice(){
   ['base','key','model','voice'].forEach(k=>{if($('tts_'+k))$('tts_'+k).value=cfg.tts[k]||''});
   document.querySelectorAll('select#vSilenceWait').forEach(el=>{el.value=String(cfg.silenceWait||800)});
   fillVoices();offStatus();
+  if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
 }
 if('speechSynthesis' in self)speechSynthesis.onvoiceschanged=()=>{fillVoices();if(typeof renderUnifiedVoicePicker==='function')renderUnifiedVoicePicker()};
-$('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();if($('vSttChoice'))$('vSttChoice').value=cfg.stt;voiceLabels()};
+$('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();if($('vSttChoice'))$('vSttChoice').value=cfg.stt;voiceLabels();if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay()};
 document.querySelectorAll('select#vSilenceWait').forEach(el=>{
   el.onchange=()=>{
     cfg.silenceWait=+el.value||800;
