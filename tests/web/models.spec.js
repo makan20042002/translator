@@ -517,6 +517,12 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
 test.describe('Web app: Test models panel (Item 3)', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['nllb', 'ollama']) } } });
 
+  test.beforeEach(async ({ page }) => {
+    // Isolate tests from any live Ollama instance running on localhost:11434.
+    await page.route('http://localhost:11434/api/tags', route => route.abort());
+    await page.route('http://localhost:11434/v1/models', route => route.abort());
+  });
+
   async function ready(page, ids) {
     const cat = await page.evaluate(() => MODEL_CATALOG);
     for (const id of ids) {

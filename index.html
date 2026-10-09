@@ -1186,7 +1186,7 @@ const I18N={en:{
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
  ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. To allow this page, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
  customHint:'LM Studio: http://localhost:1234/v1 · any OpenAI-compatible server works.',
- noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',voiceUsed:'Voice',voiceDevice:'device',geminiWord:'Gemini',geminiVoicesGrp:'Gemini voices',deviceVoicesGrp:'This device',edgeHint:'Microsoft Edge has built-in natural voices for this language.',noVoiceNoKey:'No voice for this language on this device, and no Gemini key is set. Add a Gemini key in Engines & keys, or try Microsoft Edge.',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
+ noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',voiceUsed:'Voice',voiceDevice:'Device',geminiWord:'Gemini',geminiVoicesGrp:'Gemini voices',deviceVoicesGrp:'This device',edgeHint:'Microsoft Edge has built-in natural voices for this language.',noVoiceNoKey:'No voice for this language on this device, and no Gemini key is set. Add a Gemini key in Engines & keys, or try Microsoft Edge.',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
  loadModels:'Models',
  vModeConv:'Conversation',vModeAsk:'Ask AI',
  vLive:'Live',vLiveHint:'Hands-free: listens and speaks continuously',vLiveListening:'Listening…',vLiveListenBrowser:'Listening (Alternating turns — tap speaker to switch)…',vLiveListenDetect:'Listening (Auto-detecting language)…',vLiveTranslating:'Translating…',vLiveSpeaking:'Speaking…',vStopLive:'Stop Live',
@@ -1327,7 +1327,7 @@ Object.assign(I18N.en,{
  ollamaUnreachableTitle:'Ollama is not reachable',
  ollamaUnreachableMsg:'Start Ollama by running “ollama serve” in terminal or launch the Ollama app. If the browser blocks connection, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
  ollamaAsrNotice:'Note: Speech models like Qwen3-ASR need a separate helper program that is not part of the app yet.',
- allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Chosen voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language'
+ allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language'
 });
 Object.assign(I18N.fa,{
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
@@ -1352,7 +1352,7 @@ Object.assign(I18N.fa,{
  ollamaUnreachableTitle:'Ollama در دسترس نیست',
  ollamaUnreachableMsg:'برای اجرا در ترمینال دستور «ollama serve» را بزنید یا برنامه Ollama را باز کنید. اگر مرورگر مانع شد، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  ollamaAsrNotice:'توجه: مدل‌های صوتی مانند Qwen3-ASR به یک برنامه کمکی جداگانه نیاز دارند که هنوز بخشی از این برنامه نیست.',
- allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخابی در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان'
+ allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -2466,7 +2466,8 @@ function speakFailureLine(e){return `${L('geminiWord')} ${L('voiceUsed').toLower
 async function speakResolved(flat,lang,tok,finish,retry,skipGemini){
   hideSpeakNotice();
   const b=lang.split('-')[0].toLowerCase(),rawPref=cfg.tts.voices[b]||'';
-  if(rawPref&&!isVoiceAvailable(rawPref,b,lang)){
+  const voiceUnavailable=rawPref&&!isVoiceAvailable(rawPref,b,lang);
+  if(voiceUnavailable){
     const msg=L('voiceFallbackAuto');
     toast(msg,'warn',6000);
     showSpeakNotice(msg);
@@ -2479,7 +2480,8 @@ async function speakResolved(flat,lang,tok,finish,retry,skipGemini){
   if(r.kind==='none'){
     showVoiceUsed('');
     if(!r.failedGemini){
-      showSpeakNotice(L('noVoiceNoKey')+(MC.models.some(m=>m.kind==='piper'&&m.lang===lang.split('-')[0].toLowerCase())?' '+L('noVoiceOffline'):'')+(!isEdge()&&!store.get('edgeHintOff',false)?' '+L('edgeHint'):''));
+      const noVoiceNotice=L('noVoiceNoKey')+(MC.models.some(m=>m.kind==='piper'&&m.lang===lang.split('-')[0].toLowerCase())?' '+L('noVoiceOffline'):'')+(!isEdge()&&!store.get('edgeHintOff',false)?' '+L('edgeHint'):'');
+      showSpeakNotice(voiceUnavailable ? `${L('voiceFallbackAuto')} ${noVoiceNotice}` : noVoiceNotice);
     }
     finish();return;
   }
@@ -5429,7 +5431,10 @@ function getOllamaHost(){
 async function fetchOllamaModels(){
   const host=getOllamaHost();
   try{
-    const res=await fetch(host+'/api/tags');
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),2500);
+    const res=await fetch(host+'/api/tags',{signal:ctrl.signal});
+    clearTimeout(to);
     if(res.ok){
       const data=await res.json();
       return (data.models||[]).map(m=>m.name||m.model).filter(Boolean);
@@ -5437,7 +5442,10 @@ async function fetchOllamaModels(){
   }catch(err){}
   try{
     const v1base=(cfg.eng?.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
-    const v1res=await fetch(v1base+'/models');
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),2500);
+    const v1res=await fetch(v1base+'/models',{signal:ctrl.signal});
+    clearTimeout(to);
     if(v1res.ok){
       const data=await v1res.json();
       return (data.data||[]).map(m=>m.id).filter(Boolean);
@@ -5659,12 +5667,15 @@ $('engList').addEventListener('change',e=>{
       saveCfg();
       const inp=document.querySelector('#engList .eng[data-id="ollama"] input[data-f="model"]');
       if(inp)inp.value=chosen;
+      fillEngines();
+      if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();
+      renderEngines();
       toast(`${ENG.ollama.name}: ${chosen}`,'ok');
     }
     return;
   }
   const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng').dataset.id;
-  cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();fillEngines();renderEngines()});
+  cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();fillEngines();if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();renderEngines()});
 $('engList').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id==='ollamaCustomModel'){
     e.preventDefault();
@@ -5742,6 +5753,7 @@ const saveAllInputs=()=>{
   if(cfg.eng.groq.key) sessionBlocked.delete('groq');
   saveCfg();
   fillEngines();
+  if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();
   fillVoiceTransEngines();
   voiceLabels();
 };
