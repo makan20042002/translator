@@ -1151,7 +1151,6 @@ const store={
   get(k,d){try{const v=localStorage.getItem('mkt_'+k);return v==null?(k in mem?mem[k]:d):JSON.parse(v)}catch{return k in mem?mem[k]:d}},
   set(k,v){mem[k]=v;try{localStorage.setItem('mkt_'+k,JSON.stringify(v))}catch{}}
 };
-window.store=store;
 
 /* ---------- i18n ---------- */
 const I18N={en:{

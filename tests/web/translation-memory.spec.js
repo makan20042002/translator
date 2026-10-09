@@ -599,12 +599,10 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
 
     // 2. Turn off the translation memory switch
     await page.evaluate(() => {
-      const s = (typeof store !== 'undefined' ? store : window.store);
-      const cfgObj = s.get('cfg', {});
+      const cfgObj = store.get('cfg', {});
       cfgObj.tm = false;
-      s.set('cfg', cfgObj);
+      store.set('cfg', cfgObj);
       if (typeof cfg !== 'undefined') cfg.tm = false;
-      if (typeof window.cfg !== 'undefined') window.cfg.tm = false;
     });
 
     // 3. Request translation for the sentence that exists in memory
@@ -703,25 +701,31 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
     await expect(page.locator('#ov')).not.toHaveClass(/on/);
 
     // Verify cfg.tm is false in store
-    const cfgSaved = await page.evaluate(() => {
-      const s = (typeof store !== 'undefined' ? store : window.store);
-      return s.get('cfg', {}).tm;
-    });
+    const cfgSaved = await page.evaluate(() => store.get('cfg', {}).tm);
     expect(cfgSaved).toBe(false);
 
     // Reload page
     await page.reload();
 
     // Verify switch survives reload in state and in settings modal
-    const cfgAfterReload = await page.evaluate(() => {
-      const s = (typeof store !== 'undefined' ? store : window.store);
-      return s.get('cfg', {}).tm;
-    });
+    const cfgAfterReload = await page.evaluate(() => store.get('cfg', {}).tm);
     expect(cfgAfterReload).toBe(false);
 
     await mouseClick(page, page.locator('#openSet'));
     await expect(page.locator('#ov')).toHaveClass(/on/);
     await expect(page.locator('#tmToggle')).not.toBeChecked();
+  });
+
+  test('window.store is undefined and settings/keys are not exposed on window (Item 1)', async ({ app }) => {
+    const { page } = app;
+    const check = await page.evaluate(() => ({
+      hasWindowStore: typeof window.store !== 'undefined',
+      hasWindowCfg: typeof window.cfg !== 'undefined',
+      storeWorksDirectly: typeof store !== 'undefined' && typeof store.get === 'function'
+    }));
+    expect(check.hasWindowStore).toBe(false);
+    expect(check.hasWindowCfg).toBe(false);
+    expect(check.storeWorksDirectly).toBe(true);
   });
 });
 
