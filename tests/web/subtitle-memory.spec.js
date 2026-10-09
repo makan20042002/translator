@@ -40,7 +40,7 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
     await expect(page.locator('#sInfo')).toHaveText('sub · 3/3 lines');
 
     // Run again with same file (all lines cached)
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#sGo'));
     await expect(page.locator('#sInfo')).toHaveText('sub · 3/3 lines');
 
@@ -74,7 +74,7 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
     await chooseFile(page, page.locator('#sDrop'), file);
 
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#sGo'));
     await expect(page.locator('#sInfo')).toHaveText('sub · 2/2 lines');
 
@@ -114,7 +114,7 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
     await page.locator('#subStyle').selectOption('formal');
     await page.locator('#subStyle').dispatchEvent('change');
 
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#sGo'));
     await expect(page.locator('#sInfo')).toHaveText('sub · 1/1 lines');
 
@@ -160,7 +160,7 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
     expect(tmEntry.corrected).toBe(true);
 
     // Re-run: engine should not overwrite user's correction
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#sGo'));
     await expect(page.locator('#cues .tr[data-i="0"]')).toHaveText('My hand correction');
     expect(stub.calls('clients5.google.com').length).toBe(0);

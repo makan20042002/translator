@@ -35,7 +35,7 @@ test.describe('Web app: Document tab translation memory (Item 2)', () => {
     await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
 
     // Second run with the same document
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#dGo'));
     await expect(page.locator('#dSave')).toBeEnabled();
 
@@ -65,7 +65,7 @@ test.describe('Web app: Document tab translation memory (Item 2)', () => {
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
     await chooseFile(page, page.locator('#dDrop'), file);
 
-    stub.clearCalls();
+    stub.clearLog();
     await mouseClick(page, page.locator('#dGo'));
     await expect(page.locator('#dSave')).toBeEnabled();
 

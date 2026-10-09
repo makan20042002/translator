@@ -180,6 +180,7 @@ test.describe('Web app: Translation Memory store (Item 1)', () => {
       'modeClass',
       'tone',
       'subject',
+      'style',
       'sourceText',
       'translatedText',
       'timestamp',
@@ -1068,8 +1069,15 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
       const { page } = app;
       // Overwrite navigator.storage.persist to simulate unavailable
       await page.evaluate(() => {
+        if (typeof StorageManager !== 'undefined' && StorageManager.prototype) {
+          delete StorageManager.prototype.persist;
+        }
         if (navigator.storage) {
-          delete navigator.storage.persist;
+          try {
+            Object.defineProperty(navigator.storage, 'persist', { value: undefined, configurable: true });
+          } catch (_) {
+            delete navigator.storage.persist;
+          }
         }
       });
 
