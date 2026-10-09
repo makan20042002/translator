@@ -43,7 +43,8 @@
 
   function buildKey(params) {
     const text = normalizeText(params.text != null ? params.text : params.sourceText);
-    const textHash = hashText(text);
+    const hasher = (typeof TranslationMemory !== 'undefined' && TranslationMemory.hashText) || hashText;
+    const textHash = hasher(text);
     const src = String(params.src || '').trim().toLowerCase();
     const tgt = String(params.tgt || '').trim().toLowerCase();
     const modeClass = normalizeModeClass(params.modeClass);
@@ -92,7 +93,7 @@
 
   async function get(params) {
     if (!params) return null;
-    const { key } = buildKey(params);
+    const { key, normalizedText } = buildKey(params);
     const db = await getDb();
     if (!db) return null;
 
@@ -104,6 +105,10 @@
         req.onsuccess = () => {
           const record = req.result;
           if (!record) return resolve(null);
+          // Collision check: verify stored normalized source text matches requested text
+          if (normalizeText(record.sourceText) !== normalizedText) {
+            return resolve(null);
+          }
           // Update lastUsed timestamp
           const now = Date.now();
           record.lastUsed = now;

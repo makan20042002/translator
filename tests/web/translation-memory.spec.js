@@ -193,6 +193,68 @@ test.describe('Web app: Translation Memory store (Item 1)', () => {
     expect(record.engine).toBeUndefined();
     expect(record.token).toBeUndefined();
   });
+
+  test('collision safety: get compares stored normalized source text with requested text and treats a mismatch as a miss (Item 3)', async ({ app }) => {
+    const { page } = app;
+    const result = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.clear();
+
+      // Force hashText to always return the same hash, simulating a hash collision
+      const originalHash = tm.hashText;
+      tm.hashText = () => 'fixed_collision_hash_123';
+
+      try {
+        // Save first text
+        await tm.put({
+          sourceText: 'The quick brown fox',
+          translatedText: 'روباه قهوه‌ای چابک',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        // Query for first text: should be a HIT
+        const hitFirst = await tm.get({
+          text: 'The quick brown fox',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        // Query for a different text forced to the exact same key: should be a MISS (null)
+        const missCollision = await tm.get({
+          text: 'A completely different sentence',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        // Also test normalized equivalence (e.g. extra whitespace matches)
+        const hitNormalized = await tm.get({
+          text: '   The   quick   brown   fox   ',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        return { hitFirst, missCollision, hitNormalized };
+      } finally {
+        tm.hashText = originalHash;
+      }
+    });
+
+    // Verify first text returned successfully
+    expect(result.hitFirst).not.toBeNull();
+    expect(result.hitFirst.translatedText).toBe('روباه قهوه‌ای چابک');
+
+    // Verify second different text forced to the same key is treated as a miss
+    expect(result.missCollision).toBeNull();
+
+    // Verify whitespace-normalized variation of the same text still matches
+    expect(result.hitNormalized).not.toBeNull();
+    expect(result.hitNormalized.translatedText).toBe('روباه قهوه‌ای چابک');
+  });
 });
 
 test.describe('Web app: Translation Memory in Text tab (Item 2)', () => {
