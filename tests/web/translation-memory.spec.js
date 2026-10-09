@@ -717,3 +717,222 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
   });
 });
 
+test.describe('Web app: Translation Memory corrections (Item 2)', () => {
+  test.beforeEach(async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(async () => {
+      if (window.TranslationMemory) {
+        await window.TranslationMemory.clear();
+      }
+    });
+  });
+
+  test('the correction is returned instead of the engine result', async ({ app }) => {
+    const { page, stub } = app;
+
+    // 1. Enter text and translate via engine
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Source to be corrected');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Source to be corrected');
+
+    // 2. User edits the translation output
+    const saveCorrectionBtn = page.locator('#tSaveCorrection');
+    await expect(saveCorrectionBtn).toBeHidden();
+
+    await page.locator('#tOut').fill('ویرایش دستی من برای این جمله');
+    // Emitting input event reveals the save correction action
+    await expect(saveCorrectionBtn).toBeVisible();
+
+    // 3. Click "Save my correction"
+    await mouseClick(page, saveCorrectionBtn);
+    await expect(saveCorrectionBtn).toBeHidden();
+    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+
+    // 4. Clear output and re-translate: correction must be returned instead of engine result
+    stub.clearLog();
+    await page.locator('#tOut').fill('');
+    await page.locator('#tMeta').evaluate(el => el.textContent = '');
+
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('ویرایش دستی من برای این جمله');
+    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+
+    // Verify engine was NOT called because correction in memory answered
+    const engineCalls = stub.calls('translate.googleapis.com');
+    expect(engineCalls.length).toBe(0);
+
+    // Verify stored record has corrected: true
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Source to be corrected',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+    expect(entry).not.toBeNull();
+    expect(entry.corrected).toBe(true);
+    expect(entry.translatedText).toBe('ویرایش دستی من برای این جمله');
+  });
+
+  test('a later engine result does not overwrite it', async ({ app }) => {
+    const { page } = app;
+
+    // Store a correction in translation memory
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Protected against engine overwrite',
+        translatedText: 'ترجمه کاربر که هرگز نباید رونویسی شود',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        corrected: true
+      });
+    });
+
+    // Simulate an engine result arriving later for the same key without corrected flag
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Protected against engine overwrite',
+        translatedText: 'ترجمه جدید موتور که باید رد شود',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        corrected: false
+      });
+    });
+
+    // Check that the stored record remains the user's correction
+    const record = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Protected against engine overwrite',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+
+    expect(record).not.toBeNull();
+    expect(record.translatedText).toBe('ترجمه کاربر که هرگز نباید رونویسی شود');
+    expect(record.corrected).toBe(true);
+
+    // Request translation via UI: returns the user correction
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Protected against engine overwrite');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('ترجمه کاربر که هرگز نباید رونویسی شود');
+    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+  });
+
+  test('it survives reload', async ({ app }) => {
+    const { page } = app;
+
+    // Save a user correction
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Persistent correction',
+        translatedText: 'ترجمه اصلاح‌شده دائمی',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        corrected: true
+      });
+    });
+
+    // Reload the page
+    await page.reload();
+
+    // Translate the source text
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Persistent correction');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('ترجمه اصلاح‌شده دائمی');
+    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Persistent correction',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+    expect(entry).not.toBeNull();
+    expect(entry.corrected).toBe(true);
+  });
+
+  test('the badge differs', async ({ app }) => {
+    const { page } = app;
+
+    // 1. Put uncorrected translation into memory
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Badge test uncorrected',
+        translatedText: 'ترجمه ماشینی ذخیره در حافظه',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        corrected: false
+      });
+    });
+
+    // Translate uncorrected text
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Badge test uncorrected');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('ترجمه ماشینی ذخیره در حافظه');
+
+    // Standard memory badge: has .pill-tm, does NOT have .pill-corrected, text contains "از حافظه"
+    const memoryBadge = page.locator('#tMeta .pill-tm');
+    await expect(memoryBadge).toBeVisible();
+    await expect(memoryBadge).not.toHaveClass(/pill-corrected/);
+    await expect(memoryBadge).toHaveText(/از حافظه|from memory/);
+
+    // 2. Put corrected translation into memory
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Badge test user correction',
+        translatedText: 'ترجمه اصلاح‌شده کاربر',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        corrected: true
+      });
+    });
+
+    // Translate corrected text
+    await mouseClick(page, page.locator('#tClear'));
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Badge test user correction');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tOut')).toHaveValue('ترجمه اصلاح‌شده کاربر');
+
+    // Correction badge: has .pill-corrected, text contains "ویرایش شما"
+    const correctionBadge = page.locator('#tMeta .pill-corrected');
+    await expect(correctionBadge).toBeVisible();
+    await expect(correctionBadge).toHaveText(/ویرایش شما|Your correction/);
+
+    // The two badges must differ in class and text
+    const memBadgeClass = await memoryBadge.getAttribute('class');
+    const corrBadgeClass = await correctionBadge.getAttribute('class');
+    expect(memBadgeClass).not.toBe(corrBadgeClass);
+
+    const memBadgeText = await memoryBadge.textContent();
+    const corrBadgeText = await correctionBadge.textContent();
+    expect(memBadgeText).not.toBe(corrBadgeText);
+  });
+});
+
+

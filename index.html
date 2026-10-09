@@ -297,6 +297,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .doc-prog-meta{display:flex;justify-content:space-between;align-items:center;font-family:var(--mono);font-size:11.5px;color:var(--faint);margin-top:4px}
 .pill-fast{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(59,107,255,.15);color:var(--pri,#3b6bff);border:1px solid var(--pri,#3b6bff)}
 .pill-tm{display:inline-block;font-size:11px;font-weight:600;padding:1px 6px;border-radius:4px;background:rgba(16,185,129,.15);color:#10b981;border:1px solid rgba(16,185,129,.35)}
+.pill-corrected{background:rgba(99,102,241,.18);color:#818cf8;border:1px solid rgba(99,102,241,.4)}
 .calm-fade{animation:calmFade .35s ease-out}
 @keyframes calmFade{0%{opacity:.45}100%{opacity:1}}
 
@@ -531,6 +532,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       <div class="pane">
         <div class="pane-h"><span class="lbl" data-t="translation">Translation</span><span class="sp"></span>
           <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
+          <button class="btn ghost" id="tSaveCorrection" hidden data-t="saveCorrection" style="color:var(--accent);border-color:var(--accent);font-weight:600">Save my correction</button>
           <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
           <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
         <div class="fg-box" id="tFinglish" hidden></div>
@@ -1172,7 +1174,7 @@ const I18N={en:{
  ttsL:'Text to speech (read aloud)',ttsDev:'Device / browser voices',ttsApiO:'Speech server (Sesame CSM, OpenAI…)',preset:'Preset',voiceName:'Voice name',ttsTest:'Test voice',voiceFor:'Voice for',autoVoice:'Auto (best)',
  ttsHint:'Any server with an OpenAI-style /audio/speech endpoint works. Sesame CSM must run on a PC with an NVIDIA GPU; start its server, then press Test voice. If the server is unreachable, the device voice is used.',
  edgeHint:'Tip: Microsoft Edge includes free natural voices for Persian and many other languages. In Chrome the list depends on the voices installed in Windows.',
- tmH:'Translation memory',tmNote:'Local translation cache in this browser. When enabled, past translations are reused instantly without calling engines.',tmSavedCount:'Saved translations:',tmClear:'Clear memory',tmClearSure:'Click again to clear',tmCleared:'Translation memory cleared',
+ tmH:'Translation memory',tmNote:'Local translation cache in this browser. When enabled, past translations are reused instantly without calling engines.',tmSavedCount:'Saved translations:',tmClear:'Clear memory',tmClearSure:'Click again to clear',tmCleared:'Translation memory cleared',fromCorrection:'Your correction',saveCorrection:'Save my correction',correctionSaved:'Correction saved to memory',
  offH:'Offline',offNote:'Download once while online, then translate with no internet. Models stay in this browser. Offline mode uses only: the models you download here, Chrome on-device, Ollama and local servers.',
  offTr:'Translation model · NLLB, 200 languages · about 900 MB',offAsr:'Speech model · Whisper (~80 MB WASM / ~155 MB WebGPU)',ready:'ready',notDl:'not downloaded',dlDone:'Download finished. Ready for offline use.',
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
@@ -1244,7 +1246,7 @@ const I18N={en:{
  ttsL:'متن به گفتار (خواندن)',ttsDev:'صداهای دستگاه / مرورگر',ttsApiO:'سرور گفتار (Sesame CSM، OpenAI…)',preset:'پیش‌تنظیم',voiceName:'نام صدا',ttsTest:'آزمایش صدا',voiceFor:'صدا برای',autoVoice:'خودکار (بهترین)',
  ttsHint:'هر سروری که نقطه‌ی ‎/audio/speech‎ به سبک OpenAI داشته باشد کار می‌کند. Sesame CSM باید روی رایانه‌ای با کارت گرافیک NVIDIA اجرا شود؛ سرور را روشن کنید و «آزمایش صدا» را بزنید. اگر سرور در دسترس نباشد از صدای دستگاه استفاده می‌شود.',
  edgeHint:'نکته: مرورگر Microsoft Edge صداهای طبیعی رایگان برای فارسی و بسیاری زبان‌های دیگر دارد. در Chrome فهرست به صداهای نصب‌شده در ویندوز بستگی دارد.',
- tmH:'حافظه ترجمه',tmNote:'ذخیره‌سازی محلی ترجمه‌ها در مرورگر. هنگام فعال بودن، ترجمه‌های پیشین بدون نیاز به موتور دوباره استفاده می‌شوند.',tmSavedCount:'ترجمه‌های ذخیره‌شده:',tmClear:'پاک کردن حافظه',tmClearSure:'برای پاک‌سازی دوباره کلیک کنید',tmCleared:'حافظه ترجمه پاک شد',
+ tmH:'حافظه ترجمه',tmNote:'ذخیره‌سازی محلی ترجمه‌ها در مرورگر. هنگام فعال بودن، ترجمه‌های پیشین بدون نیاز به موتور دوباره استفاده می‌شوند.',tmSavedCount:'ترجمه‌های ذخیره‌شده:',tmClear:'پاک کردن حافظه',tmClearSure:'برای پاک‌سازی دوباره کلیک کنید',tmCleared:'حافظه ترجمه پاک شد',fromCorrection:'ویرایش شما',saveCorrection:'ذخیره ویرایش شما',correctionSaved:'ویرایش در حافظه ذخیره شد',
  offH:'آفلاین',offNote:'یک بار با اینترنت دانلود کنید، سپس بدون اینترنت ترجمه کنید. مدل‌ها در همین مرورگر می‌مانند. حالت آفلاین فقط از مدل‌هایی که اینجا دانلود می‌کنید، مترجم داخلی Chrome، Ollama و سرورهای محلی استفاده می‌کند.',
  offTr:'مدل ترجمه · NLLB، ۲۰۰ زبان · حدود ۹۰۰ مگابایت',offAsr:'مدل گفتار · Whisper (حدود ۸۰ مگابایت WASM / حدود ۱۵۵ مگابایت WebGPU)',ready:'آماده',notDl:'دانلود نشده',dlDone:'دانلود تمام شد. آماده‌ی استفاده‌ی آفلاین.',
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
@@ -3123,6 +3125,7 @@ async function doText(){
   const text=$('tIn').value;if(!text.trim())return;
   tCtl=new AbortController();busy([$('tGo')],$('tStop'),true);$('tMeta').textContent='…';const t0=performance.now();
   $('tShowImproved')?.remove();
+  if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;
   let userInteractedWithFast=false;
   const onFastInteract=()=>{userInteractedWithFast=true};
   $('tOut').addEventListener('input',onFastInteract,{once:true});
@@ -3154,8 +3157,12 @@ async function doText(){
   if(memHit&&memHit.translatedText){
     busy([$('tGo')],$('tStop'),false);
     $('tOut').value=memHit.translatedText;
-    $('tMeta').innerHTML=`<span class="pill-tm">${esc(L('fromMemory'))}</span>`;
-    const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:'memory',i:text.slice(0,4000),o:memHit.translatedText.slice(0,4000)});store.set('hist',h.slice(0,60));
+    if(memHit.corrected){
+      $('tMeta').innerHTML=`<span class="pill-tm pill-corrected">${esc(L('fromCorrection'))}</span>`;
+    }else{
+      $('tMeta').innerHTML=`<span class="pill-tm">${esc(L('fromMemory'))}</span>`;
+    }
+    const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:memHit.corrected?'correction':'memory',i:text.slice(0,4000),o:memHit.translatedText.slice(0,4000)});store.set('hist',h.slice(0,60));
     $('tCopy').removeEventListener('click',copyBtnClick);
     return;
   }
@@ -3301,7 +3308,45 @@ async function doText(){
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
 $('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});
 $('tIn').addEventListener('input',()=>$('tCount').textContent=`${$('tIn').value.length} ${L('chars')}`);
-$('tClear').onclick=()=>{$('tIn').value='';$('tOut').value='';$('tMeta').textContent='';$('tIn').dispatchEvent(new Event('input'));$('tIn').focus()};
+$('tClear').onclick=()=>{$('tIn').value='';$('tOut').value='';$('tMeta').textContent='';if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;$('tIn').dispatchEvent(new Event('input'));$('tIn').focus()};
+$('tOut').addEventListener('input',()=>{
+  const hasIn=$('tIn').value.trim();
+  const hasOut=$('tOut').value.trim();
+  if($('tSaveCorrection'))$('tSaveCorrection').hidden=!(hasIn&&hasOut);
+});
+if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
+  const text=$('tIn').value;
+  const corrected=$('tOut').value;
+  if(!text.trim()||!corrected.trim())return;
+
+  const mode=$('tMode')?.value||getDefaultTransMode();
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
+
+  if(typeof TranslationMemory!=='undefined'){
+    const saveModes=mode==='both'?['fast','smart']:[memMode];
+    for(const m of saveModes){
+      await TranslationMemory.put({
+        sourceText:text,
+        translatedText:corrected,
+        src:$('src').value==='finglish'?'auto':$('src').value,
+        tgt:$('tgt').value,
+        modeClass:m,
+        tone:$('tone')?.value||'',
+        subject:$('tSubject')?.value?.trim()||'',
+        corrected:true
+      });
+    }
+  }
+
+  $('tSaveCorrection').hidden=true;
+  $('tMeta').innerHTML=`<span class="pill-tm pill-corrected">${esc(L('fromCorrection'))}</span>`;
+  toast(L('correctionSaved'),'ok');
+  const h=store.get('hist',[]);
+  h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:'correction',i:text.slice(0,4000),o:corrected.slice(0,4000)});
+  store.set('hist',h.slice(0,60));
+  updateTmCount();
+};
 $('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast('Clipboard blocked','err')}};
 $('tCopy').onclick=()=>copy($('tOut').value);
 $('tSpeak').onclick=()=>{

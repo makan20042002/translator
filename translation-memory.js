@@ -134,28 +134,40 @@
     const db = await getDb();
     if (!db) return null;
 
+    const isCorrection = !!(entry.corrected || entry.isCorrection);
     const now = Date.now();
-    const record = {
-      key,
-      textHash: keyParts.textHash,
-      src: keyParts.src,
-      tgt: keyParts.tgt,
-      modeClass: keyParts.modeClass,
-      tone: keyParts.tone,
-      subject: keyParts.subject,
-      sourceText,
-      translatedText,
-      timestamp: entry.timestamp || now,
-      lastUsed: now
-    };
 
     return new Promise(resolve => {
       try {
         const tx = db.transaction(STORE_NAME, 'readwrite');
         const store = tx.objectStore(STORE_NAME);
-        const req = store.put(record);
-        req.onsuccess = () => resolve(record);
-        req.onerror = () => resolve(null);
+        const getReq = store.get(key);
+        getReq.onsuccess = () => {
+          const existing = getReq.result;
+          // A corrected entry always wins over engine results for that key;
+          // an engine result must never overwrite it.
+          if (existing && existing.corrected && !isCorrection) {
+            return resolve(existing);
+          }
+          const record = {
+            key,
+            textHash: keyParts.textHash,
+            src: keyParts.src,
+            tgt: keyParts.tgt,
+            modeClass: keyParts.modeClass,
+            tone: keyParts.tone,
+            subject: keyParts.subject,
+            sourceText,
+            translatedText,
+            timestamp: entry.timestamp || (existing ? existing.timestamp : now),
+            lastUsed: now,
+            corrected: isCorrection
+          };
+          const req = store.put(record);
+          req.onsuccess = () => resolve(record);
+          req.onerror = () => resolve(null);
+        };
+        getReq.onerror = () => resolve(null);
       } catch (e) {
         resolve(null);
       }
