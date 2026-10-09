@@ -199,4 +199,60 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
     expect(text).toContain('00:00:01,000 --> 00:00:03,500\n[fa] Hello there.');
     expect(text).toContain('01:02:03,004 --> 01:02:05,006\n[fa] The last line, after one hour.');
   });
+
+  test('no lookups and no saves when translation memory is switched off', async ({ app, stub }) => {
+    const { page } = app;
+    const file = makeSrtFile([
+      { time: '00:00:01,000 --> 00:00:02,000', text: 'Preloaded line' },
+      { time: '00:00:03,000 --> 00:00:04,000', text: 'Brand new line' }
+    ]);
+
+    // Pre-populate memory with 'Preloaded line'
+    await page.evaluate(async () => {
+      await window.TranslationMemory.put({
+        sourceText: 'Preloaded line',
+        translatedText: '[fa] Preloaded line',
+        src: 'en',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: '',
+        subStyle: 'film'
+      });
+    });
+
+    // Switch translation memory off in settings
+    await mouseClick(page, page.locator('#openSet'));
+    await page.locator('#tmToggle').uncheck();
+    await mouseClick(page, page.locator('#btnSaveDone'));
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), file);
+
+    stub.clearLog();
+    await mouseClick(page, page.locator('#sGo'));
+    await expect(page.locator('#sInfo')).toHaveText('sub · 2/2 lines');
+
+    // Both lines must be sent to the engine (no lookup performed)
+    const calls = stub.calls('clients5.google.com');
+    expect(calls.length).toBe(1);
+    const sent = new URLSearchParams(calls[0].body).getAll('q');
+    expect(sent).toEqual(['Preloaded line', 'Brand new line']);
+
+    // Memory count must remain 1 (Brand new line was not saved)
+    const count = await page.evaluate(async () => await window.TranslationMemory.count());
+    expect(count).toBe(1);
+    const newEntry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Brand new line',
+        src: 'en',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: '',
+        subStyle: 'film'
+      });
+    });
+    expect(newEntry).toBeNull();
+  });
 });
