@@ -6695,7 +6695,7 @@ function renderSttPickerListHTML(){
   for(const m of whisperModels){
     const ready=mcReady(m);
     const isSel=(curStt==='whisper'&&curWh===m.key);
-    const sz=mcFmt(mcModelBytes(m,hasWebGpu));
+    const sz=mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes);
     if(ready){
       html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="whisper" data-whisper="${esc(m.key)}" data-status="ready" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
