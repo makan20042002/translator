@@ -38,12 +38,18 @@ export const PAIRS = [
 
 export const NAMES = { en: 'English', fa: 'Persian', ar: 'Arabic', tr: 'Turkish', de: 'German', fr: 'French', es: 'Spanish', ru: 'Russian' };
 
-// Offline voices (Piper). Datasets: amir and ganji are CC0; alba is CC BY 4.0 (credit in the app's About & credits).
+// Offline voices (Piper). Datasets: amir, ganji, ljspeech, cori and kristin are CC0 / public domain; alba is CC BY 4.0 (credit in the app's About & credits).
 export const VOICES = [
   { id: 'tts-fa-amir', lang: 'fa', path: 'fa/fa_IR/amir/medium/fa_IR-amir-medium', name: { en: 'Persian · Amir (male)', fa: 'فارسی · امیر (مرد)' },
     langs: { en: 'Persian', fa: 'فارسی' }, good: { en: 'Reads Persian aloud with no internet, no Gemini key and no voice installed in Windows.', fa: 'متن فارسی را بدون اینترنت، بدون کلید Gemini و بدون صدای نصب‌شده در ویندوز می‌خواند.' }, licence: 'CC0' },
-  { id: 'tts-fa-ganji', lang: 'fa', path: 'fa/fa_IR/ganji/medium/fa_IR-ganji-medium', name: { en: 'Persian · Ganji', fa: 'فارسی · گنجی' },
+  { id: 'tts-fa-ganji', lang: 'fa', path: 'fa/fa_IR/ganji/medium/fa_IR-ganji-medium', name: { en: 'Persian · Ganji (unknown)', fa: 'فارسی · گنجی (نامشخص)' },
     langs: { en: 'Persian', fa: 'فارسی' }, good: { en: 'A second Persian voice, for comparison.', fa: 'صدای فارسی دوم، برای مقایسه.' }, licence: 'CC0' },
   { id: 'tts-en-alba', lang: 'en', path: 'en/en_GB/alba/medium/en_GB-alba-medium', name: { en: 'English · Alba (British, female)', fa: 'انگلیسی · آلبا (بریتانیایی، زن)' },
-    langs: { en: 'English', fa: 'انگلیسی' }, good: { en: 'Reads English aloud with no internet and no voice installed on the computer.', fa: 'متن انگلیسی را بدون اینترنت و بدون صدای نصب‌شده روی رایانه می‌خواند.' }, licence: 'CC BY 4.0' }
+    langs: { en: 'English', fa: 'انگلیسی' }, good: { en: 'Reads English aloud with no internet and no voice installed on the computer.', fa: 'متن انگلیسی را بدون اینترنت و بدون صدای نصب‌شده روی رایانه می‌خواند.' }, licence: 'CC BY 4.0' },
+  { id: 'tts-en-ljspeech', lang: 'en', path: 'en/en_US/ljspeech/medium/en_US-ljspeech-medium', name: { en: 'English · LJ Speech (US, female)', fa: 'انگلیسی · ال‌جی اسپیچ (آمریکایی، زن)' },
+    langs: { en: 'English', fa: 'انگلیسی' }, good: { en: 'US English female voice from the public domain LJ Speech dataset.', fa: 'صدای زن انگلیسی آمریکایی از مجموعه داده با مالکیت عمومی LJ Speech.' }, licence: 'Public Domain / CC0' },
+  { id: 'tts-en-cori', lang: 'en', path: 'en/en_GB/cori/medium/en_GB-cori-medium', name: { en: 'English · Cori (British, female)', fa: 'انگلیسی · کوری (بریتانیایی، زن)' },
+    langs: { en: 'English', fa: 'انگلیسی' }, good: { en: 'UK English female voice recorded from LibriVox.', fa: 'صدای زن انگلیسی بریتانیایی ضبط شده از LibriVox.' }, licence: 'Public Domain / CC0' },
+  { id: 'tts-en-kristin', lang: 'en', path: 'en/en_US/kristin/medium/en_US-kristin-medium', name: { en: 'English · Kristin (US, female)', fa: 'انگلیسی · کریستین (آمریکایی، زن)' },
+    langs: { en: 'English', fa: 'انگلیسی' }, good: { en: 'US English female voice recorded from LibriVox.', fa: 'صدای زن انگلیسی آمریکایی ضبط شده از LibriVox.' }, licence: 'Public Domain / CC0' }
 ];

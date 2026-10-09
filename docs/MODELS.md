@@ -84,15 +84,18 @@ for the voice files). The voice files are downloaded once (about 61 MB) and kept
 storage as the other models; the speech engine (28 MB) is part of the website and is fetched when the
 first voice is downloaded, so the service worker keeps a copy for offline use.
 
-| Voice | Licence of the recording data |
-| --- | --- |
-| Persian · Amir (`fa_IR-amir-medium`) | CC0 |
-| Persian · Ganji (`fa_IR-ganji-medium`) | CC0 |
-| English · Alba (`en_GB-alba-medium`) | CC BY 4.0 (credit added to About & credits) |
+| Voice | Gender | Licence of the recording data |
+| --- | --- | --- |
+| Persian · Amir (`fa_IR-amir-medium`) | male | CC0 |
+| Persian · Ganji (`fa_IR-ganji-medium`) | unknown (unspecified in model card) | CC0 |
+| English · Alba (`en_GB-alba-medium`) | female (British) | CC BY 4.0 (credit added to About & credits) |
+| English · LJ Speech (`en_US-ljspeech-medium`) | female (US) | Public Domain / CC0 |
+| English · Cori (`en_GB-cori-medium`) | female (British) | Public Domain / CC0 |
+| English · Kristin (`en_US-kristin-medium`) | female (US) | Public Domain / CC0 |
 
 Not offered: `fa_IR-gyro` (licence "see URL"), `fa_IR-reza_ibrahim` (Quran-recitation style),
 `en_US-ryan` and `hfc_female` (CC BY-NC-SA), `en_US-lessac` (Blizzard licence), `en_US-amy`
-(licence "see URL").
+(licence "see URL"). Note: No female Persian Piper voice exists in rhasspy/piper-voices.
 
 **When it is used.** The voice for a language is chosen as before: a voice picked in the voice menu,
 else a device voice, else Gemini (key set and not in Offline mode). A downloaded offline voice is now

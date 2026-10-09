@@ -957,8 +957,8 @@ self.MODEL_CATALOG = {
    "job": "speak",
    "kind": "piper",
    "name": {
-    "en": "Persian · Ganji",
-    "fa": "فارسی · گنجی"
+    "en": "Persian · Ganji (unknown)",
+    "fa": "فارسی · گنجی (نامشخص)"
    },
    "repo": "rhasspy/piper-voices",
    "voice": "fa/fa_IR/ganji/medium/fa_IR-ganji-medium.onnx",
@@ -1026,6 +1026,120 @@ self.MODEL_CATALOG = {
    "webgpu": "none",
    "ran": {
     "downloadedMB": 60
+   }
+  },
+  {
+   "id": "tts-en-ljspeech",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "English · LJ Speech (US, female)",
+    "fa": "انگلیسی · ال‌جی اسپیچ (آمریکایی، زن)"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+   "lang": "en",
+   "langs": {
+    "en": "English",
+    "fa": "انگلیسی"
+   },
+   "good": {
+    "en": "US English female voice from the public domain LJ Speech dataset.",
+    "fa": "صدای زن انگلیسی آمریکایی از مجموعه داده با مالکیت عمومی LJ Speech."
+   },
+   "licence": "Public Domain / CC0",
+   "files": [
+    [
+     "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx",
+     63531379
+    ],
+    [
+     "en/en_US/ljspeech/medium/en_US-ljspeech-medium.onnx.json",
+     4972
+    ]
+   ],
+   "bytes": 63536351,
+   "extraBytes": 29571146,
+   "memMB": 500,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 61
+   }
+  },
+  {
+   "id": "tts-en-cori",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "English · Cori (British, female)",
+    "fa": "انگلیسی · کوری (بریتانیایی، زن)"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "en/en_GB/cori/medium/en_GB-cori-medium.onnx",
+   "lang": "en",
+   "langs": {
+    "en": "English",
+    "fa": "انگلیسی"
+   },
+   "good": {
+    "en": "UK English female voice recorded from LibriVox.",
+    "fa": "صدای زن انگلیسی بریتانیایی ضبط شده از LibriVox."
+   },
+   "licence": "Public Domain / CC0",
+   "files": [
+    [
+     "en/en_GB/cori/medium/en_GB-cori-medium.onnx",
+     63531379
+    ],
+    [
+     "en/en_GB/cori/medium/en_GB-cori-medium.onnx.json",
+     4966
+    ]
+   ],
+   "bytes": 63536345,
+   "extraBytes": 29571146,
+   "memMB": 500,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 61
+   }
+  },
+  {
+   "id": "tts-en-kristin",
+   "job": "speak",
+   "kind": "piper",
+   "name": {
+    "en": "English · Kristin (US, female)",
+    "fa": "انگلیسی · کریستین (آمریکایی، زن)"
+   },
+   "repo": "rhasspy/piper-voices",
+   "voice": "en/en_US/kristin/medium/en_US-kristin-medium.onnx",
+   "lang": "en",
+   "langs": {
+    "en": "English",
+    "fa": "انگلیسی"
+   },
+   "good": {
+    "en": "US English female voice recorded from LibriVox.",
+    "fa": "صدای زن انگلیسی آمریکایی ضبط شده از LibriVox."
+   },
+   "licence": "Public Domain / CC0",
+   "files": [
+    [
+     "en/en_US/kristin/medium/en_US-kristin-medium.onnx",
+     63531379
+    ],
+    [
+     "en/en_US/kristin/medium/en_US-kristin-medium.onnx.json",
+     4968
+    ]
+   ],
+   "bytes": 63536347,
+   "extraBytes": 29571146,
+   "memMB": 500,
+   "webgpu": "none",
+   "ran": {
+    "downloadedMB": 61
    }
   }
  ]
