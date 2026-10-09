@@ -221,8 +221,8 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
 .speak-notice .btn{min-height:26px;padding:2px 10px;font-size:12px}
 .voice-used{font-size:12px;opacity:.8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .compact-voice-picker-wrap{position:relative;display:inline-flex;align-items:center}
-.compact-voice-btn{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px 8px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
-.compact-voice-btn:hover{background:var(--surface);border-color:var(--accent)}
+.compact-voice-btn, .v-mic-stt-btn{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px 8px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
+.compact-voice-btn:hover, .v-mic-stt-btn:hover{background:var(--surface);border-color:var(--accent)}
 .compact-voice-popup{position:absolute;top:calc(100% + 4px);inset-inline-end:0;z-index:210;min-width:320px;max-width:390px;max-height:380px;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.45);padding:10px}
 .compact-voice-popup.popup-up{top:auto;bottom:calc(100% + 6px)}
 .compact-voice-popup[hidden]{display:none!important}
@@ -898,7 +898,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
               </button>
               <div class="ptt-subtext" id="vPttSub" data-t="pttHold">Hold to speak · Release to send · <kbd>Space</kbd> or tap</div>
               <div class="v-mic-stt-picker-wrap" id="vMicSttPickerWrap" style="margin-top:6px;display:flex;justify-content:center;position:relative">
-                <button class="btn ghost compact-voice-btn" id="vMicSttBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Speech recognition" aria-label="Speech recognition" style="font-size:11.5px;padding:2px 10px;border-radius:12px;background:var(--surface2)">
+                <button class="btn ghost v-mic-stt-btn" id="vMicSttBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Speech recognition" aria-label="Speech recognition" style="font-size:11.5px;padding:2px 10px;border-radius:12px;background:var(--surface2)">
                   <span class="mic-stt-icon">🎙️</span>
                   <span class="mic-stt-cur" id="vMicSttCurLabel">Auto</span>
                   <span class="compact-voice-caret" style="font-size:9px">▼</span>
@@ -1384,7 +1384,7 @@ Object.assign(I18N.en,{
  ollamaUnreachableTitle:'Ollama is not reachable',
  ollamaUnreachableMsg:'Start Ollama by running “ollama serve” in terminal or launch the Ollama app. If Ollama is not already reachable, set OLLAMA_ORIGINS={origin} in Windows environment variables and restart Ollama after.',
  ollamaAsrNotice:'Note: Speech models like Qwen3-ASR need a separate helper program that is not part of the app yet.',
- allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language'
+ allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language',notDownloaded:'Not downloaded',dlBtn:'Download',voiceOffline:'Offline voice'
 });
 Object.assign(I18N.fa,{
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
@@ -1409,7 +1409,7 @@ Object.assign(I18N.fa,{
  ollamaUnreachableTitle:'Ollama در دسترس نیست',
  ollamaUnreachableMsg:'برای اجرا در ترمینال دستور «ollama serve» را بزنید یا برنامه Ollama را باز کنید. اگر Ollama هنوز در دسترس نیست، متغیر OLLAMA_ORIGINS={origin} را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  ollamaAsrNotice:'توجه: مدل‌های صوتی مانند Qwen3-ASR به یک برنامه کمکی جداگانه نیاز دارند که هنوز بخشی از این برنامه نیست.',
- allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان'
+ allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان',notDownloaded:'دانلود نشده',dlBtn:'دانلود',voiceOffline:'صدای آفلاین'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -6484,7 +6484,7 @@ function buildVoicePickerHTML(lang, radioName){
           <div style="min-width:0">
             <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
             <div style="font-size:11.5px;color:var(--muted)">
-              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('mdlOfflineVoice'))}</span>
+              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('voiceOffline'))}</span>
             </div>
           </div>
         </div>
@@ -6564,7 +6564,27 @@ function renderUnifiedVoicePicker(){
 }
 if(typeof document!=='undefined'){
   document.addEventListener('click',async e=>{
-    const trigBtn=e.target.closest('.compact-voice-btn');
+    const micSttBtn=e.target.closest('#vMicSttBtn');
+    if(micSttBtn){
+      e.stopPropagation();
+      const pop=$('vMicSttPopup');
+      if(pop){
+        const isHidden=pop.hidden;
+        document.querySelectorAll('.compact-voice-popup').forEach(p=>{
+          p.hidden=true;
+          const btn=p.parentElement?.querySelector('.compact-voice-btn, #vMicSttBtn');
+          if(btn)btn.setAttribute('aria-expanded','false');
+        });
+        if(isHidden){
+          pop.hidden=false;
+          micSttBtn.setAttribute('aria-expanded','true');
+          const list=$('vMicSttList');
+          if(list)list.innerHTML=renderSttPickerListHTML();
+        }
+      }
+      return;
+    }
+    const trigBtn=e.target.closest('.compact-voice-picker-wrap .compact-voice-btn');
     if(trigBtn){
       e.stopPropagation();
       const wrap=trigBtn.closest('.compact-voice-picker-wrap');
@@ -6575,10 +6595,10 @@ if(typeof document!=='undefined'){
       }
       return;
     }
-    if(!e.target.closest('.compact-voice-picker-wrap')){
+    if(!e.target.closest('.compact-voice-picker-wrap') && !e.target.closest('.v-mic-stt-picker-wrap')){
       document.querySelectorAll('.compact-voice-popup').forEach(p=>{
         p.hidden=true;
-        const btn=p.parentElement?.querySelector('.compact-voice-btn');
+        const btn=p.parentElement?.querySelector('.compact-voice-btn, #vMicSttBtn');
         if(btn)btn.setAttribute('aria-expanded','false');
       });
     }
@@ -6609,33 +6629,6 @@ if(typeof document!=='undefined'){
         const btn=pop.parentElement?.querySelector('.compact-voice-btn');
         if(btn)btn.setAttribute('aria-expanded','false');
       }
-    }
-    const micSttBtn=e.target.closest('#vMicSttBtn');
-    if(micSttBtn){
-      e.stopPropagation();
-      const pop=$('vMicSttPopup');
-      if(pop){
-        const isHidden=pop.hidden;
-        document.querySelectorAll('.compact-voice-popup').forEach(p=>{
-          p.hidden=true;
-          const btn=p.parentElement?.querySelector('.compact-voice-btn');
-          if(btn)btn.setAttribute('aria-expanded','false');
-        });
-        if(isHidden){
-          pop.hidden=false;
-          micSttBtn.setAttribute('aria-expanded','true');
-          const list=$('vMicSttList');
-          if(list)list.innerHTML=renderSttPickerListHTML();
-        }
-      }
-      return;
-    }
-    if(!e.target.closest('.compact-voice-picker-wrap') && !e.target.closest('.v-mic-stt-picker-wrap')){
-      document.querySelectorAll('.compact-voice-popup').forEach(p=>{
-        p.hidden=true;
-        const btn=p.parentElement?.querySelector('.compact-voice-btn');
-        if(btn)btn.setAttribute('aria-expanded','false');
-      });
     }
     const sttDlBtn=e.target.closest('#vMicSttList [data-act="dl-whisper"]');
     if(sttDlBtn){
