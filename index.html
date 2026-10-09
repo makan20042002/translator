@@ -220,6 +220,13 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
 .speak-notice[hidden]{display:none}
 .speak-notice .btn{min-height:26px;padding:2px 10px;font-size:12px}
 .voice-used{font-size:12px;opacity:.8;max-width:220px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.compact-voice-picker-wrap{position:relative;display:inline-flex;align-items:center}
+.compact-voice-btn{display:inline-flex;align-items:center;gap:4px;min-height:28px;padding:2px 8px;font-size:12px;border-radius:6px;border:1px solid var(--border);background:var(--surface2);cursor:pointer;color:var(--text);transition:border-color .15s,background .15s}
+.compact-voice-btn:hover{background:var(--surface);border-color:var(--accent)}
+.compact-voice-popup{position:absolute;top:calc(100% + 4px);inset-inline-end:0;z-index:210;min-width:320px;max-width:390px;max-height:380px;overflow-y:auto;background:var(--surface);border:1px solid var(--border2);border-radius:8px;box-shadow:0 12px 30px rgba(0,0,0,.45);padding:10px}
+.compact-voice-popup.popup-up{top:auto;bottom:calc(100% + 6px)}
+.compact-voice-popup[hidden]{display:none!important}
+.compact-voice-cur{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .toasts{position:fixed;bottom:18px;inset-inline-end:18px;z-index:200;display:flex;flex-direction:column;gap:8px;max-width:min(460px,calc(100vw - 36px));pointer-events:none}
 .toast{background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--accent);border-radius:10px;padding:10px 14px;font-size:13.5px;box-shadow:0 12px 30px rgba(0,0,0,.5);pointer-events:none}
 .toast.err{border-inline-start-color:var(--err)} .toast.warn{border-inline-start-color:var(--warn)} .toast.ok{border-inline-start-color:var(--ok)}
@@ -534,6 +541,16 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
           <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
           <button class="btn ghost" id="tSaveCorrection" hidden data-t="saveCorrection" style="color:var(--accent);border-color:var(--accent);font-weight:600">Save my correction</button>
           <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
+          <div class="compact-voice-picker-wrap" id="tVoicePickerWrap">
+            <button class="btn ghost compact-voice-btn" id="tVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
+              <span class="compact-voice-icon">🗣️</span>
+              <span class="compact-voice-cur" id="tVoiceCurLabel">Auto</span>
+              <span class="compact-voice-caret" style="font-size:9px">▼</span>
+            </button>
+            <div class="compact-voice-popup" id="tVoicePopup" role="dialog" aria-label="Voice options" hidden>
+              <div class="voice-picker-list" id="tVoicePickerList" data-context="text"></div>
+            </div>
+          </div>
           <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
         <div class="fg-box" id="tFinglish" hidden></div>
         <textarea id="tOut" dir="auto"></textarea>
@@ -840,11 +857,21 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
           <!-- Action row: Live button, Push to Talk hero button, Stop speaking button -->
           <div class="v-action-dock">
-            <div class="v-live-ctrl-wrap">
+            <div class="v-live-ctrl-wrap" style="display:flex;align-items:center;gap:6px">
               <button class="v-live-btn" id="vLiveBtn" type="button" aria-pressed="false" title="Continuous hands-free conversation">
                 <span class="v-live-dot"></span>
                 <span class="v-live-txt" id="vLiveTxt" data-t="vLive">Live</span>
               </button>
+              <div class="compact-voice-picker-wrap" id="vLiveVoicePickerWrap">
+                <button class="btn ghost compact-voice-btn" id="vLiveVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Live Voice" aria-label="Live Voice">
+                  <span class="compact-voice-icon">🗣️</span>
+                  <span class="compact-voice-cur" id="vLiveVoiceCurLabel">Auto</span>
+                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
+                </button>
+                <div class="compact-voice-popup popup-up" id="vLiveVoicePopup" role="dialog" aria-label="Live voice" hidden>
+                  <div class="voice-picker-list" id="vLiveVoicePickerList" data-context="live"></div>
+                </div>
+              </div>
             </div>
 
             <div class="v-live-browser-box" id="vLiveBrowserBox" hidden>
@@ -874,6 +901,16 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
             <div class="v-stop-ctrl-wrap">
               <span class="meta voice-used" id="vVoiceUsed" aria-live="polite"></span>
+              <div class="compact-voice-picker-wrap" id="vConvVoicePickerWrap">
+                <button class="btn ghost compact-voice-btn" id="vConvVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
+                  <span class="compact-voice-icon">🗣️</span>
+                  <span class="compact-voice-cur" id="vConvVoiceCurLabel">Auto</span>
+                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
+                </button>
+                <div class="compact-voice-popup popup-up" id="vConvVoicePopup" role="dialog" aria-label="Conversation voice" hidden>
+                  <div class="voice-picker-list" id="vConvVoicePickerList" data-context="conv"></div>
+                </div>
+              </div>
               <button class="btn danger v-stop-speak-btn" id="vStopSpeak" hidden type="button" title="Stop speaking" aria-label="Stop speaking">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
                 <span data-t="stopSpeak">Stop</span>
@@ -925,6 +962,16 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
               <span data-t="vAskLang">Answer language</span>
               <select id="vAskLang"></select>
             </label>
+            <div class="compact-voice-picker-wrap" id="vAskVoicePickerWrap">
+              <button class="btn ghost compact-voice-btn" id="vAskVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Answer Voice" aria-label="Answer Voice">
+                <span class="compact-voice-icon">🗣️</span>
+                <span class="compact-voice-cur" id="vAskVoiceCurLabel">Auto</span>
+                <span class="compact-voice-caret" style="font-size:9px">▼</span>
+              </button>
+              <div class="compact-voice-popup" id="vAskVoicePopup" role="dialog" aria-label="Ask AI voice" hidden>
+                <div class="voice-picker-list" id="vAskVoicePickerList" data-context="ask"></div>
+              </div>
+            </div>
             <span class="sp"></span>
             <button class="btn ghost v-icon-btn" id="vAskNew" type="button" data-t="vAskNew">+ New chat</button>
           </div>
@@ -4432,6 +4479,7 @@ function fillAskLangs() {
     LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   $('vAskLang').value = cur;
   if ($('vAskLang').selectedIndex < 0) $('vAskLang').value = $('tgt').value;
+  $('vAskLang').onchange = () => { if (typeof updateCompactVoiceButtons === 'function') updateCompactVoiceButtons(); };
 }
 
 // Mode switcher: Conversation vs Ask AI
@@ -6283,14 +6331,63 @@ function selectVoice(val, lang){
   if($('voiceSel'))$('voiceSel').value=val;
   renderUnifiedVoicePicker();
   fillVoices();
+  updateCompactVoiceButtons();
   const name=val?val:L('autoVoice');
   toast(`${L('voiceUsed')}: ${name}`,'ok');
 }
-function renderUnifiedVoicePicker(){
-  const wrap=$('voicePickerList');
-  if(!wrap)return;
-  const b=($('tgt')?.value||'fa').split('-')[0].toLowerCase();
+
+function getVoiceDisplayName(val, lang){
+  if(!val)return L('autoVoice')||'Auto';
+  if(val.startsWith('gemini:'))return L('geminiWord')+' · '+val.slice(7);
+  if(val.startsWith('piper:')){
+    const id=val.slice(6);
+    const m=(self.MODEL_CATALOG?.models||MC?.models||[]).find(x=>x.id===id);
+    return m?mcText(m.name):val;
+  }
+  const allDev=('speechSynthesis' in self?speechSynthesis.getVoices():[]);
+  const v=allDev.find(x=>x.voiceURI===val);
+  return v?v.name:val;
+}
+
+function updateCompactVoiceButtons(){
+  const tLang=($('tgt')?.value||'fa').split('-')[0].toLowerCase();
+  const tVal=cfg.tts?.voices?.[tLang]||'';
+  const tTxt=getVoiceDisplayName(tVal,tLang);
+  if($('tVoiceCurLabel'))$('tVoiceCurLabel').textContent=tTxt;
+  if($('vConvVoiceCurLabel'))$('vConvVoiceCurLabel').textContent=tTxt;
+  if($('vLiveVoiceCurLabel'))$('vLiveVoiceCurLabel').textContent=tTxt;
+
+  const askL=(($('vAskLang')?.value==='auto'?$('tgt')?.value:$('vAskLang')?.value)||'fa').split('-')[0].toLowerCase();
+  const askVal=cfg.tts?.voices?.[askL]||'';
+  if($('vAskVoiceCurLabel'))$('vAskVoiceCurLabel').textContent=getVoiceDisplayName(askVal,askL);
+}
+
+function toggleCompactVoicePopup(wrapId, popupId, listId, context){
+  const popup=$(popupId);
+  if(!popup)return;
+  const isHidden=popup.hidden;
+  document.querySelectorAll('.compact-voice-popup').forEach(p=>{
+    p.hidden=true;
+    const btn=p.parentElement?.querySelector('.compact-voice-btn');
+    if(btn)btn.setAttribute('aria-expanded','false');
+  });
+  if(isHidden){
+    popup.hidden=false;
+    const btn=$(wrapId)?.querySelector('.compact-voice-btn');
+    if(btn)btn.setAttribute('aria-expanded','true');
+    const list=$(listId);
+    if(list){
+      let l=$('tgt')?.value||'fa';
+      if(context==='ask'&&$('vAskLang')?.value&&$('vAskLang').value!=='auto')l=$('vAskLang').value;
+      list.innerHTML=buildVoicePickerHTML(l, 'voiceRadio_'+listId);
+    }
+  }
+}
+
+function buildVoicePickerHTML(lang, radioName){
+  const b=(lang||$('tgt')?.value||'fa').split('-')[0].toLowerCase();
   const curr=cfg.tts?.voices?.[b]||'';
+  const rName=radioName||'voiceRadio';
 
   const allDev=('speechSynthesis' in self?speechSynthesis.getVoices():[]);
   const devVoices=[...allDev].sort((a,b)=>{
@@ -6315,9 +6412,9 @@ function renderUnifiedVoicePicker(){
 
   let html='';
   const isAuto=!curr;
-  html+=`<div class="voice-card voice-card-auto ${isAuto?'selected':''}" data-voice="" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid ${isAuto?'var(--accent)':'var(--border)'};border-radius:6px;background:${isAuto?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;margin-bottom:8px">
+  html+=`<div class="voice-card voice-card-auto ${isAuto?'selected':''}" data-voice="" data-lang="${esc(b)}" style="display:flex;align-items:center;justify-content:space-between;padding:8px 12px;border:1px solid ${isAuto?'var(--accent)':'var(--border)'};border-radius:6px;background:${isAuto?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;margin-bottom:8px">
     <div class="row" style="gap:10px;align-items:center">
-      <input type="radio" name="voiceRadio" value="" ${isAuto?'checked':''} style="cursor:pointer">
+      <input type="radio" name="${esc(rName)}" value="" ${isAuto?'checked':''} style="cursor:pointer">
       <div>
         <strong>${esc(L('autoVoice'))}</strong>
         <div style="font-size:12px;color:var(--muted)">${esc(L('autoVoiceDesc'))}</div>
@@ -6335,7 +6432,7 @@ function renderUnifiedVoicePicker(){
       const isFa=(v.lang||'').toLowerCase().startsWith('fa');
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(v.voiceURI)}" data-source="device" data-lang="${esc(v.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
-          <input type="radio" name="voiceRadio" value="${esc(v.voiceURI)}" ${isSel?'checked':''} style="cursor:pointer">
+          <input type="radio" name="${esc(rName)}" value="${esc(v.voiceURI)}" ${isSel?'checked':''} style="cursor:pointer">
           <div style="min-width:0">
             <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.name)}${isFa?' 🇮🇷':''}</div>
             <div style="font-size:11.5px;color:var(--muted)">
@@ -6360,7 +6457,7 @@ function renderUnifiedVoicePicker(){
       const isSel=(curr===vVal);
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(vVal)}" data-source="offline" data-lang="${esc(m.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
-          <input type="radio" name="voiceRadio" value="${esc(vVal)}" ${isSel?'checked':''} style="cursor:pointer">
+          <input type="radio" name="${esc(rName)}" value="${esc(vVal)}" ${isSel?'checked':''} style="cursor:pointer">
           <div style="min-width:0">
             <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
             <div style="font-size:11.5px;color:var(--muted)">
@@ -6410,7 +6507,7 @@ function renderUnifiedVoicePicker(){
       const isSel=(curr===vVal);
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(vVal)}" data-source="gemini" data-lang="fa" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
-          <input type="radio" name="voiceRadio" value="${esc(vVal)}" ${isSel?'checked':''} style="cursor:pointer">
+          <input type="radio" name="${esc(rName)}" value="${esc(vVal)}" ${isSel?'checked':''} style="cursor:pointer">
           <div style="min-width:0">
             <div style="font-weight:600;font-size:13px">${esc(L('geminiWord'))} · ${esc(n)}</div>
             <div style="font-size:11.5px;color:var(--muted)">
@@ -6426,17 +6523,49 @@ function renderUnifiedVoicePicker(){
     html+=`</div></div>`;
   }
 
-  wrap.innerHTML=html;
+  return html;
+}
+
+function renderUnifiedVoicePicker(){
+  const wrap=$('voicePickerList');
+  if(wrap){
+    wrap.innerHTML=buildVoicePickerHTML($('tgt')?.value||'fa', 'voiceRadio');
+  }
+  document.querySelectorAll('.compact-voice-popup:not([hidden]) .voice-picker-list').forEach(c=>{
+    const ctx=c.dataset.context;
+    let l=$('tgt')?.value||'fa';
+    if(ctx==='ask'&&$('vAskLang')?.value&&$('vAskLang').value!=='auto')l=$('vAskLang').value;
+    c.innerHTML=buildVoicePickerHTML(l, 'voiceRadio_'+c.id);
+  });
+  updateCompactVoiceButtons();
 }
 if(typeof document!=='undefined'){
   document.addEventListener('click',async e=>{
-    const prevBtn=e.target.closest('#voicePickerList [data-act="preview"]');
+    const trigBtn=e.target.closest('.compact-voice-btn');
+    if(trigBtn){
+      e.stopPropagation();
+      const wrap=trigBtn.closest('.compact-voice-picker-wrap');
+      const popup=wrap?.querySelector('.compact-voice-popup');
+      const list=popup?.querySelector('.voice-picker-list');
+      if(wrap&&popup&&list){
+        toggleCompactVoicePopup(wrap.id, popup.id, list.id, list.dataset.context);
+      }
+      return;
+    }
+    if(!e.target.closest('.compact-voice-picker-wrap')){
+      document.querySelectorAll('.compact-voice-popup').forEach(p=>{
+        p.hidden=true;
+        const btn=p.parentElement?.querySelector('.compact-voice-btn');
+        if(btn)btn.setAttribute('aria-expanded','false');
+      });
+    }
+    const prevBtn=e.target.closest('.voice-picker-list [data-act="preview"]');
     if(prevBtn){
       e.stopPropagation();
       await previewVoice(prevBtn.dataset.voice,prevBtn.dataset.source,prevBtn.dataset.lang);
       return;
     }
-    const dlBtn=e.target.closest('#voicePickerList [data-act="dl-piper"]');
+    const dlBtn=e.target.closest('.voice-picker-list [data-act="dl-piper"]');
     if(dlBtn){
       e.stopPropagation();
       const m=MC.models.find(x=>x.id===dlBtn.dataset.id);
@@ -6446,11 +6575,17 @@ if(typeof document!=='undefined'){
       }
       return;
     }
-    const card=e.target.closest('#voicePickerList .voice-card');
+    const card=e.target.closest('.voice-picker-list .voice-card');
     if(card){
       const val=card.dataset.voice||'';
       const lang=card.dataset.lang||$('tgt')?.value;
       selectVoice(val,lang);
+      const pop=card.closest('.compact-voice-popup');
+      if(pop){
+        pop.hidden=true;
+        const btn=pop.parentElement?.querySelector('.compact-voice-btn');
+        if(btn)btn.setAttribute('aria-expanded','false');
+      }
     }
   });
 }
