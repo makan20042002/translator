@@ -948,6 +948,137 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     expect(memBadgeClass).not.toBe(corrBadgeClass);
     expect(memBadgeText).not.toBe(corrBadgeText);
   });
+
+  test.describe('Size limit, LRU eviction, and storage space (Item 3)', () => {
+    test('the limit is enforced', async ({ app }) => {
+      const { page } = app;
+      const count = await page.evaluate(async () => {
+        const tm = window.TranslationMemory;
+        await tm.clear();
+        tm.maxEntries = 3;
+
+        for (let i = 1; i <= 5; i++) {
+          await tm.put({
+            sourceText: `Phrase ${i}`,
+            translatedText: `ترجمه ${i}`,
+            src: 'en',
+            tgt: 'fa',
+            modeClass: 'fast'
+          });
+        }
+        return await tm.count();
+      });
+
+      expect(count).toBe(3);
+    });
+
+    test('corrected entries are kept longest', async ({ app }) => {
+      const { page } = app;
+      const result = await page.evaluate(async () => {
+        const tm = window.TranslationMemory;
+        await tm.clear();
+        tm.maxEntries = 2;
+
+        // 1. Put a corrected entry first (older timestamp)
+        await tm.put({
+          sourceText: 'Corrected Phrase',
+          translatedText: 'ویرایش کاربر',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast',
+          corrected: true
+        });
+
+        // Small delay to ensure distinct lastUsed
+        await new Promise(r => setTimeout(r, 10));
+
+        // 2. Put two uncorrected entries
+        await tm.put({
+          sourceText: 'Uncorrected Phrase 1',
+          translatedText: 'ترجمه ۱',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        await new Promise(r => setTimeout(r, 10));
+
+        await tm.put({
+          sourceText: 'Uncorrected Phrase 2',
+          translatedText: 'ترجمه ۲',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        const correctedEntry = await tm.get({
+          text: 'Corrected Phrase',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+        const uncorrected1 = await tm.get({
+          text: 'Uncorrected Phrase 1',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+        const uncorrected2 = await tm.get({
+          text: 'Uncorrected Phrase 2',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+
+        return {
+          count: await tm.count(),
+          hasCorrected: correctedEntry != null,
+          hasUncorrected1: uncorrected1 != null,
+          hasUncorrected2: uncorrected2 != null
+        };
+      });
+
+      expect(result.count).toBe(2);
+      // Corrected entry was preserved despite being older than Uncorrected 1
+      expect(result.hasCorrected).toBe(true);
+      expect(result.hasUncorrected1).toBe(false); // evicted first
+      expect(result.hasUncorrected2).toBe(true);
+    });
+
+    test('the size line shows an estimate', async ({ app }) => {
+      const { page } = app;
+      await page.evaluate(async () => {
+        const tm = window.TranslationMemory;
+        await tm.clear();
+        await tm.put({
+          sourceText: 'Size test phrase here',
+          translatedText: 'عبارت آزمایشی اندازه در اینجا',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast'
+        });
+      });
+
+      await mouseClick(page, page.locator('#openSet'));
+      await expect(page.locator('#tmCount')).toHaveText('1');
+      await expect(page.locator('#tmSize')).toContainText(/~\d+ (?:B|KB|MB) estimate/);
+    });
+
+    test('if persist is unavailable nothing breaks', async ({ app }) => {
+      const { page } = app;
+      // Overwrite navigator.storage.persist to simulate unavailable
+      await page.evaluate(() => {
+        if (navigator.storage) {
+          delete navigator.storage.persist;
+        }
+      });
+
+      await mouseClick(page, page.locator('#openSet'));
+      await expect(page.locator('#tmCount')).toBeVisible();
+      // Should not throw or crash
+      await expect(page.locator('#tmPersistStatus')).toBeHidden();
+    });
+  });
 });
 
 

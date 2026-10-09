@@ -130,6 +130,8 @@
     });
   }
 
+  const DEFAULT_MAX_ENTRIES = 20000;
+
   async function put(entry) {
     if (!entry) return null;
     const sourceText = String(entry.sourceText != null ? entry.sourceText : (entry.text || ''));
@@ -170,9 +172,46 @@
             lastUsed: now,
             corrected: isCorrection
           };
-          const req = store.put(record);
-          req.onsuccess = () => resolve(record);
-          req.onerror = () => resolve(null);
+
+          const proceedPut = () => {
+            const req = store.put(record);
+            req.onsuccess = () => resolve(record);
+            req.onerror = () => resolve(null);
+          };
+
+          const max = (typeof TranslationMemory !== 'undefined' && TranslationMemory.maxEntries) || DEFAULT_MAX_ENTRIES;
+          if (!existing) {
+            const countReq = store.count();
+            countReq.onsuccess = () => {
+              const curCount = countReq.result || 0;
+              if (curCount >= max) {
+                // Collect entries to evict least recently used; corrections evicted last
+                const allReq = store.getAll();
+                allReq.onsuccess = () => {
+                  const records = allReq.result || [];
+                  const uncorrected = records.filter(r => !r.corrected).sort((a, b) => (a.lastUsed || 0) - (b.lastUsed || 0));
+                  let victim = uncorrected[0];
+                  if (!victim) {
+                    const corrected = records.filter(r => !!r.corrected).sort((a, b) => (a.lastUsed || 0) - (b.lastUsed || 0));
+                    victim = corrected[0];
+                  }
+                  if (victim) {
+                    const delReq = store.delete(victim.key);
+                    delReq.onsuccess = proceedPut;
+                    delReq.onerror = proceedPut;
+                  } else {
+                    proceedPut();
+                  }
+                };
+                allReq.onerror = proceedPut;
+              } else {
+                proceedPut();
+              }
+            };
+            countReq.onerror = proceedPut;
+          } else {
+            proceedPut();
+          }
         };
         getReq.onerror = () => resolve(null);
       } catch (e) {
@@ -197,6 +236,38 @@
     });
   }
 
+  async function estimateSize() {
+    const db = await getDb();
+    if (!db) return 0;
+    return new Promise(resolve => {
+      try {
+        const tx = db.transaction(STORE_NAME, 'readonly');
+        const store = tx.objectStore(STORE_NAME);
+        const req = store.getAll();
+        req.onsuccess = () => {
+          const records = req.result || [];
+          let bytes = 0;
+          for (const v of records) {
+            const strLen = (v.key?.length || 0) +
+              (v.sourceText?.length || 0) +
+              (v.translatedText?.length || 0) +
+              (v.src?.length || 0) +
+              (v.tgt?.length || 0) +
+              (v.modeClass?.length || 0) +
+              (v.tone?.length || 0) +
+              (v.subject?.length || 0) +
+              (v.style?.length || 0);
+            bytes += Math.round(strLen * 1.5) + 64;
+          }
+          resolve(bytes);
+        };
+        req.onerror = () => resolve(0);
+      } catch (_) {
+        resolve(0);
+      }
+    });
+  }
+
   async function clear() {
     const db = await getDb();
     if (!db) return true;
@@ -214,6 +285,8 @@
   }
 
   const TranslationMemory = {
+    DEFAULT_MAX_ENTRIES,
+    maxEntries: DEFAULT_MAX_ENTRIES,
     normalizeText,
     hashText,
     buildKey,
@@ -221,6 +294,7 @@
     put,
     count,
     clear,
+    estimateSize,
     _getDb: getDb
   };
 
