@@ -317,3 +317,408 @@ test.describe('Web app: the result says which offline model translated', () => {
     expect(labels[1]).toContain('OPUS-MT EN → DE');
   });
 });
+
+test.describe('Web app: Offline translation model dropdown (Item 1)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['nllb']) } } });
+
+  async function ready(page, ids) {
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    for (const id of ids) {
+      const m = cat.models.find(x => x.id === id);
+      await page.evaluate(({ id, f }) => { const d = store.get('mdl', {}); d[id] = { at: 1, files: f }; store.set('mdl', d); }, { id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
+      await fakeDownloaded(page, m.repo, m.files);
+    }
+    await page.evaluate(() => mcScan());
+  }
+
+  test('dropdown lists only downloaded models plus Auto', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => mcRender());
+    const sel = page.locator('#offTrModelSel');
+    await expect(sel).toBeVisible();
+    const opts = await sel.locator('option').evaluateAll(list => list.map(o => ({ value: o.value, text: o.textContent })));
+    expect(opts.map(o => o.value)).toEqual(['auto', 'tr-nllb-600', 'tr-m2m100-418']);
+    expect(opts[0].text).toMatch(/خودکار|Auto/);
+  });
+
+  test('Auto behaves as before: multilingual chosen, or OPUS-MT when pair preferred', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-opus-en-de']);
+    await page.evaluate(() => { cfg.trModel = 'auto'; cfg.trPair = false; });
+    expect(await page.evaluate(() => pickTr('en', 'de').id)).toBe('tr-nllb-600');
+    await page.evaluate(() => { cfg.trPair = true; });
+    expect(await page.evaluate(() => pickTr('en', 'de').id)).toBe('tr-opus-en-de');
+    expect(await page.evaluate(() => pickTr('en', 'fa').id)).toBe('tr-nllb-600');
+  });
+
+  test('chosen model is the one invoked in worker', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await page.evaluate(() => { cfg.trModel = 'tr-m2m100-418'; });
+    const sent = await page.evaluate(async () => {
+      let msg = null;
+      window.Worker = class {
+        constructor() { }
+        postMessage(m) {
+          msg = m;
+          setTimeout(() => this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['سلام'] } }), 5);
+        }
+      };
+      wk = null;
+      await eNllb(['hi'], 'en', 'fa');
+      return msg;
+    });
+    expect(sent.a.spec.repo).toBe('Xenova/m2m100_418M');
+  });
+
+  test('unsupported pair falls back to Auto with a visible message', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => { cfg.trModel = 'tr-m2m100-418'; mcRender(); });
+    // tr-m2m100-418 does not cover en -> ja, but tr-nllb-600 does
+    const res = await page.evaluate(async () => {
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['こんにちは'] } }), 5);
+        }
+      };
+      wk = null;
+      const trans = await eNllb(['hello'], 'en', 'ja');
+      return { trans, used: offlineUsed };
+    });
+    expect(res.used).toContain('NLLB-200 600M'); // fell back to auto
+    const notice = page.locator('#offFallbackNotice');
+    await expect(notice).toBeVisible();
+    await expect(notice).toContainText('M2M-100');
+  });
+
+  test('choice survives reload', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.locator('#offTrModelSel').selectOption('tr-m2m100-418');
+    expect(await page.evaluate(() => store.get('cfg').trModel)).toBe('tr-m2m100-418');
+    await page.reload();
+    await openSettings(page);
+    await expect(page.locator('#offTrModelSel')).toHaveValue('tr-m2m100-418');
+  });
+
+  test('changing the dropdown updates the radios and the reverse', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => mcRender());
+
+    // Changing dropdown updates radio
+    await page.locator('#offTrModelSel').selectOption('tr-m2m100-418');
+    await expect(row(page, 'tr-m2m100-418').locator('input[type="radio"]')).toBeChecked();
+    await expect(row(page, 'tr-nllb-600').locator('input[type="radio"]')).not.toBeChecked();
+
+    // Clicking radio updates dropdown
+    await mouseClick(page, row(page, 'tr-nllb-600').locator('input[type="radio"]'));
+    await expect(page.locator('#offTrModelSel')).toHaveValue('tr-nllb-600');
+    expect(await page.evaluate(() => cfg.trModel)).toBe('tr-nllb-600');
+
+    // Selecting Auto unchecks radios
+    await page.locator('#offTrModelSel').selectOption('auto');
+    await expect(row(page, 'tr-nllb-600').locator('input[type="radio"]')).not.toBeChecked();
+    await expect(row(page, 'tr-m2m100-418').locator('input[type="radio"]')).not.toBeChecked();
+    expect(await page.evaluate(() => cfg.trModel)).toBe('auto');
+  });
+});
+
+test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
+  async function ready(page, ids) {
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    for (const id of ids) {
+      const m = cat.models.find(x => x.id === id);
+      await page.evaluate(({ id, f }) => { const d = store.get('mdl', {}); d[id] = { at: 1, files: f }; store.set('mdl', d); }, { id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
+      await fakeDownloaded(page, m.repo, m.files);
+    }
+    await page.evaluate(() => mcScan());
+  }
+
+  test('dropdown lists only downloaded Whisper models plus Auto', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-base', 'asr-small']);
+    await openSettings(page);
+    await page.evaluate(() => mcRender());
+    const sel = page.locator('#offWhisperSel');
+    await expect(sel).toBeVisible();
+    const opts = await sel.locator('option').evaluateAll(list => list.map(o => o.value));
+    expect(opts).toEqual(['auto', 'base', 'small']);
+  });
+
+  test('Auto behaves as before, chosen model is invoked', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-base', 'asr-small']);
+    await page.evaluate(() => { cfg.whisper = 'auto'; });
+    expect(await page.evaluate(() => asrModel().key)).toBe('base');
+    await page.evaluate(() => { cfg.whisper = 'small'; });
+    expect(await page.evaluate(() => asrModel().key)).toBe('small');
+  });
+
+  test('choice survives reload', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-base', 'asr-small']);
+    await openSettings(page);
+    await page.locator('#offWhisperSel').selectOption('small');
+    expect(await page.evaluate(() => store.get('cfg').whisper)).toBe('small');
+    await page.reload();
+    await openSettings(page);
+    await expect(page.locator('#offWhisperSel')).toHaveValue('small');
+  });
+
+  test('changing dropdown updates radios and the reverse', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-base', 'asr-small']);
+    await openSettings(page);
+    await page.evaluate(() => mcRender());
+
+    // Changing dropdown updates radio
+    await page.locator('#offWhisperSel').selectOption('small');
+    await expect(row(page, 'asr-small').locator('input[type="radio"]')).toBeChecked();
+    await expect(row(page, 'asr-base').locator('input[type="radio"]')).not.toBeChecked();
+
+    // Clicking radio updates dropdown
+    await mouseClick(page, row(page, 'asr-base').locator('input[type="radio"]'));
+    await expect(page.locator('#offWhisperSel')).toHaveValue('base');
+    expect(await page.evaluate(() => cfg.whisper)).toBe('base');
+
+    // Selecting Auto clears inuse radios
+    await page.locator('#offWhisperSel').selectOption('auto');
+    await expect(row(page, 'asr-base').locator('input[type="radio"]')).not.toBeChecked();
+    await expect(row(page, 'asr-small').locator('input[type="radio"]')).not.toBeChecked();
+    expect(await page.evaluate(() => cfg.whisper)).toBe('auto');
+  });
+
+  test('Voice tab uses chosen model and shows model name next to the result', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-small']);
+    await page.evaluate(() => {
+      cfg.whisper = 'small';
+      cfg.stt = 'whisper';
+      addBubble($('bubbles'), 'a', 'salam', 'hello world', 'fa', 'en', {
+        stt: 'Whisper',
+        sttModel: mcText(asrModel().name)
+      });
+    });
+    const bub = page.locator('#bubbles .bub').first();
+    await expect(bub.locator('.bub-tag').first()).toContainText('Whisper · Whisper Small');
+  });
+});
+
+test.describe('Web app: Test models panel (Item 3)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['nllb', 'ollama']) } } });
+
+  async function ready(page, ids) {
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    for (const id of ids) {
+      const m = cat.models.find(x => x.id === id);
+      await page.evaluate(({ id, f }) => { const d = store.get('mdl', {}); d[id] = { at: 1, files: f }; store.set('mdl', d); }, { id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
+      await fakeDownloaded(page, m.repo, m.files);
+    }
+    await page.evaluate(() => mcScan());
+  }
+
+  test('all downloaded translation models run in order and results appear', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => {
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => {
+            this.onmessage && this.onmessage({
+              data: { id: m.id, ok: true, res: ['[trans:' + m.a.spec.kind + '] ' + m.a.items[0]] }
+            });
+          }, 30);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await page.locator('#testMdlText').fill('Good morning');
+    await page.locator('#testMdlSrc').selectOption('en');
+    await page.locator('#testMdlTgt').selectOption('fa');
+
+    await mouseClick(page, page.locator('#testTrRun'));
+
+    const rows = page.locator('#testTrResults tbody tr');
+    await expect(rows).toHaveCount(2, { timeout: 10_000 });
+    await expect(rows.nth(0)).toContainText('NLLB-200 600M');
+    await expect(rows.nth(0)).toContainText('[trans:nllb] Good morning');
+    await expect(rows.nth(0).locator('.test-row-time')).toContainText('s');
+
+    await expect(rows.nth(1)).toContainText('M2M-100');
+    await expect(rows.nth(1)).toContainText('[trans:m2m100] Good morning');
+    await expect(rows.nth(1).locator('.test-row-time')).toContainText('s');
+  });
+
+  test('if Ollama is reachable, lists installed models and includes them in the run', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600']);
+    await page.route('http://localhost:11434/v1/models', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ data: [{ id: 'gemma3:latest' }] })
+      });
+    });
+    await page.route('http://localhost:11434/v1/chat/completions', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [{ message: { content: 'صبح بخیر از اولاما' } }]
+        })
+      });
+    });
+
+    await openSettings(page);
+    await page.evaluate(() => {
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => {
+            this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['NLLB trans'] } });
+          }, 30);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await page.locator('#testMdlText').fill('Good morning');
+    await mouseClick(page, page.locator('#testTrRun'));
+
+    const rows = page.locator('#testTrResults tbody tr');
+    await expect(rows).toHaveCount(2, { timeout: 10_000 });
+    await expect(rows.nth(0)).toContainText('NLLB-200 600M');
+    await expect(rows.nth(1)).toContainText('Ollama (gemma3:latest)');
+    await expect(rows.nth(1)).toContainText('صبح بخیر از اولاما');
+  });
+
+  test('one failing model does not stop the others', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => {
+      let callCount = 0;
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          callCount++;
+          setTimeout(() => {
+            if (callCount === 1) {
+              this.onmessage && this.onmessage({ data: { id: m.id, ok: false, err: 'Engine crash simulated' } });
+            } else {
+              this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['Success second model'] } });
+            }
+          }, 20);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await page.locator('#testMdlText').fill('Test failure resilience');
+    await mouseClick(page, page.locator('#testTrRun'));
+
+    const rows = page.locator('#testTrResults tbody tr');
+    await expect(rows).toHaveCount(2, { timeout: 10_000 });
+    await expect(rows.nth(0)).toContainText('Engine crash simulated');
+    await expect(rows.nth(1)).toContainText('Success second model');
+    await expect(page.locator('#testTrStatus')).toContainText(/تکمیل|Done|Finished/i);
+  });
+
+  test('Stop button works', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
+    await openSettings(page);
+    await page.evaluate(() => {
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => {
+            this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['Slow result'] } });
+          }, 3000);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await page.locator('#testMdlText').fill('Testing stop button');
+    await mouseClick(page, page.locator('#testTrRun'));
+    await expect(page.locator('#testTrStop')).toBeVisible();
+    await mouseClick(page, page.locator('#testTrStop'));
+    await expect(page.locator('#testTrStatus')).toContainText(/متوقف شد|Stopped/);
+    await expect(page.locator('#testTrRun')).toBeVisible();
+  });
+
+  test('results are NOT written to translation memory or history', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['tr-nllb-600']);
+    await openSettings(page);
+    await page.evaluate(() => {
+      store.set('tm', []);
+      store.set('hist', []);
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => {
+            this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: ['Secret test phrase'] } });
+          }, 20);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await page.locator('#testMdlText').fill('Top Secret Phrase');
+    await mouseClick(page, page.locator('#testTrRun'));
+    await expect(page.locator('#testTrResults tbody tr').first()).toContainText('Secret test phrase');
+
+    const storage = await page.evaluate(() => ({
+      tm: store.get('tm', []),
+      hist: store.get('hist', [])
+    }));
+    expect(storage.tm).toEqual([]);
+    expect(storage.hist).toEqual([]);
+  });
+
+  test('speech test runs downloaded Whisper models', async ({ app }) => {
+    const { page } = app;
+    await ready(page, ['asr-base']);
+    await openSettings(page);
+    await page.evaluate(() => {
+      window.record = async () => new Blob([new Uint8Array(2000)], { type: 'audio/webm' });
+      window.to16k = async () => new Float32Array(1600);
+      window.Worker = class {
+        constructor() {}
+        postMessage(m) {
+          setTimeout(() => {
+            this.onmessage && this.onmessage({ data: { id: m.id, ok: true, res: { text: 'Transcribed test speech' } } });
+          }, 20);
+        }
+      };
+      wk = null;
+      mcRender();
+    });
+
+    await mouseClick(page, page.locator('#testAsrRun'));
+    const rows = page.locator('#testAsrResults tbody tr');
+    await expect(rows).toHaveCount(1, { timeout: 10_000 });
+    await expect(rows.first()).toContainText('Whisper Base');
+    await expect(rows.first()).toContainText('Transcribed test speech');
+  });
+});

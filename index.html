@@ -252,6 +252,11 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .mdl .badge.warn{color:var(--warn);border-color:var(--warn)}
 .mdl .prog{margin-top:8px}
 .mdl.inuse{background:rgba(19,200,245,.04)}
+.test-results-table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+.test-results-table th,.test-results-table td{padding:6px 10px;border-bottom:1px solid var(--border);text-align:start}
+.test-results-table th{color:var(--muted);font-weight:600;font-size:12px}
+.test-results-wrap{overflow-x:auto;max-height:300px}
+.off-fallback-notice{padding:8px 12px;background:rgba(255,180,74,.1);border:1px solid rgba(255,180,74,.3);border-radius:var(--r-s);color:var(--warn);font-size:13px;margin:8px 0}
 /* ==================== DOCUMENT TAB REDESIGN ==================== */
 .doc-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-m);padding:20px;display:flex;flex-direction:column;gap:14px;box-shadow:0 18px 45px rgba(0,0,0,.35)}
 @media(max-width:640px){.doc-card{padding:12px 10px;border-radius:var(--r-s)}}
@@ -1055,10 +1060,49 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
   <h3 data-t="offH">Offline</h3>
   <p class="note" data-t="offNote"></p>
+  <div class="setg off-models-pickers" style="margin:12px 0 14px">
+    <label><span data-t="offTrModel">Offline translation model</span><select id="offTrModelSel"></select></label>
+    <label><span data-t="offWhisperModel">Offline speech model</span><select id="offWhisperSel"></select></label>
+  </div>
+  <div id="offFallbackNotice" class="off-fallback-notice" hidden></div>
   <div class="meta" id="mdlTotal" role="status"></div>
   <div id="mdlCatalog"></div>
   <div id="dictPackRows"></div>
   <p class="hint" data-t="dictPackNote">The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About &amp; credits.</p>
+
+  <!-- TEST MODELS PANEL -->
+  <div class="card test-models-card" id="testModelsPanel" style="margin-top:18px;border:1px solid var(--border2)">
+    <div class="row" style="margin-bottom:6px">
+      <strong data-t="testModelsH">Test models</strong>
+      <span class="sp"></span>
+    </div>
+    <p class="hint" data-t="testModelsDesc" style="margin:0 0 12px">Compare downloaded models side by side on a sample sentence or speech clip.</p>
+
+    <!-- Test Translation Models -->
+    <div class="test-tr-block" style="margin-bottom:16px">
+      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
+        <select id="testMdlSrc" style="min-width:120px" aria-label="Source language"></select>
+        <span style="align-self:center;color:var(--muted)">→</span>
+        <select id="testMdlTgt" style="min-width:120px" aria-label="Target language"></select>
+        <input type="text" id="testMdlText" data-tp="testSentencePh" placeholder="Sentence to translate…" value="The quick brown fox jumps over the lazy dog." style="flex:1;min-width:200px" dir="auto">
+        <button class="btn cta" id="testTrRun" type="button" data-t="testTrBtn">Test translation models</button>
+        <button class="btn danger" id="testTrStop" type="button" hidden data-t="stop">Stop</button>
+      </div>
+      <div id="testTrStatus" class="meta" style="margin-bottom:6px" hidden></div>
+      <div id="testTrResults" class="test-results-wrap" aria-live="polite"></div>
+    </div>
+
+    <!-- Test Speech Models -->
+    <div class="test-asr-block" style="border-top:1px solid var(--border);padding-top:12px">
+      <div class="row" style="gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
+        <button class="btn" id="testAsrRun" type="button" data-t="testAsrBtn">Test speech model</button>
+        <button class="btn danger" id="testAsrStop" type="button" hidden data-t="stop">Stop</button>
+        <span id="testAsrPrompt" class="hint" hidden></span>
+      </div>
+      <div id="testAsrStatus" class="meta" style="margin-bottom:6px" hidden></div>
+      <div id="testAsrResults" class="test-results-wrap" aria-live="polite"></div>
+    </div>
+  </div>
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
 </div></div>
 <datalist id="models"></datalist>
@@ -1250,7 +1294,14 @@ Object.assign(I18N.en,{
  mdlDelete:'Delete',mdlUse:'Use',mdlInUse:'In use',mdlDeleted:'deleted from this browser',mdlDownloading:'Downloading…',
  fgOpt:'Finglish · Persian in Latin letters',fgSpelling:'Persian spelling',fgNeedsAi:'Finglish (Persian written in Latin letters) needs an AI engine. Add a free Gemini or Groq key in Engines & keys.',fgVia:'Finglish → Persian',
  mdlOfflineVoice:'offline voice',mdlSpeed:'Speed',mdlSpeedUnit:'s of waiting per second of speech (test computer, no WebGPU)',mdlEngineOnce:'speech engine, once',offlineVoicesGrp:'Offline voices (downloaded)',noVoiceOffline:'Or download an offline voice in Engines & keys → Offline.',
- mdlTotal:'Stored on this device by these models',mdlSiteTotal:'all data of this site',vTranscribing:'Transcribing…'
+ mdlTotal:'Stored on this device by these models',mdlSiteTotal:'all data of this site',vTranscribing:'Transcribing…',
+ offTrModel:'Offline translation model',offWhisperModel:'Offline speech model',autoMdl:'Auto',
+ mdlUnsupportedFallback:'“{model}” does not support {pair}. Using Auto.',
+ testModelsH:'Test models',testModelsDesc:'Compare downloaded models side by side on a sample sentence or speech clip.',
+ testTrBtn:'Test translation models',testAsrBtn:'Test speech model',testSentencePh:'Sentence to translate…',
+ testRunning:'Running…',testStopped:'Stopped',testDone:'Finished',
+ testNoTrModels:'No offline translation models downloaded.',testNoAsrModels:'No offline speech models downloaded.',
+ testColModel:'Model',testColResult:'Result',testColTime:'Time (s)',testRecPrompt:'Recording short clip… speak now'
 });
 Object.assign(I18N.fa,{
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
@@ -1261,7 +1312,14 @@ Object.assign(I18N.fa,{
  mdlDelete:'حذف',mdlUse:'استفاده',mdlInUse:'در حال استفاده',mdlDeleted:'از این مرورگر حذف شد',mdlDownloading:'در حال دانلود…',
  fgOpt:'فینگلیش · فارسی با حروف لاتین',fgSpelling:'املای فارسی',fgNeedsAi:'فینگلیش (فارسی با حروف لاتین) به یک موتور هوش مصنوعی نیاز دارد. در «موتورها و کلیدها» یک کلید رایگان Gemini یا Groq اضافه کنید.',fgVia:'فینگلیش ← فارسی',
  mdlOfflineVoice:'صدای آفلاین',mdlSpeed:'سرعت',mdlSpeedUnit:'ثانیه انتظار برای هر ثانیه گفتار (رایانه‌ی آزمایشی، بدون WebGPU)',mdlEngineOnce:'موتور گفتار، یک بار',offlineVoicesGrp:'صداهای آفلاین (دانلودشده)',noVoiceOffline:'یا در «موتورها و کلیدها ← آفلاین» یک صدای آفلاین دانلود کنید.',
- mdlTotal:'فضای اشغال‌شده در این دستگاه توسط این مدل‌ها',mdlSiteTotal:'کل داده‌های این سایت',vTranscribing:'در حال تبدیل گفتار به متن…'
+ mdlTotal:'فضای اشغال‌شده در این دستگاه توسط این مدل‌ها',mdlSiteTotal:'کل داده‌های این سایت',vTranscribing:'در حال تبدیل گفتار به متن…',
+ offTrModel:'مدل ترجمه‌ی آفلاین',offWhisperModel:'مدل گفتار آفلاین',autoMdl:'خودکار',
+ mdlUnsupportedFallback:'مدل «{model}» از {pair} پشتیبانی نمی‌کند؛ از حالت خودکار استفاده شد.',
+ testModelsH:'آزمایش مدل‌ها',testModelsDesc:'مقایسه‌ی مدل‌های دانلودشده روی یک جمله‌ی نمونه یا فایل صوتی کوتاه.',
+ testTrBtn:'آزمایش مدل‌های ترجمه',testAsrBtn:'Test speech model',testSentencePh:'جمله‌ای برای ترجمه…',
+ testRunning:'در حال اجرا…',testStopped:'متوقف شد',testDone:'پایان یافت',
+ testNoTrModels:'هیچ مدل ترجمه‌ی آفلاینی دانلود نشده است.',testNoAsrModels:'هیچ مدل گفتار آفلاینی دانلود نشده است.',
+ testColModel:'مدل',testColResult:'نتیجه',testColTime:'زمان (ثانیه)',testRecPrompt:'در حال ضبط صدای کوتاه… اکنون صحبت کنید'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -1311,7 +1369,7 @@ if(!store.get('groq_order_fixed',false)){
 cfg.order=cfg.order.filter(id=>ENG[id]);
 let engineConnStatus=store.get('eng_conn',{});
 const saveCfg=()=>{store.set('cfg',cfg)};
-cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||'base';cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||'tr-nllb-600';cfg.trPair=!!cfg.trPair;
+cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;
 cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',key:'',model:'csm-1b',voice:'alloy',rate:1.0},cfg.tts);
 cfg.tts.rate=+cfg.tts.rate||1.0;
 const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u||'');
@@ -1631,6 +1689,17 @@ const engLabel=i=>i==='nllb'&&offlineUsed?`${ENG.nllb.name} — ${offlineUsed}`:
 async function eNllb(items,src,tgt){
   if(src==='auto')src=guessLang(items.join(' '));
   if(NLLB[src]&&NLLB[src]===NLLB[tgt])return items.slice();
+  const chosen=(cfg.trModel&&cfg.trModel!=='auto')?MC.models.find(x=>x.id===cfg.trModel):null;
+  if(chosen&&mcReady(chosen)&&!trCovers(chosen,src,tgt)){
+    const pairStr=`${langShort(src)} → ${langShort(tgt)}`;
+    const msg=L('mdlUnsupportedFallback').replace('{model}',mcText(chosen.name)).replace('{pair}',pairStr);
+    toast(msg,'warn',6000);
+    const noticeEl=$('offFallbackNotice');
+    if(noticeEl){noticeEl.textContent=msg;noticeEl.hidden=false}
+  }else{
+    const noticeEl=$('offFallbackNotice');
+    if(noticeEl)noticeEl.hidden=true;
+  }
   const m=pickTr(src,tgt);
   if(!m)throw new Error('language not in the offline model');
   offlineUsed=mcText(m.name);
@@ -2865,12 +2934,12 @@ async function listen(lang,btn,onText,onPartial){
           }else{
             if(!asrReady())throw new Error('Whisper: '+L('needDl'));
             const audio=await to16k(blob);
-            text=await rpc('asr',{audio,lang:l2,model:cfg.whisper,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
+            text=await rpc('asr',{audio,lang:l2,model:asrModel().key,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
           }
         }else throw err;
       }
     }else{
-      const audio=await to16k(blob);text=await rpc('asr',{audio,lang:l2,model:cfg.whisper,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
+      const audio=await to16k(blob);text=await rpc('asr',{audio,lang:l2,model:asrModel().key,langs:[$('src').value,$('tgt').value]},[audio.buffer]);
     }
     if(!isSpeaking()){
       text=(text||'').trim();finish(text);
@@ -4416,7 +4485,7 @@ function addBubble(container, side, said, trans, fromLang, toLang, meta = {}) {
         ${SVG_ICONS.copySmall}<span>${esc(L('copy'))}</span>
       </button>
       <div class="bub-meta-tags">
-        ${meta.stt ? `<span class="bub-tag">${esc(meta.stt)}</span>` : ''}
+        ${meta.stt ? `<span class="bub-tag">${esc(meta.stt)}${meta.sttModel ? ' · ' + esc(meta.sttModel) : ''}</span>` : ''}
         ${meta.engine ? `<span class="bub-tag">${esc(meta.engine)}</span>` : ''}
         ${meta.voice ? `<span class="bub-tag">${esc(meta.voice)}</span>` : ''}
         ${meta.dur ? `<span class="bub-tag">${esc(meta.dur)}</span>` : ''}
@@ -4539,8 +4608,10 @@ async function triggerLiveBrowserSpeaker(side) {
     const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
     const voiceObj = pickVoice(to);
     const voiceName = voiceObj ? voiceObj.name.slice(0, 16) : (resolveVoice(to).kind === 'piper' ? mcText(resolveVoice(to).m.name).slice(0, 16) : L('ttsFallback'));
+    const isWh = sttMode() === 'whisper';
     addBubble($('bubbles'), side, tx, r.out[0] || '…', from, to, {
-      stt: 'Browser',
+      stt: isWh ? 'Whisper' : 'Browser',
+      sttModel: isWh && asrModel() ? mcText(asrModel().name) : null,
       engine: r.used,
       voice: voiceName,
       dur: dt
@@ -4937,11 +5008,12 @@ async function handleConvPttAudio(audioInput) {
           return;
         }
         const audio = await to16k(blob);
-        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+        const wmKey = asrModel().key;
+        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: wmKey, langs: [s, t], returnLang: true }, [audio.buffer]);
         let tx = typeof res === 'object' ? res.text : res;
         let detectedLang = typeof res === 'object' ? res.lang : null;
         tx = (tx || '').trim();
-        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
+        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', sttModel: asrModel() ? mcText(asrModel().name) : '', engine: 'Auto' };
       } else if ((cfg.eng.gemini.key || (cfg.tts.mode==='gemini'&&cfg.tts.key)) && !sessionBlocked.has('gemini')) {
         try {
           const res = await interpretGemini(blob, s, t);
@@ -4962,9 +5034,10 @@ async function handleConvPttAudio(audioInput) {
             return;
           }
           const audio = await to16k(blob);
-          let tx = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+          const wmKey = asrModel().key;
+          let tx = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: wmKey, langs: [s, t], returnLang: true }, [audio.buffer]);
           tx = (typeof tx === 'object' ? tx.text : tx) || '';
-          turnResult = { lang: s, transcript: tx.trim(), translation: '', stt: 'Whisper', engine: 'Auto' };
+          turnResult = { lang: s, transcript: tx.trim(), translation: '', stt: 'Whisper', sttModel: asrModel() ? mcText(asrModel().name) : '', engine: 'Auto' };
         }
       } else {
         if (!asrReady()) {
@@ -4973,11 +5046,12 @@ async function handleConvPttAudio(audioInput) {
           return;
         }
         const audio = await to16k(blob);
-        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: cfg.whisper, langs: [s, t], returnLang: true }, [audio.buffer]);
+        const wmKey = asrModel().key;
+        let res = await rpc('asr', { audio, lang: (s === 'auto' ? null : s.split('-')[0]), model: wmKey, langs: [s, t], returnLang: true }, [audio.buffer]);
         let tx = typeof res === 'object' ? res.text : res;
         let detectedLang = typeof res === 'object' ? res.lang : null;
         tx = (tx || '').trim();
-        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', engine: 'Auto' };
+        turnResult = { lang: detectedLang || s, transcript: tx, translation: '', stt: 'Whisper', sttModel: asrModel() ? mcText(asrModel().name) : '', engine: 'Auto' };
       }
     }
 
@@ -5020,6 +5094,7 @@ async function handleConvPttAudio(audioInput) {
 
     addBubble($('bubbles'), side, turnResult.transcript, turnResult.translation, from, to, {
       stt: turnResult.stt,
+      sttModel: turnResult.sttModel,
       engine: turnResult.engine,
       voice: voiceName,
       dur: dt
@@ -5056,7 +5131,7 @@ async function handleAskPttAudio(audioInput) {
           return;
         }
         const audio = await to16k(blob);
-        tx = await rpc('asr', { audio, lang: l2, model: cfg.whisper, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+        tx = await rpc('asr', { audio, lang: l2, model: asrModel().key, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
       } else if (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) {
         tx = await transcribeGemini(blob, l2);
       } else {
@@ -5066,7 +5141,7 @@ async function handleAskPttAudio(audioInput) {
           return;
         }
         const audio = await to16k(blob);
-        tx = await rpc('asr', { audio, lang: l2, model: cfg.whisper, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
+        tx = await rpc('asr', { audio, lang: l2, model: asrModel().key, langs: [$('src').value, $('tgt').value] }, [audio.buffer]);
       }
     }
     tx = (tx || '').trim();
@@ -5392,7 +5467,11 @@ function mcReady(m){
 const mcBytes=m=>{const r=mcCache?.[m.repo];if(!r)return 0;return m.kind==='piper'?m.files.reduce((a,f)=>a+(r.files.get(f[0])||0),0):r.bytes};
 const trModels=()=>MC.models.filter(m=>m.job==='translate');
 const trAnyReady=()=>trModels().some(mcReady);
-const asrModel=key=>MC.models.find(m=>m.kind==='whisper'&&m.key===(key||cfg.whisper))||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+const asrModel=key=>{
+  const k=key||cfg.whisper;
+  if(!k||k==='auto')return MC.models.find(m=>m.kind==='whisper'&&mcReady(m))||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+  return MC.models.find(m=>m.kind==='whisper'&&m.key===k)||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+};
 const asrReady=()=>mcReady(asrModel());
 function trCovers(m,src,tgt){
   if(m.kind==='opus')return m.pair[0]===src&&m.pair[1]===tgt;
@@ -5404,7 +5483,11 @@ function pickTr(src,tgt){
   if(!ok.length)return null;
   const pair=ok.find(m=>m.kind==='opus');
   if(cfg.trPair&&pair)return pair;
-  return ok.find(m=>m.id===cfg.trModel)||ok.find(m=>m.kind!=='opus')||pair;
+  if(cfg.trModel&&cfg.trModel!=='auto'){
+    const chosen=ok.find(m=>m.id===cfg.trModel);
+    if(chosen)return chosen;
+  }
+  return ok.find(m=>m.kind!=='opus')||pair;
 }
 function mcMark(m,files){
   const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
@@ -5433,8 +5516,8 @@ async function mcDownload(m){
     await mcScan();
     mcMark(m,(mcCache?.[m.repo]?[...mcCache[m.repo].files.keys()].filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')):seen));
     // the first model of a kind becomes the one in use
-    if(m.job==='listen'&&!asrReady())cfg.whisper=m.key;
-    if(m.job==='translate'&&m.kind!=='opus'&&!mcReady(MC.models.find(x=>x.id===cfg.trModel)))cfg.trModel=m.id;
+    if(m.job==='listen'&&cfg.whisper!=='auto'&&!asrReady())cfg.whisper=m.key;
+    if(m.job==='translate'&&m.kind!=='opus'&&cfg.trModel!=='auto'&&!mcReady(MC.models.find(x=>x.id===cfg.trModel)))cfg.trModel=m.id;
     saveCfg();
     toast(L('dlDone'),'ok',6000);
   }catch(e){toast(e.message,'err',9000)}
@@ -5453,7 +5536,7 @@ async function mcDelete(m){
 }
 function mcRow(m){
   const ready=mcReady(m),busy=!!mcDownloading[m.id];
-  const inUse=ready&&(m.job==='listen'?cfg.whisper===m.key:(m.kind==='opus'?false:cfg.trModel===m.id));
+  const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
   const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
   const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
   const gpuText=m.job==='speak'?L('mdlGpuNo'):gpu;
@@ -5468,7 +5551,7 @@ function mcRow(m){
     <div class="mdl-a">
       <button class="btn"${dlId} data-act="dl" ${ready||busy?'hidden':''}>${esc(L('download'))}</button>
       <button class="btn ghost" data-act="rm" ${ready&&!busy?'':'hidden'}>${esc(L('mdlDelete'))}</button>
-      ${ready&&(m.job==='listen'||(m.job==='translate'&&m.kind!=='opus'))?`<label class="chk"><input type="radio" name="use-${m.job}" data-act="use" ${inUse?'checked':''}>${esc(L(inUse?'mdlInUse':'mdlUse'))}</label>`:''}
+      ${ready&&(m.job==='listen'||m.job==='translate')?`<label class="chk"><input type="radio" name="use-${m.job}" data-act="use" ${inUse?'checked':''}>${esc(L(inUse?'mdlInUse':'mdlUse'))}</label>`:''}
     </div></div>`;
 }
 function mcRender(){
@@ -5493,6 +5576,31 @@ function mcRender(){
     t.textContent=mcCache===null?'':`${L('mdlTotal')}: ${mcSize(total)} (${mine.length})`;
     navigator.storage?.estimate?.().then(e=>{if(e&&e.usage&&$('mdlTotal')&&mcCache!==null)$('mdlTotal').textContent+=` · ${L('mdlSiteTotal')}: ${mcSize(e.usage)}`}).catch(()=>{});
   }
+
+  // Sync Offline translation model & speech model dropdowns
+  const trSel=$('offTrModelSel');
+  if(trSel){
+    const trDownloaded=trModels().filter(mcReady);
+    const prevTr=(cfg.trModel&&(cfg.trModel==='auto'||trDownloaded.some(m=>m.id===cfg.trModel)))?cfg.trModel:'auto';
+    let hTr=`<option value="auto">${esc(L('autoMdl'))}</option>`;
+    for(const m of trDownloaded){
+      hTr+=`<option value="${m.id}">${esc(mcText(m.name))}</option>`;
+    }
+    trSel.innerHTML=hTr;
+    trSel.value=prevTr;
+  }
+  const asrSel=$('offWhisperSel');
+  if(asrSel){
+    const asrDownloaded=MC.models.filter(m=>m.kind==='whisper'&&mcReady(m));
+    const prevWhisper=(cfg.whisper&&(cfg.whisper==='auto'||asrDownloaded.some(m=>m.key===cfg.whisper)))?cfg.whisper:'auto';
+    let hAsr=`<option value="auto">${esc(L('autoMdl'))}</option>`;
+    for(const m of asrDownloaded){
+      hAsr+=`<option value="${m.key}">${esc(mcText(m.name))}</option>`;
+    }
+    asrSel.innerHTML=hAsr;
+    asrSel.value=prevWhisper;
+  }
+  fillTestLangs();
 }
 $('mdlCatalog').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
@@ -5502,9 +5610,227 @@ $('mdlCatalog').addEventListener('click',e=>{
   else if(b.dataset.act==='use'){
     if(m.job==='listen')cfg.whisper=m.key;else cfg.trModel=m.id;
     saveCfg();mcRender();fillEngines();
+    if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
   }
 });
 $('mdlCatalog').addEventListener('change',e=>{if(e.target.id==='mdlPrefPair'){cfg.trPair=e.target.checked;saveCfg()}});
+
+if($('offTrModelSel'))$('offTrModelSel').onchange=e=>{
+  cfg.trModel=e.target.value;
+  saveCfg();mcRender();fillEngines();
+};
+if($('offWhisperSel'))$('offWhisperSel').onchange=e=>{
+  cfg.whisper=e.target.value;
+  saveCfg();mcRender();
+  if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
+};
+
+function fillTestLangs(){
+  const s=$('testMdlSrc'),t=$('testMdlTgt');
+  if(!s||!t)return;
+  if(!s.options.length){
+    s.innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    t.innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    s.value=$('src')?.value&&$('src').value!=='auto'?$('src').value:'en';
+    t.value=$('tgt')?.value?$('tgt').value:'fa';
+  }
+}
+
+let testTrAbort=null;
+async function runTestTranslationModels(){
+  const txt=($('testMdlText')?.value||'').trim();
+  if(!txt){toast(L('phIn'),'warn');return}
+  const src=$('testMdlSrc')?.value||'en';
+  const tgt=$('testMdlTgt')?.value||'fa';
+  const dlModels=trModels().filter(mcReady);
+
+  let ollamaModels=[];
+  try{
+    const oBase=(cfg.eng.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    const ctrl=new AbortController();
+    const to=setTimeout(()=>ctrl.abort(),2000);
+    const r=await fetch(oBase+'/models',{signal:ctrl.signal});
+    clearTimeout(to);
+    if(r.ok){
+      const j=await r.json();
+      ollamaModels=(j.data||[]).map(m=>m.id);
+    }
+  }catch{}
+
+  const allToTest=[
+    ...dlModels.map(m=>({type:'offline',model:m,name:mcText(m.name)})),
+    ...ollamaModels.map(m=>({type:'ollama',model:m,name:`Ollama (${m})`}))
+  ];
+
+  const resBox=$('testTrResults'),runBtn=$('testTrRun'),stopBtn=$('testTrStop'),stBox=$('testTrStatus');
+  if(!allToTest.length){
+    if(resBox)resBox.innerHTML=`<p class="hint">${esc(L('testNoTrModels'))}</p>`;
+    return;
+  }
+
+  testTrAbort=new AbortController();
+  if(runBtn)runBtn.hidden=true;
+  if(stopBtn)stopBtn.hidden=false;
+  if(stBox){stBox.hidden=false;stBox.textContent=L('testRunning')}
+
+  let tableHtml=`<table class="test-results-table">
+    <thead>
+      <tr>
+        <th>${esc(L('testColModel'))}</th>
+        <th>${esc(L('testColResult'))}</th>
+        <th>${esc(L('testColTime'))}</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  for(let i=0;i<allToTest.length;i++){
+    tableHtml+=`<tr id="testTrRow-${i}"><td class="test-row-name"><strong>${esc(allToTest[i].name)}</strong></td><td class="test-row-res" style="color:var(--muted)">…</td><td class="test-row-time">—</td></tr>`;
+  }
+  tableHtml+=`</tbody></table>`;
+  if(resBox)resBox.innerHTML=tableHtml;
+
+  for(let i=0;i<allToTest.length;i++){
+    if(testTrAbort.signal.aborted)break;
+    const item=allToTest[i];
+    const rowEl=$(`testTrRow-${i}`);
+    const resTd=rowEl?.querySelector('.test-row-res');
+    const timeTd=rowEl?.querySelector('.test-row-time');
+    if(resTd)resTd.textContent=L('waitingFor')+'…';
+
+    const t0=performance.now();
+    try{
+      let outText='';
+      if(item.type==='offline'){
+        const m=item.model;
+        if(!trCovers(m,src,tgt)){
+          throw new Error('language pair not supported');
+        }
+        const codes=m.kind==='opus'?null:trCodes(m.kind);
+        const res=await rpc('translate',{
+          items:[txt],
+          src:codes?.[src],
+          tgt:codes?.[tgt],
+          spec:{repo:m.repo,kind:m.kind}
+        });
+        outText=Array.isArray(res)?res[0]:res;
+      }else{
+        const res=await eAI('ollama',[txt],{src,tgt,model:item.model,signal:testTrAbort.signal});
+        outText=Array.isArray(res)?res[0]:(res?.out?.[0]||res);
+      }
+      const dur=((performance.now()-t0)/1000).toFixed(2);
+      if(resTd){resTd.textContent=outText;resTd.style.color=''}
+      if(timeTd)timeTd.textContent=`${dur}s`;
+    }catch(err){
+      const dur=((performance.now()-t0)/1000).toFixed(2);
+      if(resTd){resTd.textContent=`⚠️ ${err.message}`;resTd.style.color='var(--warn)'}
+      if(timeTd)timeTd.textContent=`${dur}s`;
+    }
+  }
+
+  if(runBtn)runBtn.hidden=false;
+  if(stopBtn)stopBtn.hidden=true;
+  if(stBox)stBox.textContent=testTrAbort.signal.aborted?L('testStopped'):L('testDone');
+  testTrAbort=null;
+}
+
+let testAsrAbort=null;
+async function runTestSpeechModels(){
+  const dlWhisper=MC.models.filter(m=>m.kind==='whisper'&&mcReady(m));
+  const resBox=$('testAsrResults'),runBtn=$('testAsrRun'),stopBtn=$('testAsrStop'),promptEl=$('testAsrPrompt'),stBox=$('testAsrStatus');
+
+  if(!dlWhisper.length){
+    if(resBox)resBox.innerHTML=`<p class="hint">${esc(L('testNoAsrModels'))}</p>`;
+    return;
+  }
+
+  testAsrAbort=new AbortController();
+  if(runBtn)runBtn.hidden=true;
+  if(stopBtn)stopBtn.hidden=false;
+  if(promptEl){promptEl.hidden=false;promptEl.textContent=L('testRecPrompt')}
+  if(stBox){stBox.hidden=false;stBox.textContent=L('vStatusListening')}
+
+  let blob=null;
+  try{
+    blob=await record(runBtn,()=>{});
+  }catch(e){
+    if(promptEl)promptEl.hidden=true;
+    if(runBtn)runBtn.hidden=false;
+    if(stopBtn)stopBtn.hidden=true;
+    if(stBox)stBox.textContent=e.message;
+    return;
+  }
+  if(promptEl)promptEl.hidden=true;
+
+  if(testAsrAbort.signal.aborted||!blob){
+    if(runBtn)runBtn.hidden=false;
+    if(stopBtn)stopBtn.hidden=true;
+    if(stBox)stBox.textContent=L('testStopped');
+    return;
+  }
+
+  let tableHtml=`<table class="test-results-table">
+    <thead>
+      <tr>
+        <th>${esc(L('testColModel'))}</th>
+        <th>${esc(L('testColResult'))}</th>
+        <th>${esc(L('testColTime'))}</th>
+      </tr>
+    </thead>
+    <tbody>`;
+  for(let i=0;i<dlWhisper.length;i++){
+    tableHtml+=`<tr id="testAsrRow-${i}"><td class="test-row-name"><strong>${esc(mcText(dlWhisper[i].name))}</strong></td><td class="test-row-res" style="color:var(--muted)">…</td><td class="test-row-time">—</td></tr>`;
+  }
+  tableHtml+=`</tbody></table>`;
+  if(resBox)resBox.innerHTML=tableHtml;
+  if(stBox)stBox.textContent=L('testRunning');
+
+  const audio=await to16k(blob);
+  const src=$('src')?.value||'auto';
+  const lang=(src==='auto'?null:src.split('-')[0]);
+
+  for(let i=0;i<dlWhisper.length;i++){
+    if(testAsrAbort.signal.aborted)break;
+    const m=dlWhisper[i];
+    const rowEl=$(`testAsrRow-${i}`);
+    const resTd=rowEl?.querySelector('.test-row-res');
+    const timeTd=rowEl?.querySelector('.test-row-time');
+    if(resTd)resTd.textContent=L('waitingFor')+'…';
+
+    const t0=performance.now();
+    try{
+      const res=await rpc('asr',{audio,lang,model:m.key,langs:[$('src').value,$('tgt').value]});
+      const tx=typeof res==='object'?res.text:res;
+      const dur=((performance.now()-t0)/1000).toFixed(2);
+      if(resTd){resTd.textContent=(tx||'').trim()||'—';resTd.style.color=''}
+      if(timeTd)timeTd.textContent=`${dur}s`;
+    }catch(err){
+      const dur=((performance.now()-t0)/1000).toFixed(2);
+      if(resTd){resTd.textContent=`⚠️ ${err.message}`;resTd.style.color='var(--warn)'}
+      if(timeTd)timeTd.textContent=`${dur}s`;
+    }
+  }
+
+  if(runBtn)runBtn.hidden=false;
+  if(stopBtn)stopBtn.hidden=true;
+  if(stBox)stBox.textContent=testAsrAbort.signal.aborted?L('testStopped'):L('testDone');
+  testAsrAbort=null;
+}
+
+if($('testTrRun'))$('testTrRun').onclick=runTestTranslationModels;
+if($('testTrStop'))$('testTrStop').onclick=()=>{
+  if(testTrAbort)testTrAbort.abort();
+  if($('testTrStop'))$('testTrStop').hidden=true;
+  if($('testTrRun'))$('testTrRun').hidden=false;
+  if($('testTrStatus'))$('testTrStatus').textContent=L('testStopped');
+};
+if($('testAsrRun'))$('testAsrRun').onclick=runTestSpeechModels;
+if($('testAsrStop'))$('testAsrStop').onclick=()=>{
+  if(testAsrAbort)testAsrAbort.abort();
+  if(rec)try{rec.stop()}catch{}
+  if($('testAsrStop'))$('testAsrStop').hidden=true;
+  if($('testAsrRun'))$('testAsrRun').hidden=false;
+  if($('testAsrPrompt'))$('testAsrPrompt').hidden=true;
+  if($('testAsrStatus'))$('testAsrStatus').textContent=L('testStopped');
+};
 
 /* voice + offline settings */
 function fillVoices(){
@@ -5527,6 +5853,8 @@ async function checkWebGpu(){
 }
 async function offStatus(){
   $('offBtn').classList.toggle('on',isOff());$('offBtn').querySelector('.dot').classList.toggle('ok',isOff());
+  if(store.get('nllb')&&(!cfg.trModel||cfg.trModel==='auto')){cfg.trModel='tr-nllb-600';saveCfg()}
+  if(store.get('whisper')&&(!cfg.whisper||cfg.whisper==='auto')){cfg.whisper=store.get('whisper');saveCfg()}
   mcRender();
   await Promise.all([mcScan(),checkWebGpu()]);       // what is stored, and whether WebGPU exists (it changes the download size)
   mcRender();fillEngines();
