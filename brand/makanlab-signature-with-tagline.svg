@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1800 820" role="img" aria-labelledby="title desc">
+  <title id="title">MAKANLAB signature with tagline</title>
+  <desc id="desc">The supplied MAKANLAB logo composition with the BUILD USEFUL THINGS tagline.</desc>
+  <defs>
+    <linearGradient id="brand" x1="200" y1="64" x2="1600" y2="650" gradientUnits="userSpaceOnUse">
+      <stop offset="0" stop-color="#79F8C8"/>
+      <stop offset="0.46" stop-color="#08E7E5"/>
+      <stop offset="0.72" stop-color="#08A8FF"/>
+      <stop offset="1" stop-color="#2869F5"/>
+    </linearGradient>
+  </defs>
+  <g transform="translate(644 -30) scale(.5)" fill="url(#brand)">
+    <path d="M112 138 394 299c58 33 98 77 118 133 20-56 60-100 118-133l282-161v106L650 394c-56 32-92 77-113 132l-25 66-25-66c-21-55-57-100-113-132L112 244V138Z"/>
+    <path d="m112 278 258 147v251c0 60 28 105 86 140-94-29-140-73-140-139V457L112 341v-63Z"/>
+    <path d="m172 386 108 64v232c0 48 28 83 83 106-84-17-126-51-126-103V475l-65-38v-51Z"/>
+    <path d="M237 475h43v207c0 38 12 66 37 86H144l93-69V475Z"/>
+    <path d="m912 278-258 147v251c0 60-28 105-86 140 94-29 140-73 140-139V457l204-116v-63Z"/>
+    <path d="m852 386-108 64v232c0 48-28 83-83 106 84-17 126-51 126-103V475l65-38v-51Z"/>
+    <path d="M787 475h-43v207c0 38-12 66-37 86h173l-93-69V475Z"/>
+  </g>
+  <text x="900" y="650" text-anchor="middle" fill="url(#brand)" font-family="Georgia, 'Times New Roman', serif" font-size="246" font-weight="700" letter-spacing="20">MAKANLAB</text>
+  <text x="900" y="760" text-anchor="middle" fill="#D8DDE5" font-family="Arial, sans-serif" font-size="43" font-weight="300" letter-spacing="29">BUILD USEFUL THINGS.</text>
+</svg>

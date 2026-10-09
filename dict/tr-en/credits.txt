@@ -1,0 +1,56 @@
+DICTIONARY DATA CREDITS AND LICENSE
+
+The dictionary content in this directory is derived from Wiktionary data,
+extracted with Wiktextract and distributed by Kaikki.org.
+
+Wiktionary's original entry text is dual-licensed under:
+- Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)
+- GNU Free Documentation License (GFDL)
+
+This build is intended to satisfy the CC BY-SA route. The underlying
+Wiktionary/GFDL notice is retained here as well.
+
+CC BY-SA 4.0:
+https://creativecommons.org/licenses/by-sa/4.0/
+
+Wiktionary copyright/licensing:
+https://en.wiktionary.org/wiki/Wiktionary:Copyrights
+
+Kaikki:
+https://kaikki.org/dictionary/
+
+Wiktextract:
+https://github.com/tatuylonen/wiktextract
+
+Kaikki asks academic users to cite:
+Tatu Ylonen, "Wiktextract: Wiktionary as Machine-Readable Structured Data",
+Proceedings of the 13th Conference on Language Resources and Evaluation
+(LREC), 2022.
+
+Source extraction date(s):
+{
+  "tr": "2026-10-03"
+}
+
+FREQUENCY RANKING
+
+The order in which entries are selected is ranked with the Python `wordfreq`
+package. The frequency values themselves are NOT stored in the dictionary
+pack, but the ranking/selection was produced using wordfreq.
+
+Required attribution:
+Robyn Speer — wordfreq
+
+wordfreq code: Apache License 2.0
+wordfreq data: Creative Commons Attribution-ShareAlike 4.0
+wordfreq licensing/NOTICE:
+https://github.com/rspeer/wordfreq/blob/master/NOTICE.md
+
+This pack is a transformed selection of source dictionary data. It does not
+include the original Kaikki dump.
+
+If you redistribute these packs, keep this credits file and the applicable
+license notices with them. Attribution should not imply endorsement.
+
+The source data can contain material with additional source-specific rights;
+users of the pack remain responsible for respecting those rights.

@@ -2,6 +2,46 @@
   "format": "makan-dictionary-list",
   "packs": [
     {
+      "id": "ar-en",
+      "from": "ar",
+      "to": "en",
+      "entries": 23511,
+      "phrases": 216,
+      "bytes": 3018681,
+      "dir": "ar-en/pack-100000",
+      "credits": "ar-en/credits.txt"
+    },
+    {
+      "id": "de-en",
+      "from": "de",
+      "to": "en",
+      "entries": 90501,
+      "phrases": 1649,
+      "bytes": 6857776,
+      "dir": "de-en/pack-100000",
+      "credits": "de-en/credits.txt"
+    },
+    {
+      "id": "en-ar",
+      "from": "en",
+      "to": "ar",
+      "entries": 23323,
+      "phrases": 805,
+      "bytes": 1924944,
+      "dir": "en-ar/pack-100000",
+      "credits": "en-ar/credits.txt"
+    },
+    {
+      "id": "en-de",
+      "from": "en",
+      "to": "de",
+      "entries": 69570,
+      "phrases": 3123,
+      "bytes": 5417915,
+      "dir": "en-de/pack-100000",
+      "credits": "en-de/credits.txt"
+    },
+    {
       "id": "en-fa",
       "from": "en",
       "to": "fa",
@@ -12,6 +52,26 @@
       "credits": "en-fa/credits.txt"
     },
     {
+      "id": "en-fr",
+      "from": "en",
+      "to": "fr",
+      "entries": 73308,
+      "phrases": 3592,
+      "bytes": 5368778,
+      "dir": "en-fr/pack-100000",
+      "credits": "en-fr/credits.txt"
+    },
+    {
+      "id": "en-tr",
+      "from": "en",
+      "to": "tr",
+      "entries": 27557,
+      "phrases": 1043,
+      "bytes": 2153643,
+      "dir": "en-tr/pack-100000",
+      "credits": "en-tr/credits.txt"
+    },
+    {
       "id": "fa-en",
       "from": "fa",
       "to": "en",
@@ -20,6 +80,26 @@
       "bytes": 849812,
       "dir": "fa-en/pack-30000",
       "credits": "fa-en/credits.txt"
+    },
+    {
+      "id": "fr-en",
+      "from": "fr",
+      "to": "en",
+      "entries": 94986,
+      "phrases": 1245,
+      "bytes": 4320352,
+      "dir": "fr-en/pack-100000",
+      "credits": "fr-en/credits.txt"
+    },
+    {
+      "id": "tr-en",
+      "from": "tr",
+      "to": "en",
+      "entries": 26227,
+      "phrases": 541,
+      "bytes": 2023356,
+      "dir": "tr-en/pack-100000",
+      "credits": "tr-en/credits.txt"
     }
   ]
 }
