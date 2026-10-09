@@ -261,6 +261,108 @@ test.describe('Web app: Translation Memory in Text tab (Item 2)', () => {
     expect(count).toBe(0);
   });
 
+  test('a stubbed HTTP 429 rate limit is not saved (Item 2)', async ({ app }) => {
+    const { page, stub } = app;
+
+    stub.failHost('clients5.google.com', 429);
+    stub.failHost('translate.googleapis.com', 429);
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Rate limited 429 test text');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tGo')).toBeEnabled({ timeout: 15_000 });
+
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Rate limited 429 test text',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: ''
+      });
+    });
+
+    expect(entry).toBeNull();
+    const count = await page.evaluate(async () => await window.TranslationMemory.count());
+    expect(count).toBe(0);
+  });
+
+  test('a stubbed HTTP 503 service unavailable is not saved (Item 2)', async ({ app }) => {
+    const { page, stub } = app;
+
+    stub.failHost('clients5.google.com', 503);
+    stub.failHost('translate.googleapis.com', 503);
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Service unavailable 503 test text');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tGo')).toBeEnabled({ timeout: 15_000 });
+
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Service unavailable 503 test text',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: ''
+      });
+    });
+
+    expect(entry).toBeNull();
+    const count = await page.evaluate(async () => await window.TranslationMemory.count());
+    expect(count).toBe(0);
+  });
+
+  test('a timed out or stopped request is not saved (Item 2)', async ({ app }) => {
+    const { page, stub } = app;
+
+    stub.delayHost('clients5.google.com', 10_000);
+    stub.delayHost('translate.googleapis.com', 10_000);
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Timed out translation test text');
+    await mouseClick(page, page.locator('#tGo'));
+
+    await expect(page.locator('#tStop')).toBeVisible();
+    await mouseClick(page, page.locator('#tStop'));
+
+    await expect(page.locator('#tGo')).toBeEnabled({ timeout: 15_000 });
+
+    const entry = await page.evaluate(async () => {
+      return await window.TranslationMemory.get({
+        text: 'Timed out translation test text',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast',
+        tone: '',
+        subject: ''
+      });
+    });
+
+    expect(entry).toBeNull();
+    const count = await page.evaluate(async () => await window.TranslationMemory.count());
+    expect(count).toBe(0);
+  });
+
+  test('saveToMemory filters out 429, 503, timeout and error results directly (Item 2)', async ({ app }) => {
+    const { page } = app;
+    const count = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.clear();
+      await saveToMemory({ text: 'sample', translatedText: 'HTTP 429 Too Many Requests', modeClass: 'fast' });
+      await saveToMemory({ text: 'sample', translatedText: '503 Service Unavailable', modeClass: 'fast' });
+      await saveToMemory({ text: 'sample', translatedText: 'Translation timed out', modeClass: 'fast' });
+      await saveToMemory({ text: 'sample', translatedText: 'Valid text', hasError: true, modeClass: 'fast' });
+      await saveToMemory({ text: 'sample', translatedText: 'Rate limit exceeded', modeClass: 'fast' });
+      return await tm.count();
+    });
+    expect(count).toBe(0);
+  });
+
   test('an IndexedDB failure does not break translation', async ({ app }) => {
     const { page } = app;
 
