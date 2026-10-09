@@ -417,12 +417,32 @@ test.describe('Web app: Translation Memory in Text tab (Item 2)', () => {
       await tm.clear();
       await saveToMemory({ text: 'sample', translatedText: 'HTTP 429 Too Many Requests', modeClass: 'fast' });
       await saveToMemory({ text: 'sample', translatedText: '503 Service Unavailable', modeClass: 'fast' });
-      await saveToMemory({ text: 'sample', translatedText: 'Translation timed out', modeClass: 'fast' });
+      await saveToMemory({ text: 'sample', translatedText: 'timeout: request timed out', modeClass: 'fast' });
       await saveToMemory({ text: 'sample', translatedText: 'Valid text', hasError: true, modeClass: 'fast' });
       await saveToMemory({ text: 'sample', translatedText: 'Rate limit exceeded', modeClass: 'fast' });
       return await tm.count();
     });
     expect(count).toBe(0);
+  });
+
+  test('a normal translation containing words like error, timeout, 429 or 503 is saved (Item 2)', async ({ app }) => {
+    const { page } = app;
+    const count = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.clear();
+      // Normal translation that contains error/timeout/code words in normal context must be saved
+      await saveToMemory({
+        text: 'The server timeout was caused by error 503 on flight 429',
+        translatedText: 'Handling a timeout and error in room 503 on flight 429',
+        lines: ['The server timeout was caused by error 503 on flight 429'],
+        out: ['Handling a timeout and error in room 503 on flight 429'],
+        modeClass: 'fast',
+        src: 'en',
+        tgt: 'en'
+      });
+      return await tm.count();
+    });
+    expect(count).toBe(1);
   });
 
   test('an IndexedDB failure does not break translation', async ({ app }) => {

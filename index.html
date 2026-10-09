@@ -3090,11 +3090,11 @@ async function saveToMemory(params){
     if(!src||!tr)return;
     if(params.hasError)return;
     // Never save errors, empty results, partial results, rate-limit (429/503) or timeout results
-    if(/^(error|failed|http\s*\d+|rate limit|quota|timeout|unavailable)/i.test(tr))return;
-    if(/429|503|resource_exhausted/i.test(tr))return;
+    const errRe = /^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
+    if(errRe.test(tr))return;
     if(Array.isArray(params.lines)&&Array.isArray(params.out)){
       if(params.lines.length!==params.out.length)return;
-      if(params.out.some(s=>typeof s!=='string'||!s.trim()||/^(error|failed|http\s*\d+|rate limit|quota|timeout|unavailable)/i.test(s.trim())))return;
+      if(params.out.some(s=>typeof s!=='string'||!s.trim()||errRe.test(s.trim())))return;
     }
     await TranslationMemory.put({
       sourceText:params.text,
