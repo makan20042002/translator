@@ -1,6 +1,6 @@
 'use strict';
 // ITEM 1: Translation Memory store backed by IndexedDB.
-const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { test, expect, mouseClick, onlyEngines, VALID_KEY } = require('../support/fixtures');
 
 test.describe('Web app: Translation Memory store (Item 1)', () => {
   test.beforeEach(async ({ app }) => {
@@ -279,6 +279,109 @@ test.describe('Web app: Translation Memory in Text tab (Item 2)', () => {
     // Translation should still work normally with no error shown
     await expect(page.locator('#tOut')).toHaveValue('[fa] Translate despite IDB error');
     await expect(page.locator('#tMeta')).toContainText('Google Translate (web)');
+  });
+});
+
+test.describe('Web app: Translation Memory in Both mode (Item 1)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }), tMode: 'both' } } });
+
+  test.beforeEach(async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(async () => {
+      if (window.TranslationMemory) await window.TranslationMemory.clear();
+    });
+  });
+
+  test('Both mode, Smart fails: the smart key has no entry, and a later Smart-mode request for the same text calls the engine', async ({ app }) => {
+    const { page, stub } = app;
+    // Make Gemini (Smart) fail with HTTP 500, while Google (Fast) succeeds
+    stub.failHost('generativelanguage.googleapis.com', 500);
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Dual test with Smart failure');
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Wait for Fast result to be displayed and failure notice to appear
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Dual test with Smart failure');
+    await expect(page.locator('#tGo')).toBeEnabled({ timeout: 15_000 });
+
+    // Verify: fast key holds the Fast result, but smart key has no entry
+    const entries = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      const fastEntry = await tm.get({
+        text: 'Dual test with Smart failure',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+      const smartEntry = await tm.get({
+        text: 'Dual test with Smart failure',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'smart'
+      });
+      return { fastEntry, smartEntry };
+    });
+
+    expect(entries.fastEntry).not.toBeNull();
+    expect(entries.fastEntry.translatedText).toBe('[fa] Dual test with Smart failure');
+    expect(entries.smartEntry).toBeNull();
+
+    // Now restore Gemini, switch to Smart mode, and request the exact same text
+    stub.resetModes();
+    stub.clearLog();
+
+    await page.evaluate(() => {
+      $('tMode').value = 'smart';
+      store.set('tMode', 'smart');
+    });
+    await page.locator('#tOut').fill('');
+    await page.locator('#tMeta').evaluate(el => el.textContent = '');
+
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Because smart key had no entry, it must call the engine
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Dual test with Smart failure');
+    await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+    const geminiCalls = stub.calls('generativelanguage.googleapis.com').filter(c => c.method !== 'GET' && !c.body.includes('IDIOM_DETECT'));
+    expect(geminiCalls.length).toBeGreaterThan(0);
+  });
+
+  test('Both mode, Smart succeeds: the fast key holds the Fast result and the smart key holds the Smart result', async ({ app }) => {
+    const { page, stub } = app;
+
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Dual test with both succeeding');
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Wait until Gemini completes and updates output
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Dual test with both succeeding');
+    await expect(page.locator('#tMeta')).toContainText('Google Gemini');
+
+    const entries = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      const fastEntry = await tm.get({
+        text: 'Dual test with both succeeding',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+      const smartEntry = await tm.get({
+        text: 'Dual test with both succeeding',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'smart'
+      });
+      return { fastEntry, smartEntry };
+    });
+
+    expect(entries.fastEntry).not.toBeNull();
+    expect(entries.fastEntry.translatedText).toBe('[fa] Dual test with both succeeding');
+    expect(entries.fastEntry.modeClass).toBe('fast');
+
+    expect(entries.smartEntry).not.toBeNull();
+    expect(entries.smartEntry.translatedText).toBe('[fa] Dual test with both succeeding');
+    expect(entries.smartEntry.modeClass).toBe('smart');
   });
 });
 

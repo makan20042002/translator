@@ -3209,6 +3209,7 @@ async function doText(){
           $('tOut').value=fastRes;
           $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)}`;
         }
+        saveToMemory({text,translatedText:fastRes,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
         return r;
       }).catch(err=>{
         fastDone=true;fastErr=err;
