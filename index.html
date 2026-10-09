@@ -1314,7 +1314,13 @@ Object.assign(I18N.en,{
  testTrBtn:'Test translation models',testAsrBtn:'Test speech model',testSentencePh:'Sentence to translate…',
  testRunning:'Running…',testStopped:'Stopped',testDone:'Finished',
  testNoTrModels:'No offline translation models downloaded.',testNoAsrModels:'No offline speech models downloaded.',
- testColModel:'Model',testColResult:'Result',testColTime:'Time (s)',testRecPrompt:'Recording short clip… speak now'
+ testColModel:'Model',testColResult:'Result',testColTime:'Time (s)',testRecPrompt:'Recording short clip… speak now',
+ ollamaMgr:'Ollama models',ollamaInstalled:'Installed models',ollamaChooseModel:'Choose model for translation',
+ ollamaRecommended:'Recommended',ollamaCustomPh:'Model name (e.g. translategemma:4b)',
+ ollamaPulling:'Downloading',ollamaPullDone:'Download finished',ollamaPullCancel:'Cancel',ollamaPullCancelled:'Download cancelled',
+ ollamaUnreachableTitle:'Ollama is not reachable',
+ ollamaUnreachableMsg:'Start Ollama by running “ollama serve” in terminal or launch the Ollama app. If the browser blocks connection, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
+ ollamaAsrNotice:'Note: Speech models like Qwen3-ASR need a separate helper program that is not part of the app yet.'
 });
 Object.assign(I18N.fa,{
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
@@ -1332,7 +1338,13 @@ Object.assign(I18N.fa,{
  testTrBtn:'آزمایش مدل‌های ترجمه',testAsrBtn:'Test speech model',testSentencePh:'جمله‌ای برای ترجمه…',
  testRunning:'در حال اجرا…',testStopped:'متوقف شد',testDone:'پایان یافت',
  testNoTrModels:'هیچ مدل ترجمه‌ی آفلاینی دانلود نشده است.',testNoAsrModels:'هیچ مدل گفتار آفلاینی دانلود نشده است.',
- testColModel:'مدل',testColResult:'نتیجه',testColTime:'زمان (ثانیه)',testRecPrompt:'در حال ضبط صدای کوتاه… اکنون صحبت کنید'
+ testColModel:'مدل',testColResult:'نتیجه',testColTime:'زمان (ثانیه)',testRecPrompt:'در حال ضبط صدای کوتاه… اکنون صحبت کنید',
+ ollamaMgr:'مدل‌های Ollama',ollamaInstalled:'مدل‌های نصب‌شده',ollamaChooseModel:'انتخاب مدل برای ترجمه',
+ ollamaRecommended:'پیشنهادی',ollamaCustomPh:'نام مدل (مانند translategemma:4b)',
+ ollamaPulling:'در حال دانلود',ollamaPullDone:'دانلود تمام شد',ollamaPullCancel:'لغو',ollamaPullCancelled:'دانلود لغو شد',
+ ollamaUnreachableTitle:'Ollama در دسترس نیست',
+ ollamaUnreachableMsg:'برای اجرا در ترمینال دستور «ollama serve» را بزنید یا برنامه Ollama را باز کنید. اگر مرورگر مانع شد، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
+ ollamaAsrNotice:'توجه: مدل‌های صوتی مانند Qwen3-ASR به یک برنامه کمکی جداگانه نیاز دارند که هنوز بخشی از این برنامه نیست.'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -1455,9 +1467,11 @@ async function checkEngineConn(id){
   }
   if(id==='ollama'){
     const base=(e.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    const host=(e.base||'http://localhost:11434').replace(/\/+$/,'').replace(/\/v1$/,'');
     try{
-      const r=await fetch(base+'/models');
-      if(r.ok)return {code:'works',text:L('connWorks')};
+      let r=await fetch(host+'/api/tags').catch(()=>null);
+      if(!r||!r.ok) r=await fetch(base+'/models').catch(()=>null);
+      if(r&&r.ok)return {code:'works',text:L('connWorks')};
       if(isLocalAddress(base))return {code:'localDown',text:L('connLocalDown')};
       return {code:'netBlocked',text:L('connNetBlocked')};
     }catch(err){
@@ -1938,6 +1952,7 @@ async function listModels(id){
   if(id==='gemini'){const j=await fx('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':e.key}});
     return j.models.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/',''))}
   if(id==='claude'){const j=await fx('https://api.anthropic.com/v1/models',{headers:{'x-api-key':e.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});return j.data.map(m=>m.id)}
+  if(id==='ollama')return await fetchOllamaModels();
   const h={};if(e.key)h.Authorization='Bearer '+e.key;
   const j=await fx(e.base.replace(/\/+$/,'')+'/models',{headers:h});return (j.data||[]).map(m=>m.id);
 }
@@ -5375,6 +5390,198 @@ $('hList').addEventListener('click',e=>{const it=e.target.closest('.item');if(!i
   $('tIn').value=x.i;$('tOut').value=x.o;$('src').value=x.src;$('tgt').value=x.tgt;$('tIn').dispatchEvent(new Event('input'));document.querySelector('[data-tab=text]').click()});
 $('hClear').onclick=()=>{store.set('hist',[]);renderHist()};
 
+/* ---------- OLLAMA MODEL MANAGER ---------- */
+function getOllamaHost(){
+  const base=(cfg.eng?.ollama?.base||'http://localhost:11434').trim();
+  return base.replace(/\/+$/,'').replace(/\/v1$/,'');
+}
+async function fetchOllamaModels(){
+  const host=getOllamaHost();
+  try{
+    const res=await fetch(host+'/api/tags');
+    if(res.ok){
+      const data=await res.json();
+      return (data.models||[]).map(m=>m.name||m.model).filter(Boolean);
+    }
+  }catch(err){}
+  try{
+    const v1base=(cfg.eng?.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    const v1res=await fetch(v1base+'/models');
+    if(v1res.ok){
+      const data=await v1res.json();
+      return (data.data||[]).map(m=>m.id).filter(Boolean);
+    }
+  }catch(err){}
+  throw new Error('Ollama unreachable');
+}
+let ollamaPullAbort=null;
+async function pullOllamaModel(name){
+  if(!name)return;
+  name=name.trim();
+  if(!name)return;
+  if(ollamaPullAbort){
+    ollamaPullAbort.abort();
+    ollamaPullAbort=null;
+  }
+  ollamaPullAbort=new AbortController();
+  const box=$('ollamaPullProgress');
+  const fill=$('ollamaPullProgressFill');
+  const st=$('ollamaPullStatusText');
+  const errBox=$('ollamaPullError');
+  const cancelBtn=$('ollamaPullCancel');
+  if(box)box.hidden=false;
+  if(fill)fill.style.width='0%';
+  if(st)st.textContent=`${L('ollamaPulling')} ${name}…`;
+  if(errBox){errBox.hidden=true;errBox.textContent='';}
+  if(cancelBtn)cancelBtn.disabled=false;
+
+  try{
+    const host=getOllamaHost();
+    const res=await fetch(host+'/api/pull',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({name,stream:true}),
+      signal:ollamaPullAbort.signal
+    });
+    if(!res.ok){
+      const errTxt=await res.text().catch(()=>'');
+      let msg=`HTTP ${res.status}`;
+      try{
+        const j=JSON.parse(errTxt);
+        if(j.error)msg=j.error;
+      }catch{}
+      throw new Error(msg);
+    }
+    const handleLine=(line)=>{
+      if(!line.trim())return;
+      try{
+        const d=JSON.parse(line);
+        if(d.error)throw new Error(d.error);
+        if(d.total&&d.completed){
+          const pct=Math.min(100,Math.round((d.completed/d.total)*100));
+          if(fill)fill.style.width=`${pct}%`;
+          if(st)st.textContent=`${d.status||L('ollamaPulling')} (${pct}%)`;
+        }else if(d.status){
+          if(st)st.textContent=d.status;
+        }
+      }catch(e){
+        if(e.message&&!e.message.includes('JSON'))throw e;
+      }
+    };
+
+    if(res.body&&typeof res.body.getReader==='function'){
+      const reader=res.body.getReader();
+      const decoder=new TextDecoder();
+      let buf='';
+      while(true){
+        const {done,value}=await reader.read();
+        if(done)break;
+        buf+=decoder.decode(value,{stream:true});
+        const lines=buf.split('\n');
+        buf=lines.pop()||'';
+        for(const line of lines)handleLine(line);
+      }
+      if(buf)handleLine(buf);
+    }else{
+      const txt=await res.text();
+      for(const line of txt.split('\n'))handleLine(line);
+    }
+
+    if(fill)fill.style.width='100%';
+    if(st)st.textContent=L('ollamaPullDone');
+    toast(`${name} ${L('dlDone')||'ready'}`,'ok');
+    cfg.eng.ollama.model=name;
+    saveCfg();
+    await updateOllamaManager();
+    setTimeout(()=>{if(box&&!ollamaPullAbort)box.hidden=true},1500);
+  }catch(err){
+    if(err.name==='AbortError'||ollamaPullAbort?.signal?.aborted){
+      if(st)st.textContent=L('ollamaPullCancelled');
+      toast(L('ollamaPullCancelled'),'warn');
+      setTimeout(()=>{if(box)box.hidden=true},1500);
+    }else{
+      if(errBox){errBox.textContent=err.message;errBox.hidden=false;}
+      if(st)st.textContent=L('failed');
+      toast(`${ENG.ollama.name}: ${err.message}`,'err');
+    }
+  }finally{
+    ollamaPullAbort=null;
+  }
+}
+function renderOllamaManager(e){
+  return `<div class="ollama-mgr" id="ollamaMgr" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
+    <div id="ollamaUnreachableNotice" class="hint warn" style="color:var(--warn,#d97706);margin:6px 0 10px;padding:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:6px" hidden>
+      <div style="font-weight:600;margin-bottom:4px">${esc(L('ollamaUnreachableTitle'))}</div>
+      <div>${esc(L('ollamaUnreachableMsg'))}</div>
+    </div>
+    <div class="row" style="gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
+      <label for="ollamaModelSel" style="font-weight:600;font-size:13px">${esc(L('ollamaInstalled'))}:</label>
+      <select id="ollamaModelSel" style="flex:1;min-width:180px">
+        <option value="">${esc(e.model||L('ollamaChooseModel'))}</option>
+      </select>
+    </div>
+    <div class="ollama-rec-wrap" style="margin:8px 0">
+      <div style="font-size:12px;color:var(--muted);margin-bottom:4px">${esc(L('ollamaRecommended'))}:</div>
+      <div class="row" style="gap:6px;flex-wrap:wrap">
+        <div class="ollama-rec-item" style="display:inline-flex;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-size:12px">
+          <code>translategemma:4b</code>
+          <button class="btn ghost" type="button" data-pull="translategemma:4b" style="padding:2px 8px;font-size:11px">${esc(L('download'))}</button>
+        </div>
+        <div class="ollama-rec-item" style="display:inline-flex;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-size:12px">
+          <code>translategemma:12b</code>
+          <button class="btn ghost" type="button" data-pull="translategemma:12b" style="padding:2px 8px;font-size:11px">${esc(L('download'))}</button>
+        </div>
+        <div class="ollama-rec-item" style="display:inline-flex;align-items:center;gap:6px;background:var(--card-bg);border:1px solid var(--border);padding:3px 8px;border-radius:4px;font-size:12px">
+          <code>qwen3:8b</code>
+          <button class="btn ghost" type="button" data-pull="qwen3:8b" style="padding:2px 8px;font-size:11px">${esc(L('download'))}</button>
+        </div>
+      </div>
+    </div>
+    <div class="row" style="gap:8px;margin-top:8px;align-items:center">
+      <input type="text" id="ollamaCustomModel" placeholder="${esc(L('ollamaCustomPh'))}" style="flex:1;min-width:160px;font-size:12px" spellcheck="false">
+      <button class="btn" id="ollamaCustomPullBtn" type="button" style="font-size:12px">${esc(L('download'))}</button>
+    </div>
+    <div id="ollamaPullProgress" style="margin-top:10px;padding:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:6px" hidden>
+      <div class="row" style="justify-content:space-between;align-items:center;margin-bottom:6px">
+        <span id="ollamaPullStatusText" style="font-size:12px;font-weight:600"></span>
+        <button class="btn danger" id="ollamaPullCancel" type="button" style="padding:2px 8px;font-size:11px">${esc(L('ollamaPullCancel'))}</button>
+      </div>
+      <div style="height:6px;background:var(--border);border-radius:3px;overflow:hidden">
+        <div id="ollamaPullProgressFill" style="height:100%;width:0%;background:var(--accent);transition:width 0.2s"></div>
+      </div>
+      <div id="ollamaPullError" style="color:var(--err);margin-top:6px;font-size:12px" hidden></div>
+    </div>
+    <p class="hint" id="ollamaAsrNotice" style="margin:8px 0 0;font-size:11.5px;color:var(--muted)">${esc(L('ollamaAsrNotice'))}</p>
+  </div>`;
+}
+async function updateOllamaManager(){
+  const mgr=$('ollamaMgr');
+  if(!mgr)return;
+  const sel=$('ollamaModelSel');
+  const notice=$('ollamaUnreachableNotice');
+  try{
+    const models=await fetchOllamaModels();
+    if(notice)notice.hidden=true;
+    if(sel){
+      const current=cfg.eng?.ollama?.model||'';
+      let opts=`<option value="">— ${esc(L('ollamaChooseModel'))} —</option>`;
+      models.forEach(m=>{
+        const isSel=(m===current)?' selected':'';
+        opts+=`<option value="${esc(m)}"${isSel}>${esc(m)}</option>`;
+      });
+      if(current&&!models.includes(current)){
+        opts+=`<option value="${esc(current)}" selected>${esc(current)}</option>`;
+      }
+      sel.innerHTML=opts;
+    }
+  }catch(err){
+    if(notice)notice.hidden=false;
+    if(sel){
+      sel.innerHTML=`<option value="" disabled selected>${esc(L('ollamaUnreachableTitle'))}</option>`;
+    }
+  }
+}
+
 /* ---------- SETTINGS ---------- */
 function renderEngines(){
   $('engList').innerHTML=cfg.order.map((id,i)=>{const d=ENG[id],e=cfg.eng[id],w=why(id);
@@ -5393,14 +5600,19 @@ function renderEngines(){
         ${id==='groq'&&e.key&&!e.key.startsWith('gsk_')?`<div class="warn-groq" style="color:var(--warn);font-size:12px;margin-top:6px;grid-column:1/-1">${esc(L('groqKeyWarn'))}</div>`:''}
         <input type="text" data-f="model" value="${esc(e.model)}" placeholder="${esc(L('model'))}" list="models">
         <button class="btn" data-a="models">${esc(L('loadModels'))}</button><button class="btn" data-a="test">${esc(L('test'))}</button></div>`
-        :`<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn" data-a="test">${esc(L('test'))}</button></div>`}${d.hint?`<p class="hint" style="margin:8px 0 0">${esc(L(d.hint))}</p>`:''}</div>`}).join('');
+        :`<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn" data-a="test">${esc(L('test'))}</button></div>`}
+      ${id==='ollama'?renderOllamaManager(e):''}
+      ${d.hint?`<p class="hint" style="margin:8px 0 0">${esc(L(d.hint))}</p>`:''}</div>`}).join('');
   renderVoice();
   $('mmEmail').value=cfg.mmEmail||'';
+  updateOllamaManager();
 }
 $('engList').addEventListener('input',e=>{
+  if(e.target.id==='ollamaCustomModel')return;
   const f=e.target.dataset.f;if(!f||e.target.type==='checkbox')return;
   const engEl=e.target.closest('.eng');const id=engEl?.dataset.id;if(!id||!cfg.eng[id])return;
   cfg.eng[id][f]=e.target.value.trim();saveCfg();
+  if(id==='ollama'&&f==='model'){const sel=$('ollamaModelSel');if(sel&&[...sel.options].some(o=>o.value===e.target.value.trim()))sel.value=e.target.value.trim()}
   if(id==='groq'&&f==='key'){
     let w=engEl.querySelector('.warn-groq');
     const invalid=cfg.eng.groq.key&&!cfg.eng.groq.key.startsWith('gsk_');
@@ -5408,9 +5620,43 @@ $('engList').addEventListener('input',e=>{
     else if(!invalid&&w){w.remove()}
   }
 });
-$('engList').addEventListener('change',e=>{const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng').dataset.id;
+$('engList').addEventListener('change',e=>{
+  if(e.target.id==='ollamaModelSel'){
+    const chosen=e.target.value;
+    if(chosen){
+      cfg.eng.ollama.model=chosen;
+      saveCfg();
+      const inp=document.querySelector('#engList .eng[data-id="ollama"] input[data-f="model"]');
+      if(inp)inp.value=chosen;
+      toast(`${ENG.ollama.name}: ${chosen}`,'ok');
+    }
+    return;
+  }
+  const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng').dataset.id;
   cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();fillEngines();renderEngines()});
-$('engList').addEventListener('click',async e=>{const a=e.target.dataset.a;if(!a)return;const id=e.target.closest('.eng').dataset.id,i=cfg.order.indexOf(id);
+$('engList').addEventListener('keydown',e=>{
+  if(e.key==='Enter'&&e.target.id==='ollamaCustomModel'){
+    e.preventDefault();
+    const m=e.target.value?.trim();
+    if(m)pullOllamaModel(m);
+  }
+});
+$('engList').addEventListener('click',async e=>{
+  const pullTarget=e.target.closest('[data-pull]');
+  if(pullTarget){
+    pullOllamaModel(pullTarget.dataset.pull);
+    return;
+  }
+  if(e.target.id==='ollamaCustomPullBtn'||e.target.closest('#ollamaCustomPullBtn')){
+    const m=$('ollamaCustomModel')?.value?.trim();
+    if(m)pullOllamaModel(m);
+    return;
+  }
+  if(e.target.id==='ollamaPullCancel'||e.target.closest('#ollamaPullCancel')){
+    if(ollamaPullAbort){ollamaPullAbort.abort();ollamaPullAbort=null;}
+    return;
+  }
+  const a=e.target.dataset.a;if(!a)return;const id=e.target.closest('.eng').dataset.id,i=cfg.order.indexOf(id);
   if(a==='up'||a==='down'){const j=a==='up'?i-1:i+1;[cfg.order[i],cfg.order[j]]=[cfg.order[j],cfg.order[i]];saveCfg();renderEngines();fillEngines();return}
   e.target.disabled=true;
   try{
@@ -5754,15 +6000,7 @@ async function runTestTranslationModels(){
 
   let ollamaModels=[];
   try{
-    const oBase=(cfg.eng.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
-    const ctrl=new AbortController();
-    const to=setTimeout(()=>ctrl.abort(),2000);
-    const r=await fetch(oBase+'/models',{signal:ctrl.signal});
-    clearTimeout(to);
-    if(r.ok){
-      const j=await r.json();
-      ollamaModels=(j.data||[]).map(m=>m.id);
-    }
+    ollamaModels=await fetchOllamaModels();
   }catch{}
 
   const allToTest=[
