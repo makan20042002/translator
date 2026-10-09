@@ -4418,41 +4418,125 @@ $('dGo').onclick=async()=>{
     includeNotes:$('docNotes').checked
   };
 
+  const curEngine=$('engine')?.value||'auto';
+  const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
+  const docMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
+  const srcLang=$('src').value==='finglish'?'auto':$('src').value;
+  const tgtLang=$('tgt').value;
+  const tone=$('tone')?.value||'';
+  const subject=extraOpts.subject||$('tSubject')?.value?.trim()||'';
+
   const partialOut=new Array(doc.items.length);
   const partialNotes=new Array(doc.items.length);
+  const missIndices=[];
+  const missItems=[];
+  let memHits=0;
 
+  // 1. Look up memory before calling engine
+  if(cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
+    for(let i=0;i<doc.items.length;i++){
+      try{
+        const hit=await TranslationMemory.get({
+          text:doc.items[i],
+          src:srcLang,
+          tgt:tgtLang,
+          modeClass:docMemMode,
+          tone,
+          subject
+        });
+        if(hit&&hit.translatedText){
+          partialOut[i]=hit.translatedText;
+          partialNotes[i]=null;
+          memHits++;
+          continue;
+        }
+      }catch(_){}
+      missIndices.push(i);
+      missItems.push(doc.items[i]);
+    }
+  }else{
+    for(let i=0;i<doc.items.length;i++){
+      missIndices.push(i);
+      missItems.push(doc.items[i]);
+    }
+  }
+
+  // If all segments hit memory, no engine call needed
+  if(missItems.length===0){
+    busy([$('dGo')],$('dStop'),false);
+    dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+    dOutItems=partialOut.slice();
+    $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+    $('dSave').disabled=false;
+    $('dBar').style.width='100%';
+    const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
+    $('dEngineUsed').textContent=memMsg;
+    $('dProgText').textContent=`${L('done')} · ${memMsg}`;
+    toast(`${L('done')} · ${memMsg}`,'ok');
+    return;
+  }
+
+  // 2. Translate only missing segments
   try{
-    const r=await translateItems(doc.items,opts(Object.assign({
+    const r=await translateItems(missItems,opts(Object.assign({
       signal:dCtl.signal,
       onProgress:(pos,tot,engId)=>{
-        const pct=Math.round((pos/tot)*100);
+        const done=memHits+pos;
+        const total=doc.items.length;
+        const pct=Math.round((done/total)*100);
         $('dBar').style.width=pct+'%';
         const engName=ENG[engId]?.name||engId;
+        const memNote=memHits?` · ${memHits} from memory`:'';
         if(doc.ext==='pptx'&&doc.meta?.slides){
-          const curSlide=Math.min(doc.meta.slides,Math.max(1,Math.ceil((pos/tot)*doc.meta.slides)));
-          $('dProgText').textContent=`Slide ${curSlide} of ${doc.meta.slides} (${pct}%) · ${engName}`;
+          const curSlide=Math.min(doc.meta.slides,Math.max(1,Math.ceil((done/total)*doc.meta.slides)));
+          $('dProgText').textContent=`Slide ${curSlide} of ${doc.meta.slides} (${pct}%) · ${engName}${memNote}`;
         }else if(doc.meta?.estPages){
-          const curPage=Math.min(doc.meta.estPages,Math.max(1,Math.ceil((pos/tot)*doc.meta.estPages)));
-          $('dProgText').textContent=`Page ${curPage} of ${doc.meta.estPages} (${pct}%) · ${engName}`;
+          const curPage=Math.min(doc.meta.estPages,Math.max(1,Math.ceil((done/total)*doc.meta.estPages)));
+          $('dProgText').textContent=`Page ${curPage} of ${doc.meta.estPages} (${pct}%) · ${engName}${memNote}`;
         }else{
-          $('dProgText').textContent=`${pos} / ${tot} (${pct}%) · ${engName}`;
+          $('dProgText').textContent=`${done} / ${total} (${pct}%) · ${engName}${memNote}`;
         }
       },
-      onBatch:(indices,res,currentOut,currentNotes)=>{
-        indices.forEach((idx,k)=>{
-          partialOut[idx]=currentOut[idx];
-          partialNotes[idx]=currentNotes[idx];
+      onBatch:(batchIndices,res,currentOut,currentNotes)=>{
+        const errRe=/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
+        const batchOk=Array.isArray(res)&&batchIndices.length===res.length&&batchIndices.every((_,k)=>{
+          const item=res[k];
+          const txt=typeof item==='string'?item:(item?.text||'');
+          return typeof txt==='string'&&txt.trim()&&!errRe.test(txt.trim());
+        });
+
+        batchIndices.forEach((kMiss,k)=>{
+          const realIdx=missIndices[kMiss];
+          partialOut[realIdx]=currentOut[kMiss];
+          partialNotes[realIdx]=currentNotes[kMiss];
+
+          if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
+            const outText=typeof currentOut[kMiss]==='string'?currentOut[kMiss]:String(currentOut[kMiss]||'');
+            if(outText.trim()){
+              TranslationMemory.put({
+                sourceText:doc.items[realIdx],
+                translatedText:outText,
+                src:srcLang,
+                tgt:tgtLang,
+                modeClass:docMemMode,
+                tone,
+                subject
+              }).catch(()=>{});
+            }
+          }
         });
       }
     },extraOpts)));
 
-    dResult=await doc.build(r.out,r.notes,$('tgt').value,$('src').value);
-    dOutItems=r.out.slice();
-    $('dOut').value=r.out.slice(0,25).join('\n\n').slice(0,50000);
+    dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+    dOutItems=partialOut.slice();
+    $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
     $('dSave').disabled=false;
-    $('dEngineUsed').textContent=r.used;
-    $('dProgText').textContent=`${L('done')} · ${r.used}`;
-    toast(`${L('done')} · ${r.used}`,'ok');
+    const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
+    $('dEngineUsed').textContent=usedStr;
+    $('dProgText').textContent=`${L('done')} · ${usedStr}`;
+    toast(`${L('done')} · ${usedStr}`,'ok');
+    updateTmCount();
   }catch(e){
     if(e.name==='AbortError'||dCtl.signal.aborted){
       // Preserve completed segments!
