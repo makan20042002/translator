@@ -41,6 +41,10 @@
     return m === 'smart' ? 'smart' : 'fast';
   }
 
+  function normalizeStyle(style) {
+    return String(style || '').trim().toLowerCase();
+  }
+
   function buildKey(params) {
     const text = normalizeText(params.text != null ? params.text : params.sourceText);
     const hasher = (typeof TranslationMemory !== 'undefined' && TranslationMemory.hashText) || hashText;
@@ -50,16 +54,18 @@
     const modeClass = normalizeModeClass(params.modeClass);
     const tone = normalizeTone(params.tone);
     const subject = normalizeSubject(params.subject);
+    const style = normalizeStyle(params.subStyle != null ? params.subStyle : params.style);
 
     return {
-      key: `${textHash}:${src}:${tgt}:${modeClass}:${tone}:${subject}`,
+      key: `${textHash}:${src}:${tgt}:${modeClass}:${tone}:${subject}:${style}`,
       keyParts: {
         textHash,
         src,
         tgt,
         modeClass,
         tone,
-        subject
+        subject,
+        style
       },
       normalizedText: text
     };
@@ -157,6 +163,7 @@
             modeClass: keyParts.modeClass,
             tone: keyParts.tone,
             subject: keyParts.subject,
+            style: keyParts.style,
             sourceText,
             translatedText,
             timestamp: entry.timestamp || (existing ? existing.timestamp : now),
