@@ -141,11 +141,13 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(await page.locator('#offWhisperSel').inputValue()).toBe('base');
 
     // 2. Reverse: changing settings dropdown updates mic STT picker
+    await mouseClick(page, page.locator('#vToggleSettings'));
     await page.locator('#vSttChoice').selectOption('browser');
     await page.locator('#vSttChoice').dispatchEvent('change');
 
     expect(await page.evaluate(() => cfg.stt)).toBe('browser');
     await expect(page.locator('#vMicSttCurLabel')).toHaveText('Browser');
+    expect(await page.locator('#sttSel').inputValue()).toBe('browser');
 
     // 3. Changing settings #sttSel to auto updates mic STT picker
     await openSettings(page);
@@ -154,6 +156,8 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
     expect(await page.evaluate(() => cfg.stt)).toBe('auto');
     await expect(page.locator('#vMicSttCurLabel')).toHaveText(/Auto|خودکار/);
+    expect(await page.locator('#vSttChoice').inputValue()).toBe('auto');
+    expect(await page.locator('#offWhisperSel').inputValue()).toBe('base');
   });
 
   test('choice survives reload', async ({ app }) => {
