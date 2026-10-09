@@ -1058,6 +1058,15 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   </div>
   <div class="row" style="margin-top:12px"><p class="hint" data-t="edgeHint" style="flex:1;min-width:220px"></p><button class="btn" id="ttsTest" data-t="ttsTest">Test voice</button></div>
 
+  <h3 data-t="tmH">Translation memory</h3>
+  <p class="note" data-t="tmNote"></p>
+  <div class="row" style="margin:10px 0;align-items:center;gap:12px;flex-wrap:wrap">
+    <label class="chk"><input type="checkbox" id="tmToggle" checked><span data-t="enabled">Enabled</span></label>
+    <div class="meta" style="margin:0"><span data-t="tmSavedCount">Saved translations:</span> <strong id="tmCount">0</strong></div>
+    <span class="sp"></span>
+    <button class="btn danger" id="tmClearBtn" type="button" data-t="tmClear">Clear memory</button>
+  </div>
+
   <h3 data-t="offH">Offline</h3>
   <p class="note" data-t="offNote"></p>
   <div class="setg off-models-pickers" style="margin:12px 0 14px">
@@ -1163,6 +1172,7 @@ const I18N={en:{
  ttsL:'Text to speech (read aloud)',ttsDev:'Device / browser voices',ttsApiO:'Speech server (Sesame CSM, OpenAI…)',preset:'Preset',voiceName:'Voice name',ttsTest:'Test voice',voiceFor:'Voice for',autoVoice:'Auto (best)',
  ttsHint:'Any server with an OpenAI-style /audio/speech endpoint works. Sesame CSM must run on a PC with an NVIDIA GPU; start its server, then press Test voice. If the server is unreachable, the device voice is used.',
  edgeHint:'Tip: Microsoft Edge includes free natural voices for Persian and many other languages. In Chrome the list depends on the voices installed in Windows.',
+ tmH:'Translation memory',tmNote:'Local translation cache in this browser. When enabled, past translations are reused instantly without calling engines.',tmSavedCount:'Saved translations:',tmClear:'Clear memory',tmClearSure:'Click again to clear',tmCleared:'Translation memory cleared',
  offH:'Offline',offNote:'Download once while online, then translate with no internet. Models stay in this browser. Offline mode uses only: the models you download here, Chrome on-device, Ollama and local servers.',
  offTr:'Translation model · NLLB, 200 languages · about 900 MB',offAsr:'Speech model · Whisper (~80 MB WASM / ~155 MB WebGPU)',ready:'ready',notDl:'not downloaded',dlDone:'Download finished. Ready for offline use.',
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
@@ -1234,6 +1244,7 @@ const I18N={en:{
  ttsL:'متن به گفتار (خواندن)',ttsDev:'صداهای دستگاه / مرورگر',ttsApiO:'سرور گفتار (Sesame CSM، OpenAI…)',preset:'پیش‌تنظیم',voiceName:'نام صدا',ttsTest:'آزمایش صدا',voiceFor:'صدا برای',autoVoice:'خودکار (بهترین)',
  ttsHint:'هر سروری که نقطه‌ی ‎/audio/speech‎ به سبک OpenAI داشته باشد کار می‌کند. Sesame CSM باید روی رایانه‌ای با کارت گرافیک NVIDIA اجرا شود؛ سرور را روشن کنید و «آزمایش صدا» را بزنید. اگر سرور در دسترس نباشد از صدای دستگاه استفاده می‌شود.',
  edgeHint:'نکته: مرورگر Microsoft Edge صداهای طبیعی رایگان برای فارسی و بسیاری زبان‌های دیگر دارد. در Chrome فهرست به صداهای نصب‌شده در ویندوز بستگی دارد.',
+ tmH:'حافظه ترجمه',tmNote:'ذخیره‌سازی محلی ترجمه‌ها در مرورگر. هنگام فعال بودن، ترجمه‌های پیشین بدون نیاز به موتور دوباره استفاده می‌شوند.',tmSavedCount:'ترجمه‌های ذخیره‌شده:',tmClear:'پاک کردن حافظه',tmClearSure:'برای پاک‌سازی دوباره کلیک کنید',tmCleared:'حافظه ترجمه پاک شد',
  offH:'آفلاین',offNote:'یک بار با اینترنت دانلود کنید، سپس بدون اینترنت ترجمه کنید. مدل‌ها در همین مرورگر می‌مانند. حالت آفلاین فقط از مدل‌هایی که اینجا دانلود می‌کنید، مترجم داخلی Chrome، Ollama و سرورهای محلی استفاده می‌کند.',
  offTr:'مدل ترجمه · NLLB، ۲۰۰ زبان · حدود ۹۰۰ مگابایت',offAsr:'مدل گفتار · Whisper (حدود ۸۰ مگابایت WASM / حدود ۱۵۵ مگابایت WebGPU)',ready:'آماده',notDl:'دانلود نشده',dlDone:'دانلود تمام شد. آماده‌ی استفاده‌ی آفلاین.',
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
@@ -1369,7 +1380,7 @@ if(!store.get('groq_order_fixed',false)){
 cfg.order=cfg.order.filter(id=>ENG[id]);
 let engineConnStatus=store.get('eng_conn',{});
 const saveCfg=()=>{store.set('cfg',cfg)};
-cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;
+cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;cfg.tm=(cfg.tm!==undefined)?!!cfg.tm:true;
 cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',key:'',model:'csm-1b',voice:'alloy',rate:1.0},cfg.tts);
 cfg.tts.rate=+cfg.tts.rate||1.0;
 const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u||'');
@@ -3084,6 +3095,7 @@ function getDefaultTransMode(){
 }
 async function saveToMemory(params){
   try{
+    if(cfg.tm===false)return;
     if(typeof TranslationMemory==='undefined'||!params)return;
     const src=String(params.text||'').trim();
     const tr=String(params.translatedText||'').trim();
@@ -3125,18 +3137,20 @@ async function doText(){
   // Look up memory before calling any engine
   const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
   let memHit=null;
-  try{
-    if(typeof TranslationMemory!=='undefined'){
-      memHit=await TranslationMemory.get({
-        text,
-        src:$('src').value==='finglish'?'auto':$('src').value,
-        tgt:$('tgt').value,
-        modeClass:memMode,
-        tone:$('tone')?.value||'',
-        subject:$('tSubject')?.value?.trim()||''
-      });
-    }
-  }catch(_){memHit=null;}
+  if(cfg.tm!==false){
+    try{
+      if(typeof TranslationMemory!=='undefined'){
+        memHit=await TranslationMemory.get({
+          text,
+          src:$('src').value==='finglish'?'auto':$('src').value,
+          tgt:$('tgt').value,
+          modeClass:memMode,
+          tone:$('tone')?.value||'',
+          subject:$('tSubject')?.value?.trim()||''
+        });
+      }
+    }catch(_){memHit=null;}
+  }
   if(memHit&&memHit.translatedText){
     busy([$('tGo')],$('tStop'),false);
     $('tOut').value=memHit.translatedText;
@@ -5399,6 +5413,7 @@ const saveAllInputs=()=>{
   if($('sttSel')) cfg.stt = $('sttSel').value;
   if($('vSttChoice')) cfg.stt = $('vSttChoice').value;
   if($('ttsMode')) cfg.tts.mode = $('ttsMode').value;
+  if($('tmToggle')) cfg.tm = $('tmToggle').checked;
   if(cfg.tts.mode==='gemini'&&cfg.tts.key&&!cfg.eng.gemini.key) cfg.eng.gemini.key=cfg.tts.key;
   if(cfg.eng.gemini.key&&!cfg.tts.key&&cfg.tts.mode==='gemini') cfg.tts.key=cfg.eng.gemini.key;
   if(cfg.eng.gemini.key) sessionBlocked.delete('gemini');
@@ -5408,11 +5423,58 @@ const saveAllInputs=()=>{
   fillVoiceTransEngines();
   voiceLabels();
 };
+async function updateTmCount(){
+  if(typeof TranslationMemory!=='undefined'&&$('tmCount')){
+    try{
+      const c=await TranslationMemory.count();
+      $('tmCount').textContent=String(c||0);
+    }catch(_){
+      $('tmCount').textContent='0';
+    }
+  }
+}
+if($('tmToggle')){
+  $('tmToggle').checked=(cfg.tm!==false);
+  $('tmToggle').onchange=()=>{
+    cfg.tm=$('tmToggle').checked;
+    saveCfg();
+  };
+}
+let tmClearTimer=null;
+const tmClearReset=()=>{
+  clearTimeout(tmClearTimer);
+  tmClearTimer=null;
+  if($('tmClearBtn')){
+    $('tmClearBtn').textContent=L('tmClear');
+    $('tmClearBtn').classList.remove('confirming');
+  }
+};
+if($('tmClearBtn'))$('tmClearBtn').onclick=async()=>{
+  if(!tmClearTimer){
+    $('tmClearBtn').textContent=L('tmClearSure');
+    $('tmClearBtn').classList.add('confirming');
+    tmClearTimer=setTimeout(tmClearReset,5000);
+    return;
+  }
+  clearTimeout(tmClearTimer);
+  tmClearTimer=null;
+  if(typeof TranslationMemory!=='undefined'){
+    await TranslationMemory.clear();
+  }
+  if($('tmCount'))$('tmCount').textContent='0';
+  if($('tmClearBtn')){
+    $('tmClearBtn').textContent=L('tmClear');
+    $('tmClearBtn').classList.remove('confirming');
+  }
+  toast(L('tmCleared'),'ok');
+};
 $('openSet').onclick=()=>{
   renderEngines();
   let ok=0,total=cfg.order.length;
   cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
   if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
+  if($('tmToggle'))$('tmToggle').checked=(cfg.tm!==false);
+  updateTmCount();
   $('ov').classList.add('on');
 };
 $('closeSet').onclick=()=>{saveAllInputs();$('ov').classList.remove('on')};

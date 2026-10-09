@@ -569,3 +569,151 @@ test.describe('Web app: Translation Memory in Both mode (Item 1)', () => {
   });
 });
 
+test.describe('Web app: Translation Memory settings (Item 1)', () => {
+  test.beforeEach(async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(async () => {
+      if (window.TranslationMemory) {
+        await window.TranslationMemory.clear();
+      }
+    });
+  });
+
+  test('switch off means no lookups and no saves', async ({ app }) => {
+    const { page, stub } = app;
+
+    // 1. Put an existing translation into memory while TM is on
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.put({
+        sourceText: 'Switch off test sentence',
+        translatedText: 'ترجمه از قبل ذخیره شده',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+
+    // 2. Turn off the translation memory switch
+    await page.evaluate(() => {
+      const cfg = window.store.get('cfg', {});
+      cfg.tm = false;
+      window.store.set('cfg', cfg);
+      if (typeof window.cfg !== 'undefined') window.cfg.tm = false;
+    });
+
+    // 3. Request translation for the sentence that exists in memory
+    stub.clearLog();
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Switch off test sentence');
+    await mouseClick(page, page.locator('#tGo'));
+
+    // Output must come from engine, NOT from memory
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Switch off test sentence');
+    await expect(page.locator('#tMeta')).not.toContainText('از حافظه');
+    await expect(page.locator('#tMeta')).not.toContainText('from memory');
+
+    // 4. Request translation for a new sentence with switch off: it must not be saved
+    stub.clearLog();
+    await mouseClick(page, page.locator('#tClear'));
+    await mouseClick(page, page.locator('#tIn'));
+    await page.keyboard.type('Another sentence with switch off');
+    await mouseClick(page, page.locator('#tGo'));
+    await expect(page.locator('#tOut')).toHaveValue('[fa] Another sentence with switch off');
+
+    const entry = await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      return await tm.get({
+        text: 'Another sentence with switch off',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+    expect(entry).toBeNull();
+  });
+
+  test('clear empties the store and the count shows 0', async ({ app }) => {
+    const { page } = app;
+
+    // Put two entries into memory
+    await page.evaluate(async () => {
+      const tm = window.TranslationMemory;
+      await tm.clear();
+      await tm.put({
+        sourceText: 'Entry 1',
+        translatedText: 'مدخل ۱',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+      await tm.put({
+        sourceText: 'Entry 2',
+        translatedText: 'مدخل ۲',
+        src: 'auto',
+        tgt: 'fa',
+        modeClass: 'fast'
+      });
+    });
+
+    // Open settings modal
+    await mouseClick(page, page.locator('#openSet'));
+    await expect(page.locator('#ov')).toHaveClass(/on/);
+
+    // Verify count shows 2
+    await expect(page.locator('#tmCount')).toHaveText('2');
+
+    // First click on Clear memory asks for confirmation
+    const clearBtn = page.locator('#tmClearBtn');
+    await mouseClick(page, clearBtn);
+    await expect(clearBtn).toHaveClass(/confirming/);
+
+    // Second click confirms and clears the store
+    await mouseClick(page, clearBtn);
+
+    // Verify count in UI is 0
+    await expect(page.locator('#tmCount')).toHaveText('0');
+
+    // Verify store in IndexedDB is empty
+    const storeCount = await page.evaluate(async () => {
+      return await window.TranslationMemory.count();
+    });
+    expect(storeCount).toBe(0);
+  });
+
+  test('the switch survives reload', async ({ app }) => {
+    const { page } = app;
+
+    // Open settings
+    await mouseClick(page, page.locator('#openSet'));
+    await expect(page.locator('#ov')).toHaveClass(/on/);
+
+    // Default is checked
+    const tmToggle = page.locator('#tmToggle');
+    await expect(tmToggle).toBeChecked();
+
+    // Toggle switch off
+    await mouseClick(page, tmToggle);
+    await expect(tmToggle).not.toBeChecked();
+
+    // Close settings
+    await mouseClick(page, page.locator('#closeSet'));
+    await expect(page.locator('#ov')).not.toHaveClass(/on/);
+
+    // Verify cfg.tm is false in store
+    const cfgSaved = await page.evaluate(() => window.store.get('cfg', {}).tm);
+    expect(cfgSaved).toBe(false);
+
+    // Reload page
+    await page.reload();
+
+    // Verify switch survives reload in state and in settings modal
+    const cfgAfterReload = await page.evaluate(() => window.store.get('cfg', {}).tm);
+    expect(cfgAfterReload).toBe(false);
+
+    await mouseClick(page, page.locator('#openSet'));
+    await expect(page.locator('#ov')).toHaveClass(/on/);
+    await expect(page.locator('#tmToggle')).not.toBeChecked();
+  });
+});
+
