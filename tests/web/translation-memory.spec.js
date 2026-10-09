@@ -183,7 +183,8 @@ test.describe('Web app: Translation Memory store (Item 1)', () => {
       'sourceText',
       'translatedText',
       'timestamp',
-      'lastUsed'
+      'lastUsed',
+      'corrected'
     ]);
 
     for (const key of Object.keys(record)) {
@@ -570,6 +571,8 @@ test.describe('Web app: Translation Memory in Both mode (Item 1)', () => {
 });
 
 test.describe('Web app: Translation Memory settings (Item 1)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
   test.beforeEach(async ({ app }) => {
     const { page } = app;
     await page.evaluate(async () => {
@@ -596,28 +599,27 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
 
     // 2. Turn off the translation memory switch
     await page.evaluate(() => {
-      const cfg = window.store.get('cfg', {});
-      cfg.tm = false;
-      window.store.set('cfg', cfg);
+      const s = (typeof store !== 'undefined' ? store : window.store);
+      const cfgObj = s.get('cfg', {});
+      cfgObj.tm = false;
+      s.set('cfg', cfgObj);
+      if (typeof cfg !== 'undefined') cfg.tm = false;
       if (typeof window.cfg !== 'undefined') window.cfg.tm = false;
     });
 
     // 3. Request translation for the sentence that exists in memory
     stub.clearLog();
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Switch off test sentence');
+    await page.locator('#tIn').fill('Switch off test sentence');
     await mouseClick(page, page.locator('#tGo'));
 
     // Output must come from engine, NOT from memory
     await expect(page.locator('#tOut')).toHaveValue('[fa] Switch off test sentence');
-    await expect(page.locator('#tMeta')).not.toContainText('از حافظه');
-    await expect(page.locator('#tMeta')).not.toContainText('from memory');
+    await expect(page.locator('#tMeta')).not.toContainText(/از حافظه|from memory/);
 
     // 4. Request translation for a new sentence with switch off: it must not be saved
     stub.clearLog();
     await mouseClick(page, page.locator('#tClear'));
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Another sentence with switch off');
+    await page.locator('#tIn').fill('Another sentence with switch off');
     await mouseClick(page, page.locator('#tGo'));
     await expect(page.locator('#tOut')).toHaveValue('[fa] Another sentence with switch off');
 
@@ -701,14 +703,20 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
     await expect(page.locator('#ov')).not.toHaveClass(/on/);
 
     // Verify cfg.tm is false in store
-    const cfgSaved = await page.evaluate(() => window.store.get('cfg', {}).tm);
+    const cfgSaved = await page.evaluate(() => {
+      const s = (typeof store !== 'undefined' ? store : window.store);
+      return s.get('cfg', {}).tm;
+    });
     expect(cfgSaved).toBe(false);
 
     // Reload page
     await page.reload();
 
     // Verify switch survives reload in state and in settings modal
-    const cfgAfterReload = await page.evaluate(() => window.store.get('cfg', {}).tm);
+    const cfgAfterReload = await page.evaluate(() => {
+      const s = (typeof store !== 'undefined' ? store : window.store);
+      return s.get('cfg', {}).tm;
+    });
     expect(cfgAfterReload).toBe(false);
 
     await mouseClick(page, page.locator('#openSet'));
@@ -718,6 +726,8 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
 });
 
 test.describe('Web app: Translation Memory corrections (Item 2)', () => {
+  test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
   test.beforeEach(async ({ app }) => {
     const { page } = app;
     await page.evaluate(async () => {
@@ -731,8 +741,7 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     const { page, stub } = app;
 
     // 1. Enter text and translate via engine
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Source to be corrected');
+    await page.locator('#tIn').fill('Source to be corrected');
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('[fa] Source to be corrected');
@@ -748,7 +757,7 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     // 3. Click "Save my correction"
     await mouseClick(page, saveCorrectionBtn);
     await expect(saveCorrectionBtn).toBeHidden();
-    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+    await expect(page.locator('#tMeta')).toContainText(/ویرایش شما|Your correction/);
 
     // 4. Clear output and re-translate: correction must be returned instead of engine result
     stub.clearLog();
@@ -758,15 +767,16 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('ویرایش دستی من برای این جمله');
-    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+    await expect(page.locator('#tMeta')).toContainText(/ویرایش شما|Your correction/);
 
     // Verify engine was NOT called because correction in memory answered
-    const engineCalls = stub.calls('translate.googleapis.com');
-    expect(engineCalls.length).toBe(0);
+    const engineCalls = stub.calls('clients5.google.com').length + stub.calls('translate.googleapis.com').length;
+    expect(engineCalls).toBe(0);
 
     // Verify stored record has corrected: true
     const entry = await page.evaluate(async () => {
-      return await window.TranslationMemory.get({
+      const tm = window.TranslationMemory;
+      return await tm.get({
         text: 'Source to be corrected',
         src: 'auto',
         tgt: 'fa',
@@ -809,7 +819,8 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
 
     // Check that the stored record remains the user's correction
     const record = await page.evaluate(async () => {
-      return await window.TranslationMemory.get({
+      const tm = window.TranslationMemory;
+      return await tm.get({
         text: 'Protected against engine overwrite',
         src: 'auto',
         tgt: 'fa',
@@ -822,12 +833,11 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     expect(record.corrected).toBe(true);
 
     // Request translation via UI: returns the user correction
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Protected against engine overwrite');
+    await page.locator('#tIn').fill('Protected against engine overwrite');
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('ترجمه کاربر که هرگز نباید رونویسی شود');
-    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+    await expect(page.locator('#tMeta')).toContainText(/ویرایش شما|Your correction/);
   });
 
   test('it survives reload', async ({ app }) => {
@@ -850,15 +860,15 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     await page.reload();
 
     // Translate the source text
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Persistent correction');
+    await page.locator('#tIn').fill('Persistent correction');
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('ترجمه اصلاح‌شده دائمی');
-    await expect(page.locator('#tMeta')).toContainText('ویرایش شما');
+    await expect(page.locator('#tMeta')).toContainText(/ویرایش شما|Your correction/);
 
     const entry = await page.evaluate(async () => {
-      return await window.TranslationMemory.get({
+      const tm = window.TranslationMemory;
+      return await tm.get({
         text: 'Persistent correction',
         src: 'auto',
         tgt: 'fa',
@@ -886,17 +896,20 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
     });
 
     // Translate uncorrected text
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Badge test uncorrected');
+    await page.locator('#tIn').fill('Badge test uncorrected');
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('ترجمه ماشینی ذخیره در حافظه');
 
-    // Standard memory badge: has .pill-tm, does NOT have .pill-corrected, text contains "از حافظه"
+    // Standard memory badge: has .pill-tm, does NOT have .pill-corrected, text contains "از حافظه" / "from memory"
     const memoryBadge = page.locator('#tMeta .pill-tm');
     await expect(memoryBadge).toBeVisible();
     await expect(memoryBadge).not.toHaveClass(/pill-corrected/);
     await expect(memoryBadge).toHaveText(/از حافظه|from memory/);
+
+    // Snapshot uncorrected badge attributes while visible
+    const memBadgeClass = await memoryBadge.getAttribute('class');
+    const memBadgeText = await memoryBadge.textContent();
 
     // 2. Put corrected translation into memory
     await page.evaluate(async () => {
@@ -913,24 +926,22 @@ test.describe('Web app: Translation Memory corrections (Item 2)', () => {
 
     // Translate corrected text
     await mouseClick(page, page.locator('#tClear'));
-    await mouseClick(page, page.locator('#tIn'));
-    await page.keyboard.type('Badge test user correction');
+    await page.locator('#tIn').fill('Badge test user correction');
     await mouseClick(page, page.locator('#tGo'));
 
     await expect(page.locator('#tOut')).toHaveValue('ترجمه اصلاح‌شده کاربر');
 
-    // Correction badge: has .pill-corrected, text contains "ویرایش شما"
+    // Correction badge: has .pill-corrected, text contains "ویرایش شما" / "Your correction"
     const correctionBadge = page.locator('#tMeta .pill-corrected');
     await expect(correctionBadge).toBeVisible();
     await expect(correctionBadge).toHaveText(/ویرایش شما|Your correction/);
 
-    // The two badges must differ in class and text
-    const memBadgeClass = await memoryBadge.getAttribute('class');
+    // Snapshot corrected badge attributes
     const corrBadgeClass = await correctionBadge.getAttribute('class');
-    expect(memBadgeClass).not.toBe(corrBadgeClass);
-
-    const memBadgeText = await memoryBadge.textContent();
     const corrBadgeText = await correctionBadge.textContent();
+
+    // The two badges must differ in class and text
+    expect(memBadgeClass).not.toBe(corrBadgeClass);
     expect(memBadgeText).not.toBe(corrBadgeText);
   });
 });
