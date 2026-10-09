@@ -212,6 +212,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const dictBase = () => String(cfg.webAppUrl || 'http://localhost:8080').replace(/\/+$/, '');
   const validPack = p => p && /^[a-z]{2,3}-[a-z]{2,3}$/.test(p.id) && /^[a-z]{2,3}-[a-z]{2,3}\/pack-\d+$/.test(p.dir || '') && p.from && p.to;
   const dictExtras = async () => ((await chrome.storage.local.get(DICT_EXTRA_KEY))[DICT_EXTRA_KEY] || []).filter(validPack);
+  let dictRenderSeq = 0;
   async function renderDictPacks() {
     const box = document.getElementById('dictPackRows');
     if (!box || !cfg) return;
@@ -221,23 +222,29 @@ document.addEventListener('DOMContentLoaded', async () => {
     const mySeq = ++dictRenderSeq;
     let bundled = [], offered = [], reachable = true;
     try { bundled = (await (await fetch(chrome.runtime.getURL('dict/packs.json'))).json()).packs.map(p => p.id); } catch {}
+    if (mySeq !== dictRenderSeq) return;
     try {
       const r = await fetch(dictBase() + '/dict/packs.json', { cache: 'no-store' });
       if (!r.ok) throw new Error('HTTP ' + r.status);
       offered = (await r.json()).packs.filter(p => validPack(p) && !bundled.includes(p.id));
     } catch { reachable = false; }
+    if (mySeq !== dictRenderSeq) return;
     const extras = await dictExtras();
+    if (mySeq !== dictRenderSeq) return;
     const list = [...offered, ...extras.filter(e => !offered.some(o => o.id === e.id))];   // a downloaded pair can always be deleted, even offline
     if (mySeq !== dictRenderSeq) return;
     MakanDict.setPacks(list);
-    box.replaceChildren();
     if (!list.length) {
+      box.replaceChildren();
       const p = document.createElement('p'); p.className = 'opt-sub'; p.textContent = reachable ? T.dictNone : T.dictUnreachable;
       box.append(p); return;
     }
     const nameOf = c => ((LANGS.find(l => l[0] === c) || [])[currentUi === 'fa' ? 2 : 1] || c).split(' · ').pop();
+    const rows = [];
     for (const info of list) {
+      if (mySeq !== dictRenderSeq) return;
       const ready = !!(await MakanDict.status(info.id));
+      if (mySeq !== dictRenderSeq) return;
       const row = document.createElement('div'); row.className = 'opt-dict-row'; row.dataset.pack = info.id;
       const name = document.createElement('strong'); name.textContent = `${nameOf(info.from)} → ${nameOf(info.to)}`;
       const size = document.createElement('span'); size.className = 'opt-sub opt-dict-size'; size.textContent = `${(info.bytes / 1048576).toFixed(1)} MB`;
@@ -263,10 +270,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         renderDictPacks();
       };
       row.append(name, size, state, btn);
-      box.append(row);
+      rows.push(row);
     }
+    if (mySeq !== dictRenderSeq) return;
+    box.replaceChildren(...rows);
   }
-  let dictRenderSeq = 0;
 
   function applyUi(lang) {
     currentUi = lang;

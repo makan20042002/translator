@@ -126,6 +126,42 @@ test.describe('Extension: More dictionaries in Options (fa-en not bundled)', () 
     const { page } = await openOptions(ext, stub, 'http://127.0.0.1:9');
     await expect(page.locator('#dictPackRows')).toContainText('could not be reached');
   });
+
+  test('toggling the language during the first render ends with exactly one row per pack', async ({ ext, stub }) => {
+    await ext.patchConfig({ webAppUrl: stub.appOrigin });
+    const page = await ext.context.newPage();
+    const errors = [];
+    watchConsole(page, errors);
+
+    let resumePacks;
+    const packsGate = new Promise(resolve => { resumePacks = resolve; });
+    let delayedOnce = false;
+
+    await page.route('**/dict/packs.json', async route => {
+      if (route.request().url().includes('chrome-extension:')) {
+        return route.continue();
+      }
+      if (!delayedOnce) {
+        delayedOnce = true;
+        await packsGate;
+      }
+      return route.continue();
+    });
+
+    await page.goto(ext.url('options.html'));
+    await expect(page.locator('#optLangToggle')).toBeVisible();
+    await mouseClick(page, page.locator('#optLangToggle'));
+
+    resumePacks();
+
+    await expect(row(page)).toBeVisible();
+    const expectedUnbundled = LIST.packs.filter(p => p.id !== 'en-fa');
+    await expect(page.locator('#dictPackRows .opt-dict-row')).toHaveCount(expectedUnbundled.length);
+    for (const p of expectedUnbundled) {
+      await expect(page.locator(`#dictPackRows .opt-dict-row[data-pack="${p.id}"]`)).toHaveCount(1);
+    }
+    expect(errors).toEqual([]);
+  });
 });
 
 test.describe('Extension: More dictionaries with the normal bundle', () => {
