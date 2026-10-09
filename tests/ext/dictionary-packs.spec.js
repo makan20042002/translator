@@ -115,6 +115,7 @@ test.describe('Extension: More dictionaries in Options (fa-en not bundled)', () 
 
   test('the same section in Persian', async ({ ext, stub }) => {
     const { page } = await openOptions(ext, stub);
+    await expect(row(page)).toBeVisible();
     await mouseClick(page, page.locator('#optLangToggle'));
     await expect(page.locator('#secDictPacks')).toHaveText('دیکشنری‌های بیشتر');
     await expect(row(page).locator('.opt-dict-state')).toHaveText('دانلود نشده');

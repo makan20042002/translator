@@ -16,14 +16,19 @@ const { prepareTestCopy, launchWithExtension, openRealPopup, inShadow, dragSelec
 const test = base.extend({
   extOptions: [{}, { option: true }],
 
-  extCopy: [async ({}, use) => { await use(prepareTestCopy()); }, { scope: 'worker' }],
+  extCopy: [async ({}, use, testInfo) => {
+    const dir = path.resolve(__dirname, '..', '.generated', `ext-chrome-under-test-w${testInfo.workerIndex}`);
+    await use(prepareTestCopy({ dir }));
+  }, { scope: 'worker' }],
 
-  ext: async ({ stub, files, extCopy, extOptions }, use) => {
+  ext: async ({ stub, files, extCopy, extOptions }, use, testInfo) => {
     stub.clearLog();
     stub.resetModes();
     const preOpen = (extOptions.preOpen || ['/__test/article.html']).map(p => stub.appOrigin + p);
     // dropPairs: dictionary pairs left out of the bundle for this test (see prepareTestCopy)
-    const extPath = extOptions.dropPairs ? prepareTestCopy({ dropPairs: extOptions.dropPairs, dir: path.resolve(__dirname, '..', '.generated', 'ext-chrome-under-test-' + extOptions.dropPairs.join('-')) }) : extCopy;
+    const extPath = extOptions.dropPairs
+      ? prepareTestCopy({ dropPairs: extOptions.dropPairs, dir: path.resolve(__dirname, '..', '.generated', `ext-chrome-under-test-w${testInfo.workerIndex}-` + extOptions.dropPairs.join('-')) })
+      : extCopy;
     const ext = await launchWithExtension({ stub, files, preOpen, extPath });
     if (extOptions.config) {
       await ext.patchConfig(extOptions.config);
@@ -33,7 +38,10 @@ const test = base.extend({
     ext.pageErrors = [];
     for (const p of ext.opened) watchConsole(p, ext.pageErrors);
     ext.article = ext.opened[0];
-    if (ext.article) await ext.article.bringToFront();
+    if (ext.article) {
+      await ext.article.bringToFront();
+      await ext.article.waitForSelector('#makan-translate-root', { state: 'attached', timeout: 5000 }).catch(() => {});
+    }
     await use(ext);
     await ext.close();
   }

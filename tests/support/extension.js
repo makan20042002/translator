@@ -51,7 +51,7 @@ function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
   if (!fs.existsSync(path.join(DIST_CHROME, 'manifest.json'))) {
     throw new Error('dist/chrome is missing. Run "node build-manifests.js" first (npm test does this for you).');
   }
-  fs.rmSync(dir, { recursive: true, force: true });
+  fs.rmSync(dir, { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   copyDir(DIST_CHROME, dir);
   const bg = path.join(dir, 'background.js');
   fs.writeFileSync(bg, SHIM + fs.readFileSync(bg, 'utf8'));
@@ -60,7 +60,7 @@ function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
     const list = JSON.parse(fs.readFileSync(listFile, 'utf8'));
     list.packs = list.packs.filter(p => !dropPairs.includes(p.id));
     fs.writeFileSync(listFile, JSON.stringify(list, null, 2));
-    for (const pair of dropPairs) fs.rmSync(path.join(dir, 'dict', pair), { recursive: true, force: true });
+    for (const pair of dropPairs) fs.rmSync(path.join(dir, 'dict', pair), { recursive: true, force: true, maxRetries: 5, retryDelay: 100 });
   }
   return dir;
 }
