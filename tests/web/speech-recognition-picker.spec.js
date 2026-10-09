@@ -31,6 +31,11 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     const cat = await page.evaluate(() => MODEL_CATALOG);
     const m = cat.models.find(x => x.id === id);
     if (m) {
+      await page.evaluate(({ id, f }) => {
+        const d = store.get('mdl', {});
+        d[id] = { at: Date.now(), files: f };
+        store.set('mdl', d);
+      }, { id: m.id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
       await fakeDownloaded(page, m.repo, m.files);
       await page.evaluate(() => mcScan());
       await page.evaluate(() => mcRender());
@@ -113,7 +118,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     await expect(bub.locator('.bub-orig-text')).toHaveText('hello from browser recognition', { timeout: 20_000 });
 
     // The result bubble tag shows Browser
-    await expect(bub.locator('.bub-tag')).toContainText('Browser');
+    await expect(bub.locator('.bub-tag').first()).toContainText('Browser');
   });
 
   test('stays in sync with speech settings (#sttSel, #vSttChoice, and #offWhisperSel)', async ({ app }) => {
