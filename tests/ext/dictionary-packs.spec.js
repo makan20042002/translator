@@ -39,6 +39,19 @@ test.describe('Extension: the build bundles only en-fa and fa-en', () => {
       expect(total, `${target} size in bytes`).toBeLessThan(5 * 1024 * 1024);
     }
   });
+
+  test('extra packs in dict/packs.json are never bundled into the extension', () => {
+    const extraPacks = LIST.packs.filter(p => !['en-fa', 'fa-en'].includes(p.id));
+    expect(extraPacks.length, 'extra packs exist in dict/packs.json').toBeGreaterThan(0);
+    for (const target of ['chrome', 'firefox']) {
+      const dir = path.join(__dirname, '..', '..', 'dist', target, 'dict');
+      const list = JSON.parse(fs.readFileSync(path.join(dir, 'packs.json'), 'utf8'));
+      for (const extra of extraPacks) {
+        expect(list.packs.some(p => p.id === extra.id), `${extra.id} in dist/${target}/dict/packs.json`).toBe(false);
+        expect(fs.existsSync(path.join(dir, extra.id)), `${extra.id} directory in dist/${target}/dict`).toBe(false);
+      }
+    }
+  });
 });
 
 test.describe('Extension: More dictionaries in Options (fa-en not bundled)', () => {
@@ -52,7 +65,11 @@ test.describe('Extension: More dictionaries in Options (fa-en not bundled)', () 
     await expect(row(page).locator('.opt-dict-size')).toHaveText(mb(FA_EN.bytes));
     await expect(row(page).locator('.opt-dict-state')).toHaveText('Not downloaded');
     await expect(row(page).locator('button')).toHaveText('Download');
-    await expect(page.locator('#dictPackRows .opt-dict-row')).toHaveCount(1);
+    // The bundled pair (en-fa) must not be offered
+    await expect(page.locator('#dictPackRows .opt-dict-row[data-pack="en-fa"]')).toHaveCount(0);
+    // Every unbundled pair from the web app's packs list is offered
+    const expectedUnbundled = LIST.packs.filter(p => p.id !== 'en-fa');
+    await expect(page.locator('#dictPackRows .opt-dict-row')).toHaveCount(expectedUnbundled.length);
     expect(errors).toEqual([]);
   });
 
@@ -111,8 +128,29 @@ test.describe('Extension: More dictionaries in Options (fa-en not bundled)', () 
 });
 
 test.describe('Extension: More dictionaries with the normal bundle', () => {
-  test('both packs are bundled, so the web app offers nothing more', async ({ ext, stub }) => {
+  test('bundled pairs are not offered; every extra pair from the web app is offered as downloadable', async ({ ext, stub }) => {
+    const { page, errors } = await openOptions(ext, stub);
+    const unbundled = LIST.packs.filter(p => p.id !== 'en-fa' && p.id !== 'fa-en');
+    await expect(page.locator('#dictPackRows .opt-dict-row')).toHaveCount(unbundled.length);
+    await expect(page.locator('#dictPackRows .opt-dict-row[data-pack="en-fa"]')).toHaveCount(0);
+    await expect(page.locator('#dictPackRows .opt-dict-row[data-pack="fa-en"]')).toHaveCount(0);
+    for (const p of unbundled) {
+      const r = page.locator(`#dictPackRows .opt-dict-row[data-pack="${p.id}"]`);
+      await expect(r).toBeVisible();
+      await expect(r.locator('.opt-dict-state')).toHaveText('Not downloaded');
+      await expect(r.locator('button')).toHaveText('Download');
+    }
+    expect(errors).toEqual([]);
+  });
+
+  test('when the web app offers only the bundled packs, a plain note says so', async ({ ext, stub }) => {
     const { page } = await openOptions(ext, stub);
+    await page.route('**/dict/packs.json', async route => {
+      if (route.request().url().includes('chrome-extension:')) return route.continue();
+      const bundledOnly = { format: 'makan-dictionary-list', packs: LIST.packs.filter(p => ['en-fa', 'fa-en'].includes(p.id)) };
+      await route.fulfill({ contentType: 'application/json', body: JSON.stringify(bundledOnly) });
+    });
+    await page.reload();
     await expect(page.locator('#dictPackRows')).toContainText('offers no other dictionaries');
   });
 });
