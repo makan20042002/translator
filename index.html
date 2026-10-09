@@ -1184,7 +1184,7 @@ const I18N={en:{
  offH:'Offline',offNote:'Download once while online, then translate with no internet. Models stay in this browser. Offline mode uses only: the models you download here, Chrome on-device, Ollama and local servers.',
  offTr:'Translation model · NLLB, 200 languages · about 900 MB',offAsr:'Speech model · Whisper (~80 MB WASM / ~155 MB WebGPU)',ready:'ready',notDl:'not downloaded',dlDone:'Download finished. Ready for offline use.',
  needDl:'download it first (Engines & keys → Offline)',needUrl:'needs a URL',needModel:'choose a model',install:'Install',local:'local',offline:'offline',
- ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. To allow this page, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
+ ollamaHint:'Install Ollama, run “ollama pull gemma3”, then press Models. If Ollama is not already reachable, set OLLAMA_ORIGINS={origin} in Windows environment variables and restart Ollama after.',
  customHint:'LM Studio: http://localhost:1234/v1 · any OpenAI-compatible server works.',
  noOff:'No offline engine is ready. Open “Engines & keys” → Offline and download the model, or set up Ollama.',offHelp:'Offline mode: download the translation model in Engines & keys, or start Ollama.',micBlocked:'Microphone is blocked',voiceUsed:'Voice',voiceDevice:'Device',geminiWord:'Gemini',geminiVoicesGrp:'Gemini voices',deviceVoicesGrp:'This device',edgeHint:'Microsoft Edge has built-in natural voices for this language.',noVoiceNoKey:'No voice for this language on this device, and no Gemini key is set. Add a Gemini key in Engines & keys, or try Microsoft Edge.',noVoice:'No voice for this language on this device. Try Microsoft Edge or install the language voice in Windows.',ttsFallback:'using device voice',
  loadModels:'Models',
@@ -1256,7 +1256,7 @@ const I18N={en:{
  offH:'آفلاین',offNote:'یک بار با اینترنت دانلود کنید، سپس بدون اینترنت ترجمه کنید. مدل‌ها در همین مرورگر می‌مانند. حالت آفلاین فقط از مدل‌هایی که اینجا دانلود می‌کنید، مترجم داخلی Chrome، Ollama و سرورهای محلی استفاده می‌کند.',
  offTr:'مدل ترجمه · NLLB، ۲۰۰ زبان · حدود ۹۰۰ مگابایت',offAsr:'مدل گفتار · Whisper (حدود ۸۰ مگابایت WASM / حدود ۱۵۵ مگابایت WebGPU)',ready:'آماده',notDl:'دانلود نشده',dlDone:'دانلود تمام شد. آماده‌ی استفاده‌ی آفلاین.',
  needDl:'ابتدا دانلود کنید (موتورها و کلیدها ← آفلاین)',needUrl:'نشانی لازم دارد',needModel:'یک مدل انتخاب کنید',install:'نصب',local:'محلی',offline:'آفلاین',
- ollamaHint:'Ollama را نصب کنید، دستور «ollama pull gemma3» را اجرا کنید و سپس «مدل‌ها» را بزنید. برای اجازه دادن به این صفحه، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
+ ollamaHint:'Ollama را نصب کنید، دستور «ollama pull gemma3» را اجرا کنید و سپس «مدل‌ها» را بزنید. اگر Ollama هنوز در دسترس نیست، متغیر OLLAMA_ORIGINS={origin} را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  customHint:'LM Studio: http://localhost:1234/v1 · هر سرور سازگار با OpenAI کار می‌کند.',
  noOff:'هیچ موتور آفلاینی آماده نیست. در «موتورها و کلیدها» ← آفلاین مدل را دانلود کنید یا Ollama را راه‌اندازی کنید.',offHelp:'حالت آفلاین: مدل ترجمه را در موتورها و کلیدها دانلود کنید یا Ollama را اجرا کنید.',micBlocked:'میکروفون مسدود است',voiceUsed:'صدا',voiceDevice:'دستگاه',geminiWord:'جمینای',geminiVoicesGrp:'صداهای جمینای',deviceVoicesGrp:'این دستگاه',edgeHint:'مایکروسافت اج برای این زبان صدای طبیعی داخلی دارد.',noVoiceNoKey:'برای این زبان صدایی روی این دستگاه نیست و کلید Gemini هم تنظیم نشده است. کلید Gemini را در «موتورها و کلیدها» وارد کنید یا Microsoft Edge را امتحان کنید.',noVoice:'برای این زبان صدایی روی این دستگاه نیست. Microsoft Edge را امتحان کنید یا صدای زبان را در ویندوز نصب کنید.',ttsFallback:'از صدای دستگاه استفاده شد',
  loadModels:'مدل‌ها',
@@ -1325,7 +1325,7 @@ Object.assign(I18N.en,{
  ollamaRecommended:'Recommended',ollamaCustomPh:'Model name (e.g. translategemma:4b)',
  ollamaPulling:'Downloading',ollamaPullDone:'Download finished',ollamaPullCancel:'Cancel',ollamaPullCancelled:'Download cancelled',
  ollamaUnreachableTitle:'Ollama is not reachable',
- ollamaUnreachableMsg:'Start Ollama by running “ollama serve” in terminal or launch the Ollama app. If the browser blocks connection, set OLLAMA_ORIGINS=* in Windows environment variables and restart Ollama.',
+ ollamaUnreachableMsg:'Start Ollama by running “ollama serve” in terminal or launch the Ollama app. If Ollama is not already reachable, set OLLAMA_ORIGINS={origin} in Windows environment variables and restart Ollama after.',
  ollamaAsrNotice:'Note: Speech models like Qwen3-ASR need a separate helper program that is not part of the app yet.',
  allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language'
 });
@@ -1350,7 +1350,7 @@ Object.assign(I18N.fa,{
  ollamaRecommended:'پیشنهادی',ollamaCustomPh:'نام مدل (مانند translategemma:4b)',
  ollamaPulling:'در حال دانلود',ollamaPullDone:'دانلود تمام شد',ollamaPullCancel:'لغو',ollamaPullCancelled:'دانلود لغو شد',
  ollamaUnreachableTitle:'Ollama در دسترس نیست',
- ollamaUnreachableMsg:'برای اجرا در ترمینال دستور «ollama serve» را بزنید یا برنامه Ollama را باز کنید. اگر مرورگر مانع شد، متغیر OLLAMA_ORIGINS=* را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
+ ollamaUnreachableMsg:'برای اجرا در ترمینال دستور «ollama serve» را بزنید یا برنامه Ollama را باز کنید. اگر Ollama هنوز در دسترس نیست، متغیر OLLAMA_ORIGINS={origin} را در ویندوز تنظیم و Ollama را دوباره اجرا کنید.',
  ollamaAsrNotice:'توجه: مدل‌های صوتی مانند Qwen3-ASR به یک برنامه کمکی جداگانه نیاز دارند که هنوز بخشی از این برنامه نیست.',
  allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان'
 });
@@ -5428,6 +5428,13 @@ function getOllamaHost(){
   const base=(cfg.eng?.ollama?.base||'http://localhost:11434').trim();
   return base.replace(/\/+$/,'').replace(/\/v1$/,'');
 }
+function getOllamaOrigin(){
+  return (typeof location!=='undefined'&&location.origin&&location.origin!=='null')?location.origin:'http://localhost:8080';
+}
+function getOllamaUnreachableMsg(){
+  const origin=getOllamaOrigin();
+  return L('ollamaUnreachableMsg').replace('{origin}',origin);
+}
 async function fetchOllamaModels(){
   const host=getOllamaHost();
   try{
@@ -5551,7 +5558,7 @@ function renderOllamaManager(e){
   return `<div class="ollama-mgr" id="ollamaMgr" style="margin-top:10px;padding-top:10px;border-top:1px dashed var(--border)">
     <div id="ollamaUnreachableNotice" class="hint warn" style="color:var(--warn,#d97706);margin:6px 0 10px;padding:8px;background:var(--card-bg);border:1px solid var(--border);border-radius:6px" hidden>
       <div style="font-weight:600;margin-bottom:4px">${esc(L('ollamaUnreachableTitle'))}</div>
-      <div>${esc(L('ollamaUnreachableMsg'))}</div>
+      <div id="ollamaUnreachableMsgText">${esc(getOllamaUnreachableMsg())}</div>
     </div>
     <div class="row" style="gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap">
       <label for="ollamaModelSel" style="font-weight:600;font-size:13px">${esc(L('ollamaInstalled'))}:</label>
@@ -5614,7 +5621,11 @@ async function updateOllamaManager(){
       sel.innerHTML=opts;
     }
   }catch(err){
-    if(notice)notice.hidden=false;
+    if(notice){
+      notice.hidden=false;
+      const msgEl=$('ollamaUnreachableMsgText')||notice.querySelector('div:last-child');
+      if(msgEl)msgEl.textContent=getOllamaUnreachableMsg();
+    }
     if(sel){
       sel.innerHTML=`<option value="" disabled selected>${esc(L('ollamaUnreachableTitle'))}</option>`;
     }
@@ -5641,7 +5652,7 @@ function renderEngines(){
         <button class="btn" data-a="models">${esc(L('loadModels'))}</button><button class="btn" data-a="test">${esc(L('test'))}</button></div>`
         :`<div class="row" style="margin-top:8px"><span class="sp"></span><button class="btn" data-a="test">${esc(L('test'))}</button></div>`}
       ${id==='ollama'?renderOllamaManager(e):''}
-      ${d.hint?`<p class="hint" style="margin:8px 0 0">${esc(L(d.hint))}</p>`:''}</div>`}).join('');
+      ${d.hint?`<p class="hint" style="margin:8px 0 0">${esc(L(d.hint).replace('{origin}',getOllamaOrigin()))}</p>`:''}</div>`}).join('');
   renderVoice();
   $('mmEmail').value=cfg.mmEmail||'';
   updateOllamaManager();

@@ -151,6 +151,14 @@ test.describe('Web app: Ollama model manager in settings', () => {
     await expect(notice).toBeVisible({ timeout: 10_000 });
     await expect(notice).toContainText(/ollama serve/i);
     await expect(notice).toContainText(/OLLAMA_ORIGINS/i);
+    // Must NOT recommend wildcard "*"
+    const noticeText = await notice.textContent();
+    expect(noticeText).not.toContain('OLLAMA_ORIGINS=*');
+    expect(noticeText).not.toContain('OLLAMA_ORIGINS="*"');
+    // Must recommend the app's actual origin and restarting Ollama after
+    const appOrigin = await page.evaluate(() => window.location.origin);
+    await expect(notice).toContainText(`OLLAMA_ORIGINS=${appOrigin}`);
+    await expect(notice).toContainText(/restart|دوباره/i);
   });
 
   test('the choice survives reload', async ({ app }) => {
