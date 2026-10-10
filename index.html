@@ -3869,7 +3869,8 @@ async function prepDocx(name,buffer){
           }
 
           // Keep page layout: scale run font size down slightly per paragraph to offset target expansion
-          if(keepLayout && trans.length > seg.fullText.length){
+          if(rtl && keepLayout && trans.length > seg.fullText.length){
+            const runs=Array.from(seg.p.getElementsByTagName('w:r'));
             for(const r of runs){
               const sz=r.getElementsByTagName('w:sz')[0];
               const szCs=r.getElementsByTagName('w:szCs')[0];
@@ -3883,29 +3884,6 @@ async function prepDocx(name,buffer){
                 }
               });
             }
-          }
-
-          // Check if inside table cell w:tc
-          let cur=seg.p.parentNode;
-          while(cur){
-            if(cur.nodeName==='w:tbl'){
-              let tblPr=cur.getElementsByTagName('w:tblPr')[0];
-              if(!tblPr){tblPr=cur.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:tblPr');cur.insertBefore(tblPr,cur.firstChild)}
-              const oldBidi=tblPr.getElementsByTagName('w:tblBidi')[0];
-              if(oldBidi)oldBidi.remove();
-              if(!tblPr.getElementsByTagName('w:bidiVisual')[0]){
-                tblPr.appendChild(cur.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidiVisual'));
-              }
-              break;
-            }
-            cur=cur.parentNode;
-          }
-        }else if(srcRtl){
-          const pPr=seg.p.getElementsByTagName('w:pPr')[0];
-          if(pPr){
-            const bidi=pPr.getElementsByTagName('w:bidi')[0];if(bidi)bidi.remove();
-            let jc=pPr.getElementsByTagName('w:jc')[0];
-            if(jc)jc.setAttribute('w:val','left');
           }
         }
 
@@ -3955,6 +3933,70 @@ async function prepDocx(name,buffer){
           seg.p.appendChild(rCall);
         }
       });
+
+      // Apply RTL / LTR formatting across all document parts (headings, body paragraphs, and table cells)
+      if(rtl){
+        for(const xf of xmlFiles){
+          const docXml=parsed[xf];
+          if(!docXml)continue;
+          const tbls=Array.from(docXml.getElementsByTagName('w:tbl'));
+          for(const tbl of tbls){
+            let tblPr=tbl.getElementsByTagName('w:tblPr')[0];
+            if(!tblPr){tblPr=tbl.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:tblPr');tbl.insertBefore(tblPr,tbl.firstChild)}
+            const oldBidi=tblPr.getElementsByTagName('w:tblBidi')[0];
+            if(oldBidi)oldBidi.remove();
+            if(!tblPr.getElementsByTagName('w:bidiVisual')[0]){
+              tblPr.appendChild(tbl.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidiVisual'));
+            }
+          }
+          const ps=Array.from(docXml.getElementsByTagName('w:p'));
+          for(const p of ps){
+            let pPr=p.getElementsByTagName('w:pPr')[0];
+            if(!pPr){pPr=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:pPr');p.insertBefore(pPr,p.firstChild)}
+            if(!pPr.getElementsByTagName('w:bidi')[0]){
+              const bidi=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:bidi');
+              insertInDocxOrder(pPr,bidi,DOCX_PPR_ORDER);
+            }
+            const jcs=Array.from(pPr.getElementsByTagName('w:jc'));
+            if(jcs.length){
+              jcs.forEach(j=>j.setAttribute('w:val','right'));
+            }else{
+              const jc=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:jc');
+              jc.setAttribute('w:val','right');
+              insertInDocxOrder(pPr,jc,DOCX_PPR_ORDER);
+            }
+            const runs=Array.from(p.getElementsByTagName('w:r'));
+            for(const r of runs){
+              let rPr=r.getElementsByTagName('w:rPr')[0];
+              if(!rPr){rPr=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rPr');r.insertBefore(rPr,r.firstChild)}
+              let rFonts=rPr.getElementsByTagName('w:rFonts')[0];
+              if(!rFonts){
+                rFonts=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rFonts');
+                insertInDocxOrder(rPr,rFonts,DOCX_RPR_ORDER);
+              }
+              rFonts.setAttribute('w:cs', keepLayout ? 'Tahoma' : 'Vazirmatn');
+              if(!rPr.getElementsByTagName('w:rtl')[0]){
+                const rtlEl=p.ownerDocument.createElementNS('http://schemas.openxmlformats.org/wordprocessingml/2006/main','w:rtl');
+                insertInDocxOrder(rPr,rtlEl,DOCX_RPR_ORDER);
+              }
+            }
+          }
+        }
+      }else if(srcRtl){
+        for(const xf of xmlFiles){
+          const docXml=parsed[xf];
+          if(!docXml)continue;
+          const ps=Array.from(docXml.getElementsByTagName('w:p'));
+          for(const p of ps){
+            const pPr=p.getElementsByTagName('w:pPr')[0];
+            if(pPr){
+              const bidi=pPr.getElementsByTagName('w:bidi')[0];if(bidi)bidi.remove();
+              const jcs=Array.from(pPr.getElementsByTagName('w:jc'));
+              jcs.forEach(j=>j.setAttribute('w:val','left'));
+            }
+          }
+        }
+      }
 
       // Ensure <w:updateFields w:val="true"/> in word/settings.xml to refresh TOC and page numbers automatically
       let settingsDoc=parsed['word/settings.xml'];
@@ -4575,7 +4617,7 @@ async function buildPlainDocx(paras,tgt){
   const lang=rtl?`<w:lang w:val="${xmlEsc(tgt)}" w:bidi="${xmlEsc(tgt)}"/>`:`<w:lang w:val="${xmlEsc(tgt)}"/>`;
   const body=paras.map(t=>{
     const runs=t.split('\n').map((ln,i)=>`${i?'<w:br/>':''}<w:t xml:space="preserve">${xmlEsc(ln)}</w:t>`).join('');
-    return `<w:p><w:pPr>${rtl?'<w:bidi/>':''}<w:spacing w:after="160"/></w:pPr><w:r><w:rPr>${rtl?'<w:rtl/>':''}${lang}</w:rPr>${runs}</w:r></w:p>`;
+    return `<w:p><w:pPr>${rtl?'<w:bidi/>':''}<w:spacing w:after="160"/>${rtl?'<w:jc w:val="right"/>':''}</w:pPr><w:r><w:rPr>${rtl?'<w:rtl/>':''}${lang}</w:rPr>${runs}</w:r></w:p>`;
   }).join('');
   z.file('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return z.generateAsync({type:'blob',mimeType:OUT_FORMATS.docx.type});

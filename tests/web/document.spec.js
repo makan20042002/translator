@@ -161,6 +161,68 @@ test.describe('Web app: Document tab', () => {
     expect(count(after.parts['word/document.xml'], 'w:bidiVisual'), 'tables marked right-to-left with w:bidiVisual').toBe(1);
   });
 
+  test('DOCX: Persian output headings, body paragraphs, and table cells are right-to-left and aligned to the right', async ({ app }) => {
+    const docxLib = require('docx');
+    const path = require('path');
+    const os = require('os');
+    const testDoc = new docxLib.Document({
+      sections: [{
+        children: [
+          new docxLib.Paragraph({ text: 'Annual Department Summary', heading: docxLib.HeadingLevel.HEADING_1 }),
+          new docxLib.Paragraph({ text: 'This is a body paragraph that was explicitly left-aligned.', alignment: docxLib.AlignmentType.LEFT }),
+          new docxLib.Table({
+            rows: [
+              new docxLib.TableRow({
+                children: [
+                  new docxLib.TableCell({ children: [new docxLib.Paragraph({ text: 'Project Name', alignment: docxLib.AlignmentType.LEFT })] }),
+                  new docxLib.TableCell({ children: [new docxLib.Paragraph({ text: 'Project Status', alignment: docxLib.AlignmentType.LEFT })] })
+                ]
+              }),
+              new docxLib.TableRow({
+                children: [
+                  new docxLib.TableCell({ children: [new docxLib.Paragraph('Translation Engine')] }),
+                  new docxLib.TableCell({ children: [new docxLib.Paragraph('Completed Successfully')] })
+                ]
+              })
+            ]
+          })
+        ]
+      }]
+    });
+
+    const tmpDocx = path.join(os.tmpdir(), `docx-bidi-test-${Date.now()}.docx`);
+    fs.writeFileSync(tmpDocx, await docxLib.Packer.toBuffer(testDoc));
+
+    try {
+      const out = await translateDocument(app.page, tmpDocx, 6);
+      expect(out.name).toMatch(/\.fa\.docx$/);
+      const after = await openOffice(out.bytes);
+      expect(after.problems).toEqual([]);
+
+      const docXml = after.parts['word/document.xml'];
+      expect(schemaOrderProblems(docXml, 'word/document.xml')).toEqual([]);
+      expect(count(docXml, 'w:bidiVisual'), 'table marked with w:bidiVisual').toBe(1);
+
+      // No paragraph must retain explicit left alignment (w:val="left")
+      expect(docXml).not.toMatch(/<w:jc[^>]*w:val="left"/);
+
+      // Headings, body paragraphs and table cells must be right-aligned and have w:bidi
+      const bidiCount = count(docXml, 'w:bidi');
+      const rightJcCount = (docXml.match(/<w:jc[^>]*w:val="right"/g) || []).length;
+      expect(bidiCount, 'all 6 paragraphs must have w:bidi').toBe(6);
+      expect(rightJcCount, 'all 6 paragraphs must have w:jc w:val="right"').toBe(6);
+
+      // All runs must have w:rtl
+      const runs = (docXml.match(/<w:r[ >][\s\S]*?<\/w:r>/g) || []);
+      expect(runs.length).toBeGreaterThanOrEqual(6);
+      for (const r of runs) {
+        expect(r).toContain('<w:rtl/>');
+      }
+    } finally {
+      try { fs.unlinkSync(tmpDocx); } catch {}
+    }
+  });
+
   test('PPTX: valid file, same slides, text translated, right-to-left set', async ({ app, files }) => {
     const out = await translateDocument(app.page, files.pptx, 4);
     expect(out.name).toBe('sample.fa.pptx');
