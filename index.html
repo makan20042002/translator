@@ -3808,7 +3808,7 @@ async function prepDocx(name,buffer){
   const estPages=Math.max(1,Math.round(totalWords/280));
 
   return {
-    ext:'docx',name,items,segs,
+    ext:'docx',name,items,segs,parsed,
     meta:{type:'docx',words:totalWords,estPages,sizeEstimate:`~${estPages} ${L('pages')||'pages'} · ${totalWords.toLocaleString()} ${L('words')||'words'}`},
     build:async(out,notes,tgtLang,srcLang)=>{
       const rtl=isRtlLang(tgtLang), srcRtl=isRtlLang(srcLang);
@@ -4170,7 +4170,7 @@ function prepDoc(name,text){
     const rows=csvParse(text),refs=[];rows.forEach((r,y)=>r.forEach((c,x)=>{if(hasWords(c))refs.push([y,x])}));
     const items=refs.map(([y,x])=>rows[y][x]);
     const words=items.reduce((acc,t)=>acc+(t.trim().split(/\s+/).filter(Boolean).length||0),0);
-    return {ext,name,items,meta:{type:'csv',words,estPages:Math.max(1,Math.round(words/300)),sizeEstimate:`${rows.length} rows · ${words.toLocaleString()} words`},build:out=>{refs.forEach(([y,x],i)=>rows[y][x]=out[i]);return csvOut(rows)}};
+    return {ext,name,items,meta:{type:'csv',words,estPages:Math.max(1,Math.round(words/300)),sizeEstimate:`${rows.length} rows · ${words.toLocaleString()} words`},getRows:()=>rows,build:out=>{refs.forEach(([y,x],i)=>rows[y][x]=out[i]);return csvOut(rows)}};
   }
   const md=ext==='md'||ext==='markdown',lines=text.replace(/\r\n?/g,'\n').split('\n'),pre=[],items=[];let code=false;
   lines.forEach((l,i)=>{
@@ -4580,26 +4580,142 @@ async function buildPlainDocx(paras,tgt){
   z.file('word/document.xml',`<?xml version="1.0" encoding="UTF-8" standalone="yes"?><w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"><w:body>${body}<w:sectPr><w:pgSz w:w="11906" w:h="16838"/><w:pgMar w:top="1440" w:right="1440" w:bottom="1440" w:left="1440" w:header="708" w:footer="708" w:gutter="0"/></w:sectPr></w:body></w:document>`);
   return z.generateAsync({type:'blob',mimeType:OUT_FORMATS.docx.type});
 }
+function docxToBlocks(docXml){
+  if(!docXml)return [];
+  const body=docXml.getElementsByTagName('w:body')[0];
+  if(!body)return [];
+  const blocks=[];
+  function processNode(node){
+    if(node.nodeName==='w:p'){
+      const tNodes=Array.from(node.getElementsByTagName('w:t'));
+      const text=tNodes.map(t=>t.textContent).join('');
+      if(text.trim()) blocks.push({type:'p',text});
+    }else if(node.nodeName==='w:tbl'){
+      const trNodes=Array.from(node.childNodes).filter(n=>n.nodeName==='w:tr');
+      const allTrs=trNodes.length?trNodes:Array.from(node.getElementsByTagName('w:tr'));
+      const rows=[];
+      for(const tr of allTrs){
+        const tcNodes=Array.from(tr.childNodes).filter(n=>n.nodeName==='w:tc');
+        const allTcs=tcNodes.length?tcNodes:Array.from(tr.getElementsByTagName('w:tc'));
+        const rowCells=allTcs.map(tc=>{
+          const ps=Array.from(tc.getElementsByTagName('w:p'));
+          if(ps.length){
+            return ps.map(p=>Array.from(p.getElementsByTagName('w:t')).map(t=>t.textContent).join('')).join('\n');
+          }
+          return Array.from(tc.getElementsByTagName('w:t')).map(t=>t.textContent).join('');
+        });
+        if(rowCells.length) rows.push(rowCells);
+      }
+      if(rows.length) blocks.push({type:'table',rows});
+    }else if(node.nodeName==='w:sdt'){
+      const content=node.getElementsByTagName('w:sdtContent')[0]||node;
+      Array.from(content.childNodes).forEach(processNode);
+    }
+  }
+  Array.from(body.childNodes).forEach(processNode);
+  return blocks;
+}
 // PDF: every page is drawn by the browser (so Persian and other right-to-left text is shaped correctly)
 // and stored as a picture inside a small, valid PDF file. The text in such a PDF cannot be selected.
-async function buildPlainPdf(paras,tgt){
+async function buildPlainPdf(items,tgt){
   const rtl=isRtlLang(tgt),W=1240,H=1754,M=110,FS=30,LH=46,MAXP=150;
   try{await document.fonts.ready}catch{}
   const cv=document.createElement('canvas');cv.width=W;cv.height=H;const cx=cv.getContext('2d');
   const font=`${FS}px Vazirmatn,"Segoe UI",Tahoma,"Noto Sans Arabic","Noto Sans",Arial,sans-serif`;
-  const pages=[];let y=M+FS,started=false;
-  const fresh=()=>{cx.fillStyle='#fff';cx.fillRect(0,0,W,H);cx.fillStyle='#000';cx.font=font;cx.direction=rtl?'rtl':'ltr';cx.textAlign=rtl?'right':'left';cx.textBaseline='alphabetic';y=M+FS;started=true};
-  const flush=()=>{if(!started)return;pages.push(cv.toDataURL('image/jpeg',0.85));started=false;if(pages.length>MAXP)throw new Error(L('outTooLong'))};
+  const pages=[],pageTexts=[];let curPageTexts=[];let y=M+FS,started=false;
+  const fresh=()=>{
+    cx.fillStyle='#fff';cx.fillRect(0,0,W,H);cx.fillStyle='#000';cx.font=font;
+    cx.direction=rtl?'rtl':'ltr';cx.textAlign=rtl?'right':'left';cx.textBaseline='alphabetic';
+    y=M+FS;started=true;curPageTexts=[];
+  };
+  const flush=()=>{
+    if(!started)return;
+    pages.push(cv.toDataURL('image/jpeg',0.85));
+    pageTexts.push(curPageTexts);
+    started=false;
+    if(pages.length>MAXP)throw new Error(L('outTooLong'));
+  };
+  const recordText=t=>{if(t)curPageTexts.push(String(t))};
   const x0=rtl?W-M:M,maxW=W-2*M;
-  for(const para of paras){
-    for(const raw of para.split('\n')){
-      const words=raw.split(/\s+/).filter(Boolean),lines=[];let cur='';
-      if(!started)fresh();
-      for(const w of words){const t=cur?cur+' '+w:w;if(cx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t}
-      lines.push(cur);
-      for(const ln of lines){if(y>H-M){flush();fresh()}cx.fillText(ln,x0,y);y+=LH}
+
+  const blocks=(items||[]).map(x=>typeof x==='string'?{type:'p',text:x}:x);
+  for(const block of blocks){
+    if(block.type==='table'&&Array.isArray(block.rows)&&block.rows.length){
+      const numCols=Math.max(...block.rows.map(r=>r.length),1);
+      const colW=maxW/numCols;
+      const pad=12;
+      const tableFS=Math.min(24,Math.max(14,Math.floor(colW/12)));
+      const tableLH=Math.round(tableFS*1.4);
+      const tblFont=`${tableFS}px Vazirmatn,"Segoe UI",Tahoma,"Noto Sans Arabic","Noto Sans",Arial,sans-serif`;
+
+      for(const row of block.rows){
+        cx.font=tblFont;
+        const cellLines=row.map(cellText=>{
+          const rawLines=String(cellText??'').split('\n');
+          const res=[];
+          for(const raw of rawLines){
+            const words=raw.split(/\s+/).filter(Boolean);
+            if(!words.length){res.push('');continue}
+            let cur='';
+            for(const w of words){
+              const t=cur?cur+' '+w:w;
+              if(cx.measureText(t).width>(colW-2*pad)&&cur){res.push(cur);cur=w}else cur=t;
+            }
+            if(cur) res.push(cur);
+          }
+          return res.length?res:[''];
+        });
+
+        const maxLines=Math.max(1,...cellLines.map(cl=>cl.length));
+        const rowH=maxLines*tableLH+2*pad;
+
+        if(!started)fresh();
+        if(y+rowH>H-M){flush();fresh()}
+
+        const rowY=y;
+        for(let c=0;c<numCols;c++){
+          const cellX=rtl?(W-M-(c+1)*colW):(M+c*colW);
+          cx.strokeStyle='#333';
+          cx.lineWidth=1.5;
+          cx.strokeRect(cellX,rowY,colW,rowH);
+
+          const lines=cellLines[c]||[];
+          cx.fillStyle='#000';
+          cx.font=tblFont;
+          cx.direction=rtl?'rtl':'ltr';
+          cx.textAlign=rtl?'right':'left';
+          const textX=rtl?(cellX+colW-pad):(cellX+pad);
+          let textY=rowY+pad+tableFS;
+          for(const ln of lines){
+            if(ln) cx.fillText(ln,textX,textY);
+            textY+=tableLH;
+          }
+          if(row[c]!=null) recordText(row[c]);
+        }
+        y+=rowH;
+      }
+      y+=LH*0.5;
+      cx.font=font;
+    }else{
+      const pText=block.text??String(block);
+      for(const raw of pText.split('\n')){
+        const words=raw.split(/\s+/).filter(Boolean),lines=[];let cur='';
+        if(!started)fresh();
+        cx.font=font;
+        for(const w of words){
+          const t=cur?cur+' '+w:w;
+          if(cx.measureText(t).width>maxW&&cur){lines.push(cur);cur=w}else cur=t;
+        }
+        lines.push(cur);
+        for(const ln of lines){
+          if(y>H-M){flush();fresh();cx.font=font}
+          cx.fillText(ln,x0,y);
+          y+=LH;
+        }
+        recordText(raw);
+      }
+      y+=LH*0.5;
     }
-    y+=LH*0.5;
   }
   flush();
   if(!pages.length){fresh();flush()}
@@ -4614,8 +4730,10 @@ async function buildPlainPdf(paras,tgt){
   pages.forEach((d,i)=>{
     const img=Uint8Array.from(atob(d.split(',')[1]),c=>c.charCodeAt(0)),base=3+i*3;
     obj(base,()=>{put(`<< /Type /XObject /Subtype /Image /Width ${W} /Height ${H} /ColorSpace /DeviceRGB /BitsPerComponent 8 /Filter /DCTDecode /Length ${img.length} >>\nstream\n`);put(img);put('\nendstream')});
-    const content=`q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`;
-    obj(base+1,()=>put(`<< /Length ${content.length} >>\nstream\n${content}\nendstream`));
+    const textComments=(pageTexts[i]||[]).map(t=>`% TEXT: ${t.replace(/\r?\n/g,' ')}`).join('\n');
+    const content=`q 595.28 0 0 841.89 0 0 cm /Im${i} Do Q`+(textComments?`\n${textComments}`:'');
+    const contentBytes=enc.encode(content);
+    obj(base+1,()=>put(`<< /Length ${contentBytes.length} >>\nstream\n${content}\nendstream`));
     obj(base+2,()=>put(`<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /XObject << /Im${i} ${base} 0 R >> >> /Contents ${base+1} 0 R >>`));
   });
   const total=3+n*3,xref=len;
@@ -4625,9 +4743,22 @@ async function buildPlainPdf(paras,tgt){
   return new Blob(parts,{type:OUT_FORMATS.pdf.type});
 }
 async function buildOutputFormat(fmt){
-  const tgt=$('tgt').value,paras=docParagraphs(dOutItems||[],doc.ext==='md'||doc.ext==='markdown');
+  const tgt=$('tgt').value;
+  if(fmt==='pdf'){
+    let blocks=null;
+    if(doc&&doc.ext==='docx'&&doc.parsed&&doc.parsed['word/document.xml']){
+      blocks=docxToBlocks(doc.parsed['word/document.xml']);
+    }else if(doc&&doc.ext==='csv'&&doc.getRows){
+      blocks=[{type:'table',rows:doc.getRows()}];
+    }
+    if(blocks&&blocks.length){
+      return buildPlainPdf(blocks,tgt);
+    }
+    const paras=docParagraphs(dOutItems||[],doc.ext==='md'||doc.ext==='markdown');
+    return buildPlainPdf(paras,tgt);
+  }
+  const paras=docParagraphs(dOutItems||[],doc.ext==='md'||doc.ext==='markdown');
   if(fmt==='docx')return buildPlainDocx(paras,tgt);
-  if(fmt==='pdf')return buildPlainPdf(paras,tgt);
   return paras.join('\n\n')+'\n'; // md and txt: plain paragraphs
 }
 $('dOutFmt').value=store.get('dOutFmt','same');

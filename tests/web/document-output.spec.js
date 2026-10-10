@@ -107,6 +107,61 @@ test.describe('Web app: Document tab output format', () => {
     testInfo.annotations.push({ type: 'not checked here', description: 'Pixel-level look of the Persian page was checked by eye on Linux; this test checks structure only.' });
   });
 
+  test('PDF output from a Word file with a heading, paragraphs and a 3-column, 7-row table: valid PDF, table rendered, every cell translated and present', async ({ app }) => {
+    const docxLib = require('docx');
+    const tableData = [
+      ['Metric Name', 'Primary Region', 'Annual Status'],
+      ['Revenue Growth', 'North America', 'Target Exceeded'],
+      ['Customer Retention', 'Western Europe', 'Stable Performance'],
+      ['Market Expansion', 'Asia Pacific', 'Rapid Progress'],
+      ['Product Delivery', 'Latin America', 'On Schedule'],
+      ['Service Quality', 'Middle East', 'High Satisfaction'],
+      ['System Security', 'Global Fleet', 'Fully Compliant']
+    ];
+
+    const testDoc = new docxLib.Document({
+      sections: [{
+        children: [
+          new docxLib.Paragraph({ text: 'Annual Performance Overview', heading: docxLib.HeadingLevel.HEADING_1 }),
+          new docxLib.Paragraph('First introductory paragraph before the metrics table.'),
+          new docxLib.Paragraph('Second contextual paragraph with additional details and explanations.'),
+          new docxLib.Table({
+            rows: tableData.map(row => new docxLib.TableRow({
+              children: row.map(cell => new docxLib.TableCell({
+                children: [new docxLib.Paragraph(cell)]
+              }))
+            }))
+          })
+        ]
+      }]
+    });
+
+    const tmpFile = path.join(os.tmpdir(), `table-metrics-${Date.now()}.docx`);
+    fs.writeFileSync(tmpFile, await docxLib.Packer.toBuffer(testDoc));
+
+    try {
+      const out = await translateAndDownload(app.page, tmpFile, 'pdf');
+      expect(out.name).toMatch(/\.fa\.pdf$/);
+      const info = inspectPdf(out.bytes);
+      expect(info.problems).toEqual([]);
+      expect(info.pages).toBeGreaterThanOrEqual(1);
+
+      const pdfText = out.bytes.toString('utf8');
+      expect(pdfText).toContain('[fa] Annual Performance Overview');
+      expect(pdfText).toContain('[fa] First introductory paragraph before the metrics table.');
+      expect(pdfText).toContain('[fa] Second contextual paragraph with additional details and explanations.');
+
+      // Check that every cell's translated text is present in the PDF output
+      for (const row of tableData) {
+        for (const cell of row) {
+          expect(pdfText).toContain(`[fa] ${cell}`);
+        }
+      }
+    } finally {
+      try { fs.unlinkSync(tmpFile); } catch {}
+    }
+  });
+
   test('the chosen format is remembered', async ({ app, files }) => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
@@ -118,3 +173,4 @@ test.describe('Web app: Document tab output format', () => {
     await expect(page.locator('#dOutFmt')).toHaveValue('pdf');
   });
 });
+
