@@ -2679,13 +2679,21 @@ async function speakFast(text,lang,forceFast=false){
   }
 }
 /* ----- speech to text ----- */
-const SR=self.SpeechRecognition||self.webkitSpeechRecognition;
+const isElectron = typeof navigator !== 'undefined' && /Electron/i.test(navigator.userAgent);
+const SR = !isElectron && (self.SpeechRecognition || self.webkitSpeechRecognition);
 function sttMode(){
+  if(isElectron && cfg.stt==='browser'){
+    if(cfg.eng?.groq?.key) return 'groq';
+    const gemKey=cfg.eng?.gemini?.key||(cfg.tts.mode==='gemini'&&cfg.tts.key);
+    if(gemKey) return 'gemini';
+    return asrReady() ? 'whisper' : 'helper';
+  }
   if(cfg.stt!=='auto')return cfg.stt;
   if(isOff())return 'whisper';
   if(cfg.eng.groq.key&&!sessionBlocked.has('groq')&&cfg.eng.groq.on!==false)return 'groq';
   const gemKey=cfg.eng.gemini.key||(cfg.tts.mode==='gemini'&&cfg.tts.key);
   if(gemKey&&!sessionBlocked.has('gemini')&&cfg.eng.gemini.on!==false)return 'gemini';
+  if(isElectron) return asrReady() ? 'whisper' : 'helper';
   return (self.SpeechRecognition||self.webkitSpeechRecognition)?'browser':'whisper';
 }
 
@@ -2787,8 +2795,15 @@ async function getMicStream(){
     updateMicIndicator(true);
     return sharedMicStream;
   }catch(err){
-    updateMicIndicator(false);
-    throw new Error(L('micBlocked'));
+    try{
+      sharedMicStream=await navigator.mediaDevices.getUserMedia({audio:true});
+      sharedMicStream.getAudioTracks().forEach(t=>{t.onended=()=>{sharedMicStream=null;updateMicIndicator(false)}});
+      updateMicIndicator(true);
+      return sharedMicStream;
+    }catch(err2){
+      updateMicIndicator(false);
+      throw new Error(L('micBlocked'));
+    }
   }
 }
 function releaseMicStream(){
@@ -5447,7 +5462,7 @@ function setupPTT(btn, onSend, viewType) {
     setVoiceState('listening', L('vStatusListening'), { isTap: tapActive });
     if (partEl) { partEl.hidden = false; partEl.textContent = '…'; }
 
-    if (sttMode() === 'browser') {
+    if (!isElectron && sttMode() === 'browser') {
       const SR = self.SpeechRecognition || self.webkitSpeechRecognition;
       if (!SR) {
         isRecording = false;
