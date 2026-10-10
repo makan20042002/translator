@@ -180,4 +180,46 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(await page.evaluate(() => cfg.whisper)).toBe('base');
     await expect(page.locator('#vMicSttCurLabel')).toHaveText('Whisper Base');
   });
+
+  test('Python helper options (Whisper large-v3 and Qwen3-ASR) are displayed and synchronized', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+    // Open mic STT popup
+    await page.locator('#vMicSttBtn').click();
+    const list = page.locator('#vMicSttList');
+
+    const helperGroup = list.locator('[data-group="helper-asr"]');
+    await expect(helperGroup).toBeVisible();
+
+    const whisperL3Card = helperGroup.locator('.voice-card[data-helper-model="whisper-large-v3"]');
+    await expect(whisperL3Card).toBeVisible();
+    await expect(whisperL3Card).toContainText('Whisper large-v3');
+
+    const qwenCard = helperGroup.locator('.voice-card[data-helper-model="qwen3-asr"]');
+    await expect(qwenCard).toBeVisible();
+    await expect(qwenCard).toContainText('Qwen3-ASR');
+
+    // Select Whisper Large v3
+    await whisperL3Card.click();
+
+    expect(await page.evaluate(() => cfg.stt)).toBe('helper');
+    expect(await page.evaluate(() => cfg.helperModel)).toBe('whisper-large-v3');
+    await expect(page.locator('#vMicSttCurLabel')).toHaveText('Whisper L3 (Helper)');
+    expect(await page.locator('#helperSettingsWrap').getAttribute('hidden')).toBeNull();
+
+    // Select Qwen3-ASR
+    await page.locator('#vMicSttBtn').click();
+    await qwenCard.click();
+
+    expect(await page.evaluate(() => cfg.stt)).toBe('helper');
+    expect(await page.evaluate(() => cfg.helperModel)).toBe('qwen3-asr');
+    await expect(page.locator('#vMicSttCurLabel')).toHaveText('Qwen3-ASR (Helper)');
+
+    // Reload and check persistence
+    await page.reload();
+    expect(await page.evaluate(() => cfg.stt)).toBe('helper');
+    expect(await page.evaluate(() => cfg.helperModel)).toBe('qwen3-asr');
+    await expect(page.locator('#vMicSttCurLabel')).toHaveText('Qwen3-ASR (Helper)');
+  });
 });

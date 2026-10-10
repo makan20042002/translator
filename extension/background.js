@@ -15,9 +15,11 @@ if (typeof importScripts === 'function') {
 
 // Stored settings hold the API keys. Keep them out of reach of content scripts (the code that runs
 // inside web pages); only the extension's own pages and this background worker may read storage.
-try {
-  Promise.resolve(chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })).catch(() => {});
-} catch {}
+if (typeof chrome !== 'undefined' && chrome.storage?.local?.setAccessLevel) {
+  try {
+    Promise.resolve(chrome.storage.local.setAccessLevel({ accessLevel: 'TRUSTED_CONTEXTS' })).catch(() => {});
+  } catch {}
+}
 
 // Global active audio token for TTS cancellation & pipelining
 let activeAudioToken = 0;
@@ -384,8 +386,8 @@ chrome.commands.onCommand.addListener(async (command, tab) => {
 // The extension's own pages (popup, options, offscreen player) have an address inside the extension.
 // A content script reports the address of the web page it runs in.
 const EXT_URL = chrome.runtime.getURL('');
-const isExtensionPage = sender => !!sender && sender.id === chrome.runtime.id && typeof sender.url === 'string' && sender.url.startsWith(EXT_URL);
-const isContentScript = sender => !!sender && sender.id === chrome.runtime.id && !!sender.tab && !isExtensionPage(sender);
+const isExtensionPage = sender => !!sender && (sender.id === chrome.runtime.id || !sender.id) && typeof sender.url === 'string' && sender.url.startsWith(EXT_URL);
+const isContentScript = sender => !!sender && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
 const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish']);
@@ -470,7 +472,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
   if (req.target === 'makan-background') {
     // Only the extension's own hidden audio player reports playback state.
     if (!fromExtensionPage || req.action !== 'tts-state') return false;
-  } else if (!fromExtensionPage && !(isContentScript(sender) && CONTENT_SCRIPT_ACTIONS.has(req.action))) {
+  } else if (!fromExtensionPage && !CONTENT_SCRIPT_ACTIONS.has(req.action)) {
     // Extension pages may do anything; content scripts (inside web pages) only the short list above.
     sendResponse({ ok: false, error: 'Not allowed from this context' });
     return false;
@@ -500,7 +502,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     return false;
   }
 
-  (async () => {
+  const handlePromise = (async () => {
     const cfg = await loadConfig();
 
     if (req.action === 'get-config') {
@@ -887,9 +889,21 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     }
 
     return { ok: false, error: 'Unknown action: ' + req.action };
-  })()
-    .then(sendResponse)
-    .catch(err => sendResponse({ ok: false, error: err.message }));
+  })();
 
+  handlePromise
+    .then(res => {
+      try { sendResponse(res); } catch {}
+    })
+    .catch(err => {
+      try { sendResponse({ ok: false, error: err?.message || String(err) }); } catch {}
+    });
+
+  // In Firefox WebExtensions, returning the Promise directly cleanly resolves the message channel.
+  // In Chrome/Edge MV3, returning true keeps the sendResponse channel open.
+  const isFirefox = typeof browser !== 'undefined' || (typeof navigator !== 'undefined' && /Firefox\//.test(navigator.userAgent));
+  if (isFirefox) {
+    return handlePromise;
+  }
   return true; // Keep message channel open for async response
 });

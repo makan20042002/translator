@@ -91,6 +91,7 @@ function findFirefox() {
     'C:\\Program Files\\Mozilla Firefox\\firefox.exe', 'C:\\Program Files (x86)\\Mozilla Firefox\\firefox.exe',
     '/Applications/Firefox.app/Contents/MacOS/firefox'].filter(Boolean);
   for (const c of candidates) {
+    if (fs.existsSync(c)) return { bin: c, version: 'Mozilla Firefox' };
     const r = spawnSync(c, ['--version'], { encoding: 'utf8', timeout: 20000 });
     if (r.status === 0 && /Firefox/i.test(r.stdout)) return { bin: c, version: r.stdout.trim() };
   }

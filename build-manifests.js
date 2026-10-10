@@ -78,10 +78,7 @@ function buildFirefox() {
   manifest.browser_specific_settings = {
     gecko: {
       id: 'makan-translate@makanlab.tech',
-      strict_min_version: '142.0',
-      data_collection_permissions: {
-        required: ['websiteContent']
-      }
+      strict_min_version: '115.0'
     }
   };
 
@@ -111,6 +108,10 @@ function buildChrome() {
   manifest.permissions = manifest.permissions.filter(p => p !== 'notifications');
   if (!manifest.permissions.includes('offscreen')) manifest.permissions.push('offscreen');
   if (!manifest.permissions.includes('scripting')) manifest.permissions.push('scripting');
+
+  (manifest.web_accessible_resources || []).forEach(w => {
+    w.use_dynamic_url = true;
+  });
 
   fs.writeFileSync(path.join(outDir, 'manifest.json'), JSON.stringify(manifest, null, 2));
   fs.writeFileSync(path.join(EXT_DIR, 'manifest.chrome.json'), JSON.stringify(manifest, null, 2));

@@ -660,10 +660,47 @@ function failureNeedsOptions(reason) { return /key missing|key rejected|model no
 // Ask the extension's background and never lose the reason: a missing or silent answer becomes a plain message.
 async function askBackground(msg) {
   try {
-    if (!(root.chrome && chrome.runtime && chrome.runtime.sendMessage)) return { ok: false, error: 'the extension background did not answer: refresh this page' };
-    const r = await chrome.runtime.sendMessage(msg);
-    if (!r) return { ok: false, error: 'the extension background did not answer: refresh this page' };
-    return r;
+    const api = (typeof browser !== 'undefined' && browser.runtime?.sendMessage)
+      ? browser.runtime
+      : (root.chrome && chrome.runtime?.sendMessage)
+        ? chrome.runtime
+        : null;
+    if (!api) return { ok: false, error: 'the extension background did not answer: refresh this page' };
+
+    // Try Promise-based send first (Firefox native browser.runtime & modern Chrome)
+    try {
+      const p = api.sendMessage(msg);
+      if (p && typeof p.then === 'function') {
+        const res = await p;
+        if (res !== undefined && res !== null) return res;
+      }
+    } catch (err) {
+      const msgStr = String(err?.message || err || '');
+      if (!/receiving end does not exist|could not establish connection|no answer from/i.test(msgStr)) {
+        return { ok: false, error: plainFailure(err) };
+      }
+    }
+
+    // Callback-based fallback
+    return await new Promise((resolve) => {
+      let resolved = false;
+      const finish = (val) => {
+        if (!resolved) {
+          resolved = true;
+          resolve(val);
+        }
+      };
+      try {
+        api.sendMessage(msg, (res) => {
+          const lastErr = (typeof chrome !== 'undefined' && chrome.runtime?.lastError?.message);
+          if (lastErr) finish({ ok: false, error: plainFailure(lastErr) });
+          else if (res) finish(res);
+          else finish({ ok: false, error: 'the extension background did not answer: refresh this page' });
+        });
+      } catch (e) {
+        finish({ ok: false, error: plainFailure(e) });
+      }
+    });
   } catch (e) {
     return { ok: false, error: plainFailure(e) };
   }

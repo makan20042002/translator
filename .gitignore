@@ -48,3 +48,9 @@ makan-settings*.json
 tests/.generated/
 tests/.results/
 /test-results
+ 
+# Python
+__pycache__/
+*.py[cod]
+$*py.class
+.pytest_cache/
