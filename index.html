@@ -8063,26 +8063,87 @@ refreshMarks();
   window.makanDesktop.onExecuteScreenTranslation(async (payload) => {
     const { id, text, src, tgt, engine } = payload;
     try {
-      const sourceLang = (!src || src === 'auto') ? ($('src')?.value === 'finglish' ? 'auto' : ($('src')?.value || 'auto')) : src;
-      const targetLang = tgt || $('tgt')?.value || 'fa';
+      let sourceLang = (!src || src === 'auto') ? ($('src')?.value === 'finglish' ? 'auto' : ($('src')?.value || 'auto')) : src;
+      let targetLang = tgt || $('tgt')?.value || 'fa';
       const transEngine = engine || $('engine')?.value || 'auto';
 
-      // Call existing MAKAN translation pipeline
-      const r = await translateItems([text], opts({
+      if (sourceLang !== 'auto' && sourceLang === targetLang) {
+        targetLang = sourceLang === 'fa' ? 'en' : 'fa';
+      }
+
+      const rawTrimmed = String(text || '').trim();
+      if (!rawTrimmed) {
+        window.makanDesktop.sendScreenTranslationResponse({
+          id,
+          ok: true,
+          translation: '',
+          detectedSrc: sourceLang,
+          engineUsed: transEngine
+        });
+        return;
+      }
+
+      // Check Translation Memory first
+      if (typeof TranslationMemory !== 'undefined' && cfg.tm !== false) {
+        try {
+          const hit = await TranslationMemory.get({
+            text: rawTrimmed,
+            src: sourceLang,
+            tgt: targetLang,
+            modeClass: 'smart',
+            tone: $('tone')?.value || '',
+            subject: $('tSubject')?.value?.trim() || ''
+          });
+          if (hit && hit.translatedText) {
+            window.makanDesktop.sendScreenTranslationResponse({
+              id,
+              ok: true,
+              translation: hit.translatedText,
+              detectedSrc: sourceLang,
+              engineUsed: hit.corrected ? 'correction' : 'memory'
+            });
+            return;
+          }
+        } catch (_) {}
+      }
+
+      const lines = rawTrimmed.split('\n');
+      const chain = (transEngine === 'auto')
+        ? (typeof getSmartEngineChain === 'function' ? getSmartEngineChain() : (typeof getFastChain === 'function' ? getFastChain() : ['google']))
+        : [transEngine];
+
+      const r = await translateItems(lines, opts({
+        chain,
         src: sourceLang,
         tgt: targetLang,
         engine: transEngine
       }));
 
-      const outText = (r && r.out && r.out[0]) || '';
-      const usedEng = r && r.used ? Array.from(r.used).join(', ') : transEngine;
+      const outText = (r && r.out && r.out.join('\n')) || '';
+      const usedEng = r?.used || (Array.isArray(chain) ? chain.join(', ') : transEngine);
+
+      if (typeof saveToMemory === 'function' && outText) {
+        try {
+          saveToMemory({
+            text: rawTrimmed,
+            translatedText: outText,
+            lines,
+            out: r.out,
+            src: sourceLang,
+            tgt: targetLang,
+            modeClass: 'smart',
+            tone: $('tone')?.value || '',
+            subject: $('tSubject')?.value?.trim() || ''
+          });
+        } catch (_) {}
+      }
 
       // Optional: Save to history if configured
       const curCfg = await window.makanDesktop.getScreenTransConfig().catch(() => ({}));
       if (curCfg?.saveHistory && outText) {
         try {
           const h = store.get('hist', []);
-          h.unshift({ ts: Date.now(), src: sourceLang, tgt: targetLang, e: usedEng, i: text, o: outText });
+          h.unshift({ ts: Date.now(), src: sourceLang, tgt: targetLang, e: usedEng, i: rawTrimmed, o: outText });
           if (h.length > 200) h.length = 200;
           store.set('hist', h);
           renderHist();
@@ -8097,10 +8158,32 @@ refreshMarks();
         engineUsed: usedEng
       });
     } catch (err) {
+      console.warn('[ScreenTranslator] Primary translation engine failed, trying fallback:', err);
+      try {
+        const fallbackLines = String(text || '').trim().split('\n');
+        const rFallback = await translateItems(fallbackLines, opts({
+          chain: ['google'],
+          src: src || 'auto',
+          tgt: tgt || 'fa',
+          engine: 'google'
+        }));
+        const outFallback = (rFallback && rFallback.out && rFallback.out.join('\n')) || '';
+        if (outFallback) {
+          window.makanDesktop.sendScreenTranslationResponse({
+            id,
+            ok: true,
+            translation: outFallback,
+            detectedSrc: src || 'auto',
+            engineUsed: 'Google'
+          });
+          return;
+        }
+      } catch (_) {}
+
       window.makanDesktop.sendScreenTranslationResponse({
         id,
         ok: false,
-        error: err?.message || 'Translation failed'
+        error: err?.message || 'Translation failed. Please retry or click Open in App.'
       });
     }
   });

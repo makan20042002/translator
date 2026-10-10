@@ -136,6 +136,12 @@ class ScreenTranslatorManager {
       }
     });
 
+    ipcMain.on('screen-trans:overlay-ready', () => {
+      if (this._lastOcrResult) {
+        this.sendToOverlay('ocr-result', this._lastOcrResult);
+      }
+    });
+
     ipcMain.on('screen-trans:open-in-app', (event, { text, src, tgt }) => {
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
         if (this.mainWindow.isMinimized()) this.mainWindow.restore();
@@ -254,6 +260,7 @@ class ScreenTranslatorManager {
 
       // Run Windows OCR
       const ocrResult = await this.ocrService.recognize(imageBuffer, this.config.ocrLang || 'auto');
+      this._lastOcrResult = ocrResult;
       this.sendToOverlay('ocr-result', ocrResult);
 
       if (ocrResult.ok && ocrResult.text && this.config.autoCopy) {
@@ -308,8 +315,8 @@ class ScreenTranslatorManager {
    * Show or reposition floating translation overlay window near the selected box.
    */
   showOverlayNear(rect) {
-    const overlayWidth = 420;
-    const overlayHeight = 280;
+    const overlayWidth = 460;
+    const overlayHeight = 300;
 
     const currentDisplay = screen.getDisplayNearestPoint({ x: rect.x, y: rect.y });
     const bounds = currentDisplay.workArea;
@@ -336,8 +343,8 @@ class ScreenTranslatorManager {
         y: Math.round(posY),
         width: overlayWidth,
         height: overlayHeight,
-        minWidth: 320,
-        minHeight: 200,
+        minWidth: 360,
+        minHeight: 220,
         transparent: true,
         frame: false,
         alwaysOnTop: true,
@@ -372,7 +379,15 @@ class ScreenTranslatorManager {
 
   sendToOverlay(channel, data) {
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
-      this.overlayWindow.webContents.send(channel, data);
+      if (this.overlayWindow.webContents.isLoading()) {
+        this.overlayWindow.webContents.once('did-finish-load', () => {
+          if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
+            this.overlayWindow.webContents.send(channel, data);
+          }
+        });
+      } else {
+        this.overlayWindow.webContents.send(channel, data);
+      }
     }
   }
 
@@ -399,9 +414,9 @@ class ScreenTranslatorManager {
       setTimeout(() => {
         if (this._pendingTranslations.has(transId)) {
           this._pendingTranslations.delete(transId);
-          resolve({ ok: false, error: 'Translation timed out.' });
+          resolve({ ok: false, error: 'Translation timed out. Please retry or click Open in App.' });
         }
-      }, 30000);
+      }, 15000);
     });
 
     this.mainWindow.webContents.send('execute-screen-translation', payload);
