@@ -478,6 +478,10 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 <nav class="nav"><div class="wrap">
   <a class="brand" href="https://makanlab.tech/"><span class="mark">M</span><span>MAKAN<b>LAB</b></span><small>Translate</small></a>
   <span class="sp"></span>
+  <button class="btn" id="btnScreenTrans" title="Screen Translator (Ctrl+Shift+S)" style="background:linear-gradient(135deg,rgba(34,229,138,.16),rgba(19,200,245,.16));border-color:var(--accent-line);display:none;padding:0 12px;gap:6px">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+    <span data-t="screenTrans">Screen Translator</span> <kbd style="margin-inline-start:4px;font-size:10px">Ctrl+Shift+S</kbd>
+  </button>
   <button class="btn ghost" id="offBtn"><span class="dot"></span><span data-t="offMode">Offline mode</span></button>
   <button class="btn ghost" id="uiLang">فارسی</button>
   <button class="btn" id="openSet" data-t="engines">Engines &amp; keys</button>
@@ -1198,6 +1202,50 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       </div>
       <div id="testAsrStatus" class="meta" style="margin-bottom:6px" hidden></div>
       <div id="testAsrResults" class="test-results-wrap" aria-live="polite"></div>
+  <!-- Screen Translator Settings (Desktop) -->
+  <div id="screenTransSettingsBlock" style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px" hidden>
+    <h3 style="display:flex;align-items:center;gap:8px;margin-top:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg> <span data-t="screenTransH">Screen Translator (Windows OCR)</span></h3>
+    <p class="note" data-t="screenTransNote">Capture any region of your screen to recognize text with native Windows OCR and translate instantly.</p>
+    <div class="setg">
+      <label><span data-t="screenTransEnable">Enable Screen Translator</span>
+        <select id="stEnable">
+          <option value="1">Enabled</option>
+          <option value="0">Disabled</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransHotkey">Global Shortcut</span>
+        <input type="text" id="stHotkey" value="Ctrl+Shift+S" readonly style="cursor:not-allowed">
+      </label>
+      <label><span data-t="screenTransOcrLang">Windows OCR Language</span>
+        <select id="stOcrLang">
+          <option value="auto">Auto-detect / Default</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransTgtLang">Default Target Language</span>
+        <select id="stTgtLang">
+          <option value="fa">Persian (فارسی)</option>
+          <option value="en">English</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransAutoCopy">Copy translated text automatically</span>
+        <select id="stAutoCopy">
+          <option value="0">No (Manual copy)</option>
+          <option value="1">Yes (Copy immediately)</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransSaveHist">Save OCR translations to History</span>
+        <select id="stSaveHist">
+          <option value="0">No (Privacy mode)</option>
+          <option value="1">Yes</option>
+        </select>
+      </label>
+    </div>
+    <div class="row" style="margin-top:10px;align-items:center;gap:10px">
+      <button class="btn" id="btnTestScreenTrans" type="button" style="padding:6px 14px;gap:6px">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+        <span data-t="testScreenTransBtn">Capture Screen Region Now</span>
+      </button>
+      <span class="hint" id="stOcrStatusHint" style="font-size:12px"></span>
     </div>
   </div>
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
@@ -1414,7 +1462,13 @@ Object.assign(I18N.en,{
  helperConnected:'Helper connected',
  helperOffline:'Helper offline (start Python helper)',
  helperCheckBtn:'Check',helperDlBtn:'Download / Load Model',
- allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language',notDownloaded:'Not downloaded',dlBtn:'Download',voiceOffline:'Offline voice'
+ allVoicesH:'Available voices',previewVoice:'Preview',voiceFallbackAuto:'Selected voice is unavailable. Using Auto.',offlineVoicesAvailable:'Offline voices (available for download)',autoVoiceDesc:'Automatically picks the best voice for each language',notDownloaded:'Not downloaded',dlBtn:'Download',voiceOffline:'Offline voice',
+ screenTrans:'Screen Translator',screenTransH:'Screen Translator (Windows OCR)',
+ screenTransNote:'Capture any region of your screen to recognize text with native Windows OCR and translate instantly.',
+ screenTransEnable:'Enable Screen Translator',screenTransHotkey:'Global Shortcut',
+ screenTransOcrLang:'Windows OCR Language',screenTransTgtLang:'Default Target Language',
+ screenTransAutoCopy:'Copy translated text automatically',screenTransSaveHist:'Save OCR translations to History',
+ testScreenTransBtn:'Capture Screen Region Now'
 });
 Object.assign(I18N.fa,{
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
@@ -1446,7 +1500,13 @@ Object.assign(I18N.fa,{
  helperConnected:'دستیار کمکی متصل است',
  helperOffline:'دستیار کمکی خاموش است (سرور کمکی را روشن کنید)',
  helperCheckBtn:'بررسی',helperDlBtn:'دانلود و بارگذاری مدل',
- allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان',notDownloaded:'دانلود نشده',dlBtn:'دانلود',voiceOffline:'صدای آفلاین'
+ allVoicesH:'صداهای موجود',previewVoice:'پیش‌شنوایی',voiceFallbackAuto:'صدای انتخاب‌شده در دسترس نیست؛ از حالت خودکار استفاده شد.',offlineVoicesAvailable:'صداهای آفلاین (آماده دانلود)',autoVoiceDesc:'انتخاب خودکار بهترین صدا برای هر زبان',notDownloaded:'دانلود نشده',dlBtn:'دانلود',voiceOffline:'صدای آفلاین',
+ screenTrans:'مترجم صفحه',screenTransH:'مترجم صفحه نمایش (OCR ویندوز)',
+ screenTransNote:'هر بخش از صفحه نمایش را انتخاب کنید تا با OCR داخلی ویندوز خوانده شده و با موتورهای ماکان ترجمه شود.',
+ screenTransEnable:'فعال‌سازی مترجم صفحه',screenTransHotkey:'کلید میانبر سراسری',
+ screenTransOcrLang:'زبان OCR ویندوز',screenTransTgtLang:'زبان مقصد پیش‌فرض',
+ screenTransAutoCopy:'کپی خودکار متن ترجمه شده',screenTransSaveHist:'ذخیره ترجمه‌های OCR در تاریخچه',
+ testScreenTransBtn:'انتخاب و ترجمه بخشی از صفحه'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;
@@ -7917,6 +7977,145 @@ $('tIn').addEventListener('click',e=>{
   if(r){e.stopImmediatePropagation();showIdiomCard(ta.value.slice(r.s,r.e),e.clientX,e.clientY)}
 },true);
 refreshMarks();
+
+/* ---------- MAKAN SCREEN TRANSLATOR (DESKTOP INTEGRATION) ---------- */
+(async function initScreenTranslatorDesktop() {
+  if (!window.makanDesktop?.isDesktop) return;
+
+  // Show the header button and settings block in desktop environment
+  const btnScreen = $('btnScreenTrans');
+  const stSettingsBlock = $('screenTransSettingsBlock');
+  if (btnScreen) btnScreen.style.display = 'inline-flex';
+  if (stSettingsBlock) stSettingsBlock.hidden = false;
+
+  btnScreen?.addEventListener('click', () => {
+    window.makanDesktop.startScreenTranslator();
+  });
+
+  // Also support Ctrl+Shift+S keyboard shortcut inside the browser window
+  window.addEventListener('keydown', (e) => {
+    if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
+      e.preventDefault();
+      window.makanDesktop.startScreenTranslator();
+    }
+  });
+
+  // Populate installed OCR languages in settings
+  const stOcrLang = $('stOcrLang');
+  const stOcrHint = $('stOcrStatusHint');
+  try {
+    const ocrLangs = await window.makanDesktop.getOcrLanguages();
+    if (stOcrLang && Array.isArray(ocrLangs) && ocrLangs.length > 0) {
+      stOcrLang.innerHTML = '<option value="auto">Auto-detect / Default</option>';
+      ocrLangs.forEach(lang => {
+        const opt = document.createElement('option');
+        opt.value = lang.tag;
+        opt.textContent = `${lang.displayName || lang.tag} (${lang.tag})`;
+        stOcrLang.appendChild(opt);
+      });
+      if (stOcrHint) {
+        stOcrHint.textContent = `✓ ${ocrLangs.length} Windows OCR language pack(s) ready (${ocrLangs.map(l => l.tag).join(', ')})`;
+      }
+    }
+  } catch (err) {
+    if (stOcrHint) stOcrHint.textContent = 'Native Windows OCR is ready.';
+  }
+
+  // Load and apply current screen translator configuration
+  try {
+    const cfgST = await window.makanDesktop.getScreenTransConfig();
+    if (cfgST) {
+      if ($('stEnable')) $('stEnable').value = cfgST.enabled ? '1' : '0';
+      if ($('stOcrLang') && cfgST.ocrLang) $('stOcrLang').value = cfgST.ocrLang;
+      if ($('stTgtLang') && cfgST.targetLang) $('stTgtLang').value = cfgST.targetLang;
+      if ($('stAutoCopy')) $('stAutoCopy').value = cfgST.autoCopy ? '1' : '0';
+      if ($('stSaveHist')) $('stSaveHist').value = cfgST.saveHistory ? '1' : '0';
+    }
+  } catch {}
+
+  // Sync settings back to backend on change or Save
+  async function persistStConfig() {
+    try {
+      await window.makanDesktop.saveScreenTransConfig({
+        enabled: $('stEnable')?.value === '1',
+        ocrLang: $('stOcrLang')?.value || 'auto',
+        targetLang: $('stTgtLang')?.value || 'fa',
+        autoCopy: $('stAutoCopy')?.value === '1',
+        saveHistory: $('stSaveHist')?.value === '1'
+      });
+    } catch (e) {
+      console.warn('[ScreenTranslator] Error saving config:', e);
+    }
+  }
+
+  $('stEnable')?.addEventListener('change', persistStConfig);
+  $('stOcrLang')?.addEventListener('change', persistStConfig);
+  $('stTgtLang')?.addEventListener('change', persistStConfig);
+  $('stAutoCopy')?.addEventListener('change', persistStConfig);
+  $('stSaveHist')?.addEventListener('change', persistStConfig);
+  $('btnSaveDone')?.addEventListener('click', persistStConfig);
+
+  $('btnTestScreenTrans')?.addEventListener('click', () => {
+    window.makanDesktop.startScreenTranslator();
+  });
+
+  // Handle translation requests forwarded from Screen Translator overlay
+  window.makanDesktop.onExecuteScreenTranslation(async (payload) => {
+    const { id, text, src, tgt, engine } = payload;
+    try {
+      const sourceLang = (!src || src === 'auto') ? ($('src')?.value === 'finglish' ? 'auto' : ($('src')?.value || 'auto')) : src;
+      const targetLang = tgt || $('tgt')?.value || 'fa';
+      const transEngine = engine || $('engine')?.value || 'auto';
+
+      // Call existing MAKAN translation pipeline
+      const r = await translateItems([text], opts({
+        src: sourceLang,
+        tgt: targetLang,
+        engine: transEngine
+      }));
+
+      const outText = (r && r.out && r.out[0]) || '';
+      const usedEng = r && r.used ? Array.from(r.used).join(', ') : transEngine;
+
+      // Optional: Save to history if configured
+      const curCfg = await window.makanDesktop.getScreenTransConfig().catch(() => ({}));
+      if (curCfg?.saveHistory && outText) {
+        try {
+          const h = store.get('hist', []);
+          h.unshift({ ts: Date.now(), src: sourceLang, tgt: targetLang, e: usedEng, i: text, o: outText });
+          if (h.length > 200) h.length = 200;
+          store.set('hist', h);
+          renderHist();
+        } catch {}
+      }
+
+      window.makanDesktop.sendScreenTranslationResponse({
+        id,
+        ok: true,
+        translation: outText,
+        detectedSrc: sourceLang,
+        engineUsed: usedEng
+      });
+    } catch (err) {
+      window.makanDesktop.sendScreenTranslationResponse({
+        id,
+        ok: false,
+        error: err?.message || 'Translation failed'
+      });
+    }
+  });
+
+  // Handle "Open in App" button from floating overlay
+  window.makanDesktop.onLoadTranslationInput(({ text, src, tgt }) => {
+    if ($('tIn')) {
+      $('tIn').value = text || '';
+      if (src && src !== 'auto') $('src').value = src;
+      if (tgt) $('tgt').value = tgt;
+      $('tIn').dispatchEvent(new Event('input'));
+      document.querySelector('[data-tab=text]')?.click();
+    }
+  });
+})();
 </script>
 </body>
 </html>
