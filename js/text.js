@@ -8,9 +8,12 @@ async function finglishStep(text,signal,src){
 }
 // The "Persian spelling" line with a Copy button.
 function fgBox(persian,into){
-  const box=into||mk('div','fg-box');box.replaceChildren();
-  const l=mk('span','lbl',L('fgSpelling')),t=mk('span','fg-t',persian);t.dir='rtl';t.lang='fa';
-  const b=mk('button','btn ghost',L('copy'));b.type='button';b.onclick=()=>copy(persian);
+  const box=into||document.createElement('div');
+  if(!into)box.className='fg-box';
+  box.replaceChildren();
+  const l=document.createElement('span');l.className='lbl';l.textContent=L('fgSpelling');
+  const t=document.createElement('span');t.className='fg-t';t.textContent=persian;t.dir='rtl';t.lang='fa';
+  const b=document.createElement('button');b.className='btn ghost';b.type='button';b.textContent=L('copy');b.onclick=()=>copy(persian);
   box.append(l,t,b);box.hidden=false;return box;
 }
 // For one searched word (Dictionary, Idioms): Persian spelling when it was Finglish and an AI engine can convert it; otherwise unchanged.
@@ -443,7 +446,8 @@ function renderRecentTranslations(){
   if(empty) empty.hidden=true;
 
   items.forEach(item=>{
-    const tile=mk('div','trans-recent-tile');
+    const tile=document.createElement('div');
+    tile.className='trans-recent-tile';
     tile.setAttribute('role','button');
     tile.tabIndex=0;
     tile.title='Click to load into translator';
