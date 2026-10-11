@@ -2,6 +2,16 @@
 const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
 const { fakeDownloaded } = require('../support/model-helpers');
 
+const GEMINI = 'generativelanguage.googleapis.com';
+const streamCalls = stub => stub.calls(GEMINI).filter(c => /:streamGenerateContent$/.test(c.path) || (/:generateContent$/.test(c.path) && c.body.includes('AUDIO')));
+
+async function translateText(page, text) {
+  await mouseClick(page, page.locator('#tIn'));
+  await page.keyboard.type(text);
+  await mouseClick(page, page.locator('#tGo'));
+  await expect(page.locator('#tOut')).toHaveValue(/\[fa\]/, { timeout: 15_000 });
+}
+
 test.describe('Web app: Text tab redesign', () => {
   test.describe('Item 1: Page header and language bar', () => {
     test('all controls exist with identical IDs and labels', async ({ app }) => {
@@ -173,7 +183,7 @@ test.describe('Web app: Text tab redesign', () => {
     });
 
     test('listen button is enabled when no voice is installed, and clicking it shows a clear notice', async ({ app }) => {
-      const { page } = app;
+      const { page, stub } = app;
       await page.evaluate(() => {
         cfg.tts = { mode: 'device', voices: {} };
         window.speechSynthesis = { getVoices: () => [] };
@@ -184,10 +194,16 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#tSpeak')).toBeEnabled();
       await expect(page.locator('#tSpeak')).toHaveText('Speak');
 
-      // Clicking it triggers the notice in #speakNoticeText
+      // Translate text so #tOut is populated before attempting to speak
+      await translateText(page, 'Good morning');
+
+      // Clicking it triggers the notice in #speakNotice / #speakNoticeText
       await mouseClick(page, page.locator('#tSpeak'));
+      await expect(page.locator('#speakNotice')).toBeVisible();
       await expect(page.locator('#speakNoticeText')).toBeVisible();
       await expect(page.locator('#speakNoticeText')).toContainText('no Gemini key is set');
+      await expect(page.locator('#tSpeak')).toHaveText('Speak');
+      expect(streamCalls(stub)).toEqual([]);
     });
   });
 
