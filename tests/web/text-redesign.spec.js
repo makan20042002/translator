@@ -199,5 +199,47 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#tabs button[data-tab="hist"]')).toHaveClass(/on/);
     });
   });
+
+  test.describe('Item 4: Status strip', () => {
+    test('reflects not-ready and ready states truthfully without inventing anything', async ({ app }) => {
+      const { page } = app;
+
+      // Status strip is present
+      const strip = page.locator('#tStatusStrip');
+      await expect(strip).toBeVisible();
+
+      // In initial state where models are not downloaded:
+      // Offline translation model shows warning (amber dot) and "not downloaded"
+      const trItem = strip.locator('.trans-status-item').first();
+      await expect(trItem.locator('.status-dot')).toHaveClass(/warn/);
+      await expect(trItem).toContainText('not downloaded');
+      await expect(trItem.locator('bdi')).toContainText('NLLB');
+
+      // Now simulate NLLB downloaded (mcReady becomes true)
+      await page.evaluate(() => {
+        localStorage.setItem('mkt_nllb', JSON.stringify(true));
+        renderTextStatusStrip();
+      });
+
+      // Now translation model shows ready (green dot)
+      await expect(trItem.locator('.status-dot')).toHaveClass(/ok/);
+      await expect(trItem).toContainText('ready');
+
+      // Switch UI to Persian: Latin name stays inside <bdi> and Persian text is shown
+      await page.evaluate(() => {
+        ui = 'fa';
+        document.documentElement.dir = 'rtl';
+        document.documentElement.lang = 'fa';
+        applyI18n();
+      });
+
+      await expect(trItem.locator('bdi')).toHaveText('NLLB');
+      await expect(trItem).toContainText('آماده');
+
+      // Offline mode toggling updates info note
+      await mouseClick(page, page.locator('#offBtn'));
+      await expect(strip.locator('.trans-status-info')).toContainText('حالت آفلاین');
+    });
+  });
 });
 
