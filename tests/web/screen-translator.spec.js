@@ -365,5 +365,6 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     // Change model and verify active reading status contains chosen model name
     await modelSel.selectOption('ocr-rapid-arabic');
     await expect(page.locator('#stActiveReadingStatus')).toContainText('RapidOCR Arabic & Persian');
+    expect(savedCfg?.ocrModel).toBe('ocr-rapid-arabic');
   });
 });

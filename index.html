@@ -1208,7 +1208,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 
   <!-- Section 4: Translation models (offline) -->
   <div class="set-section" id="secTrModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
-    <h3 data-t="tabTrModels" style="margin-top:0">Translation models (offline)</h3>
+    <h3 data-t="offH" style="margin-top:0">Offline</h3>
     <p class="note" data-t="offNote"></p>
     <div class="setg off-models-pickers" style="margin:12px 0 14px">
       <label><span data-t="offTrModel">Offline translation model</span><select id="offTrModelSel"></select></label>
@@ -8237,51 +8237,26 @@ refreshMarks();
   // Populate installed OCR languages in settings
   const stOcrLang = $('stOcrLang');
   const stOcrHint = $('stOcrStatusHint');
-  const baseOcrLangs = [
-    { tag: 'auto', name: 'Auto-detect / Default' },
-    { tag: 'fa', name: 'Persian (fa)' },
-    { tag: 'en-US', name: 'English (United States)' },
-    { tag: 'ar', name: 'Arabic (العربية)' },
-    { tag: 'de-DE', name: 'German (Deutsch)' },
-    { tag: 'fr-FR', name: 'French (Français)' },
-    { tag: 'es-ES', name: 'Spanish (Español)' },
-    { tag: 'it-IT', name: 'Italian (Italiano)' },
-    { tag: 'ru-RU', name: 'Russian (Русский)' },
-    { tag: 'tr-TR', name: 'Turkish (Türkçe)' },
-    { tag: 'zh-Hans-CN', name: 'Chinese Simplified (简体中文)' },
-    { tag: 'ja-JP', name: 'Japanese (日本語)' },
-    { tag: 'ko-KR', name: 'Korean (한국어)' },
-    { tag: 'hi-IN', name: 'Hindi (हिन्दी)' },
-    { tag: 'ur-PK', name: 'Urdu (اردو)' },
-    { tag: 'pt-BR', name: 'Portuguese (Português)' },
-    { tag: 'nl-NL', name: 'Dutch (Nederlands)' },
-    { tag: 'sv-SE', name: 'Swedish (Svenska)' },
-    { tag: 'pl-PL', name: 'Polish (Polski)' },
-    { tag: 'uk-UA', name: 'Ukrainian (Українська)' }
-  ];
 
   try {
     const ocrLangs = await window.makanDesktop.getOcrLanguages();
     if (stOcrLang) {
-      stOcrLang.innerHTML = '';
-      const winTags = new Set((Array.isArray(ocrLangs) ? ocrLangs : []).map(l => l.tag.toLowerCase()));
-      const combined = [...baseOcrLangs];
-      if (Array.isArray(ocrLangs)) {
-        ocrLangs.forEach(wl => {
-          if (!combined.some(b => b.tag.toLowerCase() === wl.tag.toLowerCase() || (wl.tag.toLowerCase().startsWith('fa') && b.tag === 'fa'))) {
-            combined.push({ tag: wl.tag, name: `${wl.displayName || wl.tag} (${wl.tag})` });
-          }
+      stOcrLang.innerHTML = '<option value="auto">Auto-detect / Default</option>';
+      if (Array.isArray(ocrLangs) && ocrLangs.length > 0) {
+        ocrLangs.forEach(lang => {
+          const opt = document.createElement('option');
+          opt.value = lang.tag;
+          opt.textContent = `${lang.displayName || lang.tag} (${lang.tag})`;
+          stOcrLang.appendChild(opt);
         });
       }
-      combined.forEach(item => {
-        const opt = document.createElement('option');
-        opt.value = item.tag;
-        const isWinInstalled = winTags.has(item.tag.toLowerCase()) || (item.tag === 'fa' && winTags.has('fa-ir'));
-        opt.textContent = isWinInstalled && item.tag !== 'auto'
-          ? `${item.name} ✓ Windows OCR`
-          : item.name;
-        stOcrLang.appendChild(opt);
-      });
+      const hasFa = (Array.isArray(ocrLangs) ? ocrLangs : []).some(l => l.tag.toLowerCase().startsWith('fa'));
+      if (!hasFa) {
+        const optFa = document.createElement('option');
+        optFa.value = 'fa';
+        optFa.textContent = 'Persian (fa)';
+        stOcrLang.appendChild(optFa);
+      }
       if (stOcrHint && Array.isArray(ocrLangs)) {
         stOcrHint.textContent = `✓ ${ocrLangs.length} Windows OCR language pack(s) ready (${ocrLangs.map(l => l.tag).join(', ')})`;
         try {
