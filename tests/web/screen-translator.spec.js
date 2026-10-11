@@ -255,6 +255,9 @@ test.describe('Screen Translator Desktop Web Integration', () => {
       }
     });
 
+    // Expand collapsible original OCR text
+    await page.locator('#originalToggle').click();
+
     const orig = page.locator('#originalContent');
     await expect(orig).toBeVisible();
     await expect(orig).toHaveAttribute('dir', 'rtl');

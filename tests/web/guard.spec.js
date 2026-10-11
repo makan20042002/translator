@@ -4,6 +4,7 @@
  * throws no page errors or console errors.
  */
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { fakeDownloaded } = require('../support/model-helpers');
 
 test.describe('Web app: stability and structural guard', () => {
   test('loading and switching every tab throws zero page errors or console errors', async ({ app }) => {
@@ -64,10 +65,16 @@ test.describe('Web app: stability and structural guard', () => {
   test('offline model picker correctly identifies ready translation models without null error', async ({ app }) => {
     const { page } = app;
 
-    const result = await page.evaluate(() => {
-      // Mock a ready NLLB model
-      const mockDone = { 'tr-nllb-600': { at: Date.now(), files: [] } };
+    // Set up ready NLLB model in store and cache
+    const nllb = await page.evaluate(() => MODEL_CATALOG.models.find(m => m.id === 'tr-nllb-600'));
+    await page.evaluate(({ id, files }) => {
+      const mockDone = { [id]: { at: Date.now(), files } };
       store.set('mdl', mockDone);
+    }, { id: nllb.id, files: nllb.files.map(f => f[0]) });
+    await fakeDownloaded(page, nllb.repo, nllb.files);
+    await page.evaluate(() => mcScan());
+
+    const result = await page.evaluate(() => {
       try {
         const model = pickTr('en', 'fa');
         return { ok: true, modelId: model ? model.id : null };
