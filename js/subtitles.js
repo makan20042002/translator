@@ -7,7 +7,7 @@ function parseSubs(txt){
   for(const block of txt.replace(/^\ufeff/,'').replace(/\r\n?/g,'\n').split(/\n{2,}/)){
     const ls=block.split('\n'),k=ls.findIndex(l=>l.includes('-->'));if(k<0)continue;
     const [a,b]=ls[k].split('-->');const text=ls.slice(k+1).join('\n').trim();if(!text)continue;
-    out.push({s:toMs(a),e:toMs(b),o:text,t:''});
+    out.push({s:toMs(a),e:toMs(b),o:text,t:'',fromMemory:false});
   }
   return out;
 }
@@ -23,9 +23,34 @@ function updateSubEngineNotice(){
   const el=$('subEngineNotice');
   if(el)el.hidden=!isNonAi;
 }
+function subLangName(code){
+  if(code==='auto')return L('detect')||(ui==='fa'?'تشخیص خودکار':'Auto');
+  if(ui==='fa'){
+    if(code==='en')return 'انگلیسی';
+    if(code==='fa')return 'فارسی';
+    if(typeof LANGS!=='undefined'&&Array.isArray(LANGS)){
+      const found=LANGS.find(l=>l[0]===code);
+      if(found&&found[2])return found[2];
+    }
+  }
+  return typeof langName==='function'?langName(code):code;
+}
 function renderCues(){
-  const hdr=`<div class="cues-header"><span class="n">${esc(L('subColNum'))}</span><span class="tm">${esc(L('subColTime'))}</span><div class="o">${esc(L('subColOrig'))}</div><div class="tr">${esc(L('subColTrans'))}</div></div>`;
-  $('cues').innerHTML=hdr+cues.map((c,i)=>`<div class="cue"><span class="n">${i+1}</span><span class="tm" dir="ltr">${fmt(c.s,'.').slice(0,8)} → ${fmt(c.e,'.').slice(0,8)}</span><div class="o" dir="auto">${esc(c.o)}</div><div class="tr" dir="auto" contenteditable="true" data-i="${i}">${esc(c.t)}</div></div>`).join('');
+  const srcCode=$('src')?.value||'auto';
+  const tgtCode=$('tgt')?.value||'fa';
+  const srcName=subLangName(srcCode);
+  const tgtName=subLangName(tgtCode);
+  const isTgtRtl=tgtCode==='fa'||tgtCode==='ar'||tgtCode==='ur'||tgtCode==='he'||tgtCode==='ps'||tgtCode==='ku';
+
+  const numCol=esc(L('subColNum')||'#');
+  const timeCol=esc(L('subColTime')||(ui==='fa'?'زمان':'Time'));
+  const origCol=esc(`${L('subColOrig')||'Original'} (${srcName})`);
+  const transCol=esc(`${L('subColTrans')||'Translation'} (${tgtName})`);
+  const editSvg=`<svg class="sub-hdr-edit-icon" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/><path d="m15 5 4 4"/></svg>`;
+
+  const hdr=`<div class="cues-header" role="row"><span class="n">${numCol}</span><span class="tm">${timeCol}</span><div class="o">${origCol}</div><div class="tr-hdr">${transCol} ${editSvg}</div></div>`;
+
+  $('cues').innerHTML=hdr+cues.map((c,i)=>`<div class="cue" data-i="${i}"><span class="n">${i+1}</span><span class="tm" dir="ltr">${fmt(c.s,'.').slice(0,8)} → ${fmt(c.e,'.').slice(0,8)}</span><div class="o" dir="auto">${esc(c.o)}</div><div class="tr-cell"><div class="tr" dir="${isTgtRtl?'rtl':'auto'}" contenteditable="true" data-i="${i}">${esc(c.t)}</div><span class="cue-tm-badge pill-tm" data-i="${i}" ${c.fromMemory?'':'hidden'}>${esc(ui==='fa'?'حافظه':'memory')}</span></div></div>`).join('');
   sInfo();
 }
 const isSubErr=s=>!s||!s.trim()||/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i.test(s.trim());
@@ -33,8 +58,8 @@ const sInfo=()=>{
   const validCues=cues.filter(c=>c.t&&!isSubErr(c.t)).length;
   $('sInfo').textContent=`${sName} · ${validCues}/${cues.length} ${L('lines')}`;
   if($('sCuesCount'))$('sCuesCount').textContent=`${cues.length} ${L('cues')||'cues'}`;
-  const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
-  const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
+  const srcName=subLangName($('src')?.value||'auto');
+  const tgtName=subLangName($('tgt')?.value||'fa');
   if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
 };
 let subEditTmTimer=null;
@@ -90,6 +115,9 @@ $('cues').addEventListener('input',e=>{
   const i=e.target.dataset?.i;
   if(i!=null){
     cues[i].t=e.target.innerText.replace(/\n$/,'');
+    cues[i].fromMemory=false;
+    const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
+    if(badge)badge.hidden=true;
     sInfo();
     clearTimeout(subEditTmTimer);
     subEditTmTimer=setTimeout(()=>saveSubCueCorrection(i),300);
@@ -108,8 +136,8 @@ async function loadSubs(f){
   cues=c;sName=f.name.replace(/\.[^.]+$/,'');
   if($('sFileName'))$('sFileName').textContent=f.name;
   if($('sCuesCount'))$('sCuesCount').textContent=`${c.length} ${L('cues')||'cues'}`;
-  const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
-  const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
+  const srcName=subLangName($('src')?.value||'auto');
+  const tgtName=subLangName($('tgt')?.value||'fa');
   if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
   $('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';
   if($('sProgText'))$('sProgText').textContent=ui==='fa'?`0 از ${c.length} خط (0%)`:`Translated 0 of ${c.length} lines (0%)`;
@@ -181,8 +209,11 @@ async function doSubs(onlyEmpty){
           (parts[i]=parts[i]||[])[p]=hit.translatedText;
           if(parts[i].filter(x=>x!=null).length===n){
             cues[i].t=n>1?parts[i].join('\n'):wrap2(hit.translatedText.trim());
+            cues[i].fromMemory=true;
             const el=$('cues').querySelector(`.tr[data-i="${i}"]`);
             if(el)el.textContent=cues[i].t;
+            const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
+            if(badge)badge.hidden=false;
           }
           memHits++;
           continue;
@@ -240,8 +271,11 @@ async function doSubs(onlyEmpty){
           (parts[i]=parts[i]||[])[p]=trans;
           if(parts[i].filter(x=>x!=null).length===n){
             cues[i].t=n>1?parts[i].join('\n'):wrap2(trans.trim());
+            cues[i].fromMemory=false;
             const el=$('cues').querySelector(`.tr[data-i="${i}"]`);
             if(el)el.textContent=cues[i].t;
+            const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
+            if(badge)badge.hidden=true;
           }
 
           if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
@@ -284,3 +318,5 @@ function exportSubs(vtt){
   download(`${sName}.${$('tgt').value}.${vtt?'vtt':'srt'}`,(vtt?'WEBVTT\n\n':'')+body);
 }
 $('sSrt').onclick=()=>exportSubs(false);$('sVtt').onclick=()=>exportSubs(true);
+$('src')?.addEventListener('change',()=>{if(cues.length)renderCues();else sInfo();});
+$('tgt')?.addEventListener('change',()=>{if(cues.length)renderCues();else sInfo();});

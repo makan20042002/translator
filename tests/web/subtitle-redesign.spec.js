@@ -159,4 +159,84 @@ test.describe('Web app: Subtitle tab redesign', () => {
       await expect(page.locator('#sProgText')).toContainText('from memory');
     });
   });
+
+  test.describe('Item 4: Subtitle table with sticky header, editable RTL cells, and memory badges', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test.beforeEach(async ({ app }) => {
+      const { page } = app;
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+    });
+
+    test('editing a line is kept in export, Persian cells are dir="rtl", and memory badge appears only on rows from memory', async ({ app, files }) => {
+      const { page } = app;
+
+      // 1. Pre-populate TranslationMemory with ONLY the first cue's text ('Hello there.')
+      await page.evaluate(async () => {
+        await window.TranslationMemory.put({
+          sourceText: 'Hello there.',
+          translatedText: '[fa] Hello there.',
+          src: 'en',
+          tgt: 'fa',
+          modeClass: 'fast',
+          tone: '',
+          subject: '',
+          subStyle: 'film'
+        });
+      });
+
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), files.srt);
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // Check sticky header presence
+      const header = page.locator('#cues .cues-header');
+      await expect(header).toBeVisible();
+      await expect(header.locator('.tm')).toHaveText('Time');
+      await expect(header.locator('.o')).toContainText('English');
+      await expect(header.locator('.tr-hdr')).toContainText('Persian');
+
+      // Translate subtitles: cue 0 will hit memory, cue 1+ will be translated by google
+      await mouseClick(page, page.locator('#sGo'));
+      await expect(page.locator('#sInfo')).toHaveText('sample · 5/5 lines');
+
+      // Verify row 0 has memory badge visible
+      const badge0 = page.locator('#cues .cue[data-i="0"] .cue-tm-badge');
+      await expect(badge0).toBeVisible();
+      await expect(badge0).toHaveText(/memory|حافظه/);
+
+      // Verify row 1 does NOT have memory badge visible (freshly translated by engine)
+      const badge1 = page.locator('#cues .cue[data-i="1"] .cue-tm-badge');
+      await expect(badge1).toBeHidden();
+
+      // Persian translation cells have dir="rtl"
+      const cue0Tr = page.locator('#cues .tr[data-i="0"]');
+      await expect(cue0Tr).toHaveAttribute('dir', 'rtl');
+
+      // Edit line 4 (data-i="3") with keyboard
+      const cue4 = page.locator('#cues .tr[data-i="3"]');
+      await mouseClick(page, cue4);
+      await page.keyboard.press('Control+A');
+      await page.keyboard.type('Hand edited line 4');
+      await expect(cue4).toHaveText('Hand edited line 4');
+
+      // Export SRT and verify edited line is kept in export
+      const srt = await downloadOf(page, () => mouseClick(page, page.locator('#sSrt')));
+      expect(srt.name).toBe('sample.fa.srt');
+      const srtText = srt.bytes.toString('utf8');
+      expect(srtText).toContain('Hand edited line 4');
+      expect(srtText).toContain('[fa] Hello there.');
+
+      // Export VTT and verify edited line is kept in export
+      const vtt = await downloadOf(page, () => mouseClick(page, page.locator('#sVtt')));
+      expect(vtt.name).toBe('sample.fa.vtt');
+      const vttText = vtt.bytes.toString('utf8');
+      expect(vttText).toContain('Hand edited line 4');
+    });
+  });
 });
+
