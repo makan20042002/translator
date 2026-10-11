@@ -6711,7 +6711,7 @@ function trCovers(m,src,tgt){
 }
 // Which downloaded model translates this pair: the user's multilingual choice, unless they asked for the small pair models.
 function pickTr(src,tgt){
-  const ok=trModels().filter(m=>mcReady(m&&trCovers(m,src,tgt)));
+  const ok=trModels().filter(m=>mcReady(m)&&trCovers(m,src,tgt));
   if(!ok.length)return null;
   const pair=ok.find(m=>m.kind==='opus');
   if(cfg.trPair&&pair)return pair;
