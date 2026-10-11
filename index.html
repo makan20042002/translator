@@ -1309,6 +1309,12 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
             <option value="1">Yes</option>
           </select>
         </label>
+        <label><span data-t="screenTransReturnToApp">Return to the app after capture</span>
+          <select id="stReturnToApp">
+            <option value="0">Disabled</option>
+            <option value="1">Enabled</option>
+          </select>
+        </label>
       </div>
       <div id="stActiveReadingLine" style="margin-top:12px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:8px">
         <span style="font-weight:700;color:var(--accent)" data-t="stActiveLabel">Active Reading:</span>
@@ -8424,6 +8430,7 @@ refreshMarks();
       if ($('stTgtLang') && cfgST.targetLang) $('stTgtLang').value = cfgST.targetLang;
       if ($('stAutoCopy')) $('stAutoCopy').value = cfgST.autoCopy ? '1' : '0';
       if ($('stSaveHist')) $('stSaveHist').value = cfgST.saveHistory ? '1' : '0';
+      if ($('stReturnToApp')) $('stReturnToApp').value = cfgST.returnToAppAfterCapture ? '1' : '0';
       renderOcrModels(cfgST.ocrModel || 'ocr-rapid-arabic');
     } else {
       renderOcrModels('ocr-rapid-arabic');
@@ -8447,7 +8454,8 @@ refreshMarks();
         ocrLang: $('stOcrLang')?.value || 'auto',
         targetLang: $('stTgtLang')?.value || 'fa',
         autoCopy: $('stAutoCopy')?.value === '1',
-        saveHistory: $('stSaveHist')?.value === '1'
+        saveHistory: $('stSaveHist')?.value === '1',
+        returnToAppAfterCapture: $('stReturnToApp')?.value === '1'
       });
     } catch (e) {
       console.warn('[ScreenTranslator] Error saving config:', e);
@@ -8463,6 +8471,7 @@ refreshMarks();
   $('stTgtLang')?.addEventListener('change', persistStConfig);
   $('stAutoCopy')?.addEventListener('change', persistStConfig);
   $('stSaveHist')?.addEventListener('change', persistStConfig);
+  $('stReturnToApp')?.addEventListener('change', persistStConfig);
   $('btnSaveDone')?.addEventListener('click', persistStConfig);
 
   $('btnTestScreenTrans')?.addEventListener('click', () => {

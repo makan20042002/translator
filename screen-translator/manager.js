@@ -41,6 +41,7 @@ class ScreenTranslatorManager {
       ocrLang: 'auto',
       ocrEngine: 'auto', // 'auto' | 'windows' | 'rapidocr' | 'dual'
       ocrModel: 'ocr-rapid-arabic', // Chosen OCR recognition model
+      returnToAppAfterCapture: false, // Return to app after capture (default off)
       freezeFrame: true, // Freeze screen snapshot while snipping
       clipboardWatcher: false, // Auto-translate screenshots from Win+Shift+S / Snipping Tool
       engine: 'auto',
@@ -315,6 +316,18 @@ class ScreenTranslatorManager {
     if (this.isCapturing) return;
     this.isCapturing = true;
 
+    // Hide main app window (and settings modal inside it) before capturing screen
+    this._wasMainWindowVisible = false;
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      const isVis = typeof this.mainWindow.isVisible === 'function' ? this.mainWindow.isVisible() : true;
+      if (isVis) {
+        this._wasMainWindowVisible = true;
+        this.mainWindow.hide();
+        // Give window manager a moment to clear the window from the display buffer
+        await new Promise(r => setTimeout(r, 150));
+      }
+    }
+
     // Hide existing overlay while selecting new region
     if (this.overlayWindow && !this.overlayWindow.isDestroyed() && !this.isPinned) {
       this.overlayWindow.hide();
@@ -400,6 +413,10 @@ class ScreenTranslatorManager {
     this.captureWindow = null;
     this.isCapturing = false;
     this._frozenSnapshot = null;
+    if (this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.show();
+      this._wasMainWindowVisible = false;
+    }
   }
 
   /**
@@ -407,9 +424,16 @@ class ScreenTranslatorManager {
    */
   async onCaptureComplete(rect) {
     const frozen = this._frozenSnapshot;
+    const hadMainWindowVisible = this._wasMainWindowVisible;
+    this._wasMainWindowVisible = false;
     this.closeCaptureWindow();
 
-    if (!rect || rect.width < 8 || rect.height < 8) return;
+    if (!rect || rect.width < 8 || rect.height < 8) {
+      if (hadMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.show();
+      }
+      return;
+    }
 
     this.lastCapturedRect = rect;
 
@@ -451,6 +475,12 @@ class ScreenTranslatorManager {
     }
 
     await this.processImageBuffer(imageBuffer, rect);
+
+    // After capture, result is shown in the overlay.
+    // The main window must NOT jump back on top by itself unless returnToAppAfterCapture is enabled
+    if (this.config.returnToAppAfterCapture && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      this.mainWindow.show();
+    }
   }
 
   /**
