@@ -146,4 +146,58 @@ test.describe('Web app: Text tab redesign', () => {
       }
     });
   });
+
+  test.describe('Item 3: Recent translations strip', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
+    test('shows empty state when history is empty, shows real items after translating, and clicking an item loads it', async ({ app }) => {
+      const { page } = app;
+
+      // Initially empty history
+      await page.evaluate(() => store.set('hist', []));
+      await page.evaluate(() => renderRecentTranslations());
+
+      await expect(page.locator('#tRecentEmpty')).toBeVisible();
+      await expect(page.locator('#tRecentList .trans-recent-tile')).toHaveCount(0);
+
+      // Perform a translation
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Recent test phrase');
+      await mouseClick(page, page.locator('#tGo'));
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Recent test phrase');
+
+      // Now recent translations strip has 1 real tile
+      await expect(page.locator('#tRecentEmpty')).not.toBeVisible();
+      await expect(page.locator('#tRecentList .trans-recent-tile')).toHaveCount(1);
+      const tile = page.locator('#tRecentList .trans-recent-tile').first();
+      await expect(tile.locator('.trans-recent-src-text')).toHaveText('Recent test phrase');
+      await expect(tile.locator('.trans-recent-tgt-text')).toHaveText('[fa] Recent test phrase');
+
+      // Clear the text cards
+      await mouseClick(page, page.locator('#tClear'));
+      await expect(page.locator('#tIn')).toHaveValue('');
+      await expect(page.locator('#tOut')).toHaveValue('');
+
+      // Click the recent tile to reload it into the cards
+      await mouseClick(page, tile);
+      await expect(page.locator('#tIn')).toHaveValue('Recent test phrase');
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Recent test phrase');
+
+      // Clear button empties history and returns to honest empty state
+      await mouseClick(page, page.locator('#tRecentClear'));
+      await expect(page.locator('#tRecentEmpty')).toBeVisible();
+      await expect(page.locator('#tRecentList .trans-recent-tile')).toHaveCount(0);
+
+      const histInStore = await page.evaluate(() => store.get('hist', []));
+      expect(histInStore).toEqual([]);
+    });
+
+    test('See all button opens the History tab', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tRecentViewAll'));
+      await expect(page.locator('#tab-hist')).toBeVisible();
+      await expect(page.locator('#tabs button[data-tab="hist"]')).toHaveClass(/on/);
+    });
+  });
 });
+

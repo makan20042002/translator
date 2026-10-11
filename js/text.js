@@ -273,6 +273,7 @@ async function doText(){
   }
   busy([$('tGo')],$('tStop'),false);
   updateStatusChip();
+  renderRecentTranslations();
   if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(fgPersian||text);
 }
 
@@ -379,6 +380,7 @@ if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
   h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:'correction',i:text.slice(0,4000),o:corrected.slice(0,4000)});
   store.set('hist',h.slice(0,60));
   updateTmCount();
+  renderRecentTranslations();
 };
 $('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast('Clipboard blocked','err')}};
 $('tCopy').onclick=()=>copy($('tOut').value);
@@ -409,8 +411,101 @@ $('tSpeak').onclick=()=>{
 };
 $('tMic').onclick=()=>listen($('src').value,$('tMic'),tx=>{$('tIn').value=($('tIn').value?$('tIn').value+' ':'')+tx;$('tIn').dispatchEvent(new Event('input'));doText()});
 
+function formatRelativeTime(ts){
+  if(!ts) return '';
+  const diffSec=Math.max(0,Math.floor((Date.now()-ts)/1000));
+  if(diffSec<60) return ui==='fa'?'همین الان':'Just now';
+  const diffMin=Math.floor(diffSec/60);
+  if(diffMin<60) return ui==='fa'?`${diffMin} دقیقه قبل`:`${diffMin} minute${diffMin===1?'':'s'} ago`;
+  const diffHr=Math.floor(diffMin/60);
+  if(diffHr<24) return ui==='fa'?`${diffHr} ساعت قبل`:`${diffHr} hour${diffHr===1?'':'s'} ago`;
+  const diffDay=Math.floor(diffHr/24);
+  return ui==='fa'?`${diffDay} روز قبل`:`${diffDay} day${diffDay===1?'':'s'} ago`;
+}
+
+function renderRecentTranslations(){
+  const list=$('tRecentList');
+  const empty=$('tRecentEmpty');
+  if(!list) return;
+
+  const hist=store.get('hist',[]);
+  const items=hist.slice(0,3);
+
+  list.replaceChildren();
+
+  if(!items.length){
+    list.hidden=true;
+    if(empty) empty.hidden=false;
+    return;
+  }
+
+  list.hidden=false;
+  if(empty) empty.hidden=true;
+
+  items.forEach(item=>{
+    const tile=mk('div','trans-recent-tile');
+    tile.setAttribute('role','button');
+    tile.tabIndex=0;
+    tile.title='Click to load into translator';
+
+    const clockIcon=`<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trans-recent-icon" aria-hidden="true"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>`;
+    const arrowIcon=`<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" class="trans-recent-arrow" aria-hidden="true"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>`;
+
+    tile.innerHTML=`
+      <div class="trans-recent-tile-main">
+        <span class="trans-recent-time-grp">
+          ${clockIcon}
+          <span class="trans-recent-rel-time">${esc(formatRelativeTime(item.ts))}</span>
+        </span>
+        <div class="trans-recent-texts">
+          <span class="trans-recent-src-text" title="${esc(item.i)}">${esc(item.i)}</span>
+          ${arrowIcon}
+          <span class="trans-recent-tgt-text" title="${esc(item.o)}">${esc(item.o)}</span>
+        </div>
+      </div>
+    `;
+
+    const loadItem=()=>{
+      if($('tIn')) $('tIn').value=item.i||'';
+      if($('tOut')) $('tOut').value=item.o||'';
+      if(item.src&&$('src')) $('src').value=item.src;
+      if(item.tgt&&$('tgt')) $('tgt').value=item.tgt;
+      $('tIn')?.dispatchEvent(new Event('input'));
+      $('tOut')?.dispatchEvent(new Event('input'));
+      if(typeof voiceLabels==='function') voiceLabels();
+      if(typeof updateCardLangNames==='function') updateCardLangNames();
+      if(typeof updateTargetCardDirection==='function') updateTargetCardDirection();
+      if(typeof updateStatusChip==='function') updateStatusChip();
+      if(item.e){
+        if(item.e==='memory') $('tMeta').innerHTML=`<span class="pill-tm">${esc(L('fromMemory'))}</span>`;
+        else if(item.e==='correction') $('tMeta').innerHTML=`<span class="pill-tm pill-corrected">${esc(L('fromCorrection'))}</span>`;
+        else if(ENG[item.e]?.name) $('tMeta').textContent=ENG[item.e].name;
+      }
+    };
+
+    tile.onclick=loadItem;
+    tile.onkeydown=e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();loadItem()}};
+    list.append(tile);
+  });
+}
+
+if($('tRecentClear')){
+  $('tRecentClear').onclick=()=>{
+    store.set('hist',[]);
+    renderRecentTranslations();
+    if(typeof renderHist==='function') renderHist();
+  };
+}
+if($('tRecentViewAll')){
+  $('tRecentViewAll').onclick=()=>{
+    const histBtn=document.querySelector('#tabs button[data-tab="hist"]');
+    if(histBtn) histBtn.click();
+  };
+}
+
 updateTextCounts();
 updateCardLangNames();
 updateTargetCardDirection();
 updateStatusChip();
 updateListenButtonState();
+renderRecentTranslations();
