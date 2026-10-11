@@ -160,37 +160,72 @@
         </label>
       </div>
     </div>
-    <div class="panes">
-      <div class="pane">
-        <div class="pane-h"><span class="lbl" data-t="source">Source</span><span class="sp"></span>
-          <button class="btn ghost" id="tMic" data-t="mic">Mic</button>
-          <button class="btn ghost" id="tPaste" data-t="paste">Paste</button>
-          <button class="btn ghost" id="tClear" data-t="clear">Clear</button></div>
-        <textarea id="tIn" dir="auto" data-tp="phIn" placeholder="Type or paste text…"></textarea>
-        <div class="pane-f"><span class="meta" id="tCount">0</span><span class="sp"></span>
-          <button class="btn ghost" id="tStop" hidden data-t="stop">Stop</button>
-          <button class="btn cta" id="tGo"><span data-t="translate">Translate</span> <kbd>Ctrl ↵</kbd></button></div>
-      </div>
-      <div class="seam"></div>
-      <div class="pane">
-        <div class="pane-h"><span class="lbl" data-t="translation">Translation</span><span class="sp"></span>
-          <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
-          <button class="btn ghost" id="tSaveCorrection" hidden data-t="saveCorrection" style="color:var(--accent);border-color:var(--accent);font-weight:600">Save my correction</button>
-          <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
-          <div class="compact-voice-picker-wrap" id="tVoicePickerWrap">
-            <button class="btn ghost compact-voice-btn" id="tVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
-              <span class="compact-voice-icon">🗣️</span>
-              <span class="compact-voice-cur" id="tVoiceCurLabel">Auto</span>
-              <span class="compact-voice-caret" style="font-size:9px">▼</span>
-            </button>
-            <div class="compact-voice-popup" id="tVoicePopup" role="dialog" aria-label="Voice options" hidden>
-              <div class="voice-picker-list" id="tVoicePickerList" data-context="text"></div>
-            </div>
+    <div class="panes trans-cards">
+      <!-- SOURCE CARD -->
+      <div class="pane trans-card trans-card-source">
+        <div class="pane-h trans-card-header">
+          <div class="trans-card-title">
+            <span class="trans-lang-badge" aria-hidden="true">文A</span>
+            <span class="lbl trans-card-lang" id="tSrcLangName" data-t="source">Source</span>
           </div>
-          <button class="btn ghost" id="tCopy" data-t="copy">Copy</button></div>
+          <span class="sp"></span>
+          <span class="meta trans-word-count" id="tWordCount">0 words</span>
+        </div>
+        <textarea id="tIn" dir="auto" data-tp="phIn" placeholder="Type or paste text…"></textarea>
+        <div class="pane-f trans-card-footer">
+          <span class="meta" id="tCount">0 characters</span>
+          <span class="sp"></span>
+          <div class="trans-card-actions">
+            <button class="btn ghost" id="tPaste" data-t="paste">Paste</button>
+            <button class="btn ghost" id="tMic" data-t="mic">Mic</button>
+            <button class="btn ghost" id="tClear" data-t="clear">Clear</button>
+            <button class="btn ghost" id="tStop" hidden data-t="stop">Stop</button>
+            <button class="btn cta" id="tGo"><span data-t="translate">Translate</span> <kbd>Ctrl ↵</kbd></button>
+          </div>
+        </div>
+      </div>
+
+      <div class="seam" hidden></div>
+
+      <!-- TARGET CARD -->
+      <div class="pane trans-card trans-card-target">
+        <div class="pane-h trans-card-header">
+          <div class="trans-card-title">
+            <span class="trans-lang-badge" aria-hidden="true">文A</span>
+            <span class="lbl trans-card-lang" id="tTgtLangName" data-t="translation">Translation</span>
+          </div>
+          <span class="sp"></span>
+          <span class="trans-status-chip" id="tStatusChip" hidden>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            <span data-t="translatedChip">Translated</span>
+          </span>
+        </div>
         <div class="fg-box" id="tFinglish" hidden></div>
         <textarea id="tOut" dir="auto"></textarea>
-        <div class="pane-f"><span class="meta" id="tMeta"></span></div>
+        <div class="trans-info-row">
+          <span class="meta" id="tMeta"></span>
+        </div>
+        <div class="pane-f trans-card-footer">
+          <div class="trans-card-actions target-actions">
+            <button class="btn ghost" id="tCopy" data-t="copy">Copy</button>
+            <button class="btn ghost" id="tSpeak" data-t="speak">Speak</button>
+            <span class="meta voice-used" id="tVoiceUsed" aria-live="polite"></span>
+            <div class="compact-voice-picker-wrap" id="tVoicePickerWrap">
+              <button class="btn ghost compact-voice-btn" id="tVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
+                <span class="compact-voice-icon">🗣️</span>
+                <span class="compact-voice-cur" id="tVoiceCurLabel">Auto</span>
+                <span class="compact-voice-caret" style="font-size:9px">▼</span>
+              </button>
+              <div class="compact-voice-popup" id="tVoicePopup" role="dialog" aria-label="Voice options" hidden>
+                <div class="voice-picker-list" id="tVoicePickerList" data-context="text"></div>
+              </div>
+            </div>
+            <button class="btn ghost" id="tSaveCorrection" hidden data-t="saveCorrection" style="color:var(--accent);border-color:var(--accent);font-weight:600">Save my correction</button>
+            <button class="btn ghost" id="tCardSwap" title="Move result into source" aria-label="Move result into source">
+              <span data-t="cardSwap">Swap</span>
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   </section>

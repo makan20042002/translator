@@ -23,8 +23,8 @@ if($('sidebarBackdrop'))$('sidebarBackdrop').onclick=()=>{
   $('sidebar')?.classList.remove('open');
   $('sidebarBackdrop')?.classList.remove('open');
 };
-$('src').onchange=()=>{store.set('src',$('src').value);voiceLabels()};
-$('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs()};
+$('src').onchange=()=>{store.set('src',$('src').value);voiceLabels();if(typeof updateCardLangNames==='function')updateCardLangNames()};
+$('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs();if(typeof updateCardLangNames==='function'){updateCardLangNames();updateTargetCardDirection();updateListenButtonState()}};
 $('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice()};
 if($('tMode'))$('tMode').onchange=()=>store.set('tMode',$('tMode').value);
 $('tone').onchange=()=>store.set('tone',$('tone').value);

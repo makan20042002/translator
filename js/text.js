@@ -272,16 +272,80 @@ async function doText(){
     $('tCopy').removeEventListener('click',copyBtnClick);
   }
   busy([$('tGo')],$('tStop'),false);
+  updateStatusChip();
   if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(fgPersian||text);
 }
+
+function updateTextCounts(){
+  const val = $('tIn')?.value || '';
+  const chars = val.length;
+  const words = val.trim() ? val.trim().split(/\s+/).length : 0;
+  if($('tCount')) $('tCount').textContent = `${chars} ${L('chars')}`;
+  if($('tWordCount')){
+    const wUnit = ui === 'fa' ? 'کلمه' : (words === 1 ? 'word' : 'words');
+    $('tWordCount').textContent = `${words} ${wUnit}`;
+  }
+}
+
+function updateCardLangNames(){
+  const s = $('src')?.value || 'auto';
+  const t = $('tgt')?.value || 'fa';
+  if($('tSrcLangName')) $('tSrcLangName').textContent = s === 'auto' ? L('detect') : langShort(s);
+  if($('tTgtLangName')) $('tTgtLangName').textContent = langShort(t);
+}
+
+function updateTargetCardDirection(){
+  const t = $('tgt')?.value || 'fa';
+  const isRtl = (t === 'fa' || t === 'ar' || t === 'ur' || t === 'he' || t === 'ps' || t === 'ku');
+  if($('tOut')){
+    $('tOut').dir = isRtl ? 'rtl' : 'ltr';
+    if(isRtl){
+      $('tOut').classList.add('rtl-text');
+    }else{
+      $('tOut').classList.remove('rtl-text');
+    }
+  }
+}
+
+function updateStatusChip(){
+  const chip = $('tStatusChip');
+  if(!chip) return;
+  const hasRes = !!$('tOut')?.value?.trim();
+  chip.hidden = !hasRes;
+}
+
+function updateListenButtonState(){
+  const btn = $('tSpeak');
+  if(!btn) return;
+  const tgt = $('tgt')?.value || 'fa';
+  if(typeof resolveVoice === 'function'){
+    const v = resolveVoice(tgt);
+    if(v.kind === 'none'){
+      btn.disabled = true;
+      btn.title = L('noVoiceInstalled');
+    } else {
+      btn.disabled = false;
+      const vName = v.kind === 'device' ? v.voice?.name : v.kind === 'gemini' ? `Gemini (${v.voiceName})` : v.kind === 'piper' ? v.m?.name : '';
+      btn.title = vName ? `${L('speak')} · ${vName}` : (L('speak') || 'Speak');
+    }
+  }
+}
+
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
 $('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});
-$('tIn').addEventListener('input',()=>$('tCount').textContent=`${$('tIn').value.length} ${L('chars')}`);
-$('tClear').onclick=()=>{$('tIn').value='';$('tOut').value='';$('tMeta').textContent='';if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;$('tIn').dispatchEvent(new Event('input'));$('tIn').focus()};
+$('tIn').addEventListener('input',updateTextCounts);
+$('tClear').onclick=()=>{
+  $('tIn').value='';$('tOut').value='';$('tMeta').textContent='';
+  if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;
+  $('tIn').dispatchEvent(new Event('input'));
+  updateStatusChip();
+  $('tIn').focus();
+};
 $('tOut').addEventListener('input',()=>{
   const hasIn=$('tIn').value.trim();
   const hasOut=$('tOut').value.trim();
   if($('tSaveCorrection'))$('tSaveCorrection').hidden=!(hasIn&&hasOut);
+  updateStatusChip();
 });
 if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
   const text=$('tIn').value;
@@ -318,6 +382,23 @@ if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
 };
 $('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast('Clipboard blocked','err')}};
 $('tCopy').onclick=()=>copy($('tOut').value);
+if($('tCardSwap')) $('tCardSwap').onclick=()=>{
+  const outVal=$('tOut')?.value||'';
+  if(!outVal.trim())return;
+  const inVal=$('tIn')?.value||'';
+  $('tIn').value=outVal;
+  $('tOut').value=inVal;
+  const s=$('src')?.value, t=$('tgt')?.value;
+  if(s!=='auto'&&s!=='finglish'){
+    $('src').value=t;
+    $('tgt').value=s;
+    $('src').onchange?.();
+    $('tgt').onchange?.();
+  }
+  $('tIn').dispatchEvent(new Event('input'));
+  $('tOut').dispatchEvent(new Event('input'));
+  updateStatusChip();
+};
 $('tSpeak').onclick=()=>{
   getOrCreateAppAudioContext();
   if(isSpeaking()||$('tSpeak').classList.contains('preparing')||$('tSpeak').classList.contains('playing')||(typeof voiceState!=='undefined'&&(voiceState==='speaking'||voiceState==='preparing'))){
@@ -327,3 +408,9 @@ $('tSpeak').onclick=()=>{
   }
 };
 $('tMic').onclick=()=>listen($('src').value,$('tMic'),tx=>{$('tIn').value=($('tIn').value?$('tIn').value+' ':'')+tx;$('tIn').dispatchEvent(new Event('input'));doText()});
+
+updateTextCounts();
+updateCardLangNames();
+updateTargetCardDirection();
+updateStatusChip();
+updateListenButtonState();
