@@ -28,6 +28,8 @@ const SHELL = [
   './piper-worker.js',
   './translation-memory.js',
   './manifest.webmanifest',
+  './extension/engine.js',
+  './extension/dictionary.js',
   './icon-192.png',
   './icon-512.png'
 ];
