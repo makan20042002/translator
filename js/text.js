@@ -514,12 +514,13 @@ function renderTextStatusStrip(){
 
   // 1. Offline translation model readiness (NLLB or active catalogue translation model)
   const trOk=typeof trAnyReady==='function'&&trAnyReady();
-  const trM=(typeof trModels==='function'&&typeof mcReady==='function'&&trModels().find(mcReady))||null;
+  const trM=(typeof trModels==='function'&&typeof mcReady==='function'&&trModels().find(mcReady))||(typeof trModels==='function'&&trModels()[0])||null;
   const rawName=trM?.name||'NLLB';
-  const trName=typeof mcText==='function'?mcText(rawName):(typeof rawName==='object'?(rawName[ui]||rawName.en||''):rawName);
+  const fullTrName=typeof mcText==='function'?mcText(rawName):(typeof rawName==='object'?(rawName[ui]||rawName.en||''):rawName);
+  const cleanTrName=fullTrName.replace(/\s*\(default\)\s*$/i,'');
   items.push({
     ready:trOk,
-    html:`<span class="status-dot ${trOk?'ok':'warn'}" aria-hidden="true"></span><span><bdi>${esc(trName)}</bdi> ${esc(trOk?L('statusReady'):L('statusNotDownloaded'))}</span>`
+    html:`<span class="status-dot ${trOk?'ok':'warn'}" aria-hidden="true"></span><span title="${esc(fullTrName)}"><bdi>${esc(cleanTrName)}</bdi> ${esc(trOk?L('statusReady'):L('statusNotDownloaded'))}</span>`
   });
 
   // Right-aligned status note: reflects current operation mode (offline mode vs online engines available)

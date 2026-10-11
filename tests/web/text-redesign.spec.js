@@ -292,12 +292,17 @@ test.describe('Web app: Text tab redesign', () => {
       const strip = page.locator('#tStatusStrip');
       await expect(strip).toBeVisible();
 
+      // No Whisper on the Text tab (Whisper is an STT/speech model, not translate)
+      await expect(strip).not.toContainText('Whisper');
+
       // In initial state where models are not downloaded:
       // Offline translation model shows warning (amber dot) and "not downloaded"
       const trItem = strip.locator('.trans-status-item').first();
       await expect(trItem.locator('.status-dot')).toHaveClass(/warn/);
       await expect(trItem).toContainText('not downloaded');
       await expect(trItem.locator('bdi')).toContainText('NLLB');
+      await expect(trItem.locator('bdi')).not.toContainText('(default)');
+      await expect(trItem.locator('span[title]')).toHaveAttribute('title', /default/i);
 
       // Now simulate NLLB downloaded (mcReady becomes true)
       const cat = await page.evaluate(() => MODEL_CATALOG);
@@ -326,8 +331,10 @@ test.describe('Web app: Text tab redesign', () => {
         applyI18n();
       });
 
-      await expect(trItem.locator('bdi')).toHaveText('NLLB');
+      await expect(trItem.locator('bdi')).toContainText('NLLB');
+      await expect(trItem.locator('bdi')).not.toContainText('(default)');
       await expect(trItem).toContainText('آماده');
+      await expect(trItem.locator('span[title]')).toHaveAttribute('title', /default/i);
 
       // Offline mode toggling updates info note
       await mouseClick(page, page.locator('#offBtn'));
