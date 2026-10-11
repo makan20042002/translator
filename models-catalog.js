@@ -1141,6 +1141,36 @@ self.MODEL_CATALOG = {
    "ran": {
     "downloadedMB": 61
    }
+  },
+  {
+   "repo": "PaddleOCR/arabic_PP-OCRv3_rec",
+   "name": "RapidOCR Arabic & Persian (PP-OCRv3)",
+   "weak": false,
+   "good": {
+    "en": "Deep learning recognition model for Arabic and Persian scripts in screen & video translation.",
+    "fa": "مدل بازشناسی نوری یادگیری عمیق برای متون فارسی و عربی در ترجمه تصویر و صفحه."
+   },
+   "langs": {
+    "en": "Persian and Arabic script",
+    "fa": "خط فارسی و عربی"
+   },
+   "id": "ocr-rapid-arabic",
+   "key": "arabic",
+   "kind": "rapidocr",
+   "job": "ocr",
+   "files": [
+    [
+     "arabic_PP-OCRv3_rec_infer.onnx",
+     11263334
+    ],
+    [
+     "arabic_dict.txt",
+     3450
+    ]
+   ],
+   "bytes": 11266784,
+   "memMB": 120,
+   "speed": 0.08
   }
  ]
 };

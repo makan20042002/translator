@@ -256,6 +256,14 @@
     overflow-y: auto;
   }
 
+  .original-content[dir="rtl"] {
+    font-family: 'Vazirmatn', Tahoma, sans-serif;
+    font-size: 13.5px;
+    line-height: 1.7;
+    text-align: right;
+    direction: rtl;
+  }
+
   /* Main translated text */
   .trans-content {
     font-size: 14.5px;
@@ -695,8 +703,8 @@
       sourceLangPill.textContent = detectedSrc.toUpperCase();
     }
 
-    // Set text direction based on target language
-    const isRtl = /^(fa|ar|ur|he|ps)/i.test(targetLang);
+    // Set text direction based on target language or Arabic/Persian characters
+    const isRtl = /^(fa|ar|ur|he|ps)/i.test(targetLang) || /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(currentTranslation);
     transContent.setAttribute('dir', isRtl ? 'rtl' : 'ltr');
     transContent.textContent = currentTranslation;
     transContent.style.display = 'block';
@@ -714,6 +722,10 @@
       showError('No text found in selected region.');
       return;
     }
+
+    // Set text direction for original content
+    const isOrigRtl = data.isRtl || /^(fa|ar|ur|he|ps)/i.test(data.language || '') || /[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(rawOcrText);
+    originalContent.setAttribute('dir', isOrigRtl ? 'rtl' : 'ltr');
 
     // Show original text wrap
     originalWrap.style.display = 'block';

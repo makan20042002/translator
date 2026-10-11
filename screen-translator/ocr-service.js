@@ -66,6 +66,35 @@ class OcrService {
   }
 
   /**
+   * Locate optional RapidOCR Arabic/Persian PP-OCRv3 recognition model and character dictionary.
+   */
+  getRapidOcrArabicModel() {
+    const candidates = [
+      path.join(this.rootDir, 'models', 'rapidocr', 'arabic_PP-OCRv3_rec_infer.onnx'),
+      path.join(__dirname, '..', 'models', 'rapidocr', 'arabic_PP-OCRv3_rec_infer.onnx'),
+      path.join(process.resourcesPath || '', 'models', 'rapidocr', 'arabic_PP-OCRv3_rec_infer.onnx'),
+      path.join(process.env.APPDATA || '', 'makan-translate-desktop', 'models', 'rapidocr', 'arabic_PP-OCRv3_rec_infer.onnx'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
+  getRapidOcrArabicKeys() {
+    const candidates = [
+      path.join(this.rootDir, 'models', 'rapidocr', 'arabic_dict.txt'),
+      path.join(__dirname, '..', 'models', 'rapidocr', 'arabic_dict.txt'),
+      path.join(process.resourcesPath || '', 'models', 'rapidocr', 'arabic_dict.txt'),
+      path.join(process.env.APPDATA || '', 'makan-translate-desktop', 'models', 'rapidocr', 'arabic_dict.txt'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
+  /**
    * List available OCR engines.
    */
   async listEngines() {
@@ -173,19 +202,35 @@ class OcrService {
     if (selectedEngine === 'rapidocr') {
       const rapidBridge = this.getRapidOcrBridge();
       if (rapidBridge) {
-        return await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
+        return await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
       }
       return { ok: false, error: 'RapidOCR (PaddleOCR ONNX) bridge was not found or is uninstalled.' };
     }
 
     // 2. Direct Windows Media OCR execution
     if (selectedEngine === 'windows') {
+      const isPersian = langTag && langTag.toLowerCase().startsWith('fa');
+      if (isPersian) {
+        const installedLangs = await this.listLanguages();
+        const hasWinPack = installedLangs.some(l => l.tag.toLowerCase().startsWith('fa'));
+        if (!hasWinPack) {
+          return {
+            ok: false,
+            error: 'This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.',
+            engineCannotReadPersian: true,
+            languageNotInstalled: true,
+            suggestedEngine: 'rapidocr',
+            requestedLanguage: langTag,
+            installationGuidance: 'Windows Media OCR does not have a Persian language pack installed. Open Windows Settings > Time & Language > Language & region > Add a language (ensure Optical Character Recognition is checked), or switch OCR Engine to RapidOCR.'
+          };
+        }
+      }
       return await this._recognizeWindowsOcr(input, langTag, isBuffer);
     }
 
     // 3. Dual Engine / Auto Mode:
     // If specific language requested is Persian or Arabic, check if Windows has the language pack.
-    // If not, immediately route to RapidOCR (PaddleOCR ONNX) which excels at Persian/Arabic!
+    // If not, immediately route to RapidOCR (PaddleOCR ONNX) and never fall back to English silently.
     const isPersianOrArabic = langTag && (langTag.toLowerCase().startsWith('fa') || langTag.toLowerCase().startsWith('ar'));
     const rapidBridge = this.getRapidOcrBridge();
 
@@ -194,8 +239,8 @@ class OcrService {
       const hasWinPack = installedLangs.some(l => l.tag.toLowerCase().startsWith(langTag.toLowerCase().slice(0, 2)));
       if (!hasWinPack) {
         // Windows OCR lacks Persian pack; use RapidOCR
-        const rapidRes = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
-        if (rapidRes.ok) return rapidRes;
+        const rapidRes = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
+        return rapidRes;
       }
     }
 
@@ -210,7 +255,7 @@ class OcrService {
 
     // If Windows OCR failed or returned empty text, and RapidOCR is available, auto-fallback to RapidOCR
     if (rapidBridge && (selectedEngine === 'dual' || selectedEngine === 'auto')) {
-      const fallbackResult = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
+      const fallbackResult = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
       if (fallbackResult.ok && fallbackResult.text && fallbackResult.text.trim().length > 0) {
         fallbackResult.fallbackUsed = true;
         fallbackResult.primaryEngine = 'windows';
@@ -322,13 +367,26 @@ class OcrService {
     }
   }
 
-  async _recognizeWithRapidOcr(script, input, isBuffer) {
+  async _recognizeWithRapidOcr(script, input, isBuffer, langTag = 'auto') {
     return new Promise((resolve) => {
       const args = [script];
       if (isBuffer) {
         args.push('--stdin');
       } else {
         args.push(String(input));
+      }
+
+      if (langTag && langTag !== 'auto') {
+        args.push('--lang', langTag);
+      }
+
+      const recModel = this.getRapidOcrArabicModel();
+      if (recModel) {
+        args.push('--rec-model', recModel);
+        const keysPath = this.getRapidOcrArabicKeys();
+        if (keysPath) {
+          args.push('--keys-path', keysPath);
+        }
       }
 
       const proc = spawn('python', args, { stdio: ['pipe', 'pipe', 'pipe'] });
