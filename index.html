@@ -758,6 +758,10 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
         <span class="sp"></span>
 
         <div class="v-top-actions">
+          <button class="btn ghost v-icon-btn" id="vAudioInputToggle" type="button" title="Audio Input: Switch between Microphone and PC/Video Audio" aria-label="Audio Input">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+            <span id="vAudioInputLabel">Mic</span>
+          </button>
           <button class="btn ghost v-icon-btn" id="vSaveConv" type="button" title="Save conversation" aria-label="Save conversation">
             <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
             <span data-t="saveConv">Save</span>
@@ -814,6 +818,13 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
               <option value="groq" data-t="sttGroq">Groq Whisper</option>
               <option value="whisper" data-t="sttWh">Whisper (offline)</option>
               <option value="helper" data-t="sttHelper">Python ASR Helper</option>
+            </select>
+          </label>
+          <label class="v-set-item">
+            <span class="v-set-label" data-t="vAudioInputLabel">Audio Input</span>
+            <select id="vAudioInput">
+              <option value="mic" selected>Microphone (Your Voice)</option>
+              <option value="desktop">PC Audio / Video (YouTube, Movies)</option>
             </select>
           </label>
           <label class="v-set-item">
@@ -1130,6 +1141,10 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       <option value="1100">Relaxed (1100ms)</option>
       <option value="1500">Long pause (1500ms)</option>
     </select></label>
+    <label><span data-t="vAudioInputL">Audio Input / Video</span><select id="vAudioInputSetting">
+      <option value="mic" selected>Microphone (Your Voice)</option>
+      <option value="desktop">PC Audio / Video (YouTube, Movies, Streams)</option>
+    </select></label>
   </div>
   <div id="ttsApi" hidden>
     <div class="setg">
@@ -1213,8 +1228,33 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
           <option value="0">Disabled</option>
         </select>
       </label>
+      <label><span data-t="screenTransOcrEngine">OCR Engine</span>
+        <select id="stOcrEngine">
+          <option value="auto">Auto (Windows OCR + RapidOCR Fallback)</option>
+          <option value="windows">Windows Media OCR (Native, Ultra-Fast)</option>
+          <option value="rapidocr">PaddleOCR / RapidOCR (ONNX Deep Learning, Best Multilingual)</option>
+          <option value="dual">Dual Engine (Windows OCR + RapidOCR)</option>
+        </select>
+      </label>
       <label><span data-t="screenTransHotkey">Global Shortcut</span>
-        <input type="text" id="stHotkey" value="Ctrl+Shift+S" readonly style="cursor:not-allowed">
+        <select id="stHotkey">
+          <option value="CommandOrControl+Shift+S">Ctrl + Shift + S (Default)</option>
+          <option value="Alt+Q">Alt + Q</option>
+          <option value="F4">F4</option>
+          <option value="CommandOrControl+Alt+S">Ctrl + Alt + S</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransFreezeFrame">Freeze-Frame Snipping Tool</span>
+        <select id="stFreezeFrame">
+          <option value="1">Enabled (Freeze screen snapshot + Magnifier loupe)</option>
+          <option value="0">Disabled (Transparent live overlay)</option>
+        </select>
+      </label>
+      <label><span data-t="screenTransClipboardWatcher">Clipboard Watcher (Auto-translate screenshots)</span>
+        <select id="stClipboardWatcher">
+          <option value="0">Disabled (Manual snip only)</option>
+          <option value="1">Enabled (Auto-translate Win+Shift+S screenshots)</option>
+        </select>
       </label>
       <label><span data-t="screenTransOcrLang">Windows OCR Language</span>
         <select id="stOcrLang">
@@ -1333,7 +1373,7 @@ const I18N={en:{
  subFamily:'Family-friendly (soften swearing)',
  subNonAiWarn:'⚠️ Non-AI engines (Google, MyMemory, Offline) cannot follow styles or spoken Persian. Choose an AI engine (Gemini, Groq, OpenRouter) for film subtitles.',
  subChangeFile:'Change file',outFormat:'Output format',outSame:'Same as input',outWord:'Word (.docx)',outPdf:'PDF (.pdf)',outMd:'Markdown (.md)',outTxt:'Plain text (.txt)',outTooLong:'This document is too long for PDF output. Choose Word or another format.',subCloseFile:'Close file',subCloseSure:'Click again to discard the translation',subColNum:'#',subColTime:'Time',subColOrig:'Original',subColTrans:'Translation',
- silenceWaitL:'Silence wait (end of speech)',liveVoice:'Live voice',fastVoice:'Fast (Device / Edge)',qualityVoice:'Quality (Gemini voice)',
+ silenceWaitL:'Silence wait (end of speech)',liveVoice:'Live voice',vAudioInputLabel:'Audio Input',vAudioInputL:'Audio Input (Mic vs Video/PC Audio)',fastVoice:'Fast (Device / Edge)',qualityVoice:'Quality (Gemini voice)',
  saveConv:'Save conversation',convSaved:'Conversation saved to file',convCleared:'Conversation cleared',settings:'Settings',
  readAloud:'Read aloud',enabled:'Enabled',vStatusReady:'Ready · Hold to speak',vStatusListening:'Listening…',
  vStatusWorking:'Translating…',vStatusSpeaking:'Speaking translation…',vStatusPreparing:'Preparing voice…',vPreparingPtt:'Preparing…',vPreparingTapStop:'Tap to cancel',vStatusError:'Error',
@@ -1405,7 +1445,7 @@ const I18N={en:{
  subFamily:'مناسب خانواده (تعدیل فحش و اصطلاحات تند)',
  subNonAiWarn:'⚠️ موتورهای غیرهوش مصنوعی (گوگل، مای‌مموری و آفلاین) قادر به اعمال لحن محاوره‌ای یا سبک فیلم نیستند. برای زیرنویس محاوره‌ای فیلم از موتور هوش مصنوعی استفاده کنید.',
  subChangeFile:'تغییر فایل',outFormat:'فرمت خروجی',outSame:'مثل ورودی',outWord:'ورد (.docx)',outPdf:'پی‌دی‌اف (.pdf)',outMd:'مارک‌داون (.md)',outTxt:'متن ساده (.txt)',outTooLong:'این سند برای خروجی PDF خیلی بلند است. ورد یا فرمت دیگری را انتخاب کنید.',subCloseFile:'بستن فایل',subCloseSure:'برای دورریختن ترجمه دوباره کلیک کنید',subColNum:'ردیف',subColTime:'زمان‌بندی',subColOrig:'متن اصلی',subColTrans:'ترجمه',
- silenceWaitL:'مکث تشخیص پایان گفتار',liveVoice:'صدای حالت زنده',fastVoice:'سریع (صدای دستگاه / اج)',qualityVoice:'کیفیت بالا (صدای جمینای)',
+ silenceWaitL:'مکث تشخیص پایان گفتار',liveVoice:'صدای حالت زنده',vAudioInputLabel:'ورودی صدا',vAudioInputL:'ورودی صدا (میکروفون یا صدای سیستم/ویدیو)',fastVoice:'سریع (صدای دستگاه / اج)',qualityVoice:'کیفیت بالا (صدای جمینای)',
  saveConv:'ذخیره گفتگو',convSaved:'گفتگو در فایل متنی ذخیره شد',convCleared:'گفتگو پاک شد',settings:'تنظیمات',
  readAloud:'خواندن با صدا',enabled:'فعال',vStatusReady:'آماده · برای صحبت نگه دارید',vStatusListening:'در حال شنیدن…',
  vStatusWorking:'در حال ترجمه…',vStatusSpeaking:'در حال خواندن ترجمه…',vStatusPreparing:'در حال آماده‌سازی صدا…',vPreparingPtt:'در حال آماده‌سازی…',vPreparingTapStop:'برای لغو ضربه بزنید',vStatusError:'خطا',
@@ -1555,8 +1595,38 @@ if(!store.get('groq_order_fixed',false)){
 }
 cfg.order=cfg.order.filter(id=>ENG[id]);
 let engineConnStatus=store.get('eng_conn',{});
-const saveCfg=()=>{store.set('cfg',cfg)};
+const saveCfg=()=>{
+  store.set('cfg',cfg);
+  if(window.makanDesktop?.saveAppConfig) {
+    try { window.makanDesktop.saveAppConfig(cfg); } catch {}
+  }
+};
+if (window.makanDesktop?.loadAppConfig) {
+  window.makanDesktop.loadAppConfig().then(diskCfg => {
+    if (diskCfg && diskCfg.eng) {
+      let changed = false;
+      for (const [id, e] of Object.entries(diskCfg.eng)) {
+        if (e && e.key && (!cfg.eng[id] || !cfg.eng[id].key)) {
+          if (!cfg.eng[id]) cfg.eng[id] = {};
+          cfg.eng[id].key = e.key;
+          if (e.model) cfg.eng[id].model = e.model;
+          if (e.base) cfg.eng[id].base = e.base;
+          changed = true;
+        }
+      }
+      if (diskCfg.mmEmail && !cfg.mmEmail) { cfg.mmEmail = diskCfg.mmEmail; changed = true; }
+      if (diskCfg.tts && !cfg.tts?.key && diskCfg.tts.key) { cfg.tts.key = diskCfg.tts.key; changed = true; }
+      if (diskCfg.audioInput && cfg.audioInput !== diskCfg.audioInput) { cfg.audioInput = diskCfg.audioInput; if (typeof syncAudioInputUI === 'function') syncAudioInputUI(); changed = true; }
+      if (changed) {
+        saveCfg();
+        if (typeof fillEngines === 'function') fillEngines();
+        if (typeof renderEngines === 'function') renderEngines();
+      }
+    }
+  }).catch(() => {});
+}
 cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;cfg.tm=(cfg.tm!==undefined)?!!cfg.tm:true;cfg.helperUrl=cfg.helperUrl||'http://127.0.0.1:8765';cfg.helperModel=cfg.helperModel||'whisper-large-v3';
+cfg.audioInput=cfg.audioInput||'mic';
 cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',key:'',model:'csm-1b',voice:'alloy',rate:1.0},cfg.tts);
 cfg.tts.rate=+cfg.tts.rate||1.0;
 const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u||'');
@@ -2849,6 +2919,42 @@ async function getMicStream(){
     const live=sharedMicStream.getAudioTracks().filter(t=>t.readyState==='live');
     if(live.length>0){updateMicIndicator(true);return sharedMicStream}
   }
+
+  // Desktop / PC Audio (YouTube, movies, streams) loopback capture
+  if(cfg.audioInput === 'desktop'){
+    try{
+      let stream = null;
+      if(window.makanDesktop?.getDesktopAudioSource){
+        await window.makanDesktop.getDesktopAudioSource();
+        stream = await navigator.mediaDevices.getUserMedia({
+          audio: {
+            mandatory: {
+              chromeMediaSource: 'desktop'
+            }
+          },
+          video: {
+            mandatory: {
+              chromeMediaSource: 'desktop'
+            }
+          }
+        });
+      } else if (navigator.mediaDevices.getDisplayMedia) {
+        stream = await navigator.mediaDevices.getDisplayMedia({ audio: true, video: true });
+      }
+      if(stream && stream.getAudioTracks().length > 0){
+        stream.getVideoTracks().forEach(t => t.stop());
+        sharedMicStream = stream;
+        sharedMicStream.getAudioTracks().forEach(t => {
+          t.onended = () => { sharedMicStream = null; updateMicIndicator(false); };
+        });
+        updateMicIndicator(true);
+        return sharedMicStream;
+      }
+    }catch(deskErr){
+      console.warn('Desktop audio loopback capture failed, falling back to mic:', deskErr);
+    }
+  }
+
   try{
     sharedMicStream=await navigator.mediaDevices.getUserMedia({audio:{echoCancellation:true,noiseSuppression:true,autoGainControl:true}});
     sharedMicStream.getAudioTracks().forEach(t=>{t.onended=()=>{sharedMicStream=null;updateMicIndicator(false)}});
@@ -5145,7 +5251,44 @@ $('vToggleSettings').onclick = () => {
   btn.setAttribute('aria-expanded', String(isHidden));
 };
 
-// Settings panel event listeners
+// Audio Input (Mic vs PC Video/Audio loopback) synchronization
+function syncAudioInputUI() {
+  const isDesktop = (cfg.audioInput === 'desktop');
+  const btn = $('vAudioInputToggle');
+  const lbl = $('vAudioInputLabel');
+  if (btn) btn.classList.toggle('on', isDesktop);
+  if (lbl) lbl.textContent = isDesktop ? 'PC Audio' : 'Mic';
+  if ($('vAudioInput')) $('vAudioInput').value = isDesktop ? 'desktop' : 'mic';
+  if ($('vAudioInputSetting')) $('vAudioInputSetting').value = isDesktop ? 'desktop' : 'mic';
+}
+
+function setAudioInput(mode) {
+  releaseMicStream();
+  cfg.audioInput = (mode === 'desktop') ? 'desktop' : 'mic';
+  saveCfg();
+  syncAudioInputUI();
+  if (typeof saveAppConfig === 'function') saveAppConfig();
+  toast(cfg.audioInput === 'desktop' ? 'PC Audio / Video translation active' : 'Microphone input active', 'ok', 2000);
+}
+
+if ($('vAudioInputToggle')) {
+  $('vAudioInputToggle').onclick = () => {
+    setAudioInput(cfg.audioInput === 'desktop' ? 'mic' : 'desktop');
+  };
+}
+
+if ($('vAudioInput')) {
+  $('vAudioInput').onchange = () => {
+    setAudioInput($('vAudioInput').value);
+  };
+}
+
+if ($('vAudioInputSetting')) {
+  $('vAudioInputSetting').onchange = () => {
+    setAudioInput($('vAudioInputSetting').value);
+  };
+}
+syncAudioInputUI();
 $('vSpeed').onchange = () => {
   cfg.tts.rate = +$('vSpeed').value || 1.0;
   saveCfg();
@@ -6394,6 +6537,8 @@ const saveAllInputs=()=>{
   if(ovSilence) cfg.silenceWait = +ovSilence.value || cfg.silenceWait || 800;
   if($('sttSel')) cfg.stt = $('sttSel').value;
   if($('vSttChoice')) cfg.stt = $('vSttChoice').value;
+  if($('vAudioInput')) cfg.audioInput = $('vAudioInput').value;
+  if($('vAudioInputSetting')) cfg.audioInput = $('vAudioInputSetting').value;
   if($('ttsMode')) cfg.tts.mode = $('ttsMode').value;
   if($('tmToggle')) cfg.tm = $('tmToggle').checked;
   if(cfg.tts.mode==='gemini'&&cfg.tts.key&&!cfg.eng.gemini.key) cfg.eng.gemini.key=cfg.tts.key;
@@ -8015,6 +8160,15 @@ refreshMarks();
       });
       if (stOcrHint) {
         stOcrHint.textContent = `✓ ${ocrLangs.length} Windows OCR language pack(s) ready (${ocrLangs.map(l => l.tag).join(', ')})`;
+        try {
+          const engines = await window.makanDesktop.getOcrEngines?.();
+          if (Array.isArray(engines)) {
+            const hasRapid = engines.some(e => e.id === 'rapidocr' && e.available);
+            if (hasRapid) {
+              stOcrHint.textContent += ' • RapidOCR (PaddleOCR ONNX) Ready';
+            }
+          }
+        } catch {}
       }
     }
   } catch (err) {
@@ -8026,6 +8180,10 @@ refreshMarks();
     const cfgST = await window.makanDesktop.getScreenTransConfig();
     if (cfgST) {
       if ($('stEnable')) $('stEnable').value = cfgST.enabled ? '1' : '0';
+      if ($('stOcrEngine') && cfgST.ocrEngine) $('stOcrEngine').value = cfgST.ocrEngine;
+      if ($('stHotkey') && cfgST.hotkey) $('stHotkey').value = cfgST.hotkey;
+      if ($('stFreezeFrame')) $('stFreezeFrame').value = cfgST.freezeFrame !== false ? '1' : '0';
+      if ($('stClipboardWatcher')) $('stClipboardWatcher').value = cfgST.clipboardWatcher ? '1' : '0';
       if ($('stOcrLang') && cfgST.ocrLang) $('stOcrLang').value = cfgST.ocrLang;
       if ($('stTgtLang') && cfgST.targetLang) $('stTgtLang').value = cfgST.targetLang;
       if ($('stAutoCopy')) $('stAutoCopy').value = cfgST.autoCopy ? '1' : '0';
@@ -8038,6 +8196,10 @@ refreshMarks();
     try {
       await window.makanDesktop.saveScreenTransConfig({
         enabled: $('stEnable')?.value === '1',
+        ocrEngine: $('stOcrEngine')?.value || 'auto',
+        hotkey: $('stHotkey')?.value || 'CommandOrControl+Shift+S',
+        freezeFrame: $('stFreezeFrame')?.value === '1',
+        clipboardWatcher: $('stClipboardWatcher')?.value === '1',
         ocrLang: $('stOcrLang')?.value || 'auto',
         targetLang: $('stTgtLang')?.value || 'fa',
         autoCopy: $('stAutoCopy')?.value === '1',
@@ -8049,6 +8211,10 @@ refreshMarks();
   }
 
   $('stEnable')?.addEventListener('change', persistStConfig);
+  $('stOcrEngine')?.addEventListener('change', persistStConfig);
+  $('stHotkey')?.addEventListener('change', persistStConfig);
+  $('stFreezeFrame')?.addEventListener('change', persistStConfig);
+  $('stClipboardWatcher')?.addEventListener('change', persistStConfig);
   $('stOcrLang')?.addEventListener('change', persistStConfig);
   $('stTgtLang')?.addEventListener('change', persistStConfig);
   $('stAutoCopy')?.addEventListener('change', persistStConfig);

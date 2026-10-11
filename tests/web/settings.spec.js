@@ -25,6 +25,7 @@ const statusOf = (page, engine) => page.locator(`#engList .eng[data-id="${engine
 test.describe('Web app: Engines & keys', () => {
   test('opens, saves a typed Gemini key, and "Check connections" finishes with a status for every engine', async ({ app }) => {
     const { page, errors } = app;
+    await page.route('http://localhost:11434/**', route => route.abort());
     await openSettings(page);
     const rows = page.locator('#engList .eng');
     const engineCount = await rows.count();

@@ -28,6 +28,13 @@ contextBridge.exposeInMainWorld('makanOverlay', {
   requestTranslation: (req) => ipcRenderer.send('screen-trans:request-translate', req),
   openInMainApp: (data) => ipcRenderer.send('screen-trans:open-in-app', data),
   ready: () => ipcRenderer.send('screen-trans:overlay-ready'),
+  toggleLiveWatcher: () => ipcRenderer.send('screen-trans:toggle-live-watcher'),
+  reselectZone: () => ipcRenderer.send('screen-trans:reselect-zone'),
+  onLiveState: (callback) => {
+    ipcRenderer.on('screen-trans:live-state', (event, state) => {
+      if (typeof callback === 'function') callback(state);
+    });
+  },
   onOcrResult: (callback) => {
     ocrCallback = callback;
     if (bufferedOcrData && typeof callback === 'function') {
@@ -45,4 +52,3 @@ contextBridge.exposeInMainWorld('makanOverlay', {
     }
   }
 });
-

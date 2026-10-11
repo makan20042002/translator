@@ -21,11 +21,19 @@ test.describe('Screen Translator Desktop Web Integration', () => {
           { tag: 'en-US', displayName: 'English (United States)', nativeName: 'English' },
           { tag: 'fa-IR', displayName: 'Persian', nativeName: 'فارسی' }
         ]),
+        getOcrEngines: () => Promise.resolve([
+          { id: 'windows', name: 'Windows Media OCR', available: true },
+          { id: 'rapidocr', name: 'PaddleOCR / RapidOCR (ONNX)', available: true },
+          { id: 'dual', name: 'Dual Engine', available: true }
+        ]),
         getScreenTransConfig: () => Promise.resolve({
           enabled: true,
           hotkey: 'CommandOrControl+Shift+S',
           targetLang: 'fa',
           ocrLang: 'en-US',
+          ocrEngine: 'rapidocr',
+          freezeFrame: true,
+          clipboardWatcher: false,
           autoCopy: false,
           saveHistory: true
         }),
@@ -70,6 +78,9 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     await expect(ocrOptions).toHaveCount(3); // auto, en-US, fa-IR
     await expect(page.locator('#stOcrLang')).toHaveValue('en-US');
     await expect(page.locator('#stTgtLang')).toHaveValue('fa');
+    await expect(page.locator('#stOcrEngine')).toHaveValue('rapidocr');
+    await expect(page.locator('#stFreezeFrame')).toHaveValue('1');
+    await expect(page.locator('#stClipboardWatcher')).toHaveValue('0');
 
     // 6. Test onExecuteScreenTranslation integration with MAKAN translate pipeline
     await page.evaluate(async () => {
@@ -105,6 +116,19 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     });
 
     await expect(page.locator('#tIn')).toHaveValue('Recognized OCR Sample Text');
+
+    // 8. Test Voice PC Audio loopback switch
+    await mouseClick(page, page.locator('#btnSaveDone'));
+    await page.locator('[data-tab=voice]').click();
+    const vAudioToggle = page.locator('#vAudioInputToggle');
+    await expect(vAudioToggle).toBeVisible();
+    await expect(page.locator('#vAudioInputLabel')).toHaveText('Mic');
+
+    await vAudioToggle.click();
+    await expect(page.locator('#vAudioInputLabel')).toHaveText('PC Audio');
+    await expect(vAudioToggle).toHaveClass(/on/);
+    const audioInputVal = await page.evaluate(() => cfg.audioInput);
+    expect(audioInputVal).toBe('desktop');
   });
 
   test('floating overlay page supports Persian RTL, actions, and collapsible OCR text', async ({ page }) => {
@@ -116,12 +140,17 @@ test.describe('Screen Translator Desktop Web Integration', () => {
       window.__overlayTranslations = [];
       window.__overlayCloses = 0;
       window.__overlayPinned = false;
+      window.__liveWatcherToggled = 0;
+      window.__reselectZoneTriggered = 0;
 
       window.makanOverlay = {
         close: () => { window.__overlayCloses++; },
         setPinned: (p) => { window.__overlayPinned = p; },
         requestTranslation: (req) => { window.__overlayTranslations.push(req); },
         openInMainApp: () => {},
+        toggleLiveWatcher: () => { window.__liveWatcherToggled++; },
+        reselectZone: () => { window.__reselectZoneTriggered++; },
+        onLiveState: (cb) => { window.__liveStateCb = cb; },
         onOcrResult: (cb) => { window.__ocrCb = cb; },
         onTranslationResult: (cb) => { window.__transCb = cb; }
       };
@@ -174,5 +203,25 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     await mouseClick(page, page.locator('#btnClose'));
     const closeCount = await page.evaluate(() => window.__overlayCloses);
     expect(closeCount).toBe(1);
+
+    // Test Live Video Subtitles toggle and Zone re-selector
+    await expect(page.locator('#btnLiveToggle')).toBeVisible();
+    await mouseClick(page, page.locator('#btnLiveToggle'));
+    const liveToggles = await page.evaluate(() => window.__liveWatcherToggled);
+    expect(liveToggles).toBe(1);
+
+    await expect(page.locator('#btnReselectZone')).toBeVisible();
+    await mouseClick(page, page.locator('#btnReselectZone'));
+    const zoneReselects = await page.evaluate(() => window.__reselectZoneTriggered);
+    expect(zoneReselects).toBe(1);
+
+    // Simulate Live State ON event
+    await page.evaluate(() => {
+      if (window.__liveStateCb) {
+        window.__liveStateCb({ active: true });
+      }
+    });
+    await expect(page.locator('#btnLiveToggle')).toHaveClass(/active/);
+    await expect(page.locator('#liveBtnLabel')).toHaveText('Live ON');
   });
 });

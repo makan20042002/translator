@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<title>MAKAN Screen Translator - Region Selection</title>
+<title>MAKAN Screen Translator - Freeze-Frame Region Selection</title>
 <style>
   * { box-sizing: border-box; margin: 0; padding: 0; user-select: none; }
   html, body {
@@ -14,14 +14,27 @@
     font-family: 'Segoe UI', -apple-system, BlinkMacSystemFont, Roboto, sans-serif;
   }
 
-  /* Full screen darkened backdrop */
+  /* Freeze-Frame Background Snapshot */
+  #freezeBg {
+    position: fixed;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    display: none;
+    pointer-events: none;
+    z-index: 1;
+  }
+
+  /* Full screen darkened backdrop overlay */
   #backdrop {
     position: fixed;
     inset: 0;
     width: 100%;
     height: 100%;
-    background: rgba(0, 5, 12, 0.42);
+    background: rgba(0, 5, 12, 0.45);
     pointer-events: auto;
+    z-index: 2;
   }
 
   /* Selection rectangle */
@@ -29,29 +42,66 @@
     position: absolute;
     display: none;
     border: 2px solid #58A6FF;
-    background: rgba(88, 166, 255, 0.08);
-    box-shadow: 0 0 0 99999px rgba(0, 5, 12, 0.42), 0 0 16px rgba(88, 166, 255, 0.4);
+    background: transparent;
+    box-shadow: 0 0 0 99999px rgba(0, 5, 12, 0.45), 0 0 20px rgba(88, 166, 255, 0.5);
     pointer-events: none;
     border-radius: 2px;
+    z-index: 3;
   }
 
   /* Dimension badge */
   #dimensionBadge {
     position: absolute;
     display: none;
-    bottom: -28px;
+    bottom: -30px;
     left: 0;
     background: #0B111C;
     color: #EAF1F7;
-    border: 1px solid rgba(88, 166, 255, 0.4);
+    border: 1px solid rgba(88, 166, 255, 0.45);
     border-radius: 4px;
-    padding: 2px 8px;
+    padding: 3px 8px;
     font-size: 11px;
     font-weight: 600;
     font-family: Consolas, monospace;
     white-space: nowrap;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+    box-shadow: 0 4px 14px rgba(0,0,0,0.6);
     pointer-events: none;
+    z-index: 4;
+  }
+
+  /* Magnifier Loupe */
+  #magnifierLoupe {
+    position: fixed;
+    display: none;
+    width: 120px;
+    height: 120px;
+    border-radius: 50%;
+    border: 3px solid #58A6FF;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.7), 0 0 15px rgba(88, 166, 255, 0.4);
+    overflow: hidden;
+    pointer-events: none;
+    background: #0B111C;
+    z-index: 100;
+  }
+
+  #loupeCanvas {
+    width: 100%;
+    height: 100%;
+    display: block;
+  }
+
+  /* Loupe crosshair */
+  #magnifierLoupe::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 14px;
+    height: 14px;
+    transform: translate(-50%, -50%);
+    border: 1.5px solid rgba(255, 107, 122, 0.9);
+    border-radius: 50%;
+    box-shadow: 0 0 4px rgba(0,0,0,0.8);
   }
 
   /* Instructions hint banner */
@@ -86,6 +136,23 @@
     font-size: 11px;
     font-family: inherit;
     font-weight: 700;
+  }
+
+  .action-btn {
+    background: rgba(88, 166, 255, 0.18);
+    border: 1px solid rgba(88, 166, 255, 0.45);
+    color: #79C0FF;
+    border-radius: 16px;
+    padding: 4px 12px;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s, transform 0.15s;
+  }
+  .action-btn:hover {
+    background: rgba(88, 166, 255, 0.35);
+    color: #FFF;
+    transform: scale(1.03);
   }
 
   .cancel-btn {
@@ -139,18 +206,24 @@
 </head>
 <body>
 
+<img id="freezeBg" alt="Frozen Screen">
 <div id="backdrop"></div>
 <div id="selectionBox">
   <div id="dimensionBadge">0 × 0</div>
 </div>
 
+<div id="magnifierLoupe">
+  <canvas id="loupeCanvas" width="120" height="120"></canvas>
+</div>
+
 <button id="btnTopClose" class="top-close-btn" type="button" title="Close screen selection (Esc)">✕</button>
 
 <div id="hintBanner">
-  <span>Drag to select screen region</span>
+  <span>Drag to select screen area</span>
   <span>•</span>
-  <span>Press <kbd>Esc</kbd></span>
-  <button id="btnCancelCapture" class="cancel-btn" type="button" title="Cancel capture">✕ Cancel</button>
+  <button id="btnFullscreen" class="action-btn" type="button" title="Snip whole screen (Space)">⛶ Fullscreen</button>
+  <span>•</span>
+  <button id="btnCancelCapture" class="cancel-btn" type="button" title="Cancel capture (Esc)">✕ Cancel</button>
 </div>
 
 <script>
@@ -158,21 +231,111 @@
   let startX = 0;
   let startY = 0;
   let currentRect = null;
+  let snapshotLoaded = false;
 
   const box = document.getElementById('selectionBox');
   const badge = document.getElementById('dimensionBadge');
+  const freezeBg = document.getElementById('freezeBg');
+  const loupe = document.getElementById('magnifierLoupe');
+  const loupeCanvas = document.getElementById('loupeCanvas');
+  const loupeCtx = loupeCanvas ? loupeCanvas.getContext('2d') : null;
+
+  // Listen for freeze snapshot from backend
+  window.makanCapture?.onSnapshot?.((data) => {
+    if (data && data.dataUrl) {
+      freezeBg.src = data.dataUrl;
+      freezeBg.onload = () => {
+        freezeBg.style.display = 'block';
+        snapshotLoaded = true;
+      };
+    }
+  });
+
+  // Request snapshot if backend hasn't pushed yet
+  window.makanCapture?.requestSnapshot?.();
 
   const cancelFn = () => {
     window.makanCapture?.cancel();
   };
 
+  const completeFullscreen = () => {
+    window.makanCapture?.complete({
+      x: 0,
+      y: 0,
+      width: window.innerWidth,
+      height: window.innerHeight
+    });
+  };
+
   document.getElementById('btnTopClose')?.addEventListener('click', cancelFn);
   document.getElementById('btnCancelCapture')?.addEventListener('click', cancelFn);
+  document.getElementById('btnFullscreen')?.addEventListener('click', completeFullscreen);
 
   window.addEventListener('keydown', (e) => {
     if (e.key === 'Escape') {
       cancelFn();
+    } else if (e.key === ' ' || e.code === 'Space') {
+      if (!isSelecting) {
+        completeFullscreen();
+      }
     }
+  });
+
+  function updateLoupe(clientX, clientY) {
+    if (!loupe || !loupeCtx || !snapshotLoaded) return;
+
+    // Follow cursor with offset
+    let loupeX = clientX + 24;
+    let loupeY = clientY + 24;
+
+    if (loupeX + 130 > window.innerWidth) loupeX = clientX - 144;
+    if (loupeY + 130 > window.innerHeight) loupeY = clientY - 144;
+
+    loupe.style.left = `${Math.round(loupeX)}px`;
+    loupe.style.top = `${Math.round(loupeY)}px`;
+    loupe.style.display = 'block';
+
+    try {
+      const zoom = 2.5;
+      const sourceW = 120 / zoom;
+      const sourceH = 120 / zoom;
+      const sx = (clientX / window.innerWidth) * freezeBg.naturalWidth - sourceW / 2;
+      const sy = (clientY / window.innerHeight) * freezeBg.naturalHeight - sourceH / 2;
+
+      loupeCtx.clearRect(0, 0, 120, 120);
+      loupeCtx.drawImage(
+        freezeBg,
+        Math.max(0, sx),
+        Math.max(0, sy),
+        sourceW,
+        sourceH,
+        0,
+        0,
+        120,
+        120
+      );
+    } catch {}
+  }
+
+  window.addEventListener('pointermove', (e) => {
+    if (!isSelecting) {
+      updateLoupe(e.clientX, e.clientY);
+      return;
+    }
+
+    // Hide loupe while dragging to keep view clear
+    if (loupe) loupe.style.display = 'none';
+
+    const curX = e.clientX;
+    const curY = e.clientY;
+
+    const x = Math.min(startX, curX);
+    const y = Math.min(startY, curY);
+    const width = Math.abs(curX - startX);
+    const height = Math.abs(curY - startY);
+
+    currentRect = { x, y, width, height };
+    updateBox(x, y, width, height);
   });
 
   window.addEventListener('pointerdown', (e) => {
@@ -184,20 +347,7 @@
     updateBox(startX, startY, 0, 0);
     box.style.display = 'block';
     badge.style.display = 'block';
-  });
-
-  window.addEventListener('pointermove', (e) => {
-    if (!isSelecting) return;
-    const curX = e.clientX;
-    const curY = e.clientY;
-
-    const x = Math.min(startX, curX);
-    const y = Math.min(startY, curY);
-    const width = Math.abs(curX - startX);
-    const height = Math.abs(curY - startY);
-
-    currentRect = { x, y, width, height };
-    updateBox(x, y, width, height);
+    if (loupe) loupe.style.display = 'none';
   });
 
   window.addEventListener('pointerup', (e) => {
@@ -219,12 +369,12 @@
     badge.textContent = `${Math.round(w)} × ${Math.round(h)} px`;
 
     // Ensure badge is visible if near bottom
-    if (y + h + 35 > window.innerHeight) {
+    if (y + h + 38 > window.innerHeight) {
       badge.style.bottom = 'auto';
-      badge.style.top = '-28px';
+      badge.style.top = '-30px';
     } else {
       badge.style.top = 'auto';
-      badge.style.bottom = '-28px';
+      badge.style.bottom = '-30px';
     }
   }
 </script>

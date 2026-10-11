@@ -1,6 +1,7 @@
 /**
  * MAKAN Screen Translator - Lifecycle & Window Manager
- * Manages global hotkey, selection overlay, OCR execution, and floating translation panel.
+ * Manages global hotkey, freeze-frame selection overlay, multi-engine OCR execution,
+ * clipboard watcher, and floating translation panel.
  */
 
 const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, clipboard } = require('electron');
@@ -19,12 +20,28 @@ class ScreenTranslatorManager {
     this.isCapturing = false;
     this.isPinned = false;
 
+    this._frozenSnapshot = null;
+    this._clipboardTimer = null;
+    this._lastClipboardHash = null;
+    this._clipboardInitialized = false;
+
+    // Live video subtitle watcher state
+    this.lastCapturedRect = null;
+    this.isLiveWatching = false;
+    this.liveWatchTimer = null;
+    this._lastWatchedHash = '';
+    this._lastWatchedText = '';
+    this._pendingLiveStartAfterCapture = false;
+
     // Default configuration
     this.config = {
       enabled: true,
       hotkey: 'CommandOrControl+Shift+S',
       targetLang: 'fa',
       ocrLang: 'auto',
+      ocrEngine: 'auto', // 'auto' | 'windows' | 'rapidocr' | 'dual'
+      freezeFrame: true, // Freeze screen snapshot while snipping
+      clipboardWatcher: false, // Auto-translate screenshots from Win+Shift+S / Snipping Tool
       engine: 'auto',
       autoCloseSeconds: 0,
       autoCopy: false,
@@ -44,6 +61,7 @@ class ScreenTranslatorManager {
     this._transIdCounter = 0;
 
     this.initIpc();
+    this.initClipboardWatcher();
   }
 
   loadConfig() {
@@ -64,10 +82,16 @@ class ScreenTranslatorManager {
     if (newCfg && typeof newCfg === 'object') {
       const oldHotkey = this.config.hotkey;
       const oldEnabled = this.config.enabled;
+      const oldWatcher = this.config.clipboardWatcher;
+
       this.config = Object.assign(this.config, newCfg);
 
       if (oldHotkey !== this.config.hotkey || oldEnabled !== this.config.enabled) {
         this.registerHotkey();
+      }
+
+      if (oldWatcher !== this.config.clipboardWatcher || oldEnabled !== this.config.enabled) {
+        this.initClipboardWatcher();
       }
 
       if (this.configPath) {
@@ -93,6 +117,18 @@ class ScreenTranslatorManager {
       }
     });
 
+    ipcMain.handle('screen-trans:get-engines', async () => {
+      try {
+        return await this.ocrService.listEngines();
+      } catch (e) {
+        return [
+          { id: 'windows', name: 'Windows Media OCR (Native, Ultra-Fast)', available: true },
+          { id: 'rapidocr', name: 'PaddleOCR / RapidOCR (ONNX Deep Learning)', available: true },
+          { id: 'dual', name: 'Dual Engine (Windows + RapidOCR)', available: true }
+        ];
+      }
+    });
+
     ipcMain.handle('screen-trans:get-config', () => {
       return this.config;
     });
@@ -111,6 +147,14 @@ class ScreenTranslatorManager {
 
     ipcMain.on('screen-trans:capture-cancel', () => {
       this.closeCaptureWindow();
+    });
+
+    ipcMain.on('screen-trans:request-snapshot', () => {
+      if (this._frozenSnapshot && this.captureWindow && !this.captureWindow.isDestroyed()) {
+        this.captureWindow.webContents.send('screen-trans:snapshot', {
+          dataUrl: this._frozenSnapshot.dataUrl
+        });
+      }
     });
 
     ipcMain.on('screen-trans:overlay-close', () => {
@@ -149,6 +193,14 @@ class ScreenTranslatorManager {
         this.mainWindow.webContents.send('load-translation-input', { text, src, tgt });
       }
     });
+
+    ipcMain.on('screen-trans:toggle-live-watcher', () => {
+      this.toggleLiveWatcher();
+    });
+
+    ipcMain.on('screen-trans:reselect-zone', () => {
+      this.reselectZone();
+    });
   }
 
   /**
@@ -175,10 +227,60 @@ class ScreenTranslatorManager {
     }
   }
 
+  /**
+   * Clipboard Watcher: Automatically detects new images placed on clipboard
+   * (e.g. from Windows Snipping Tool Win+Shift+S) and invokes OCR translation.
+   */
+  initClipboardWatcher() {
+    if (this._clipboardTimer) {
+      clearInterval(this._clipboardTimer);
+      this._clipboardTimer = null;
+    }
+
+    if (!this.config.enabled || !this.config.clipboardWatcher) return;
+
+    this._clipboardInitialized = false;
+    this._lastClipboardHash = null;
+
+    this._clipboardTimer = setInterval(() => {
+      try {
+        if (!this.config.enabled || !this.config.clipboardWatcher || this.isCapturing) return;
+
+        const img = clipboard.readImage();
+        if (!img || img.isEmpty()) return;
+
+        const size = img.getSize();
+        if (size.width < 25 || size.height < 25) return;
+
+        const pngBuf = img.toPNG();
+        const hash = `${size.width}x${size.height}_${pngBuf.length}_${pngBuf.slice(0, 16).toString('hex')}`;
+
+        if (this._lastClipboardHash === hash) return;
+        this._lastClipboardHash = hash;
+
+        // Skip the very first existing image on startup
+        if (!this._clipboardInitialized) {
+          this._clipboardInitialized = true;
+          return;
+        }
+
+        const cursorPoint = screen.getCursorScreenPoint ? screen.getCursorScreenPoint() : { x: 200, y: 200 };
+        this.processImageBuffer(pngBuf, { x: cursorPoint.x, y: cursorPoint.y, width: 220, height: 120 });
+      } catch (err) {
+        // Suppress clipboard polling errors
+      }
+    }, 750);
+  }
+
   unregister() {
     try {
       globalShortcut.unregisterAll();
     } catch {}
+    if (this._clipboardTimer) {
+      clearInterval(this._clipboardTimer);
+      this._clipboardTimer = null;
+    }
+    this.stopLiveWatcher();
     this.closeCaptureWindow();
     this.closeOverlayWindow();
   }
@@ -204,6 +306,33 @@ class ScreenTranslatorManager {
     const totalWidth = maxX - minX;
     const totalHeight = maxY - minY;
 
+    // Pre-capture freeze-frame snapshot if enabled
+    this._frozenSnapshot = null;
+    if (this.config.freezeFrame !== false) {
+      try {
+        const primaryDisplay = screen.getPrimaryDisplay();
+        const scale = primaryDisplay.scaleFactor || 1;
+        const sources = await desktopCapturer.getSources({
+          types: ['screen'],
+          thumbnailSize: {
+            width: Math.round(primaryDisplay.bounds.width * scale),
+            height: Math.round(primaryDisplay.bounds.height * scale)
+          }
+        });
+        if (sources && sources.length > 0) {
+          const matched = sources.find(s => s.display_id === String(primaryDisplay.id)) || sources[0];
+          this._frozenSnapshot = {
+            image: matched.thumbnail,
+            display: primaryDisplay,
+            scale,
+            dataUrl: matched.thumbnail.toDataURL()
+          };
+        }
+      } catch (e) {
+        console.warn('[ScreenTranslator] Could not create freeze snapshot:', e);
+      }
+    }
+
     this.captureWindow = new BrowserWindow({
       x: minX,
       y: minY,
@@ -226,9 +355,18 @@ class ScreenTranslatorManager {
     this.captureWindow.setAlwaysOnTop(true, 'screen-saver');
     this.captureWindow.loadFile(path.join(__dirname, 'capture.html'));
 
+    this.captureWindow.webContents.once('did-finish-load', () => {
+      if (this._frozenSnapshot && this.captureWindow && !this.captureWindow.isDestroyed()) {
+        this.captureWindow.webContents.send('screen-trans:snapshot', {
+          dataUrl: this._frozenSnapshot.dataUrl
+        });
+      }
+    });
+
     this.captureWindow.on('closed', () => {
       this.captureWindow = null;
       this.isCapturing = false;
+      this._frozenSnapshot = null;
     });
   }
 
@@ -238,33 +376,79 @@ class ScreenTranslatorManager {
     }
     this.captureWindow = null;
     this.isCapturing = false;
+    this._frozenSnapshot = null;
   }
 
   /**
    * Handles user completed selection rectangle.
    */
   async onCaptureComplete(rect) {
+    const frozen = this._frozenSnapshot;
     this.closeCaptureWindow();
+
     if (!rect || rect.width < 8 || rect.height < 8) return;
 
-    // Open floating overlay immediately near the region in loading state
+    this.lastCapturedRect = rect;
+
+    if (this._pendingLiveStartAfterCapture) {
+      this._pendingLiveStartAfterCapture = false;
+      this.startLiveWatcher(rect);
+      return;
+    }
+
+    let imageBuffer = null;
+
+    // Crop from in-memory freeze snapshot if available (sub-millisecond instant crop)
+    if (frozen && frozen.image) {
+      try {
+        const scale = frozen.scale || 1;
+        const cropX = Math.max(0, Math.round(rect.x * scale));
+        const cropY = Math.max(0, Math.round(rect.y * scale));
+        const cropW = Math.min(frozen.image.getSize().width - cropX, Math.round(rect.width * scale));
+        const cropH = Math.min(frozen.image.getSize().height - cropY, Math.round(rect.height * scale));
+
+        if (cropW > 0 && cropH > 0) {
+          const cropped = frozen.image.crop({ x: cropX, y: cropY, width: cropW, height: cropH });
+          imageBuffer = cropped.toPNG();
+        }
+      } catch (e) {
+        imageBuffer = null;
+      }
+    }
+
+    // Fallback to desktopCapturer crop if freeze crop wasn't obtained
+    if (!imageBuffer) {
+      imageBuffer = await this.captureRegion(rect);
+    }
+
+    if (!imageBuffer) {
+      this.showOverlayNear(rect);
+      this.sendToOverlay('ocr-result', { ok: false, error: 'Could not capture screen region.' });
+      return;
+    }
+
+    await this.processImageBuffer(imageBuffer, rect);
+  }
+
+  /**
+   * Processes an image buffer through OCR service and updates the floating overlay.
+   */
+  async processImageBuffer(imageBuffer, rect) {
     this.showOverlayNear(rect);
 
     try {
-      // Capture the screen region
-      const imageBuffer = await this.captureRegion(rect);
-      if (!imageBuffer) {
-        this.sendToOverlay('ocr-result', { ok: false, error: 'Could not capture screen region.' });
-        return;
-      }
+      const selectedEngine = this.config.ocrEngine || 'auto';
+      const ocrResult = await this.ocrService.recognize(
+        imageBuffer,
+        this.config.ocrLang || 'auto',
+        selectedEngine
+      );
 
-      // Run Windows OCR
-      const ocrResult = await this.ocrService.recognize(imageBuffer, this.config.ocrLang || 'auto');
       this._lastOcrResult = ocrResult;
       this.sendToOverlay('ocr-result', ocrResult);
 
       if (ocrResult.ok && ocrResult.text && this.config.autoCopy) {
-        // If auto-copy raw or translation
+        clipboard.writeText(ocrResult.text);
       }
     } catch (err) {
       this.sendToOverlay('ocr-result', { ok: false, error: err.message || 'Capture failed.' });
@@ -272,7 +456,7 @@ class ScreenTranslatorManager {
   }
 
   /**
-   * Capture screen region using desktopCapturer thumbnail cropping or native fallback.
+   * Capture screen region using desktopCapturer thumbnail cropping.
    */
   async captureRegion(rect) {
     try {
@@ -289,7 +473,6 @@ class ScreenTranslatorManager {
 
       if (!sources || sources.length === 0) return null;
 
-      // Find matching source by display_id if available, otherwise first
       const matchedSource = sources.find(s => s.display_id === String(currentDisplay.id)) || sources[0];
       const screenImage = matchedSource.thumbnail;
 
@@ -371,6 +554,7 @@ class ScreenTranslatorManager {
   }
 
   closeOverlayWindow() {
+    this.stopLiveWatcher();
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.close();
     }
@@ -427,6 +611,101 @@ class ScreenTranslatorManager {
     if (result && result.ok && result.translation && this.config.autoCopy) {
       clipboard.writeText(result.translation);
     }
+  }
+
+  /**
+   * Reselects screen zone for live subtitle watcher.
+   */
+  reselectZone() {
+    this.stopLiveWatcher();
+    this._pendingLiveStartAfterCapture = true;
+    this.startCapture();
+  }
+
+  /**
+   * Toggles live video subtitle watcher.
+   */
+  toggleLiveWatcher() {
+    if (this.isLiveWatching) {
+      this.stopLiveWatcher();
+    } else {
+      this.startLiveWatcher();
+    }
+  }
+
+  /**
+   * Starts continuously monitoring the subtitle zone, running OCR upon frame changes.
+   */
+  startLiveWatcher(rect = null) {
+    const targetRect = rect || this.lastCapturedRect;
+    if (!targetRect || targetRect.width < 10 || targetRect.height < 10) {
+      this.reselectZone();
+      return;
+    }
+
+    this.lastCapturedRect = targetRect;
+    this.isLiveWatching = true;
+    this._lastWatchedHash = '';
+    this._lastWatchedText = '';
+
+    this.showOverlayNear(this.lastCapturedRect);
+    this.sendToOverlay('screen-trans:live-state', { active: true, rect: this.lastCapturedRect });
+
+    if (this.liveWatchTimer) {
+      clearTimeout(this.liveWatchTimer);
+      this.liveWatchTimer = null;
+    }
+
+    const tick = async () => {
+      if (!this.isLiveWatching || !this.lastCapturedRect) return;
+
+      try {
+        const imgBuf = await this.captureRegion(this.lastCapturedRect);
+        if (imgBuf && imgBuf.length > 0) {
+          const midIdx = Math.floor(imgBuf.length / 2);
+          const head = imgBuf.slice(0, 16).toString('hex');
+          const mid = imgBuf.slice(midIdx, midIdx + 16).toString('hex');
+          const tail = imgBuf.slice(-16).toString('hex');
+          const hash = `${imgBuf.length}_${head}_${mid}_${tail}`;
+
+          if (hash !== this._lastWatchedHash) {
+            this._lastWatchedHash = hash;
+
+            const engine = this.config.ocrEngine || 'auto';
+            const lang = this.config.ocrLang || 'auto';
+            const ocrResult = await this.ocrService.recognize(imgBuf, lang, engine);
+
+            if (this.isLiveWatching && ocrResult && ocrResult.ok && ocrResult.text) {
+              const cleanText = ocrResult.text.trim();
+              if (cleanText && cleanText !== this._lastWatchedText) {
+                this._lastWatchedText = cleanText;
+                this.sendToOverlay('ocr-result', ocrResult);
+              }
+            }
+          }
+        }
+      } catch (err) {
+        console.warn('[ScreenTranslator] Live watcher tick error:', err);
+      }
+
+      if (this.isLiveWatching) {
+        this.liveWatchTimer = setTimeout(tick, 600);
+      }
+    };
+
+    this.liveWatchTimer = setTimeout(tick, 250);
+  }
+
+  /**
+   * Stops live video watcher.
+   */
+  stopLiveWatcher() {
+    this.isLiveWatching = false;
+    if (this.liveWatchTimer) {
+      clearTimeout(this.liveWatchTimer);
+      this.liveWatchTimer = null;
+    }
+    this.sendToOverlay('screen-trans:live-state', { active: false });
   }
 }
 

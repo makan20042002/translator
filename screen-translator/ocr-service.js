@@ -1,6 +1,9 @@
 /**
- * MAKAN Screen Translator - Native Windows OCR Service
- * Interfaces with native Windows.Media.Ocr.OcrEngine via MakanOcr.exe (with PowerShell fallback).
+ * MAKAN Screen Translator - Multi-Engine OCR Service
+ * Supports:
+ *  1. Native Windows.Media.Ocr.OcrEngine via MakanOcr.exe (ultra-fast sub-50ms)
+ *  2. PaddleOCR / RapidOCR (ONNX Deep Learning, robust multilingual & Persian/Farsi)
+ *  3. Dual Engine (Instant Windows OCR with seamless Deep OCR fallback)
  */
 
 const fs = require('fs');
@@ -11,6 +14,7 @@ class OcrService {
   constructor(options = {}) {
     this.rootDir = options.rootDir || path.resolve(__dirname, '..');
     this._cachedLanguages = null;
+    this._cachedEngines = null;
   }
 
   /**
@@ -42,6 +46,58 @@ class OcrService {
       if (fs.existsSync(p)) return p;
     }
     return null;
+  }
+
+  /**
+   * Locate RapidOCR (PaddleOCR ONNX) python bridge script.
+   */
+  getRapidOcrBridge() {
+    const candidates = [
+      path.join(this.rootDir, 'tools', 'ocr-bridge', 'rapidocr_bridge.py'),
+      path.join(__dirname, '..', 'tools', 'ocr-bridge', 'rapidocr_bridge.py'),
+      path.join(process.resourcesPath || '', 'tools', 'ocr-bridge', 'rapidocr_bridge.py'),
+      path.join(process.resourcesPath || '', 'app-web', 'tools', 'ocr-bridge', 'rapidocr_bridge.py'),
+      path.join(__dirname, '..', '..', 'translator', 'tools', 'ocr-bridge', 'rapidocr_bridge.py'),
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+    return null;
+  }
+
+  /**
+   * List available OCR engines.
+   */
+  async listEngines() {
+    if (this._cachedEngines) return this._cachedEngines;
+
+    const hasWindows = Boolean(this.getOcrBinary() || this.getFallbackScript());
+    const rapidBridge = this.getRapidOcrBridge();
+    let hasRapid = false;
+
+    if (rapidBridge) {
+      try {
+        const out = await new Promise((resolve) => {
+          execFile('python', [rapidBridge, '--test'], { encoding: 'utf8', timeout: 4000 }, (err, stdout) => {
+            if (err) return resolve('');
+            resolve(stdout || '');
+          });
+        });
+        const parsed = JSON.parse(out.trim());
+        hasRapid = Boolean(parsed && parsed.available);
+      } catch {
+        hasRapid = false;
+      }
+    }
+
+    const engines = [
+      { id: 'windows', name: 'Windows Media OCR (Native, Ultra-Fast)', available: hasWindows },
+      { id: 'rapidocr', name: 'PaddleOCR / RapidOCR (ONNX Deep Learning, Best Multilingual)', available: hasRapid },
+      { id: 'dual', name: 'Dual Engine (Windows OCR + RapidOCR Fallback)', available: hasWindows && hasRapid }
+    ];
+
+    this._cachedEngines = engines;
+    return engines;
   }
 
   /**
@@ -102,16 +158,71 @@ class OcrService {
    * Run OCR on an image buffer or file path.
    * @param {Buffer|string} input Image Buffer (PNG/BMP/JPEG) or file path.
    * @param {string} [langTag] Desired OCR language tag or 'auto'.
-   * @returns {Promise<{ok: boolean, text?: string, angle?: number, language?: string, lines?: Array, error?: string, languageNotInstalled?: boolean, installationGuidance?: string}>}
+   * @param {string} [engine] 'auto' | 'windows' | 'rapidocr' | 'dual'.
+   * @returns {Promise<{ok: boolean, text?: string, angle?: number, language?: string, lines?: Array, error?: string, languageNotInstalled?: boolean, installationGuidance?: string, engine?: string}>}
    */
-  async recognize(input, langTag = 'auto') {
+  async recognize(input, langTag = 'auto', engine = 'auto') {
     if (!input) {
       return { ok: false, error: 'No image input provided for OCR.' };
     }
 
     const isBuffer = Buffer.isBuffer(input);
-    const bin = this.getOcrBinary();
+    const selectedEngine = (engine || 'auto').toLowerCase();
 
+    // 1. Direct RapidOCR (PaddleOCR ONNX) execution
+    if (selectedEngine === 'rapidocr') {
+      const rapidBridge = this.getRapidOcrBridge();
+      if (rapidBridge) {
+        return await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
+      }
+      return { ok: false, error: 'RapidOCR (PaddleOCR ONNX) bridge was not found or is uninstalled.' };
+    }
+
+    // 2. Direct Windows Media OCR execution
+    if (selectedEngine === 'windows') {
+      return await this._recognizeWindowsOcr(input, langTag, isBuffer);
+    }
+
+    // 3. Dual Engine / Auto Mode:
+    // If specific language requested is Persian or Arabic, check if Windows has the language pack.
+    // If not, immediately route to RapidOCR (PaddleOCR ONNX) which excels at Persian/Arabic!
+    const isPersianOrArabic = langTag && (langTag.toLowerCase().startsWith('fa') || langTag.toLowerCase().startsWith('ar'));
+    const rapidBridge = this.getRapidOcrBridge();
+
+    if (isPersianOrArabic && rapidBridge) {
+      const installedLangs = await this.listLanguages();
+      const hasWinPack = installedLangs.some(l => l.tag.toLowerCase().startsWith(langTag.toLowerCase().slice(0, 2)));
+      if (!hasWinPack) {
+        // Windows OCR lacks Persian pack; use RapidOCR
+        const rapidRes = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
+        if (rapidRes.ok) return rapidRes;
+      }
+    }
+
+    // Attempt Windows OCR first
+    const winResult = await this._recognizeWindowsOcr(input, langTag, isBuffer);
+
+    // If Windows OCR succeeded with non-empty text, return it
+    if (winResult.ok && winResult.text && winResult.text.trim().length > 0) {
+      winResult.engine = 'windows';
+      return winResult;
+    }
+
+    // If Windows OCR failed or returned empty text, and RapidOCR is available, auto-fallback to RapidOCR
+    if (rapidBridge && (selectedEngine === 'dual' || selectedEngine === 'auto')) {
+      const fallbackResult = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer);
+      if (fallbackResult.ok && fallbackResult.text && fallbackResult.text.trim().length > 0) {
+        fallbackResult.fallbackUsed = true;
+        fallbackResult.primaryEngine = 'windows';
+        return fallbackResult;
+      }
+    }
+
+    return winResult;
+  }
+
+  async _recognizeWindowsOcr(input, langTag, isBuffer) {
+    const bin = this.getOcrBinary();
     if (bin) {
       return await this._recognizeWithBinary(bin, input, langTag, isBuffer);
     }
@@ -209,6 +320,50 @@ class OcrService {
         try { fs.unlinkSync(tempPath); } catch {}
       }
     }
+  }
+
+  async _recognizeWithRapidOcr(script, input, isBuffer) {
+    return new Promise((resolve) => {
+      const args = [script];
+      if (isBuffer) {
+        args.push('--stdin');
+      } else {
+        args.push(String(input));
+      }
+
+      const proc = spawn('python', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+      let stdout = '';
+      let stderr = '';
+
+      proc.stdout.on('data', d => { stdout += d.toString('utf8'); });
+      proc.stderr.on('data', d => { stderr += d.toString('utf8'); });
+
+      proc.on('error', err => {
+        resolve({ ok: false, error: 'Failed to start RapidOCR python process: ' + err.message });
+      });
+
+      proc.on('close', code => {
+        try {
+          const trimmed = stdout.trim();
+          if (!trimmed) {
+            return resolve({ ok: false, error: stderr.trim() || `RapidOCR exited with code ${code}` });
+          }
+          const parsed = JSON.parse(trimmed);
+          resolve(parsed);
+        } catch (e) {
+          resolve({ ok: false, error: 'Invalid response from RapidOCR: ' + stdout.slice(0, 200) });
+        }
+      });
+
+      if (isBuffer) {
+        try {
+          proc.stdin.write(input);
+          proc.stdin.end();
+        } catch (e) {
+          resolve({ ok: false, error: 'Failed to write image buffer to RapidOCR pipe: ' + e.message });
+        }
+      }
+    });
   }
 }
 
