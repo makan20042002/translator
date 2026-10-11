@@ -23,7 +23,25 @@ class Handler(http.server.SimpleHTTPRequestHandler):
 
 if __name__ == '__main__':
     os.chdir(DIRECTORY)
-    with socketserver.TCPServer(('127.0.0.1', PORT), Handler) as httpd:
-        print(f"Serving at http://127.0.0.1:{PORT} and http://localhost:{PORT}")
-        sys.stdout.flush()
-        httpd.serve_forever()
+    requested_ports = [int(sys.argv[1])] if len(sys.argv) > 1 else [8080, 8888, 3000, 8000]
+    httpd = None
+    active_port = None
+    for p in requested_ports:
+        try:
+            httpd = socketserver.TCPServer(('127.0.0.1', p), Handler)
+            active_port = p
+            break
+        except (PermissionError, OSError) as err:
+            if len(requested_ports) == 1:
+                print(f"Error: port {p} is unavailable ({err}). Try another port like: python test-server.py 8888")
+                sys.exit(1)
+            continue
+
+    if httpd:
+        with httpd:
+            print(f"Serving at http://127.0.0.1:{active_port} and http://localhost:{active_port}")
+            sys.stdout.flush()
+            try:
+                httpd.serve_forever()
+            except KeyboardInterrupt:
+                print("\nServer stopped.")
