@@ -129,6 +129,8 @@ async function mcDownload(m){
   }catch(e){toast(e.message,'err',9000)}
   delete mcDownloading[m.id];
   await mcScan();mcRender();renderEngines();fillEngines();
+  if(typeof updateStatusPill==='function')updateStatusPill();
+  if(typeof updateStorageCard==='function')updateStorageCard();
 }
 async function mcDelete(m){
   try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else if(m.job==='translate')await rpc('unload',{repo:m.repo})}catch{}
@@ -138,6 +140,8 @@ async function mcDelete(m){
   }catch{}
   inWorker.delete(m.repo);mcUnmark(m);
   await mcScan();mcRender();renderEngines();fillEngines();
+  if(typeof updateStatusPill==='function')updateStatusPill();
+  if(typeof updateStorageCard==='function')updateStorageCard();
   toast(`${mcText(m.name)}: ${L('mdlDeleted')}`,'ok');
 }
 function mcRow(m){

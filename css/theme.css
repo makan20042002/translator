@@ -803,3 +803,105 @@ textarea:focus {
     display: none;
   }
 }
+
+/* Sidebar Drawer & Toggle for Mobile/Narrow Screens (<= 768px) */
+#sidebarToggleBtn {
+  display: none;
+}
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+  backdrop-filter: blur(4px);
+  z-index: 35;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.25s var(--ease);
+}
+.sidebar-backdrop.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 768px) {
+  #sidebarToggleBtn {
+    display: inline-flex;
+    flex-shrink: 0;
+  }
+  .app-shell {
+    overflow-x: hidden;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    width: 250px;
+    min-width: 0;
+    max-width: 80vw;
+    z-index: 40;
+    transform: translateX(-100%);
+    transition: transform 0.25s var(--ease);
+    pointer-events: none;
+    box-shadow: none;
+    padding-inline: 16px;
+  }
+  html[dir="rtl"] .sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+  .sidebar.open {
+    transform: translateX(0);
+    pointer-events: auto;
+    box-shadow: var(--shadow-lg);
+  }
+  .sidebar.open .sidebar-brand .brand-meta,
+  .sidebar.open .status-pill .status-text,
+  .sidebar.open .status-pill .status-shield,
+  .sidebar.open .sidebar-sec-h,
+  .sidebar.open .storage-meta {
+    display: flex !important;
+  }
+  .sidebar.open .sidebar-nav button,
+  .sidebar.open .sidebar-action-btn {
+    font-size: 13.5px !important;
+    justify-content: flex-start !important;
+  }
+  .sidebar.open .sidebar-nav button::before,
+  .sidebar.open .sidebar-action-btn::before {
+    margin-inline-end: 10px !important;
+  }
+  .main-viewport {
+    width: 100%;
+    min-width: 0;
+    flex: 1;
+  }
+  .topbar {
+    padding-inline: 12px;
+    padding-block: 10px;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .topbar-lead {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar-title {
+    font-size: 16px;
+    word-break: break-word;
+  }
+  .topbar-eyebrow {
+    font-size: 10px;
+  }
+  .topbar-ctrls {
+    flex-wrap: wrap;
+    gap: 6px;
+  }
+  .topbar-ctrls .btn {
+    min-height: 32px;
+    padding: 0 8px;
+    font-size: 12px;
+  }
+}
+

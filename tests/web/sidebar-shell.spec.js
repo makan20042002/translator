@@ -4,6 +4,7 @@
  * (Written, not executed, as per test policy).
  */
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { CACHE, fakeDownloaded } = require('../support/model-helpers');
 
 const ALL_SIDEBAR_TABS = [
   'text', 'sub', 'doc', 'voice', 'screen',
@@ -60,10 +61,16 @@ test.describe('Web app: Sidebar shell & navigation', () => {
     expect(initialText.trim()).toBe('Online only');
 
     // Simulate an offline translation model ready
-    await page.evaluate(() => {
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    const nllb = cat.models.find(x => x.id === 'tr-nllb-600');
+    await fakeDownloaded(page, nllb.repo, nllb.files);
+    await page.evaluate(async () => {
       // Mark legacy or catalog NLLB model ready in local storage store
       store.set('nllb', true);
-      store.set('mdl', { 'tr-nllb-600': { files: [] } });
+      const d = store.get('mdl', {});
+      d['tr-nllb-600'] = { at: Date.now(), files: [] };
+      store.set('mdl', d);
+      await mcScan();
       if (typeof updateStatusPill === 'function') {
         updateStatusPill();
       }
@@ -74,13 +81,17 @@ test.describe('Web app: Sidebar shell & navigation', () => {
     await expect(statusPill).toHaveClass(/\bready\b/);
 
     // Clean up store state
-    await page.evaluate(() => {
+    await page.evaluate(async (cacheName) => {
       store.set('nllb', false);
       store.set('mdl', {});
+      try {
+        await caches.delete(cacheName);
+      } catch (e) {}
+      await mcScan();
       if (typeof updateStatusPill === 'function') {
         updateStatusPill();
       }
-    });
+    }, CACHE);
 
     const revertedText = await page.locator('#sidebarStatusText').textContent();
     expect(revertedText.trim()).toBe('Online only');

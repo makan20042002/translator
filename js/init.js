@@ -2,6 +2,8 @@
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.tab));
+  if($('sidebar'))$('sidebar').classList.remove('open');
+  if($('sidebarBackdrop'))$('sidebarBackdrop').classList.remove('open');
   if(b.dataset.tab!=='voice'){
     stopLive();
   }
@@ -10,6 +12,17 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(b.dataset.tab==='sub')updateSubEngineNotice();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });
+if($('sidebarToggleBtn'))$('sidebarToggleBtn').onclick=()=>{
+  const s=$('sidebar'),bd=$('sidebarBackdrop');
+  if(s){
+    const open=s.classList.toggle('open');
+    if(bd)bd.classList.toggle('open',open);
+  }
+};
+if($('sidebarBackdrop'))$('sidebarBackdrop').onclick=()=>{
+  $('sidebar')?.classList.remove('open');
+  $('sidebarBackdrop')?.classList.remove('open');
+};
 $('src').onchange=()=>{store.set('src',$('src').value);voiceLabels()};
 $('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs()};
 $('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice()};
