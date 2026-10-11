@@ -1,0 +1,329 @@
+/* ---------- Finglish (Persian in Latin letters) ---------- */
+const aiChainNow=()=>cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+// Converts Finglish to Persian script with one AI request. { kind: 'no' | 'needs-ai' | 'ok', persian, engine }
+async function finglishStep(text,signal,src){
+  src=src||$('src').value;
+  if(src!=='auto'&&src!=='fa'&&src!=='finglish')return {kind:'no'};
+  return prepareFinglish(text,src,cfg,{chain:aiChainNow(),signal});
+}
+// The "Persian spelling" line with a Copy button.
+function fgBox(persian,into){
+  const box=into||mk('div','fg-box');box.replaceChildren();
+  const l=mk('span','lbl',L('fgSpelling')),t=mk('span','fg-t',persian);t.dir='rtl';t.lang='fa';
+  const b=mk('button','btn ghost',L('copy'));b.type='button';b.onclick=()=>copy(persian);
+  box.append(l,t,b);box.hidden=false;return box;
+}
+// For one searched word (Dictionary, Idioms): Persian spelling when it was Finglish and an AI engine can convert it; otherwise unchanged.
+async function finglishWord(word){
+  try{const r=await finglishStep(word,undefined,'auto');if(r.kind==='ok')return {text:r.persian,persian:r.persian}}catch{}
+  return {text:word};
+}
+
+/* ---------- TEXT ---------- */
+let tCtl=null;
+function getQuickestNonAiEngine(){
+  if(isOff()){
+    if(usable('nllb'))return 'nllb';
+    if(usable('chrome'))return 'chrome';
+    if(usable('ollama'))return 'ollama';
+    return 'nllb';
+  }
+  if(usable('chrome'))return 'chrome';
+  if(usable('google'))return 'google';
+  if(usable('mymemory'))return 'mymemory';
+  if(usable('nllb'))return 'nllb';
+  return 'google';
+}
+// Fast: try every available non-AI engine in turn (on-device Chrome first, then Google web, then MyMemory).
+// A missing language pair in one engine (e.g. Chrome on-device) just moves on to the next.
+function getFastChain(){
+  if(isOff())return [getQuickestNonAiEngine()];
+  const chain=['chrome','google','mymemory','nllb'].filter(usable);
+  for(const id of ['google','mymemory'])if(!chain.includes(id)&&cfg.eng[id]&&cfg.eng[id].on!==false&&!sessionBlocked.has(id))chain.push(id);
+  return chain.length?chain:['google','mymemory'];
+}
+function getSmartEngineChain(){
+  const cur=$('engine').value;
+  if(cur!=='auto'&&usable(cur))return [cur];
+  const chain=cfg.order.filter(usable);
+  if(chain.length)return chain;
+  if(isOff())return usable('nllb')?['nllb']:usable('ollama')?['ollama']:['nllb'];
+  return ['google'];
+}
+function getAiEngineChain(){
+  const cur=$('engine').value;
+  if(cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
+  const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+  if(aiList.length)return aiList;
+  if(isOff())return ['ollama'];
+  return ['gemini'];
+}
+function getDefaultTransMode(){
+  const saved=store.get('tMode',null);
+  if(saved&&['both','fast','smart'].includes(saved))return saved;
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  return hasAi?'both':'fast';
+}
+async function saveToMemory(params){
+  try{
+    if(cfg.tm===false)return;
+    if(typeof TranslationMemory==='undefined'||!params)return;
+    const src=String(params.text||'').trim();
+    const tr=String(params.translatedText||'').trim();
+    if(!src||!tr)return;
+    if(params.hasError)return;
+    // Never save errors, empty results, partial results, rate-limit (429/503) or timeout results
+    const errRe = /^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
+    if(errRe.test(tr))return;
+    if(Array.isArray(params.lines)&&Array.isArray(params.out)){
+      if(params.lines.length!==params.out.length)return;
+      if(params.out.some(s=>typeof s!=='string'||!s.trim()||errRe.test(s.trim())))return;
+    }
+    await TranslationMemory.put({
+      sourceText:params.text,
+      translatedText:params.translatedText,
+      src:params.src,
+      tgt:params.tgt,
+      modeClass:params.modeClass,
+      tone:params.tone,
+      subject:params.subject
+    });
+  }catch(_){}
+}
+async function doText(){
+  const text=$('tIn').value;if(!text.trim())return;
+  tCtl=new AbortController();busy([$('tGo')],$('tStop'),true);$('tMeta').textContent='…';const t0=performance.now();
+  $('tShowImproved')?.remove();
+  if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;
+  let userInteractedWithFast=false;
+  const onFastInteract=()=>{userInteractedWithFast=true};
+  $('tOut').addEventListener('input',onFastInteract,{once:true});
+  $('tOut').addEventListener('keydown',onFastInteract,{once:true});
+  $('tOut').addEventListener('copy',onFastInteract,{once:true});
+  const copyBtnClick=()=>{userInteractedWithFast=true};
+  $('tCopy').addEventListener('click',copyBtnClick,{once:true});
+
+  const mode=$('tMode')?.value||getDefaultTransMode();
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+
+  // Look up memory before calling any engine
+  const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
+  let memHit=null;
+  if(cfg.tm!==false){
+    try{
+      if(typeof TranslationMemory!=='undefined'){
+        memHit=await TranslationMemory.get({
+          text,
+          src:$('src').value==='finglish'?'auto':$('src').value,
+          tgt:$('tgt').value,
+          modeClass:memMode,
+          tone:$('tone')?.value||'',
+          subject:$('tSubject')?.value?.trim()||''
+        });
+      }
+    }catch(_){memHit=null;}
+  }
+  if(memHit&&memHit.translatedText){
+    busy([$('tGo')],$('tStop'),false);
+    $('tOut').value=memHit.translatedText;
+    if(memHit.corrected){
+      $('tMeta').innerHTML=`<span class="pill-tm pill-corrected">${esc(L('fromCorrection'))}</span>`;
+    }else{
+      $('tMeta').innerHTML=`<span class="pill-tm">${esc(L('fromMemory'))}</span>`;
+    }
+    const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:memHit.corrected?'correction':'memory',i:text.slice(0,4000),o:memHit.translatedText.slice(0,4000)});store.set('hist',h.slice(0,60));
+    $('tCopy').removeEventListener('click',copyBtnClick);
+    return;
+  }
+
+  if(isOff()&&!cfg.order.some(id=>(!isOff()||offCapable(id))&&usable(id))){
+    showOfflineGuidance(L('noOff'),$('tMeta'));
+    busy([$('tGo')],$('tStop'),false);
+    return;
+  }
+
+  // A slow AI engine must not look like a hang: after 4 s say what is being waited for.
+  const aiName=ENG[(mode==='smart'?getSmartEngineChain():getAiEngineChain())[0]]?.name||'';
+  const waitTimer=mode==='fast'||!aiName?0:setTimeout(()=>{
+    const m=$('tMeta');if(!m||m.querySelector('.waiting-ai'))return;
+    if(mode==='smart'&&!$('tOut').value)m.textContent=`${L('waitingFor')} ${aiName}…`;
+    else if(mode==='both'){const sp=document.createElement('span');sp.className='waiting-ai';sp.textContent=` · ${L('waitingFor')} ${aiName}…`;m.appendChild(sp)}
+  },4000);
+  let fgPersian='';
+  try{
+    let lines=text.split('\n');
+    // Finglish: one AI request turns it into Persian script; that is shown above the translation and translated from.
+    $('tFinglish').hidden=true;
+    const fg=await finglishStep(text,tCtl.signal);
+    if(fg.kind==='needs-ai'){
+      $('tOut').value='';$('tMeta').textContent=L('fgNeedsAi');
+      busy([$('tGo')],$('tStop'),false);return;
+    }
+    if(fg.kind==='ok'){
+      fgPersian=fg.persian;fgBox(fgPersian,$('tFinglish'));
+      if($('tgt').value==='fa'){                      // the conversion is the result
+        $('tOut').value=fgPersian;
+        $('tMeta').textContent=`${L('fgVia')} · ${fg.engine} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+        const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fg.engine,i:text.slice(0,4000),o:fgPersian.slice(0,4000)});store.set('hist',h.slice(0,60));
+        busy([$('tGo')],$('tStop'),false);return;
+      }
+      lines=fgPersian.split('\n');srcOverride='fa';
+    }
+    if(mode==='fast'||(mode==='both'&&!hasAi)){
+      const r=await translateItems(lines,opts({chain:getFastChain(),signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
+      const res=r.out.join('\n');$('tOut').value=res;
+      $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+      const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+      saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+    }else if(mode==='smart'){
+      const smartChain=getSmartEngineChain();
+      const r=await translateItems(lines,opts({chain:smartChain,signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
+      const res=r.out.join('\n');$('tOut').value=res;
+      $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+      const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+      saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'smart',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+    }else{
+      const nonAiEng=getFastChain()[0];
+      const aiChain=getAiEngineChain();
+      let fastDone=false,smartDone=false,fastErr=null;
+      // Fast failed but Smart worked: show the Smart result and say so in one line.
+      const noteFastFailed=()=>{const sp=document.createElement('span');sp.className='fast-failed';sp.textContent=` · ${L('fastFailed')} (${toPlainReason(fastErr)||fastErr.message})`;$('tMeta').appendChild(sp)};
+      let fastRes='',fastUsed=nonAiEng;
+      let smartRes='',smartUsed='';
+
+      const fastPromise=translateItems(lines,opts({chain:getFastChain(),signal:tCtl.signal})).then(r=>{
+        fastRes=r.out.join('\n');
+        fastUsed=r.used;
+        fastDone=true;
+        if(!smartDone){
+          $('tOut').value=fastRes;
+          $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)}`;
+        }
+        saveToMemory({text,translatedText:fastRes,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+        return r;
+      }).catch(err=>{
+        fastDone=true;fastErr=err;
+        if(smartDone&&smartRes)noteFastFailed();
+        throw err;
+      });
+
+      const smartPromise=translateItems(lines,opts({chain:aiChain,signal:tCtl.signal})).then(r=>{
+        smartRes=r.out.join('\n');
+        smartUsed=r.used;
+        smartDone=true;
+        const dur=((performance.now()-t0)/1000).toFixed(1);
+
+        if(userInteractedWithFast&&fastRes){
+          let showBtn=$('tShowImproved');
+          if(!showBtn){
+            showBtn=document.createElement('button');
+            showBtn.id='tShowImproved';
+            showBtn.className='btn ghost';
+            showBtn.style.marginLeft='8px';
+            showBtn.textContent=L('showImproved');
+            $('tMeta').appendChild(showBtn);
+          }
+          showBtn.onclick=()=>{
+            $('tOut').classList.add('calm-fade');
+            setTimeout(()=>$('tOut').classList.remove('calm-fade'),400);
+            $('tOut').value=smartRes;
+            $('tMeta').textContent=`${L('via')} ${smartUsed} · ${dur}s`;
+            showBtn.remove();
+            const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:smartUsed,i:text.slice(0,4000),o:smartRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+          };
+        }else{
+          $('tOut').classList.add('calm-fade');
+          setTimeout(()=>$('tOut').classList.remove('calm-fade'),400);
+          $('tOut').value=smartRes;
+          $('tMeta').textContent=`${L('via')} ${smartUsed} · ${dur}s`;
+          if(fastErr)noteFastFailed();
+          const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:smartUsed,i:text.slice(0,4000),o:smartRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+        }
+        saveToMemory({text,translatedText:smartRes,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'smart',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+        return r;
+      }).catch(err=>{
+        smartDone=true;
+        if(fastRes){
+          const is429=err.status===429||/429|resource_exhausted|rate limit|quota/i.test(err.message||'');
+          const plain=toPlainReason(err);const reason=is429?L('aiRateLimited'):(plain?`${L('aiUnavailable')} (${plain})`:L('aiUnavailable'));
+          $('tMeta').textContent=`${L('fastLabel')} (${esc(fastUsed)}) · ${reason}`;
+          const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fastUsed,i:text.slice(0,4000),o:fastRes.slice(0,4000)});store.set('hist',h.slice(0,60));
+          saveToMemory({text,translatedText:fastRes,lines,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+        }else{
+          throw err;
+        }
+      });
+
+      await Promise.allSettled([fastPromise,smartPromise]);
+      if(!fastRes&&!smartRes){
+        throw new Error(L(isOff()?'noOff':'noEngine'));
+      }
+    }
+  }catch(e){
+    if(isOff()){
+      showOfflineGuidance(e.message,$('tMeta'));
+    }else{
+      $('tMeta').textContent='';
+      fail(e);
+    }
+  }
+  finally{
+    clearTimeout(waitTimer);srcOverride=null;
+    $('tCopy').removeEventListener('click',copyBtnClick);
+  }
+  busy([$('tGo')],$('tStop'),false);
+  if(mode!=='fast'&&$('tOut').value&&aiAvailable())markIdiomsAi(fgPersian||text);
+}
+$('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
+$('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});
+$('tIn').addEventListener('input',()=>$('tCount').textContent=`${$('tIn').value.length} ${L('chars')}`);
+$('tClear').onclick=()=>{$('tIn').value='';$('tOut').value='';$('tMeta').textContent='';if($('tSaveCorrection'))$('tSaveCorrection').hidden=true;$('tIn').dispatchEvent(new Event('input'));$('tIn').focus()};
+$('tOut').addEventListener('input',()=>{
+  const hasIn=$('tIn').value.trim();
+  const hasOut=$('tOut').value.trim();
+  if($('tSaveCorrection'))$('tSaveCorrection').hidden=!(hasIn&&hasOut);
+});
+if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
+  const text=$('tIn').value;
+  const corrected=$('tOut').value;
+  if(!text.trim()||!corrected.trim())return;
+
+  const mode=$('tMode')?.value||getDefaultTransMode();
+  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
+
+  if(typeof TranslationMemory!=='undefined'){
+    const saveModes=mode==='both'?['fast','smart']:[memMode];
+    for(const m of saveModes){
+      await TranslationMemory.put({
+        sourceText:text,
+        translatedText:corrected,
+        src:$('src').value==='finglish'?'auto':$('src').value,
+        tgt:$('tgt').value,
+        modeClass:m,
+        tone:$('tone')?.value||'',
+        subject:$('tSubject')?.value?.trim()||'',
+        corrected:true
+      });
+    }
+  }
+
+  $('tSaveCorrection').hidden=true;
+  $('tMeta').innerHTML=`<span class="pill-tm pill-corrected">${esc(L('fromCorrection'))}</span>`;
+  toast(L('correctionSaved'),'ok');
+  const h=store.get('hist',[]);
+  h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:'correction',i:text.slice(0,4000),o:corrected.slice(0,4000)});
+  store.set('hist',h.slice(0,60));
+  updateTmCount();
+};
+$('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast('Clipboard blocked','err')}};
+$('tCopy').onclick=()=>copy($('tOut').value);
+$('tSpeak').onclick=()=>{
+  getOrCreateAppAudioContext();
+  if(isSpeaking()||$('tSpeak').classList.contains('preparing')||$('tSpeak').classList.contains('playing')||(typeof voiceState!=='undefined'&&(voiceState==='speaking'||voiceState==='preparing'))){
+    stopSpeak();
+  }else{
+    speak($('tOut').value,$('tgt').value);
+  }
+};
+$('tMic').onclick=()=>listen($('src').value,$('tMic'),tx=>{$('tIn').value=($('tIn').value?$('tIn').value+' ':'')+tx;$('tIn').dispatchEvent(new Event('input'));doText()});
