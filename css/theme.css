@@ -481,10 +481,7 @@ textarea:focus {
   transition: all 0.16s var(--ease);
   position: relative;
 }
-/* Crucial offset for tabs test boundingBox x coordinates in LTR & RTL */
-#tabs button[data-tab="sub"] {
-  margin-inline-start: 2px;
-}
+
 .sidebar-nav button:hover {
   background: var(--surface2);
   color: var(--text-bright);
@@ -795,9 +792,7 @@ textarea:focus {
   .sidebar-action-btn::before {
     margin-inline-end: 0 !important;
   }
-  #tabs button[data-tab="sub"] {
-    margin-inline-start: 2px !important;
-  }
+
   .sidebar-storage-card {
     padding: 8px;
   }

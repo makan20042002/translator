@@ -71,10 +71,20 @@ test.describe('Web app: interface language', () => {
     await expect(page.locator('#tabs button[data-tab="sub"]')).toHaveText('زیرنویس');
     await expect(page.locator('#openSet')).toHaveText('موتورها و کلیدها');
     await expect(page.locator('#uiLang')).toHaveText('English');
-    // The page really lays out right-to-left: the first tab sits to the right of the second.
-    const first = await page.locator('#tabs button[data-tab="text"]').boundingBox();
-    const second = await page.locator('#tabs button[data-tab="sub"]').boundingBox();
-    expect(first.x).toBeGreaterThan(second.x);
+    // The page really lays out right-to-left:
+    // With the sidebar navigation shell, tabs are stacked vertically inside the sidebar.
+    // The RTL layout is verified by:
+    // 1) The sidebar sits on the right of the main viewport (sidebar.x > main.x) in RTL,
+    //    and on the left (sidebar.x < main.x) in LTR.
+    // 2) Horizontal controls like the source and target language selectors (#src and #tgt)
+    //    lay out with #src to the right of #tgt in RTL (src.x > tgt.x) and left in LTR (src.x < tgt.x).
+    const sidebar = await page.locator('#sidebar').boundingBox();
+    const main = await page.locator('#mainViewport').boundingBox();
+    expect(sidebar.x).toBeGreaterThan(main.x);
+
+    const srcBox = await page.locator('#src').boundingBox();
+    const tgtBox = await page.locator('#tgt').boundingBox();
+    expect(srcBox.x).toBeGreaterThan(tgtBox.x);
 
     await page.reload();
     await expect(html).toHaveAttribute('dir', 'rtl');
@@ -84,9 +94,13 @@ test.describe('Web app: interface language', () => {
     await expect(html).toHaveAttribute('dir', 'ltr');
     await expect(html).toHaveAttribute('lang', 'en');
     await expect(page.locator('#tabs button[data-tab="text"]')).toHaveText('Text');
-    const a = await page.locator('#tabs button[data-tab="text"]').boundingBox();
-    const b = await page.locator('#tabs button[data-tab="sub"]').boundingBox();
-    expect(a.x).toBeLessThan(b.x);
+    const sidebarLtr = await page.locator('#sidebar').boundingBox();
+    const mainLtr = await page.locator('#mainViewport').boundingBox();
+    expect(sidebarLtr.x).toBeLessThan(mainLtr.x);
+
+    const srcBoxLtr = await page.locator('#src').boundingBox();
+    const tgtBoxLtr = await page.locator('#tgt').boundingBox();
+    expect(srcBoxLtr.x).toBeLessThan(tgtBoxLtr.x);
     expect(errors).toEqual([]);
   });
 });
