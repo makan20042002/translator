@@ -255,10 +255,59 @@
 
   <!-- SUBTITLE -->
   <section class="tab" id="tab-sub">
-    <div class="sub-card">
-      <label class="drop" id="sDrop"><input type="file" id="sFile" accept=".srt,.vtt,.txt" hidden>
-        <strong data-t="sDrop">Drop an SRT or VTT file</strong><span class="hint" data-t="sDrop2">or click to choose. Timings are kept exactly.</span></label>
-      <div id="sWork" hidden>
+    <!-- Page Header (Item 1) -->
+    <div class="sub-page-header">
+      <h1 class="sub-page-title" data-t="pageSubTitle">Subtitles</h1>
+      <p class="sub-page-sub" data-t="pageSubSub">Translate .srt and .vtt files, or make subtitles from a video</p>
+    </div>
+
+    <!-- Empty State: Two Entry Cards (Item 1) -->
+    <div class="sub-entry-cards" id="sEntryCards">
+      <!-- Card 1: Drop Subtitle File -->
+      <label class="drop sub-entry-card sub-entry-card-drop" id="sDrop">
+        <input type="file" id="sFile" accept=".srt,.vtt,.txt" hidden>
+        <div class="sub-card-icon-wrap" aria-hidden="true">
+          <svg class="sub-cc-icon" width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="4" width="20" height="16" rx="3" stroke="currentColor" fill="none"/>
+            <path d="M7 10h3a1.5 1.5 0 0 1 1.5 1.5v0a1.5 1.5 0 0 1-1.5 1.5H7"/>
+            <path d="M14 10h3a1.5 1.5 0 0 1 1.5 1.5v0a1.5 1.5 0 0 1-1.5 1.5H14"/>
+          </svg>
+        </div>
+        <strong data-t="sDrop">Drop a subtitle file here</strong>
+        <span class="hint" data-t="sDrop2">or click to choose. Timings are kept exactly.</span>
+        <div class="sub-format-chips" aria-hidden="true">
+          <span class="sub-chip">SRT</span>
+          <span class="sub-chip">VTT</span>
+        </div>
+      </label>
+
+      <!-- Card 2: Video/Audio Subtitles (Honest Coming Soon) -->
+      <div class="sub-entry-card sub-entry-card-video" id="sVideoCard">
+        <div class="sub-card-icon-wrap sub-card-icon-video" aria-hidden="true">
+          <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="16" height="13" rx="2"></rect>
+            <polygon points="8 7 13 9.5 8 12 8 7" fill="currentColor"></polygon>
+            <line x1="2" y1="20" x2="18" y2="20"></line>
+            <line x1="10" y1="16" x2="10" y2="20"></line>
+            <path d="M20 7v5"></path>
+            <path d="M22 5v9"></path>
+          </svg>
+        </div>
+        <div class="sub-video-content">
+          <div class="sub-video-title-row">
+            <strong data-t="subVideoTitle">Make subtitles from a video or audio file</strong>
+            <span class="sub-coming-soon-badge" data-t="subVideoComingSoon">Coming soon</span>
+          </div>
+          <p class="sub-video-note" data-t="subVideoHelperNote">Requires the local speech helper desktop app</p>
+          <button class="btn ghost sub-video-btn" type="button" disabled aria-disabled="true">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+            <span data-t="subVideoComingSoon">Coming soon</span>
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <div class="sub-card" id="sWork" hidden>
         <div class="sub-toolbar">
           <div class="sub-bar-top">
             <div class="sub-file-meta">
@@ -301,7 +350,6 @@
         </div>
         <div class="cues" id="cues"></div>
       </div>
-    </div>
   </section>
 
   <!-- DOCUMENT -->

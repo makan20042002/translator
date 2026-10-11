@@ -97,7 +97,7 @@ $('cues').addEventListener('focusout',e=>{
 async function loadSubs(f){
   const c=parseSubs(await f.text());if(!c.length){toast('No subtitle lines found in this file','err');return}
   sCtl?.abort(); // a translation still running belongs to the old file
-  cues=c;sName=f.name.replace(/\.[^.]+$/,'');$('sDrop').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
+  cues=c;sName=f.name.replace(/\.[^.]+$/,'');$('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
 }
 dropzone($('sDrop'),$('sFile'),loadSubs);
 if($('sChangeFile'))$('sChangeFile').onclick=()=>$('sFile').click();
@@ -107,7 +107,7 @@ const sCloseReset=()=>{clearTimeout(sCloseTimer);sCloseTimer=null;if($('sCloseFi
 function closeSubs(){
   sCtl?.abort();sCloseReset();
   cues=[];sName='subtitle';$('cues').innerHTML='';$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='';
-  $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;
+  $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;if($('sEntryCards'))$('sEntryCards').hidden=false;if($('sVideoCard'))$('sVideoCard').hidden=false;
 }
 if($('sCloseFile'))$('sCloseFile').onclick=()=>{
   if(cues.some(c=>c.t&&c.t.trim())&&!sCloseTimer){

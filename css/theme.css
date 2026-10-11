@@ -1631,6 +1631,188 @@ html[lang="fa"] .trans-recent-tgt-text {
   }
 }
 
+/* ==================== SUBTITLE TAB REDESIGN (ITEM 1) ==================== */
+.sub-page-header {
+  margin-block-end: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.sub-page-title {
+  margin: 0;
+  font-family: var(--display, 'Plus Jakarta Sans', system-ui);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+html[lang="fa"] .sub-page-title {
+  font-family: 'Vazirmatn', system-ui;
+  font-weight: 800;
+}
+.sub-page-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted, #94a3b8);
+  line-height: 1.4;
+}
+
+.sub-entry-cards {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  margin-block-end: 20px;
+  min-width: 0;
+}
+.sub-entry-cards:has(#sDrop[hidden]) {
+  display: none !important;
+}
+@media (max-width: 780px) {
+  .sub-entry-cards {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+.sub-entry-card {
+  background: var(--surface-card, #091428);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  border-radius: var(--r-m, 14px);
+  padding: 32px 20px;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  position: relative;
+  transition: all 0.2s ease;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.sub-entry-card-drop {
+  border: 2px dashed rgba(56, 189, 248, 0.35);
+  cursor: pointer;
+  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.08) 0%, rgba(9, 20, 40, 0.95) 70%);
+}
+.sub-entry-card-drop:hover, .sub-entry-card-drop.over {
+  border-color: var(--accent, #38bdf8);
+  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.16) 0%, rgba(9, 20, 40, 0.95) 70%);
+  transform: translateY(-2px);
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+}
+
+.sub-card-icon-wrap {
+  width: 72px;
+  height: 72px;
+  border-radius: 20px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-block-end: 16px;
+  background: rgba(56, 189, 248, 0.1);
+  color: var(--accent, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.15);
+}
+
+.sub-entry-card strong {
+  font-family: var(--display, 'Plus Jakarta Sans', system-ui);
+  font-size: 18px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  margin-block-end: 6px;
+  display: block;
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+html[lang="fa"] .sub-entry-card strong {
+  font-family: 'Vazirmatn', system-ui;
+  font-weight: 700;
+}
+
+.sub-entry-card .hint {
+  font-size: 13px;
+  color: var(--muted, #94a3b8);
+  max-width: 100%;
+  word-break: break-word;
+  overflow-wrap: break-word;
+}
+
+.sub-format-chips {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-block-start: 14px;
+}
+.sub-chip {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  padding: 3px 10px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--cyan, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+}
+
+.sub-entry-card-video {
+  border: 1px dashed var(--border2, rgba(28, 64, 118, 0.45));
+  background: rgba(9, 20, 40, 0.55);
+  opacity: 0.78;
+}
+.sub-card-icon-video {
+  background: rgba(148, 163, 184, 0.08);
+  color: var(--muted, #94a3b8);
+  border-color: rgba(148, 163, 184, 0.2);
+  box-shadow: none;
+}
+.sub-video-content {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+}
+.sub-video-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+.sub-coming-soon-badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: rgba(255, 180, 74, 0.12);
+  color: var(--warn, #f59e0b);
+  border: 1px solid rgba(255, 180, 74, 0.3);
+}
+.sub-video-note {
+  margin: 0;
+  font-size: 12.5px;
+  color: var(--faint, #64748b);
+  max-width: 100%;
+  word-break: break-word;
+}
+.sub-video-btn {
+  margin-block-start: 6px;
+  opacity: 0.6;
+  cursor: not-allowed;
+  pointer-events: none;
+  font-size: 12.5px;
+}
+
 
 
 
