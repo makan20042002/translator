@@ -556,7 +556,7 @@ async function offStatus(){
   if(store.get('whisper')&&(!cfg.whisper||cfg.whisper==='auto')){cfg.whisper=store.get('whisper');saveCfg()}
   mcRender();
   await Promise.all([mcScan(),checkWebGpu()]);       // what is stored, and whether WebGPU exists (it changes the download size)
-  mcRender();fillEngines();
+  mcRender();fillEngines();if(typeof updateStatusPill==='function')updateStatusPill();
 }
 function renderVoice(){
   $('sttSel').value=cfg.stt;

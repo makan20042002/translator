@@ -17,35 +17,97 @@
 </head>
 <body>
 
-<nav class="nav"><div class="wrap">
-  <a class="brand" href="https://makanlab.tech/"><span class="mark">M</span><span>MAKAN<b>LAB</b></span><small>Translate</small></a>
-  <span class="sp"></span>
-  <button class="btn" id="btnScreenTrans" title="Screen Translator (Ctrl+Shift+S)" style="background:linear-gradient(135deg,rgba(34,229,138,.16),rgba(19,200,245,.16));border-color:var(--accent-line);display:none;padding:0 12px;gap:6px">
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
-    <span data-t="screenTrans">Screen Translator</span> <kbd style="margin-inline-start:4px;font-size:10px">Ctrl+Shift+S</kbd>
-  </button>
-  <button class="btn ghost" id="offBtn"><span class="dot"></span><span data-t="offMode">Offline mode</span></button>
-  <button class="btn ghost" id="uiLang">فارسی</button>
-  <button class="btn" id="openSet" data-t="engines">Engines &amp; keys</button>
-</div></nav>
+<div class="app-shell" id="appShell">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar" role="navigation" aria-label="Main Navigation">
+    <div class="sidebar-header">
+      <a class="sidebar-brand brand" href="https://makanlab.tech/" aria-label="MAKAN Translate">
+        <img class="brand-logo" src="brand/makanlab-m-mark.svg" alt="MAKAN Logo" width="32" height="32">
+        <div class="brand-meta">
+          <span class="brand-name">MAKAN</span>
+          <span class="brand-tag">Translate</span>
+        </div>
+      </a>
+      <div class="status-pill" id="sidebarStatusPill" role="status" aria-label="System status">
+        <span class="status-dot" id="sidebarStatusDot"></span>
+        <span class="status-text" id="sidebarStatusText" data-t="statusOnlineOnly">Online only</span>
+        <svg class="status-shield" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="m9 12 2 2 4-4"/></svg>
+      </div>
+    </div>
 
-<main class="wrap">
-  <header class="head">
-    <div class="eyebrow" data-t="eyebrow">Text · Subtitles · Documents · Voice</div>
-    <h1><span data-t="h1a">One translator,</span> <em data-t="h1b">every engine.</em></h1>
-  </header>
+    <!-- TABS NAVIGATION -->
+    <nav class="sidebar-nav tabs" id="tabs" role="tablist" aria-label="Main Navigation Tabs">
+      <div class="sidebar-sec">
+        <div class="sidebar-sec-h" data-t="secCreate">CREATE</div>
+        <button data-tab="text" class="on" data-t="tabText" role="tab" aria-selected="true" title="Text">Text</button>
+        <button data-tab="sub" data-t="tabSub" role="tab" aria-selected="false" title="Subtitle">Subtitle</button>
+        <button data-tab="doc" data-t="tabDoc" role="tab" aria-selected="false" title="Document">Document</button>
+        <button data-tab="voice" data-t="tabVoice" role="tab" aria-selected="false" title="Voice">Voice</button>
+        <button data-tab="screen" data-t="tabScreen" role="tab" aria-selected="false" title="Screen">Screen</button>
+      </div>
+      <div class="sidebar-sec">
+        <div class="sidebar-sec-h" data-t="secTools">TOOLS</div>
+        <button data-tab="dict" data-t="tabDict" role="tab" aria-selected="false" title="Dictionary">Dictionary</button>
+        <button data-tab="idiom" data-t="tabIdiom" role="tab" aria-selected="false" title="Idioms">Idioms</button>
+        <button data-tab="cmp" data-t="tabCmp" role="tab" aria-selected="false" title="Compare">Compare</button>
+        <button data-tab="gls" data-t="tabGls" role="tab" aria-selected="false" title="Glossary">Glossary</button>
+        <button data-tab="hist" data-t="tabHist" role="tab" aria-selected="false" title="History">History</button>
+      </div>
+      <div class="sidebar-sec">
+        <div class="sidebar-sec-h" data-t="secSystem">SYSTEM</div>
+        <button data-tab="games" data-t="tabGames" role="tab" aria-selected="false" title="Games">Games</button>
+        <button data-tab="models" data-t="tabModels" role="tab" aria-selected="false" title="Model Hub">Model Hub</button>
+        <button type="button" class="sidebar-action-btn" id="sidebarSettingsBtn" data-t="tabSettings" role="button" title="Settings">Settings</button>
+      </div>
+    </nav>
 
-  <div class="tabs" id="tabs">
-    <button data-tab="text" class="on" data-t="tabText">Text</button>
-    <button data-tab="sub" data-t="tabSub">Subtitle</button>
-    <button data-tab="doc" data-t="tabDoc">Document</button>
-    <button data-tab="voice" data-t="tabVoice">Voice</button>
-    <button data-tab="dict" data-t="tabDict">Dictionary</button>
-    <button data-tab="idiom" data-t="tabIdiom">Idioms</button>
-    <button data-tab="cmp" data-t="tabCmp">Compare</button>
-    <button data-tab="gls" data-t="tabGls">Glossary</button>
-    <button data-tab="hist" data-t="tabHist">History</button>
-  </div>
+    <!-- STORAGE CARD (BOTTOM) -->
+    <div class="sidebar-footer">
+      <div class="sidebar-storage-card" id="sidebarStorageCard" role="region" aria-label="Storage status" hidden>
+        <div class="storage-card-row">
+          <div class="storage-icon-disc" aria-hidden="true">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="3"/><line x1="12" y1="2" x2="12" y2="5"/></svg>
+          </div>
+          <div class="storage-meta">
+            <div class="storage-title" data-t="storageCardTitle">Storage</div>
+            <div class="storage-bar-track"><div class="storage-bar-fill" id="sidebarStorageBar" style="width:0%"></div></div>
+            <div class="storage-usage-num" id="sidebarStorageUsage">0 MB / 0 GB</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </aside>
+
+  <!-- MAIN VIEWPORT -->
+  <div class="main-viewport" id="mainViewport">
+    <!-- TOP AREA -->
+    <header class="topbar" id="topbar">
+      <div class="topbar-lead">
+        <h1 class="topbar-title" id="pageTitle"><span data-t="h1a">One translator,</span> <em data-t="h1b">every engine.</em></h1>
+        <div class="topbar-eyebrow eyebrow" data-t="eyebrow">Text · Subtitles · Documents · Voice</div>
+      </div>
+      <div class="topbar-search-slot">
+        <div class="topbar-search-box">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" class="topbar-search-icon" aria-hidden="true"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+          <input type="search" class="topbar-search-input" id="topbarSearch" disabled data-tp="topbarSearchPh" placeholder="Search (disabled)" title="Search is coming in the next step">
+          <kbd class="topbar-kbd">Ctrl + K</kbd>
+        </div>
+      </div>
+      <div class="topbar-ctrls">
+        <button class="btn" id="btnScreenTrans" title="Screen Translator (Ctrl+Shift+S)" style="background:linear-gradient(135deg,rgba(34,229,138,.16),rgba(19,200,245,.16));border-color:var(--accent-line);display:none;padding:0 12px;gap:6px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+          <span data-t="screenTrans">Screen Translator</span> <kbd style="margin-inline-start:4px;font-size:10px">Ctrl+Shift+S</kbd>
+        </button>
+        <button class="btn ghost" id="offBtn"><span class="dot"></span><span data-t="offMode">Offline mode</span></button>
+        <button class="btn ghost" id="uiLang">فارسی</button>
+        <button class="btn" id="openSet" data-t="engines">Engines &amp; keys</button>
+        <button class="btn icon-only" id="topbarSettingsBtn" title="Settings" aria-label="Settings">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+        </button>
+      </div>
+    </header>
+
+    <main class="wrap main-panels-wrap">
 
   <div class="bar">
     <div class="grp"><select id="src" aria-label="Source language"></select>
@@ -625,9 +687,59 @@
     <div class="row" style="margin-bottom:10px"><span class="hint" data-t="hHint">Saved only in this browser.</span><span class="sp"></span><button class="btn danger" id="hClear" data-t="hClear">Clear history</button></div>
     <div class="card" style="padding:0;overflow:hidden" id="hList"></div>
   </section>
+
+  <!-- SCREEN TRANSLATOR -->
+  <section class="tab" id="tab-screen">
+    <div class="card" style="padding:28px 24px">
+      <div class="row" style="margin-bottom:12px;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(8,168,255,0.12);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg>
+        </div>
+        <div>
+          <h2 data-t="tabScreen" style="margin:0 0 4px">Screen</h2>
+          <p class="hint" data-t="screenTransNote" style="margin:0">Capture any region of your screen to recognize text with native Windows OCR and translate instantly.</p>
+        </div>
+      </div>
+      <div class="row" style="margin-top:16px;gap:10px;flex-wrap:wrap">
+        <button class="btn cta" id="tabScreenLaunchBtn" type="button" data-t="screenTransLaunch">Start Screen Translator (Ctrl+Shift+S)</button>
+        <button class="btn ghost" id="tabScreenOpenOcrBtn" type="button" data-t="screenTransConfig">OCR Settings</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- GAMES -->
+  <section class="tab" id="tab-games">
+    <div class="card" style="text-align:center;padding:56px 24px">
+      <div style="width:52px;height:52px;border-radius:14px;background:rgba(19,102,226,0.12);display:inline-flex;align-items:center;justify-content:center;color:var(--pri);margin-bottom:16px">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="6" x2="10" y1="12" y2="12"/><line x1="8" x2="8" y1="10" y2="14"/><line x1="15" x2="15.01" y1="13" y2="13"/><line x1="18" x2="18.01" y1="11" y2="11"/><rect width="20" height="12" x="2" y="6" rx="6"/></svg>
+      </div>
+      <h2 data-t="tabGames" style="margin:0 0 8px">Games</h2>
+      <p class="hint" data-t="comingNextStep" style="margin:0">Coming in the next step</p>
+    </div>
+  </section>
+
+  <!-- MODEL HUB -->
+  <section class="tab" id="tab-models">
+    <div class="card" style="padding:28px 24px">
+      <div class="row" style="margin-bottom:12px;align-items:center;gap:14px">
+        <div style="width:44px;height:44px;border-radius:12px;background:rgba(8,168,255,0.12);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5v8Z"/><path d="m3.27 6.96 8.73 4.88 8.73-4.88"/><path d="M12 22.08V12"/></svg>
+        </div>
+        <div>
+          <h2 data-t="tabModels" style="margin:0 0 4px">Model Hub</h2>
+          <p class="hint" data-t="offNote" style="margin:0">Download AI translation, speech and OCR models to work offline.</p>
+        </div>
+        <span class="sp"></span>
+        <button class="btn cta" id="tabModelsOpenSetBtn" type="button" data-t="openSettingsModels">Manage Models</button>
+      </div>
+      <p class="hint" data-t="comingNextStep" style="margin:8px 0 0">Coming in the next step</p>
+    </div>
+  </section>
 </main>
 
 <footer><div class="wrap row"><span>© MAKAN LAB</span> <button class="btn ghost" id="creditsBtn" type="button" style="min-height:24px;font-size:12px" data-t="creditsBtn">About &amp; credits</button><span class="sp"></span><span data-t="foot">Keys stay in your browser and are sent only to the provider you choose.</span></div></footer>
+</div>
+</div>
 
 <!-- SETTINGS -->
 <div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="setT">

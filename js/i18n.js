@@ -71,7 +71,12 @@ const I18N={en:{
  docFormattingNote:'Formatting note: Paragraphs, tables, images, slides and formulas are preserved byte-for-byte; complex inline run styling within single sentences is merged.',
  tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page',
  pages:'pages',words:'words',slides:'slides',sheets:'sheets',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed',
- vListenLabel:'Mic:',vTransLabel:'Translate:',tmEstimate:'estimate',tmPersistent:'Persistent',tmStandard:'Standard'
+ vListenLabel:'Mic:',vTransLabel:'Translate:',tmEstimate:'estimate',tmPersistent:'Persistent',tmStandard:'Standard',
+ secCreate:'CREATE',secTools:'TOOLS',secSystem:'SYSTEM',
+ tabScreen:'Screen',tabGames:'Games',tabModels:'Model Hub',tabSettings:'Settings',
+ statusOfflineReady:'Offline ready',statusOnlineOnly:'Online only',
+ storageCardTitle:'Storage',screenTransLaunch:'Start Screen Translator (Ctrl+Shift+S)',screenTransConfig:'OCR Settings',
+ openSettingsModels:'Manage Models',comingNextStep:'Coming in the next step',topbarSearchPh:'Search (disabled)'
 },fa:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
  tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست. صداهای آفلاین: صداهای Piper از rhasspy/piper-voices (MIT) با ONNX Runtime Web (MIT) و واج‌نگار eSpeak NG (GPL-3.0-or-later؛ فایل‌هایش در vendor/piper است). صداهای امیر، گنجی، ال‌جی اسپیچ، کوری و کریستین با مجوز CC0 / مالکیت عمومی و صدای آلبا (دانشگاه ادینبرا) CC BY 4.0 است. مدل‌های ترجمه و گفتار آفلاین از Hugging Face می‌آیند و هر مدل مجوز خودش را دارد (مدل‌های NLLB-200 با مجوز CC BY-NC 4.0 هستند).',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
@@ -228,7 +233,12 @@ Object.assign(I18N.fa,{
  screenTransOcrLang:'زبان OCR ویندوز',screenTransTgtLang:'زبان مقصد پیش‌فرض',
  screenTransAutoCopy:'کپی خودکار متن ترجمه شده',screenTransSaveHist:'ذخیره ترجمه‌های OCR در تاریخچه',
  screenTransOcrModel:'مدل بازشناسی متنی OCR',screenTransOcrModelDl:'دانلود مدل',screenTransReturnToApp:'بازگشت به برنامه پس از تصویربرداری',
- testScreenTransBtn:'انتخاب و ترجمه بخشی از صفحه'
+ testScreenTransBtn:'انتخاب و ترجمه بخشی از صفحه',
+ secCreate:'ایجاد',secTools:'ابزارها',secSystem:'سیستم',
+ tabScreen:'صفحه',tabGames:'بازی‌ها',tabModels:'مرکز مدل‌ها',tabSettings:'تنظیمات',
+ statusOfflineReady:'آماده آفلاین',statusOnlineOnly:'فقط آنلاین',
+ storageCardTitle:'فضای ذخیره‌سازی',screenTransLaunch:'شروع مترجم صفحه (Ctrl+Shift+S)',screenTransConfig:'تنظیمات نویسه‌خوان (OCR)',
+ openSettingsModels:'مدیریت مدل‌ها',comingNextStep:'در مرحله بعد اضافه می‌شود',topbarSearchPh:'جستجو (غیرفعال)'
 });
 let ui=store.get('ui','en');
 const L=k=>I18N[ui][k]??I18N.en[k]??k;

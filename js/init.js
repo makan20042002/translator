@@ -21,6 +21,53 @@ $('swap').onclick=()=>{const s=$('src').value,t=$('tgt').value;if(s==='auto'||s=
   $('src').value=t;$('tgt').value=s;const a=$('tIn').value;if($('tOut').value){$('tIn').value=$('tOut').value;$('tOut').value=a}
   $('src').onchange();$('tgt').onchange();$('tIn').dispatchEvent(new Event('input'))};
 $('uiLang').onclick=()=>{ui=ui==='en'?'fa':'en';store.set('ui',ui);boot()};
+if($('sidebarSettingsBtn'))$('sidebarSettingsBtn').onclick=()=>$('openSet')?.click();
+if($('topbarSettingsBtn'))$('topbarSettingsBtn').onclick=()=>$('openSet')?.click();
+if($('tabScreenLaunchBtn'))$('tabScreenLaunchBtn').onclick=()=>{
+  if(window.makanDesktop?.startScreenTranslator)window.makanDesktop.startScreenTranslator();
+  else if($('btnScreenTrans'))$('btnScreenTrans').click();
+};
+if($('tabScreenOpenOcrBtn'))$('tabScreenOpenOcrBtn').onclick=()=>{
+  $('openSet')?.click();$('setTabBtnOcr')?.click();
+};
+if($('tabModelsOpenSetBtn'))$('tabModelsOpenSetBtn').onclick=()=>{
+  $('openSet')?.click();$('setTabBtnTrModels')?.click();
+};
+function updateStatusPill(){
+  const pill=$('sidebarStatusPill');
+  if(!pill)return;
+  const isReady=(typeof trAnyReady==='function')?trAnyReady():false;
+  pill.classList.toggle('ready',isReady);
+  const dot=$('sidebarStatusDot')||pill.querySelector('.status-dot');
+  if(dot)dot.classList.toggle('ready',isReady);
+  const txt=$('sidebarStatusText')||pill.querySelector('.status-text')||pill;
+  if(txt)txt.textContent=isReady?(L('statusOfflineReady')||'Offline ready'):(L('statusOnlineOnly')||'Online only');
+}
+async function updateStorageCard(){
+  const card=$('sidebarStorageCard');
+  if(!card)return;
+  if(!navigator.storage||typeof navigator.storage.estimate!=='function'){
+    card.hidden=true;
+    return;
+  }
+  try{
+    const est=await navigator.storage.estimate();
+    if(typeof est?.usage!=='number'||typeof est?.quota!=='number'||est.quota<=0){
+      card.hidden=true;
+      return;
+    }
+    const usageMB=est.usage<1048576?(est.usage/1024).toFixed(0)+' KB':(est.usage/(1024*1024)).toFixed(1)+' MB';
+    const quotaGB=(est.quota/(1024*1024*1024)).toFixed(1)+' GB';
+    const pct=Math.min(100,Math.max(0,Math.round((est.usage/est.quota)*100)));
+    const usageEl=$('sidebarStorageUsage');
+    const barEl=$('sidebarStorageBar');
+    if(usageEl)usageEl.textContent=`${usageMB} / ${quotaGB}`;
+    if(barEl)barEl.style.width=pct+'%';
+    card.hidden=false;
+  }catch(e){
+    card.hidden=true;
+  }
+}
 function checkFileProtoNotice(){
   const el=$('vFileProtoNotice');
   if(el)el.hidden=(location.protocol!=='file:');
@@ -28,6 +75,8 @@ function checkFileProtoNotice(){
 function boot(){
   const s=$('src').value,t=$('tgt').value;
   applyI18n();fillLangs();if(s){$('src').value=s;$('tgt').value=t}
+  updateStatusPill();
+  updateStorageCard();
   checkFileProtoNotice();
   fillEngines();if($('tMode'))$('tMode').value=getDefaultTransMode();$('tone').value=store.get('tone','');voiceLabels();renderGloss();renderVoice();fillAskLangs();
   document.querySelectorAll('select#vSilenceWait').forEach(el=>{el.value=String(cfg.silenceWait||800)});
