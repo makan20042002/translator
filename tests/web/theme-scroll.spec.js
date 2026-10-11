@@ -5,7 +5,7 @@
  * - Light theme data-theme="light" overrides variables cleanly.
  * - The page has zero horizontal scroll at 1100 px and 1280 px width, in English (LTR) and Persian (RTL).
  */
-const { test, expect } = require('../support/fixtures');
+const { test, expect, mouseClick } = require('../support/fixtures');
 
 test.describe('Web app: Theme & Responsive Layout', () => {
   test('theme variables are loaded and light theme switch works', async ({ app }) => {
@@ -108,5 +108,63 @@ test.describe('Web app: Theme & Responsive Layout', () => {
       }
     }
   });
+
+  test('at 360, 700, 1024, 1280 and 1920px in English and Persian, document.documentElement.scrollWidth <= clientWidth on the Text, Subtitle and Document tabs', async ({ app }) => {
+    const { page } = app;
+    const widths = [360, 700, 1024, 1280, 1920];
+    const tabs = [
+      { id: 'Text', sel: '#tabs button[data-tab="text"]' },
+      { id: 'Subtitle', sel: '#tabs button[data-tab="sub"]' },
+      { id: 'Document', sel: '#tabs button[data-tab="doc"]' }
+    ];
+
+    for (const tab of tabs) {
+      await mouseClick(page, page.locator(tab.sel));
+      await page.waitForTimeout(50);
+
+      for (const lang of ['en', 'fa']) {
+        if (lang === 'fa') {
+          await page.evaluate(() => {
+            ui = 'fa';
+            document.documentElement.dir = 'rtl';
+            document.documentElement.lang = 'fa';
+            applyI18n();
+          });
+        } else {
+          await page.evaluate(() => {
+            ui = 'en';
+            document.documentElement.dir = 'ltr';
+            document.documentElement.lang = 'en';
+            applyI18n();
+          });
+        }
+        await page.waitForTimeout(50);
+
+        for (const width of widths) {
+          await page.setViewportSize({ width, height: 800 });
+          await page.waitForTimeout(50);
+
+          const { scrollWidth, clientWidth } = await page.evaluate(() => ({
+            scrollWidth: document.documentElement.scrollWidth,
+            clientWidth: document.documentElement.clientWidth
+          }));
+
+          expect(
+            scrollWidth,
+            `document.documentElement.scrollWidth (${scrollWidth}) <= clientWidth (${clientWidth}) on ${tab.id} tab at ${width}px in ${lang}`
+          ).toBeLessThanOrEqual(clientWidth);
+        }
+      }
+    }
+
+    // Restore default LTR English state
+    await page.evaluate(() => {
+      ui = 'en';
+      document.documentElement.dir = 'ltr';
+      document.documentElement.lang = 'en';
+      applyI18n();
+    });
+  });
 });
+
 
