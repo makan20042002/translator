@@ -227,7 +227,21 @@ test.describe('Screen Translator Desktop Web Integration', () => {
 
   test('Overlay renders Persian text right-to-left in original and translated content', async ({ context }) => {
     const page = await context.newPage();
-    await page.goto('file://' + path.resolve(__dirname, '../../screen-translator/overlay.html'));
+    const overlayPath = 'file:///' + path.resolve(__dirname, '../../screen-translator/overlay.html').replace(/\\/g, '/');
+
+    // Inject mock overlay APIs
+    await page.addInitScript(() => {
+      window.makanOverlay = {
+        close: () => {},
+        setPinned: () => {},
+        requestTranslation: () => {},
+        openInMainApp: () => {},
+        onOcrResult: (cb) => { window.__ocrResultCb = cb; },
+        onTranslationResult: (cb) => { window.__transResultCb = cb; }
+      };
+    });
+
+    await page.goto(overlayPath);
 
     // Inject Persian OCR result
     await page.evaluate(() => {
@@ -273,8 +287,28 @@ test.describe('Screen Translator Desktop Web Integration', () => {
   });
 
   test('OCR settings display active reading engine and language status line', async ({ app }) => {
-    const { page } = app;
-    await page.locator('#btnSettings').click();
+    const { page, context } = app;
+    await context.addInitScript(() => {
+      window.makanDesktop = {
+        isDesktop: true,
+        getOcrLanguages: () => Promise.resolve([
+          { tag: 'en-US', displayName: 'English (United States)', nativeName: 'English' }
+        ]),
+        getScreenTransConfig: () => Promise.resolve({
+          enabled: true,
+          ocrEngine: 'auto',
+          hotkey: 'CommandOrControl+Shift+S',
+          targetLang: 'fa',
+          ocrLang: 'auto',
+          autoCopy: false,
+          saveHistory: true
+        }),
+        saveScreenTransConfig: () => Promise.resolve({ ok: true })
+      };
+    });
+
+    await page.reload();
+    await mouseClick(page, page.locator('#openSet'));
     await expect(page.locator('#stActiveReadingStatus')).toBeVisible();
     const txt = await page.locator('#stActiveReadingStatus').textContent();
     expect(txt.length).toBeGreaterThan(0);
