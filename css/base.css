@@ -20,8 +20,9 @@ button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
 ::selection{background:rgba(19,200,245,.35);color:#fff}
 a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
-.wrap{max-width:1240px;margin:0 auto;padding:0 24px}
-@media(max-width:640px){.wrap{padding:0 14px}}
+.wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 24px;box-sizing:border-box;min-width:0}
+@media(max-width:640px){.wrap{padding:0 12px}}
+@media(max-width:380px){.wrap{padding:0 8px}}
 
 /* nav */
 .nav{position:sticky;top:0;z-index:50;background:var(--glass);backdrop-filter:blur(14px);border-bottom:1px solid var(--border)}
@@ -60,13 +61,15 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
 .tabs button:hover{color:var(--text)}
 .tabs button.on{color:var(--text)}
 .tabs button.on::after{content:"";position:absolute;inset-inline:10px;bottom:-1px;height:2px;background:var(--grad);border-radius:2px}
-.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 0}
-select,input[type=text],input[type=search],input[type=password],input[type=email]{color:var(--text);color-scheme:dark;height:38px;padding:0 12px;border-radius:var(--r-s);border:1px solid var(--border2);background:var(--surface);min-width:0}
-select{cursor:pointer;max-width:100%}
+.bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 0;width:100%;max-width:100%;box-sizing:border-box;min-width:0}
+select,input[type=text],input[type=search],input[type=password],input[type=email]{color:var(--text);color-scheme:dark;height:38px;padding:0 12px;border-radius:var(--r-s);border:1px solid var(--border2);background:var(--surface);min-width:0;max-width:100%}
+select{cursor:pointer}
 select:hover,input:hover{border-color:var(--accent-line)}
-.bar .grp{display:flex;align-items:center;gap:8px;min-width:0}
+.bar .grp{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}
+.bar .grp:first-child{max-width:100%}
+.bar .grp:first-child select{flex:1 1 0%;min-width:0;width:0}
 .bar label{font-family:var(--mono);font-size:10.5px;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
-#swap{width:38px;padding:0;justify-content:center;border-radius:50%}
+#swap{width:38px;padding:0;justify-content:center;border-radius:50%;flex-shrink:0}
 
 .tab{display:none;padding-bottom:60px}
 .tab.on{display:block}
