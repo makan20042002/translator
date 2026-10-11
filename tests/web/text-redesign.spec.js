@@ -127,7 +127,7 @@ test.describe('Web app: Text tab redesign', () => {
       await mouseClick(page, page.locator('#tIn'));
       await page.keyboard.type('Hello world, this is a test');
 
-      await expect(page.locator('#tCount')).toContainText('29 characters');
+      await expect(page.locator('#tCount')).toContainText('27 characters');
       await expect(page.locator('#tWordCount')).toHaveText('6 words');
 
       await mouseClick(page, page.locator('#tClear'));
