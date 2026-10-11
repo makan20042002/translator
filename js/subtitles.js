@@ -28,8 +28,10 @@ function renderCues(){
   $('cues').innerHTML=hdr+cues.map((c,i)=>`<div class="cue"><span class="n">${i+1}</span><span class="tm" dir="ltr">${fmt(c.s,'.').slice(0,8)} → ${fmt(c.e,'.').slice(0,8)}</span><div class="o" dir="auto">${esc(c.o)}</div><div class="tr" dir="auto" contenteditable="true" data-i="${i}">${esc(c.t)}</div></div>`).join('');
   sInfo();
 }
+const isSubErr=s=>!s||!s.trim()||/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i.test(s.trim());
 const sInfo=()=>{
-  $('sInfo').textContent=`${sName} · ${cues.filter(c=>c.t).length}/${cues.length} ${L('lines')}`;
+  const validCues=cues.filter(c=>c.t&&!isSubErr(c.t)).length;
+  $('sInfo').textContent=`${sName} · ${validCues}/${cues.length} ${L('lines')}`;
   if($('sCuesCount'))$('sCuesCount').textContent=`${cues.length} ${L('cues')||'cues'}`;
   const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
   const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
@@ -109,7 +111,11 @@ async function loadSubs(f){
   const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
   const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
   if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
-  $('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
+  $('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';
+  if($('sProgText'))$('sProgText').textContent=ui==='fa'?`0 از ${c.length} خط (0%)`:`Translated 0 of ${c.length} lines (0%)`;
+  if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+  if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
+  renderCues();updateSubEngineNotice();
 }
 dropzone($('sDrop'),$('sFile'),loadSubs);
 if($('sChangeFile'))$('sChangeFile').onclick=()=>$('sFile').click();
@@ -121,6 +127,8 @@ function closeSubs(){
   cues=[];sName='subtitle';$('cues').innerHTML='';$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='';
   if($('sFileName'))$('sFileName').textContent='subtitle.srt';
   if($('sCuesCount'))$('sCuesCount').textContent=`0 ${L('cues')||'cues'}`;
+  if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+  if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
   $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;if($('sEntryCards'))$('sEntryCards').hidden=false;if($('sVideoCard'))$('sVideoCard').hidden=false;
 }
 if($('sCloseFile'))$('sCloseFile').onclick=()=>{
@@ -139,6 +147,8 @@ async function doSubs(onlyEmpty){
     else{units.push(ls.join(' '));map.push([i,0,1])}});
   const parts={};
   sCtl=new AbortController();busy([$('sGo'),$('sRest')],$('sStop'),true);
+  if($('sStatusChip'))$('sStatusChip').className='sub-status-chip translating';
+  if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'در حال ترجمه':'Translating';
 
   const curEngine=$('engine')?.value||'auto';
   const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
@@ -193,7 +203,12 @@ async function doSubs(onlyEmpty){
     busy([$('sGo'),$('sRest')],$('sStop'),false);
     $('sBar').style.width='100%';
     const memMsg=`${memHits} ${L('lines')||'lines'} ${L('fromMemory')||'from memory'}`;
-    if($('sProgText'))$('sProgText').textContent=`${units.length}/${units.length} (100%) · ${memMsg}`;
+    const txt=ui==='fa'
+      ? `${units.length} از ${units.length} خط (100%) · ${memHits} از حافظه`
+      : `Translated ${units.length} of ${units.length} lines (100%) · ${memMsg}`;
+    if($('sProgText'))$('sProgText').textContent=txt;
+    if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+    if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
     toast(`${L('done')} · ${memMsg}`,'ok');
     sInfo();
     return;
@@ -208,7 +223,10 @@ async function doSubs(onlyEmpty){
         const pct=Math.round((done/total)*100);
         $('sBar').style.width=pct+'%';
         if($('sProgText')){
-          $('sProgText').textContent=`${done}/${total} (${pct}%)${memHits?` · ${memHits} from memory`:''}`;
+          const memPart=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
+          $('sProgText').textContent=ui==='fa'
+            ? `${done} از ${total} خط (${pct}%)${memPart}`
+            : `Translated ${done} of ${total} lines (${pct}%)${memPart}`;
         }
       },
       onBatch:(b,res)=>{
@@ -244,11 +262,16 @@ async function doSubs(onlyEmpty){
 
     const memMsg=memHits?` (${memHits} ${L('fromMemory')||'lines from memory'})`:'';
     toast(`${L('done')} · ${r.used}${memMsg}`,'ok');
-    if($('sProgText')&&memHits){
-      $('sProgText').textContent=`${units.length}/${units.length} (100%) · ${memHits} from memory`;
-    }
+    const finTxt=ui==='fa'
+      ? `${units.length} از ${units.length} خط (100%)${memHits?` · ${memHits} از حافظه`:''}`
+      : `Translated ${units.length} of ${units.length} lines (100%)${memHits?` · ${memHits} from memory`:''}`;
+    if($('sProgText'))$('sProgText').textContent=finTxt;
+    if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+    if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
   }catch(e){
     fail(e);
+    if($('sStatusChip'))$('sStatusChip').className='sub-status-chip error';
+    if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'خطا':'Error';
   }
   busy([$('sGo'),$('sRest')],$('sStop'),false);
   sInfo();

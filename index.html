@@ -363,9 +363,19 @@
           </div>
         </div>
 
-        <div class="sub-prog-wrap">
+        <div class="sub-prog-wrap" id="sProgWrap">
+          <div class="sub-prog-header">
+            <div class="sub-prog-counts">
+              <span id="sProgText"></span>
+            </div>
+            <div class="sub-prog-status">
+              <span class="sub-status-chip idle" id="sStatusChip">
+                <span class="status-dot ok" id="sStatusDot" aria-hidden="true"></span>
+                <span id="sStatusText">Ready</span>
+              </span>
+            </div>
+          </div>
           <div class="prog"><i id="sBar"></i></div>
-          <div class="sub-prog-meta"><span id="sProgText"></span></div>
         </div>
         <div class="cues" id="cues"></div>
       </div>

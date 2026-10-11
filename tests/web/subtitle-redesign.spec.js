@@ -115,4 +115,48 @@ test.describe('Web app: Subtitle tab redesign', () => {
       expect(vtt.bytes.toString('utf8')).toContain('01:02:03.004 --> 01:02:05.006');
     });
   });
+
+  test.describe('Item 3: Progress strip counters and translation memory', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('counters match real translated lines, and memory count appears only after a real memory hit', async ({ app, files, stub }) => {
+      const { page } = app;
+      // Start with clean translation memory
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), files.srt);
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // Initial progress: 0 of 5, 0%, no memory count
+      await expect(page.locator('#sBar')).toHaveCSS('width', '0px');
+      await expect(page.locator('#sProgText')).toContainText('0 of 5');
+      await expect(page.locator('#sProgText')).not.toContainText('from memory');
+
+      // First run: fresh translation (no memory hits)
+      await mouseClick(page, page.locator('#sGo'));
+      await expect(page.locator('#sInfo')).toHaveText('sample · 5/5 lines');
+      await expect(page.locator('#sBar')).toHaveCSS('width', /.+px/);
+      await expect(page.locator('#sProgText')).toContainText('5 of 5');
+      await expect(page.locator('#sProgText')).not.toContainText('from memory');
+      await expect(page.locator('#sStatusText')).toHaveText('Ready');
+
+      // Second run on same file: all 5 lines hit memory
+      stub.clearLog();
+      await mouseClick(page, page.locator('#sGo'));
+      await expect(page.locator('#sInfo')).toHaveText('sample · 5/5 lines');
+
+      // Zero network engine calls occurred on second run
+      const calls = stub.calls('clients5.google.com');
+      expect(calls.length).toBe(0);
+
+      // Now "from memory" counter appears because there were real memory hits
+      await expect(page.locator('#sProgText')).toContainText('5 of 5');
+      await expect(page.locator('#sProgText')).toContainText('from memory');
+    });
+  });
 });
