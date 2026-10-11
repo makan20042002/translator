@@ -1,7 +1,11 @@
 // MAKAN Translate — lets the app open with no internet.
-const CACHE = 'makan-translate-v16';
+const CACHE = 'makan-translate-v17';
 const SHELL = [
   './',
+  './fonts/Vazirmatn.woff2',
+  './brand/makanlab-square-icon.svg',
+  './brand/makanlab-m-mark.svg',
+  './brand/makanlab-wordmark.svg',
   './css/theme.css',
   './css/base.css',
   './css/layout.css',

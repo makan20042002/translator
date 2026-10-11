@@ -2,6 +2,14 @@
    MAKAN Translate Design Foundation — Theme Tokens & Base Component Restyling
    ========================================================================== */
 
+@font-face {
+  font-family: 'Vazirmatn';
+  src: url('../fonts/Vazirmatn.woff2') format('woff2');
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 :root,
 [data-theme="dark"] {
   /* Surface & Background Navy Palette */
