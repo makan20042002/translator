@@ -120,4 +120,22 @@ test.describe('Web app: Engines & keys', () => {
     await expect(page.locator('#ov select#vSilenceWait')).toBeVisible();
     await expect(page.locator('#offTrModelSel')).toBeVisible();
   });
+
+  test('Settings window stays open when clicking backdrop or outside modal', async ({ app }) => {
+    const { page } = app;
+    await openSettings(page);
+    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+
+    // Click on backdrop area
+    await page.locator('#ov').click({ position: { x: 5, y: 5 } });
+    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+
+    // Click inside modal card on section
+    await page.locator('#secEngines').click();
+    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+
+    // Closes only when clicking close button
+    await mouseClick(page, page.locator('#closeSet'));
+    await expect(page.locator('#ov')).not.toHaveClass(/\bon\b/);
+  });
 });

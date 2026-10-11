@@ -6689,8 +6689,6 @@ $('openSet').onclick=()=>{
 };
 $('closeSet').onclick=()=>{saveAllInputs();$('ov').classList.remove('on')};
 $('btnSaveDone').onclick=()=>{saveAllInputs();$('ov').classList.remove('on');toast('Settings saved','ok')};
-$('ov').addEventListener('click',e=>{if(e.target===$('ov')){saveAllInputs();$('ov').classList.remove('on')}});
-document.addEventListener('keydown',e=>{if(e.key==='Escape'){saveAllInputs();$('ov').classList.remove('on')}});
 document.querySelectorAll('.set-tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
     document.querySelectorAll('.set-tab-btn').forEach(b=>b.classList.remove('active'));
