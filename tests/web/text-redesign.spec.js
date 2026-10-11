@@ -18,18 +18,19 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#engine')).toBeVisible();
       await expect(page.locator('#tone')).toBeVisible();
       await expect(page.locator('#tSubject')).toBeVisible();
-      await expect(page.locator('#tmToggle')).toBeVisible();
+      await expect(page.locator('.switch-lbl[for="tmToggle"]')).toBeVisible();
+      await expect(page.locator('#tmToggle')).toBeAttached();
 
-      // Check translation memory toggle default and interaction in the bar
+      // Check translation memory toggle default and interaction in the bar via visible switch
       await expect(page.locator('#tmToggle')).toBeChecked();
-      await mouseClick(page, page.locator('#tmToggle'));
+      await mouseClick(page, page.locator('.switch-lbl[for="tmToggle"]'));
       await expect(page.locator('#tmToggle')).not.toBeChecked();
 
       const cfgSaved = await page.evaluate(() => store.get('cfg', {}).tm);
       expect(cfgSaved).toBe(false);
 
       // Re-enable
-      await mouseClick(page, page.locator('#tmToggle'));
+      await mouseClick(page, page.locator('.switch-lbl[for="tmToggle"]'));
       await expect(page.locator('#tmToggle')).toBeChecked();
     });
 

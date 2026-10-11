@@ -1163,9 +1163,17 @@ html[lang="fa"] .trans-page-title {
 .switch-chk {
   position: absolute;
   opacity: 0;
-  width: 0;
-  height: 0;
-  pointer-events: none;
+  width: 1px;
+  height: 1px;
+  margin: -1px;
+  padding: 0;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  border: 0;
+}
+.switch-chk:focus-visible + .switch-slider {
+  outline: 2px solid var(--accent, #08A8FF);
+  outline-offset: 2px;
 }
 .switch-slider {
   position: relative;
