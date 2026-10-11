@@ -321,16 +321,15 @@ function updateStatusChip(){
 function updateListenButtonState(){
   const btn = $('tSpeak');
   if(!btn) return;
+  btn.disabled = false;
   const tgt = $('tgt')?.value || 'fa';
   if(typeof resolveVoice === 'function'){
     const v = resolveVoice(tgt);
-    if(v.kind === 'none'){
-      btn.disabled = true;
-      btn.title = L('noVoiceInstalled');
-    } else {
-      btn.disabled = false;
-      const vName = v.kind === 'device' ? v.voice?.name : v.kind === 'gemini' ? `Gemini (${v.voiceName})` : v.kind === 'piper' ? v.m?.name : '';
-      btn.title = vName ? `${L('speak')} · ${vName}` : (L('speak') || 'Speak');
+    const vName = v.kind === 'device' ? v.voice?.name : v.kind === 'gemini' ? `Gemini (${v.voiceName})` : v.kind === 'piper' ? (typeof mcText==='function'?mcText(v.m?.name):v.m?.name) : '';
+    btn.title = vName ? `${L('speak')} · ${vName}` : (L('speak') || 'Speak');
+    if($('tVoiceUsed')){
+      $('tVoiceUsed').textContent = vName ? `${L('voiceUsed')}: ${vName}` : '';
+      $('tVoiceUsed').title = $('tVoiceUsed').textContent;
     }
   }
 }

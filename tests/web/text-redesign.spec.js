@@ -172,22 +172,22 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#tMeta')).toContainText('from memory');
     });
 
-    test('listen button is disabled or hidden when no voice is installed', async ({ app }) => {
+    test('listen button is enabled when no voice is installed, and clicking it shows a clear notice', async ({ app }) => {
       const { page } = app;
-      // In an environment where no device voices or offline voices exist for an unsupported language
       await page.evaluate(() => {
         cfg.tts = { mode: 'device', voices: {} };
         window.speechSynthesis = { getVoices: () => [] };
       });
       await page.locator('#tgt').selectOption('fa');
 
-      const isVoiceAvailable = await page.evaluate(() => {
-        return typeof resolveVoice === 'function' ? resolveVoice('fa').kind !== 'none' : false;
-      });
+      // #tSpeak stays enabled and has text "Speak"
+      await expect(page.locator('#tSpeak')).toBeEnabled();
+      await expect(page.locator('#tSpeak')).toHaveText('Speak');
 
-      if (!isVoiceAvailable) {
-        await expect(page.locator('#tSpeak')).toBeDisabled();
-      }
+      // Clicking it triggers the notice in #speakNoticeText
+      await mouseClick(page, page.locator('#tSpeak'));
+      await expect(page.locator('#speakNoticeText')).toBeVisible();
+      await expect(page.locator('#speakNoticeText')).toContainText('no Gemini key is set');
     });
   });
 
@@ -241,6 +241,46 @@ test.describe('Web app: Text tab redesign', () => {
       await mouseClick(page, page.locator('#tRecentViewAll'));
       await expect(page.locator('#tab-hist')).toBeVisible();
       await expect(page.locator('#tabs button[data-tab="hist"]')).toHaveClass(/on/);
+    });
+
+    test('History tab, Glossary tab, and Recent strip work with zero page errors after translating twice, clearing history, adding a glossary term', async ({ app }) => {
+      const { page, errors } = app;
+
+      // 1. Translate twice to populate history and recent translations strip
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('First phrase');
+      await mouseClick(page, page.locator('#tGo'));
+      await expect(page.locator('#tOut')).toHaveValue('[fa] First phrase');
+
+      await mouseClick(page, page.locator('#tClear'));
+      await mouseClick(page, page.locator('#tIn'));
+      await page.keyboard.type('Second phrase');
+      await mouseClick(page, page.locator('#tGo'));
+      await expect(page.locator('#tOut')).toHaveValue('[fa] Second phrase');
+
+      // Recent translations strip displays 2 tiles
+      await expect(page.locator('#tRecentList .trans-recent-tile')).toHaveCount(2);
+
+      // 2. Open History tab and verify history items render without errors
+      await mouseClick(page, page.locator('#tabs button[data-tab="hist"]'));
+      await expect(page.locator('#tab-hist')).toBeVisible();
+
+      // 3. Clear history via Recent strip button after switching back to Text tab
+      await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
+      await mouseClick(page, page.locator('#tRecentClear'));
+      await expect(page.locator('#tRecentEmpty')).toBeVisible();
+
+      // 4. Open Glossary tab and add a term
+      await mouseClick(page, page.locator('#tabs button[data-tab="gls"]'));
+      await expect(page.locator('#tab-gls')).toBeVisible();
+      await mouseClick(page, page.locator('#gAdd'));
+      await page.keyboard.type('TestTerm');
+      await page.keyboard.press('Tab');
+      await page.keyboard.type('واژه');
+      await expect(page.locator('#gList .gl')).toHaveCount(1);
+
+      // Verify zero uncaught errors occurred across all steps
+      expect(errors).toEqual([]);
     });
   });
 
