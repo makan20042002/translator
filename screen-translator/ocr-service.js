@@ -188,9 +188,10 @@ class OcrService {
    * @param {Buffer|string} input Image Buffer (PNG/BMP/JPEG) or file path.
    * @param {string} [langTag] Desired OCR language tag or 'auto'.
    * @param {string} [engine] 'auto' | 'windows' | 'rapidocr' | 'dual'.
+   * @param {string} [modelId] Optional chosen OCR model ID (e.g. 'ocr-rapid-arabic').
    * @returns {Promise<{ok: boolean, text?: string, angle?: number, language?: string, lines?: Array, error?: string, languageNotInstalled?: boolean, installationGuidance?: string, engine?: string}>}
    */
-  async recognize(input, langTag = 'auto', engine = 'auto') {
+  async recognize(input, langTag = 'auto', engine = 'auto', modelId = null) {
     if (!input) {
       return { ok: false, error: 'No image input provided for OCR.' };
     }
@@ -202,7 +203,7 @@ class OcrService {
     if (selectedEngine === 'rapidocr') {
       const rapidBridge = this.getRapidOcrBridge();
       if (rapidBridge) {
-        return await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
+        return await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag, modelId);
       }
       return { ok: false, error: 'RapidOCR (PaddleOCR ONNX) bridge was not found or is uninstalled.' };
     }
@@ -239,7 +240,7 @@ class OcrService {
       const hasWinPack = installedLangs.some(l => l.tag.toLowerCase().startsWith(langTag.toLowerCase().slice(0, 2)));
       if (!hasWinPack) {
         // Windows OCR lacks Persian pack; use RapidOCR
-        const rapidRes = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
+        const rapidRes = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag, modelId);
         return rapidRes;
       }
     }
@@ -255,7 +256,7 @@ class OcrService {
 
     // If Windows OCR failed or returned empty text, and RapidOCR is available, auto-fallback to RapidOCR
     if (rapidBridge && (selectedEngine === 'dual' || selectedEngine === 'auto')) {
-      const fallbackResult = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag);
+      const fallbackResult = await this._recognizeWithRapidOcr(rapidBridge, input, isBuffer, langTag, modelId);
       if (fallbackResult.ok && fallbackResult.text && fallbackResult.text.trim().length > 0) {
         fallbackResult.fallbackUsed = true;
         fallbackResult.primaryEngine = 'windows';
@@ -367,7 +368,7 @@ class OcrService {
     }
   }
 
-  async _recognizeWithRapidOcr(script, input, isBuffer, langTag = 'auto') {
+  async _recognizeWithRapidOcr(script, input, isBuffer, langTag = 'auto', modelId = null) {
     return new Promise((resolve) => {
       const args = [script];
       if (isBuffer) {
@@ -380,7 +381,7 @@ class OcrService {
         args.push('--lang', langTag);
       }
 
-      const recModel = this.getRapidOcrArabicModel();
+      const recModel = this.getRapidOcrArabicModel(modelId);
       if (recModel) {
         args.push('--rec-model', recModel);
         const keysPath = this.getRapidOcrArabicKeys();

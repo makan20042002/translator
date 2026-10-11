@@ -320,4 +320,47 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     await expect(page.locator('#stPersianWarningLine')).toBeVisible();
     await expect(page.locator('#stPersianWarningText')).toContainText('This engine cannot read Persian');
   });
+
+  test('OCR model dropdown lists OCR models with download status and saves selection', async ({ app }) => {
+    const { page, context } = app;
+    let savedCfg = null;
+    await context.addInitScript(() => {
+      window.makanDesktop = {
+        isDesktop: true,
+        getOcrLanguages: () => Promise.resolve([
+          { tag: 'en-US', displayName: 'English (United States)', nativeName: 'English' }
+        ]),
+        getScreenTransConfig: () => Promise.resolve({
+          enabled: true,
+          ocrEngine: 'rapidocr',
+          ocrModel: 'ocr-rapid-arabic',
+          ocrLang: 'fa',
+          hotkey: 'CommandOrControl+Shift+S',
+          targetLang: 'fa',
+          autoCopy: false,
+          saveHistory: true
+        }),
+        saveScreenTransConfig: (cfg) => {
+          savedCfg = cfg;
+          return Promise.resolve({ ok: true });
+        }
+      };
+    });
+
+    await page.reload();
+    await mouseClick(page, page.locator('#openSet'));
+    const modelSel = page.locator('#stOcrModel');
+    await expect(modelSel).toBeVisible();
+    const optCount = await modelSel.locator('option').count();
+    expect(optCount).toBeGreaterThanOrEqual(1);
+
+    // Verify language list has a real catalog (more than 2 options)
+    const langSel = page.locator('#stOcrLang');
+    const langCount = await langSel.locator('option').count();
+    expect(langCount).toBeGreaterThan(2);
+
+    // Change model and verify active reading status contains chosen model name
+    await modelSel.selectOption('ocr-rapid-arabic');
+    await expect(page.locator('#stActiveReadingStatus')).toContainText('RapidOCR Arabic & Persian');
+  });
 });

@@ -40,6 +40,7 @@ class ScreenTranslatorManager {
       targetLang: 'fa',
       ocrLang: 'auto',
       ocrEngine: 'auto', // 'auto' | 'windows' | 'rapidocr' | 'dual'
+      ocrModel: 'ocr-rapid-arabic', // Chosen OCR recognition model
       freezeFrame: true, // Freeze screen snapshot while snipping
       clipboardWatcher: false, // Auto-translate screenshots from Win+Shift+S / Snipping Tool
       engine: 'auto',
@@ -135,6 +136,28 @@ class ScreenTranslatorManager {
 
     ipcMain.handle('screen-trans:save-config', (event, newCfg) => {
       return this.saveConfig(newCfg);
+    });
+
+    ipcMain.handle('screen-trans:save-ocr-model', async (event, payload) => {
+      try {
+        if (!payload || !payload.files) return { ok: false, error: 'No files provided' };
+        let targetDir = path.join(this.rootDir, 'models', 'rapidocr');
+        try {
+          if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+          fs.accessSync(targetDir, fs.constants.W_OK);
+        } catch {
+          const baseAppData = process.env.APPDATA || (process.env.USERPROFILE ? path.join(process.env.USERPROFILE, 'AppData', 'Roaming') : os.tmpdir());
+          targetDir = path.join(baseAppData, 'makan-translate-desktop', 'models', 'rapidocr');
+          if (!fs.existsSync(targetDir)) fs.mkdirSync(targetDir, { recursive: true });
+        }
+        for (const [fname, byteArr] of Object.entries(payload.files)) {
+          const dest = path.join(targetDir, fname);
+          fs.writeFileSync(dest, Buffer.from(byteArr));
+        }
+        return { ok: true };
+      } catch (e) {
+        return { ok: false, error: e.message };
+      }
     });
 
     ipcMain.on('screen-trans:start', () => {
@@ -441,7 +464,8 @@ class ScreenTranslatorManager {
       const ocrResult = await this.ocrService.recognize(
         imageBuffer,
         this.config.ocrLang || 'auto',
-        selectedEngine
+        selectedEngine,
+        this.config.ocrModel || 'ocr-rapid-arabic'
       );
 
       this._lastOcrResult = ocrResult;
@@ -673,7 +697,7 @@ class ScreenTranslatorManager {
 
             const engine = this.config.ocrEngine || 'auto';
             const lang = this.config.ocrLang || 'auto';
-            const ocrResult = await this.ocrService.recognize(imgBuf, lang, engine);
+            const ocrResult = await this.ocrService.recognize(imgBuf, lang, engine, this.config.ocrModel || 'ocr-rapid-arabic');
 
             if (this.isLiveWatching && ocrResult && ocrResult.ok && ocrResult.text) {
               const cleanText = ocrResult.text.trim();

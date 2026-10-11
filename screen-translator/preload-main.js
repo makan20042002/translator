@@ -9,6 +9,7 @@ contextBridge.exposeInMainWorld('makanDesktop', {
   saveScreenTransConfig: (cfg) => ipcRenderer.invoke('screen-trans:save-config', cfg),
   loadAppConfig: () => ipcRenderer.invoke('app:load-config'),
   saveAppConfig: (cfg) => ipcRenderer.invoke('app:save-config', cfg),
+  saveOcrModelFiles: (data) => ipcRenderer.invoke('screen-trans:save-ocr-model', data),
   getDesktopAudioSource: () => ipcRenderer.invoke('app:get-desktop-audio-source'),
   onExecuteScreenTranslation: (handler) => {
     ipcRenderer.on('execute-screen-translation', (event, payload) => {
