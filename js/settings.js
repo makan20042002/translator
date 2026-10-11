@@ -334,7 +334,8 @@ const saveAllInputs=()=>{
   if($('vAudioInput')) cfg.audioInput = $('vAudioInput').value;
   if($('vAudioInputSetting')) cfg.audioInput = $('vAudioInputSetting').value;
   if($('ttsMode')) cfg.tts.mode = $('ttsMode').value;
-  if($('tmToggle')) cfg.tm = $('tmToggle').checked;
+  if($('setTmToggle')) cfg.tm = $('setTmToggle').checked;
+  else if($('tmToggle')) cfg.tm = $('tmToggle').checked;
   if(cfg.tts.mode==='gemini'&&cfg.tts.key&&!cfg.eng.gemini.key) cfg.eng.gemini.key=cfg.tts.key;
   if(cfg.eng.gemini.key&&!cfg.tts.key&&cfg.tts.mode==='gemini') cfg.tts.key=cfg.eng.gemini.key;
   if(cfg.eng.gemini.key) sessionBlocked.delete('gemini');
@@ -382,10 +383,24 @@ async function updateTmCount(){
     }
   }
 }
+function syncTmToggles(){
+  const isChecked=(cfg.tm!==false);
+  if($('tmToggle'))$('tmToggle').checked=isChecked;
+  if($('setTmToggle'))$('setTmToggle').checked=isChecked;
+}
 if($('tmToggle')){
   $('tmToggle').checked=(cfg.tm!==false);
   $('tmToggle').onchange=()=>{
     cfg.tm=$('tmToggle').checked;
+    if($('setTmToggle'))$('setTmToggle').checked=cfg.tm;
+    saveCfg();
+  };
+}
+if($('setTmToggle')){
+  $('setTmToggle').checked=(cfg.tm!==false);
+  $('setTmToggle').onchange=()=>{
+    cfg.tm=$('setTmToggle').checked;
+    if($('tmToggle'))$('tmToggle').checked=cfg.tm;
     saveCfg();
   };
 }
@@ -423,7 +438,7 @@ $('openSet').onclick=()=>{
   let ok=0,total=cfg.order.length;
   cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
   if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
-  if($('tmToggle'))$('tmToggle').checked=(cfg.tm!==false);
+  syncTmToggles();
   updateTmCount();
   $('ov').classList.add('on');
 };

@@ -1033,3 +1033,200 @@ textarea:focus {
   }
 }
 
+/* ==================== TRANSLATE TAB REDESIGN (ITEM 1) ==================== */
+.trans-page-header {
+  margin-block-end: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.trans-page-title {
+  margin: 0;
+  font-family: var(--display, 'Plus Jakarta Sans', system-ui);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+html[lang="fa"] .trans-page-title {
+  font-family: 'Vazirmatn', system-ui;
+  font-weight: 800;
+}
+.trans-page-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted, #94a3b8);
+  line-height: 1.4;
+}
+
+/* Card-style Language & Options Bar */
+.bar.trans-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 16px;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  background: var(--surface-card, #091428);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  border-radius: 14px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.25);
+  margin-block-end: 18px;
+  min-width: 0;
+}
+.trans-bar .grp {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  max-width: 100%;
+}
+.trans-bar .trans-lang-grp {
+  flex: 0 1 auto;
+  min-width: 0;
+}
+.trans-bar .trans-lang-grp select {
+  height: 38px;
+  padding-inline: 12px;
+  border-radius: 10px;
+  background: var(--surface2, #0e1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  color: var(--text, #fff);
+  font-size: 13.5px;
+  font-weight: 600;
+  min-width: 110px;
+  max-width: 200px;
+}
+.trans-bar #swap {
+  width: 36px;
+  height: 36px;
+  border-radius: 9px;
+  background: var(--surface2, #0e1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  color: var(--accent, #08A8FF);
+  font-size: 15px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  flex-shrink: 0;
+  transition: transform 0.2s, background 0.18s, border-color 0.18s;
+}
+.trans-bar #swap:hover {
+  transform: rotate(180deg);
+  border-color: var(--accent, #08A8FF);
+  background: var(--accent-dim, rgba(8, 168, 255, 0.12));
+}
+.trans-bar label:not(.switch-lbl) {
+  font-family: var(--mono, monospace);
+  font-size: 10.5px;
+  letter-spacing: .08em;
+  text-transform: uppercase;
+  color: var(--faint, #64748b);
+  white-space: nowrap;
+}
+.trans-bar select,
+.trans-bar input[type="text"] {
+  height: 38px;
+  padding-inline: 10px;
+  border-radius: 10px;
+  background: var(--surface2, #0e1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  color: var(--text, #fff);
+  font-size: 13px;
+  box-sizing: border-box;
+}
+.trans-bar select:focus,
+.trans-bar input[type="text"]:focus {
+  border-color: var(--accent, #08A8FF);
+  outline: none;
+}
+.trans-bar .sp {
+  flex: 1 1 auto;
+}
+
+/* Toggle Switch (#tmToggle) */
+.switch-lbl {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  user-select: none;
+  font-size: 13px;
+  color: var(--text, #fff);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.switch-chk {
+  position: absolute;
+  opacity: 0;
+  width: 0;
+  height: 0;
+  pointer-events: none;
+}
+.switch-slider {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 22px;
+  background: var(--surface2, #0e1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  border-radius: 999px;
+  transition: background 0.2s, border-color 0.2s;
+  flex-shrink: 0;
+}
+.switch-slider::before {
+  content: "";
+  position: absolute;
+  top: 2px;
+  inset-inline-start: 2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #fff;
+  transition: transform 0.2s, background 0.2s;
+}
+.switch-chk:checked + .switch-slider {
+  background: var(--pri, #1366E2);
+  border-color: var(--accent, #08A8FF);
+}
+.switch-chk:checked + .switch-slider::before {
+  transform: translateX(18px);
+}
+html[dir="rtl"] .switch-chk:checked + .switch-slider::before {
+  transform: translateX(-18px);
+}
+
+@media (max-width: 640px) {
+  .bar.trans-bar {
+    padding: 10px 12px;
+    gap: 10px;
+  }
+  .trans-bar .trans-lang-grp {
+    width: 100%;
+  }
+  .trans-bar .trans-lang-grp select {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+}
+@media (max-width: 420px) {
+  .trans-bar .grp {
+    width: 100%;
+  }
+  .trans-bar select,
+  .trans-bar input[type="text"] {
+    flex: 1 1 0;
+    min-width: 0;
+    max-width: none;
+  }
+  .trans-bar .sp {
+    display: none;
+  }
+}
+
+

@@ -139,7 +139,7 @@ test.describe('Web app: Document tab translation memory (Item 2)', () => {
 
     // Switch translation memory off in settings
     await mouseClick(page, page.locator('#openSet'));
-    await page.locator('#tmToggle').uncheck();
+    await page.locator('#setTmToggle').uncheck();
     await mouseClick(page, page.locator('#btnSaveDone'));
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));

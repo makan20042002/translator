@@ -223,7 +223,7 @@ test.describe('Web app: Subtitle tab translation memory (Item 1)', () => {
 
     // Switch translation memory off in settings
     await mouseClick(page, page.locator('#openSet'));
-    await page.locator('#tmToggle').uncheck();
+    await page.locator('#setTmToggle').uncheck();
     await mouseClick(page, page.locator('#btnSaveDone'));
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));

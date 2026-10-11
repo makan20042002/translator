@@ -690,7 +690,7 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
     await expect(page.locator('#ov')).toHaveClass(/on/);
 
     // Default is checked
-    const tmToggle = page.locator('#tmToggle');
+    const tmToggle = page.locator('#setTmToggle');
     await expect(tmToggle).toBeChecked();
 
     // Toggle switch off
@@ -714,7 +714,7 @@ test.describe('Web app: Translation Memory settings (Item 1)', () => {
 
     await mouseClick(page, page.locator('#openSet'));
     await expect(page.locator('#ov')).toHaveClass(/on/);
-    await expect(page.locator('#tmToggle')).not.toBeChecked();
+    await expect(page.locator('#setTmToggle')).not.toBeChecked();
   });
 
   test('window.store is undefined and settings/keys are not exposed on window (Item 1)', async ({ app }) => {
