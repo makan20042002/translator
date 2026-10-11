@@ -2,6 +2,7 @@
 const CACHE = 'makan-translate-v16';
 const SHELL = [
   './',
+  './css/theme.css',
   './css/base.css',
   './css/layout.css',
   './css/components.css',
