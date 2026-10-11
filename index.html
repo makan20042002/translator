@@ -308,38 +308,57 @@
     </div>
 
     <div class="sub-card" id="sWork" hidden>
-        <div class="sub-toolbar">
-          <div class="sub-bar-top">
-            <div class="sub-file-meta">
-              <span class="meta" id="sInfo"></span>
-              <button class="btn ghost" id="sChangeFile" type="button" style="font-size:12px;min-height:28px">📁 <span data-t="subChangeFile">Change file</span></button>
-              <button class="btn ghost" id="sCloseFile" type="button" style="font-size:12px;min-height:28px">✕ <span id="sCloseFileText" data-t="subCloseFile">Close file</span></button>
+        <div class="sub-toolbar" id="sToolbar">
+          <div class="sub-bar-main">
+            <!-- File info left -->
+            <div class="sub-file-meta-card">
+              <div class="sub-file-badge" aria-hidden="true">
+                <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                  <polyline points="14 2 14 8 20 8"></polyline>
+                </svg>
+              </div>
+              <div class="sub-file-meta-text">
+                <div class="sub-file-name-row">
+                  <strong class="sub-file-title" id="sFileName">subtitle.srt</strong>
+                  <span class="sub-cues-badge" id="sCuesCount">0 cues</span>
+                </div>
+                <div class="sub-file-sub-row">
+                  <span class="meta" id="sInfo"></span>
+                  <span class="sub-meta-sep" aria-hidden="true">·</span>
+                  <span class="sub-lang-pill" id="sLangPair">English → Persian</span>
+                </div>
+              </div>
+              <div class="sub-file-mgmt-btns">
+                <button class="btn ghost" id="sChangeFile" type="button">📁 <span data-t="subChangeFile">Change file</span></button>
+                <button class="btn ghost" id="sCloseFile" type="button">✕ <span id="sCloseFileText" data-t="subCloseFile">Close file</span></button>
+              </div>
             </div>
-            <span class="sp"></span>
-            <label class="chk"><input type="checkbox" id="sBi"><span data-t="bilingual">Bilingual export</span></label>
-          </div>
 
-          <div class="sub-bar-style">
-            <div class="grp">
-              <label for="subStyle" data-t="subStyle">Style</label>
-              <select id="subStyle" style="height:34px">
-                <option value="film" selected data-t="subStyleFilm">Film / spoken</option>
-                <option value="neutral" data-t="subStyleNeutral">Neutral</option>
-                <option value="formal" data-t="subStyleFormal">Formal</option>
-              </select>
+            <!-- Style options center -->
+            <div class="sub-bar-style">
+              <div class="grp">
+                <label for="subStyle" data-t="subStyle">Style</label>
+                <select id="subStyle">
+                  <option value="film" selected data-t="subStyleFilm">Film / spoken</option>
+                  <option value="neutral" data-t="subStyleNeutral">Neutral</option>
+                  <option value="formal" data-t="subStyleFormal">Formal</option>
+                </select>
+              </div>
+              <label class="chk" id="subFamilyWrap"><input type="checkbox" id="subFamily"><span data-t="subFamily">Family-friendly</span></label>
+              <label class="chk" id="sBiWrap"><input type="checkbox" id="sBi"><span data-t="bilingual">Bilingual export</span></label>
+              <div id="subEngineNotice" class="sub-notice" hidden></div>
             </div>
-            <label class="chk" id="subFamilyWrap"><input type="checkbox" id="subFamily"><span data-t="subFamily">Family-friendly</span></label>
-            <div id="subEngineNotice" class="sub-notice" hidden></div>
-          </div>
 
-          <div class="sub-bar-actions">
-            <button class="btn" id="sRest" data-t="sRest">Translate empty lines</button>
-            <button class="btn cta" id="sGo" data-t="sAll">Translate all</button>
-            <button class="btn danger" id="sStop" hidden data-t="stop">Stop</button>
-            <span class="sp"></span>
-            <div class="grp">
-              <button class="btn" id="sSrt">↓ SRT</button>
-              <button class="btn" id="sVtt">↓ VTT</button>
+            <!-- Action buttons right -->
+            <div class="sub-bar-actions">
+              <button class="btn ghost" id="sRest" data-t="sRest">Translate empty lines</button>
+              <button class="btn cta sub-btn-go" id="sGo" data-t="sAll">Translate all</button>
+              <button class="btn danger" id="sStop" hidden data-t="stop">Stop</button>
+              <div class="grp sub-dl-grp">
+                <button class="btn" id="sSrt">↓ SRT</button>
+                <button class="btn" id="sVtt">↓ VTT</button>
+              </div>
             </div>
           </div>
         </div>

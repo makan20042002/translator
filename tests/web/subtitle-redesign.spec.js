@@ -1,5 +1,5 @@
 'use strict';
-const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
+const { test, expect, mouseClick, chooseFile, downloadOf, onlyEngines } = require('../support/fixtures');
 
 test.describe('Web app: Subtitle tab redesign', () => {
   test.describe('Item 1: Page header and entry cards', () => {
@@ -69,6 +69,50 @@ test.describe('Web app: Subtitle tab redesign', () => {
       await expect(page.locator('#sWork')).toBeVisible();
       await expect(page.locator('#sDrop')).toBeHidden();
       await expect(page.locator('#sVideoCard')).toBeHidden();
+    });
+  });
+
+  test.describe('Item 2: File bar after file load', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
+
+    test('shows cue count and file name; sGo, sSrt, sVtt exist with preserved IDs; export keeps identical timings', async ({ app, files }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), files.srt);
+
+      // Workspace is visible
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // File name is shown in bar
+      await expect(page.locator('#sFileName')).toContainText('sample');
+      // Cue count is shown in bar
+      await expect(page.locator('#sCuesCount')).toContainText('5');
+      // sInfo preserves exact line count
+      await expect(page.locator('#sInfo')).toHaveText('sample · 0/5 lines');
+
+      // Action controls are present with preserved IDs
+      await expect(page.locator('#sGo')).toBeVisible();
+      await expect(page.locator('#sRest')).toBeVisible();
+      await expect(page.locator('#sSrt')).toBeVisible();
+      await expect(page.locator('#sVtt')).toBeVisible();
+      await expect(page.locator('#subStyle')).toBeVisible();
+      await expect(page.locator('#sBi')).toBeAttached();
+
+      // Translate file
+      await mouseClick(page, page.locator('#sGo'));
+      await expect(page.locator('#sInfo')).toHaveText('sample · 5/5 lines');
+
+      // Download SRT and check timings identical to source
+      const srt = await downloadOf(page, () => mouseClick(page, page.locator('#sSrt')));
+      expect(srt.name).toBe('sample.fa.srt');
+      expect(srt.bytes.toString('utf8')).toContain('00:00:01,000 --> 00:00:03,500');
+      expect(srt.bytes.toString('utf8')).toContain('01:02:03,004 --> 01:02:05,006');
+
+      // Download VTT and check timings identical (with dot separator)
+      const vtt = await downloadOf(page, () => mouseClick(page, page.locator('#sVtt')));
+      expect(vtt.name).toBe('sample.fa.vtt');
+      expect(vtt.bytes.toString('utf8')).toContain('00:00:01.000 --> 00:00:03.500');
+      expect(vtt.bytes.toString('utf8')).toContain('01:02:03.004 --> 01:02:05.006');
     });
   });
 });

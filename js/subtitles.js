@@ -28,7 +28,13 @@ function renderCues(){
   $('cues').innerHTML=hdr+cues.map((c,i)=>`<div class="cue"><span class="n">${i+1}</span><span class="tm" dir="ltr">${fmt(c.s,'.').slice(0,8)} → ${fmt(c.e,'.').slice(0,8)}</span><div class="o" dir="auto">${esc(c.o)}</div><div class="tr" dir="auto" contenteditable="true" data-i="${i}">${esc(c.t)}</div></div>`).join('');
   sInfo();
 }
-const sInfo=()=>$('sInfo').textContent=`${sName} · ${cues.filter(c=>c.t).length}/${cues.length} ${L('lines')}`;
+const sInfo=()=>{
+  $('sInfo').textContent=`${sName} · ${cues.filter(c=>c.t).length}/${cues.length} ${L('lines')}`;
+  if($('sCuesCount'))$('sCuesCount').textContent=`${cues.length} ${L('cues')||'cues'}`;
+  const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
+  const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
+  if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
+};
 let subEditTmTimer=null;
 async function saveSubCueCorrection(i){
   if(i==null||!cues[i])return;
@@ -97,7 +103,13 @@ $('cues').addEventListener('focusout',e=>{
 async function loadSubs(f){
   const c=parseSubs(await f.text());if(!c.length){toast('No subtitle lines found in this file','err');return}
   sCtl?.abort(); // a translation still running belongs to the old file
-  cues=c;sName=f.name.replace(/\.[^.]+$/,'');$('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
+  cues=c;sName=f.name.replace(/\.[^.]+$/,'');
+  if($('sFileName'))$('sFileName').textContent=f.name;
+  if($('sCuesCount'))$('sCuesCount').textContent=`${c.length} ${L('cues')||'cues'}`;
+  const srcName=typeof langName==='function'&&$('src')?langName($('src').value):'English';
+  const tgtName=typeof langName==='function'&&$('tgt')?langName($('tgt').value):'Persian';
+  if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
+  $('sDrop').hidden=true;if($('sEntryCards'))$('sEntryCards').hidden=true;if($('sVideoCard'))$('sVideoCard').hidden=true;$('sWork').hidden=false;$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='0%';renderCues();updateSubEngineNotice();
 }
 dropzone($('sDrop'),$('sFile'),loadSubs);
 if($('sChangeFile'))$('sChangeFile').onclick=()=>$('sFile').click();
@@ -107,6 +119,8 @@ const sCloseReset=()=>{clearTimeout(sCloseTimer);sCloseTimer=null;if($('sCloseFi
 function closeSubs(){
   sCtl?.abort();sCloseReset();
   cues=[];sName='subtitle';$('cues').innerHTML='';$('sBar').style.width='0';if($('sProgText'))$('sProgText').textContent='';
+  if($('sFileName'))$('sFileName').textContent='subtitle.srt';
+  if($('sCuesCount'))$('sCuesCount').textContent=`0 ${L('cues')||'cues'}`;
   $('sFile').value='';$('sWork').hidden=true;$('sDrop').hidden=false;if($('sEntryCards'))$('sEntryCards').hidden=false;if($('sVideoCard'))$('sVideoCard').hidden=false;
 }
 if($('sCloseFile'))$('sCloseFile').onclick=()=>{
