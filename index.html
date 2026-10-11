@@ -1090,23 +1090,91 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 <!-- SETTINGS -->
 <div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="setT">
   <div class="row"><h2 id="setT" data-t="engines">Engines &amp; keys</h2><span class="sp"></span><button class="btn ghost" id="closeSet">✕</button></div>
-  <p class="note" data-t="setNote">Free engines work with no setup. For better quality add a free key (Gemini, Groq or OpenRouter). In Auto mode engines are tried from top to bottom, and the next one takes over if one fails.</p>
-  <div class="row" style="margin:8px 0 12px;gap:10px;align-items:center">
-    <button class="btn" id="btnCheckConn" type="button" style="padding:5px 14px;font-size:13px;gap:6px"><span>⚡</span><span data-t="checkConn">Check connections</span></button>
-    <button class="btn ghost" id="btnExportForExt" type="button" style="padding:5px 14px;font-size:13px;gap:6px" title="Export settings and keys for the MAKAN browser extension"><span>📦</span><span data-t="exportForExt">Export for Extension</span></button>
-    <span class="hint" id="checkConnSummary" style="font-size:12.5px"></span>
+  <div class="set-tabs-nav" id="setTabsNav" style="display:flex;gap:8px;overflow-x:auto;padding:6px 0 12px;margin:6px 0 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface,#0B111C);z-index:20">
+    <button type="button" class="btn btn-sm set-tab-btn active" id="setTabBtnEngines" data-sec="secEngines"><span data-t="tabEnginesKeys">Translation engines &amp; keys</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoices" data-sec="secVoices"><span data-t="tabVoices">Voices (reading aloud)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoiceModels" data-sec="secVoiceModels"><span data-t="tabVoiceModels">Voice models (speech recognition)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnTrModels" data-sec="secTrModels"><span data-t="tabTrModels">Translation models (offline)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnOcr" data-sec="secOcr"><span data-t="tabOcr">Screen reading (OCR)</span></button>
   </div>
-  <div id="engList"></div>
-  <div class="row" style="margin-top:14px"><label class="lbl" for="mmEmail" data-t="mmEmail">MyMemory e-mail (optional, raises the daily limit)</label>
-    <input type="email" id="mmEmail" placeholder="you@example.com" style="flex:1;min-width:200px"></div>
 
-  <h3 data-t="voiceH">Voice</h3>
-  <div class="setg">
-    <label><span data-t="sttL">Speech to text (microphone)</span><select id="sttSel">
-      <option value="auto" data-t="sttAuto">Auto</option><option value="browser" data-t="sttBrowser">Browser (online)</option>
-      <option value="gemini" data-t="sttGemini">Gemini (online, uses Gemini key)</option>
-      <option value="groq" data-t="sttGroq">Groq Whisper (online, uses Groq key)</option><option value="whisper" data-t="sttWh">Whisper in browser (offline)</option>
-      <option value="helper" data-t="sttHelper">Python ASR Helper (Whisper large-v3 / Qwen3-ASR)</option></select></label>
+  <!-- Section 1: Translation engines and keys -->
+  <div class="set-section" id="secEngines" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+    <h3 data-t="tabEnginesKeys" style="margin-top:0">Translation engines &amp; keys</h3>
+    <p class="note" data-t="setNote">Free engines work with no setup. For better quality add a free key (Gemini, Groq or OpenRouter). In Auto mode engines are tried from top to bottom, and the next one takes over if one fails.</p>
+    <div class="row" style="margin:8px 0 12px;gap:10px;align-items:center">
+      <button class="btn" id="btnCheckConn" type="button" style="padding:5px 14px;font-size:13px;gap:6px"><span>⚡</span><span data-t="checkConn">Check connections</span></button>
+      <button class="btn ghost" id="btnExportForExt" type="button" style="padding:5px 14px;font-size:13px;gap:6px" title="Export settings and keys for the MAKAN browser extension"><span>📦</span><span data-t="exportForExt">Export for Extension</span></button>
+      <span class="hint" id="checkConnSummary" style="font-size:12.5px"></span>
+    </div>
+    <div id="engList"></div>
+    <div class="row" style="margin-top:14px"><label class="lbl" for="mmEmail" data-t="mmEmail">MyMemory e-mail (optional, raises the daily limit)</label>
+      <input type="email" id="mmEmail" placeholder="you@example.com" style="flex:1;min-width:200px"></div>
+
+    <h3 data-t="tmH" style="margin-top:20px">Translation memory</h3>
+    <p class="note" data-t="tmNote"></p>
+    <div class="row" style="margin:10px 0;align-items:center;gap:12px;flex-wrap:wrap">
+      <label class="chk"><input type="checkbox" id="tmToggle" checked><span data-t="enabled">Enabled</span></label>
+      <div class="meta" style="margin:0"><span data-t="tmSavedCount">Saved translations:</span> <strong id="tmCount">0</strong> <span id="tmSize" style="margin-inline-start:4px;color:var(--muted)"></span></div>
+      <span class="sp"></span>
+      <span id="tmPersistStatus" class="pill-tm" style="font-size:11px" hidden></span>
+      <button class="btn danger" id="tmClearBtn" type="button" data-t="tmClear">Clear memory</button>
+    </div>
+  </div>
+
+  <!-- Section 2: Voices (reading aloud) -->
+  <div class="set-section" id="secVoices" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+    <h3 data-t="tabVoices" style="margin-top:0">Voices (reading aloud)</h3>
+    <div class="setg">
+      <label><span data-t="ttsL">Text to speech (read aloud)</span><select id="ttsMode">
+        <option value="device" data-t="ttsDev">Device / browser voices</option>
+        <option value="gemini" data-t="ttsGemini">Google Gemini TTS</option>
+        <option value="openai" data-t="ttsOpenAI">OpenAI TTS</option>
+        <option value="api" data-t="ttsApiO">Speech server (Sesame CSM, local…)</option></select></label>
+      <label id="voiceLblWrap"><span id="voiceLbl"></span><select id="voiceSel"></select></label>
+      <label><span data-t="speed">Speed</span><select id="ttsSpeed">
+        <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select></label>
+    </div>
+    <div id="ttsApi" hidden>
+      <div class="setg">
+        <label><span data-t="preset">Preset</span><select id="ttsPre"><option value="">—</option><option value="gemini">Google Gemini (3.8 Flash TTS)</option><option value="openai">OpenAI (tts-1)</option><option value="sesame">Sesame CSM (local server)</option></select></label>
+        <label id="ttsBaseWrap"><span data-t="baseUrl">Base URL</span><input type="text" id="tts_base" spellcheck="false"></label>
+        <label><span data-t="key">API key</span><input type="password" id="tts_key" autocomplete="off" placeholder="Leave empty to use engine key"></label>
+        <label><span data-t="model">Model</span><input type="text" id="tts_model"></label>
+        <label><span data-t="voiceName">Voice name</span><input type="text" id="tts_voice"></label>
+      </div>
+      <p class="hint" style="margin-top:8px" id="ttsHint" data-t="ttsHint"></p>
+    </div>
+    <div class="row" style="margin-top:12px"><p class="hint" data-t="edgeHint" style="flex:1;min-width:220px"></p><button class="btn" id="ttsTest" data-t="ttsTest">Test voice</button></div>
+    <div id="unifiedVoicePickerWrap" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
+      <div class="row" style="margin-bottom:8px;align-items:center;justify-content:space-between">
+        <strong data-t="allVoicesH">Available voices</strong>
+      </div>
+      <div id="voicePickerList" class="voice-picker-list" style="display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;padding-right:4px"></div>
+    </div>
+  </div>
+
+  <!-- Section 3: Voice models (speech recognition) -->
+  <div class="set-section" id="secVoiceModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+    <h3 data-t="tabVoiceModels" style="margin-top:0">Voice models (speech recognition)</h3>
+    <div class="setg">
+      <label><span data-t="sttL">Speech to text (microphone)</span><select id="sttSel">
+        <option value="auto" data-t="sttAuto">Auto</option><option value="browser" data-t="sttBrowser">Browser (online)</option>
+        <option value="gemini" data-t="sttGemini">Gemini (online, uses Gemini key)</option>
+        <option value="groq" data-t="sttGroq">Groq Whisper (online, uses Groq key)</option><option value="whisper" data-t="sttWh">Whisper in browser (offline)</option>
+        <option value="helper" data-t="sttHelper">Python ASR Helper (Whisper large-v3 / Qwen3-ASR)</option></select></label>
+      <label><span data-t="offWhisperModel">Offline speech model</span><select id="offWhisperSel"></select></label>
+      <label><span data-t="silenceWaitL">Silence wait (end of speech)</span><select id="vSilenceWait">
+        <option value="600">Fast (600ms)</option>
+        <option value="800" selected>Balanced (800ms)</option>
+        <option value="1100">Relaxed (1100ms)</option>
+        <option value="1500">Long pause (1500ms)</option>
+      </select></label>
+      <label><span data-t="vAudioInputL">Audio Input / Video</span><select id="vAudioInputSetting">
+        <option value="mic" selected>Microphone (Your Voice)</option>
+        <option value="desktop">PC Audio / Video (YouTube, Movies, Streams)</option>
+      </select></label>
+    </div>
     <div id="helperSettingsWrap" style="margin-top:8px;padding:10px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px" hidden>
       <div style="font-size:12.5px;font-weight:600;margin-bottom:8px" data-t="sttHelper">Python ASR Helper (Whisper large-v3 / Qwen3-ASR)</div>
       <div class="row" style="gap:8px;align-items:center;flex-wrap:wrap">
@@ -1127,89 +1195,7 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
       </div>
       <div id="helperStatusMsg" style="font-size:11.5px;margin-top:6px;color:var(--muted)"></div>
     </div>
-    <label><span data-t="ttsL">Text to speech (read aloud)</span><select id="ttsMode">
-      <option value="device" data-t="ttsDev">Device / browser voices</option>
-      <option value="gemini" data-t="ttsGemini">Google Gemini TTS</option>
-      <option value="openai" data-t="ttsOpenAI">OpenAI TTS</option>
-      <option value="api" data-t="ttsApiO">Speech server (Sesame CSM, local…)</option></select></label>
-    <label id="voiceLblWrap"><span id="voiceLbl"></span><select id="voiceSel"></select></label>
-    <label><span data-t="speed">Speed</span><select id="ttsSpeed">
-      <option value="0.75">0.75×</option><option value="1" selected>1×</option><option value="1.25">1.25×</option><option value="1.5">1.5×</option></select></label>
-    <label><span data-t="silenceWaitL">Silence wait (end of speech)</span><select id="vSilenceWait">
-      <option value="600">Fast (600ms)</option>
-      <option value="800" selected>Balanced (800ms)</option>
-      <option value="1100">Relaxed (1100ms)</option>
-      <option value="1500">Long pause (1500ms)</option>
-    </select></label>
-    <label><span data-t="vAudioInputL">Audio Input / Video</span><select id="vAudioInputSetting">
-      <option value="mic" selected>Microphone (Your Voice)</option>
-      <option value="desktop">PC Audio / Video (YouTube, Movies, Streams)</option>
-    </select></label>
-  </div>
-  <div id="ttsApi" hidden>
-    <div class="setg">
-      <label><span data-t="preset">Preset</span><select id="ttsPre"><option value="">—</option><option value="gemini">Google Gemini (3.8 Flash TTS)</option><option value="openai">OpenAI (tts-1)</option><option value="sesame">Sesame CSM (local server)</option></select></label>
-      <label id="ttsBaseWrap"><span data-t="baseUrl">Base URL</span><input type="text" id="tts_base" spellcheck="false"></label>
-      <label><span data-t="key">API key</span><input type="password" id="tts_key" autocomplete="off" placeholder="Leave empty to use engine key"></label>
-      <label><span data-t="model">Model</span><input type="text" id="tts_model"></label>
-      <label><span data-t="voiceName">Voice name</span><input type="text" id="tts_voice"></label>
-    </div>
-    <p class="hint" style="margin-top:8px" id="ttsHint" data-t="ttsHint"></p>
-  </div>
-  <div class="row" style="margin-top:12px"><p class="hint" data-t="edgeHint" style="flex:1;min-width:220px"></p><button class="btn" id="ttsTest" data-t="ttsTest">Test voice</button></div>
-  <div id="unifiedVoicePickerWrap" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
-    <div class="row" style="margin-bottom:8px;align-items:center;justify-content:space-between">
-      <strong data-t="allVoicesH">Available voices</strong>
-    </div>
-    <div id="voicePickerList" class="voice-picker-list" style="display:flex;flex-direction:column;gap:10px;max-height:360px;overflow-y:auto;padding-right:4px"></div>
-  </div>
-
-  <h3 data-t="tmH">Translation memory</h3>
-  <p class="note" data-t="tmNote"></p>
-  <div class="row" style="margin:10px 0;align-items:center;gap:12px;flex-wrap:wrap">
-    <label class="chk"><input type="checkbox" id="tmToggle" checked><span data-t="enabled">Enabled</span></label>
-    <div class="meta" style="margin:0"><span data-t="tmSavedCount">Saved translations:</span> <strong id="tmCount">0</strong> <span id="tmSize" style="margin-inline-start:4px;color:var(--muted)"></span></div>
-    <span class="sp"></span>
-    <span id="tmPersistStatus" class="pill-tm" style="font-size:11px" hidden></span>
-    <button class="btn danger" id="tmClearBtn" type="button" data-t="tmClear">Clear memory</button>
-  </div>
-
-  <h3 data-t="offH">Offline</h3>
-  <p class="note" data-t="offNote"></p>
-  <div class="setg off-models-pickers" style="margin:12px 0 14px">
-    <label><span data-t="offTrModel">Offline translation model</span><select id="offTrModelSel"></select></label>
-    <label><span data-t="offWhisperModel">Offline speech model</span><select id="offWhisperSel"></select></label>
-  </div>
-  <div id="offFallbackNotice" class="off-fallback-notice" hidden></div>
-  <div class="meta" id="mdlTotal" role="status"></div>
-  <div id="mdlCatalog"></div>
-  <div id="dictPackRows"></div>
-  <p class="hint" data-t="dictPackNote">The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About &amp; credits.</p>
-
-  <!-- TEST MODELS PANEL -->
-  <div class="card test-models-card" id="testModelsPanel" style="margin-top:18px;border:1px solid var(--border2)">
-    <div class="row" style="margin-bottom:6px">
-      <strong data-t="testModelsH">Test models</strong>
-      <span class="sp"></span>
-    </div>
-    <p class="hint" data-t="testModelsDesc" style="margin:0 0 12px">Compare downloaded models side by side on a sample sentence or speech clip.</p>
-
-    <!-- Test Translation Models -->
-    <div class="test-tr-block" style="margin-bottom:16px">
-      <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
-        <select id="testMdlSrc" style="min-width:120px" aria-label="Source language"></select>
-        <span style="align-self:center;color:var(--muted)">→</span>
-        <select id="testMdlTgt" style="min-width:120px" aria-label="Target language"></select>
-        <input type="text" id="testMdlText" data-tp="testSentencePh" placeholder="Sentence to translate…" value="The quick brown fox jumps over the lazy dog." style="flex:1;min-width:200px" dir="auto">
-        <button class="btn cta" id="testTrRun" type="button" data-t="testTrBtn">Test translation models</button>
-        <button class="btn danger" id="testTrStop" type="button" hidden data-t="stop">Stop</button>
-      </div>
-      <div id="testTrStatus" class="meta" style="margin-bottom:6px" hidden></div>
-      <div id="testTrResults" class="test-results-wrap" aria-live="polite"></div>
-    </div>
-
-    <!-- Test Speech Models -->
-    <div class="test-asr-block" style="border-top:1px solid var(--border);padding-top:12px">
+    <div class="test-asr-block" style="border-top:1px solid var(--border);padding-top:12px;margin-top:14px">
       <div class="row" style="gap:8px;margin-bottom:8px;align-items:center;flex-wrap:wrap">
         <button class="btn" id="testAsrRun" type="button" data-t="testAsrBtn">Test speech model</button>
         <button class="btn danger" id="testAsrStop" type="button" hidden data-t="stop">Stop</button>
@@ -1220,88 +1206,124 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
     </div>
   </div>
 
-  <!-- Screen Translator Settings (Desktop) -->
-  <div id="screenTransSettingsBlock" style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px" hidden>
-    <h3 style="display:flex;align-items:center;gap:8px;margin-top:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg> <span data-t="screenTransH">Screen Translator (Windows OCR)</span></h3>
-    <p class="note" data-t="screenTransNote">Capture any region of your screen to recognize text with native Windows OCR and translate instantly.</p>
-    <div class="setg">
-      <label><span data-t="screenTransEnable">Enable Screen Translator</span>
-        <select id="stEnable">
-          <option value="1">Enabled</option>
-          <option value="0">Disabled</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransOcrEngine">OCR Engine</span>
-        <select id="stOcrEngine">
-          <option value="auto">Auto (Windows OCR + RapidOCR Fallback)</option>
-          <option value="windows">Windows Media OCR (Native, Ultra-Fast)</option>
-          <option value="rapidocr">PaddleOCR / RapidOCR (ONNX Deep Learning, Best Multilingual)</option>
-          <option value="dual">Dual Engine (Windows OCR + RapidOCR)</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransOcrModel">OCR Recognition Model</span>
-        <div style="display:flex;gap:8px;align-items:center">
-          <select id="stOcrModel" style="flex:1"></select>
-          <button type="button" class="btn" id="stOcrModelDlBtn" style="display:none;padding:4px 10px;font-size:12px;white-space:nowrap" data-t="screenTransOcrModelDl">Download Model</button>
+  <!-- Section 4: Translation models (offline) -->
+  <div class="set-section" id="secTrModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+    <h3 data-t="tabTrModels" style="margin-top:0">Translation models (offline)</h3>
+    <p class="note" data-t="offNote"></p>
+    <div class="setg off-models-pickers" style="margin:12px 0 14px">
+      <label><span data-t="offTrModel">Offline translation model</span><select id="offTrModelSel"></select></label>
+    </div>
+    <div id="offFallbackNotice" class="off-fallback-notice" hidden></div>
+    <div class="meta" id="mdlTotal" role="status"></div>
+    <div id="mdlCatalog"></div>
+    <div id="dictPackRows"></div>
+    <p class="hint" data-t="dictPackNote">The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About &amp; credits.</p>
+
+    <div class="card test-models-card" id="testModelsPanel" style="margin-top:18px;border:1px solid var(--border2)">
+      <div class="row" style="margin-bottom:6px">
+        <strong data-t="testModelsH">Test models</strong>
+        <span class="sp"></span>
+      </div>
+      <p class="hint" data-t="testModelsDesc" style="margin:0 0 12px">Compare downloaded models side by side on a sample sentence or speech clip.</p>
+      <div class="test-tr-block" style="margin-bottom:6px">
+        <div class="row" style="gap:8px;margin-bottom:8px;flex-wrap:wrap">
+          <select id="testMdlSrc" style="min-width:120px" aria-label="Source language"></select>
+          <span style="align-self:center;color:var(--muted)">→</span>
+          <select id="testMdlTgt" style="min-width:120px" aria-label="Target language"></select>
+          <input type="text" id="testMdlText" data-tp="testSentencePh" placeholder="Sentence to translate…" value="The quick brown fox jumps over the lazy dog." style="flex:1;min-width:200px" dir="auto">
+          <button class="btn cta" id="testTrRun" type="button" data-t="testTrBtn">Test translation models</button>
+          <button class="btn danger" id="testTrStop" type="button" hidden data-t="stop">Stop</button>
         </div>
-      </label>
-      <label><span data-t="screenTransHotkey">Global Shortcut</span>
-        <select id="stHotkey">
-          <option value="CommandOrControl+Shift+S">Ctrl + Shift + S (Default)</option>
-          <option value="Alt+Q">Alt + Q</option>
-          <option value="F4">F4</option>
-          <option value="CommandOrControl+Alt+S">Ctrl + Alt + S</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransFreezeFrame">Freeze-Frame Snipping Tool</span>
-        <select id="stFreezeFrame">
-          <option value="1">Enabled (Freeze screen snapshot + Magnifier loupe)</option>
-          <option value="0">Disabled (Transparent live overlay)</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransClipboardWatcher">Clipboard Watcher (Auto-translate screenshots)</span>
-        <select id="stClipboardWatcher">
-          <option value="0">Disabled (Manual snip only)</option>
-          <option value="1">Enabled (Auto-translate Win+Shift+S screenshots)</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransOcrLang">Windows OCR Language</span>
-        <select id="stOcrLang">
-          <option value="auto">Auto-detect / Default</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransTgtLang">Default Target Language</span>
-        <select id="stTgtLang">
-          <option value="fa">Persian (فارسی)</option>
-          <option value="en">English</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransAutoCopy">Copy translated text automatically</span>
-        <select id="stAutoCopy">
-          <option value="0">No (Manual copy)</option>
-          <option value="1">Yes (Copy immediately)</option>
-        </select>
-      </label>
-      <label><span data-t="screenTransSaveHist">Save OCR translations to History</span>
-        <select id="stSaveHist">
-          <option value="0">No (Privacy mode)</option>
-          <option value="1">Yes</option>
-        </select>
-      </label>
+        <div id="testTrStatus" class="meta" style="margin-bottom:6px" hidden></div>
+        <div id="testTrResults" class="test-results-wrap" aria-live="polite"></div>
+      </div>
     </div>
-    <div id="stActiveReadingLine" style="margin-top:12px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:8px">
-      <span style="font-weight:700;color:var(--accent)" data-t="stActiveLabel">Active Reading:</span>
-      <span id="stActiveReadingStatus" style="font-weight:600">Auto (Windows OCR + RapidOCR) · Auto-detect</span>
-    </div>
-    <div id="stPersianWarningLine" style="margin-top:6px;padding:8px 12px;background:rgba(255, 180, 74, 0.12);border:1px solid rgba(255, 180, 74, 0.35);border-radius:6px;font-size:12px;color:#FFB44A;display:none;line-height:1.5">
-      <span id="stPersianWarningText">⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.</span>
-    </div>
-    <div class="row" style="margin-top:10px;align-items:center;gap:10px">
-      <button class="btn" id="btnTestScreenTrans" type="button" style="padding:6px 14px;gap:6px">
-        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
-        <span data-t="testScreenTransBtn">Capture Screen Region Now</span>
-      </button>
-      <span class="hint" id="stOcrStatusHint" style="font-size:12px"></span>
+  </div>
+
+  <!-- Section 5: Screen reading (OCR) -->
+  <div class="set-section" id="secOcr" style="margin-bottom:18px">
+    <div id="screenTransSettingsBlock" style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px" hidden>
+      <h3 style="display:flex;align-items:center;gap:8px;margin-top:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg> <span data-t="tabOcr">Screen reading (OCR)</span></h3>
+      <p class="note" data-t="screenTransNote">Capture any region of your screen to recognize text with native Windows OCR and translate instantly.</p>
+      <div class="setg">
+        <label><span data-t="screenTransEnable">Enable Screen Translator</span>
+          <select id="stEnable">
+            <option value="1">Enabled</option>
+            <option value="0">Disabled</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransOcrEngine">OCR Engine</span>
+          <select id="stOcrEngine">
+            <option value="auto">Auto (Windows OCR + RapidOCR Fallback)</option>
+            <option value="windows">Windows Media OCR (Native, Ultra-Fast)</option>
+            <option value="rapidocr">PaddleOCR / RapidOCR (ONNX Deep Learning, Best Multilingual)</option>
+            <option value="dual">Dual Engine (Windows OCR + RapidOCR)</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransOcrModel">OCR Recognition Model</span>
+          <div style="display:flex;gap:8px;align-items:center">
+            <select id="stOcrModel" style="flex:1"></select>
+            <button type="button" class="btn" id="stOcrModelDlBtn" style="display:none;padding:4px 10px;font-size:12px;white-space:nowrap" data-t="screenTransOcrModelDl">Download Model</button>
+          </div>
+        </label>
+        <label><span data-t="screenTransHotkey">Global Shortcut</span>
+          <select id="stHotkey">
+            <option value="CommandOrControl+Shift+S">Ctrl + Shift + S (Default)</option>
+            <option value="Alt+Q">Alt + Q</option>
+            <option value="F4">F4</option>
+            <option value="CommandOrControl+Alt+S">Ctrl + Alt + S</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransFreezeFrame">Freeze-Frame Snipping Tool</span>
+          <select id="stFreezeFrame">
+            <option value="1">Enabled (Freeze screen snapshot + Magnifier loupe)</option>
+            <option value="0">Disabled (Transparent live overlay)</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransClipboardWatcher">Clipboard Watcher (Auto-translate screenshots)</span>
+          <select id="stClipboardWatcher">
+            <option value="0">Disabled (Manual snip only)</option>
+            <option value="1">Enabled (Auto-translate Win+Shift+S screenshots)</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransOcrLang">Windows OCR Language</span>
+          <select id="stOcrLang">
+            <option value="auto">Auto-detect / Default</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransTgtLang">Default Target Language</span>
+          <select id="stTgtLang">
+            <option value="fa">Persian (فارسی)</option>
+            <option value="en">English</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransAutoCopy">Copy translated text automatically</span>
+          <select id="stAutoCopy">
+            <option value="0">No (Manual copy)</option>
+            <option value="1">Yes (Copy immediately)</option>
+          </select>
+        </label>
+        <label><span data-t="screenTransSaveHist">Save OCR translations to History</span>
+          <select id="stSaveHist">
+            <option value="0">No (Privacy mode)</option>
+            <option value="1">Yes</option>
+          </select>
+        </label>
+      </div>
+      <div id="stActiveReadingLine" style="margin-top:12px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:8px">
+        <span style="font-weight:700;color:var(--accent)" data-t="stActiveLabel">Active Reading:</span>
+        <span id="stActiveReadingStatus" style="font-weight:600">Auto (Windows OCR + RapidOCR) · Auto-detect</span>
+      </div>
+      <div id="stPersianWarningLine" style="margin-top:6px;padding:8px 12px;background:rgba(255, 180, 74, 0.12);border:1px solid rgba(255, 180, 74, 0.35);border-radius:6px;font-size:12px;color:#FFB44A;display:none;line-height:1.5">
+        <span id="stPersianWarningText">⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.</span>
+      </div>
+      <div class="row" style="margin-top:10px;align-items:center;gap:10px">
+        <button class="btn" id="btnTestScreenTrans" type="button" style="padding:6px 14px;gap:6px">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
+          <span data-t="testScreenTransBtn">Capture Screen Region Now</span>
+        </button>
+        <span class="hint" id="stOcrStatusHint" style="font-size:12px"></span>
+      </div>
     </div>
   </div>
   <div style="margin-top:20px;text-align:right"><button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button></div>
@@ -1345,6 +1367,7 @@ const store={
 /* ---------- i18n ---------- */
 const I18N={en:{
  engines:'Engines & keys',eyebrow:'Text · Subtitles · Documents · Voice',h1a:'One translator,',h1b:'every engine.',
+ tabEnginesKeys:'Translation engines & keys',tabVoices:'Voices (reading aloud)',tabVoiceModels:'Voice models (speech recognition)',tabTrModels:'Translation models (offline)',tabOcr:'Screen reading (OCR)',
  tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement. Offline voices: Piper voices from rhasspy/piper-voices (MIT) run with ONNX Runtime Web (MIT) and the eSpeak NG phonemizer (GPL-3.0-or-later; its files are in vendor/piper). The voices Amir, Ganji, LJ Speech, Cori and Kristin are CC0 / public domain; the voice Alba (University of Edinburgh) is CC BY 4.0. Offline translation and speech models come from Hugging Face; each model keeps its own licence (the NLLB-200 models are CC BY-NC 4.0).',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
   engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',fromMemory:'from memory',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
@@ -1531,6 +1554,7 @@ Object.assign(I18N.en,{
  testScreenTransBtn:'Capture Screen Region Now'
 });
 Object.assign(I18N.fa,{
+ tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',
  mdlGrpListen:'شنیدن · گفتار به متن (Whisper)',mdlGrpTr:'ترجمه',mdlGrpSpeak:'گفتن · متن به گفتار',
  mdlPairs:'مدل‌های کوچک تک‌جفتی: سریع و سبک، ولی فقط برای همان جفت زبانی که نامشان نشان می‌دهد.',mdlPairsPrefer:'اگر برای این جفت زبان مدل کوچک دانلود شده، از آن استفاده کن (سریع‌تر، معمولاً با کیفیت کمتر)',
  mdlSize:'دانلود',mdlMem:'حافظه',mdlGpu:'WebGPU',mdlLangs:'زبان‌ها',mdlGpuNo:'لازم نیست',mdlGpuOpt:'اختیاری، اگر مرورگر داشته باشد سریع‌تر است (توسط توسعه‌دهنده آزمایش نشده)',
@@ -6661,6 +6685,14 @@ $('closeSet').onclick=()=>{saveAllInputs();$('ov').classList.remove('on')};
 $('btnSaveDone').onclick=()=>{saveAllInputs();$('ov').classList.remove('on');toast('Settings saved','ok')};
 $('ov').addEventListener('click',e=>{if(e.target===$('ov')){saveAllInputs();$('ov').classList.remove('on')}});
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){saveAllInputs();$('ov').classList.remove('on')}});
+document.querySelectorAll('.set-tab-btn').forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    document.querySelectorAll('.set-tab-btn').forEach(b=>b.classList.remove('active'));
+    btn.classList.add('active');
+    const sec=$(btn.dataset.sec);
+    if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});
+  });
+});
 
 /* ---------- offline model catalogue (Engines & keys → Offline) ---------- */
 const MC=self.MODEL_CATALOG||{models:[],codes:{}};

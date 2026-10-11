@@ -93,4 +93,31 @@ test.describe('Web app: Engines & keys', () => {
       expect(stored, 'saved silence wait (ms)').toBe(1500);
     });
   });
+
+  test('Engines & keys is organized into 5 navigable sections with all controls preserved', async ({ app }) => {
+    const { page } = app;
+    await openSettings(page);
+
+    // Verify 5 tab buttons exist
+    const tabs = page.locator('.set-tab-btn');
+    expect(await tabs.count()).toBe(5);
+
+    // Verify all 5 section containers exist
+    for (const secId of ['#secEngines', '#secVoices', '#secVoiceModels', '#secTrModels', '#secOcr']) {
+      await expect(page.locator(secId)).toBeAttached();
+    }
+
+    // Verify tab click updates active class
+    await mouseClick(page, page.locator('#setTabBtnVoices'));
+    await expect(page.locator('#setTabBtnVoices')).toHaveClass(/active/);
+
+    await mouseClick(page, page.locator('#setTabBtnOcr'));
+    await expect(page.locator('#setTabBtnOcr')).toHaveClass(/active/);
+
+    // Verify key controls in each section remain fully operational
+    await expect(page.locator('#engList')).toBeVisible();
+    await expect(page.locator('#voiceSel')).toBeVisible();
+    await expect(page.locator('#ov select#vSilenceWait')).toBeVisible();
+    await expect(page.locator('#offTrModelSel')).toBeVisible();
+  });
 });
