@@ -224,4 +224,66 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     await expect(page.locator('#btnLiveToggle')).toHaveClass(/active/);
     await expect(page.locator('#liveBtnLabel')).toHaveText('Live ON');
   });
+
+  test('Overlay renders Persian text right-to-left in original and translated content', async ({ context }) => {
+    const page = await context.newPage();
+    await page.goto('file://' + path.resolve(__dirname, '../../screen-translator/overlay.html'));
+
+    // Inject Persian OCR result
+    await page.evaluate(() => {
+      if (window.__ocrResultCb) {
+        window.__ocrResultCb({
+          ok: true,
+          text: 'این یک متن نمونه فارسی برای آزمایش است',
+          language: 'fa',
+          isRtl: true
+        });
+      }
+    });
+
+    const orig = page.locator('#originalContent');
+    await expect(orig).toBeVisible();
+    await expect(orig).toHaveAttribute('dir', 'rtl');
+
+    // Deliver Persian translation
+    await page.evaluate(() => {
+      if (window.__transResultCb) {
+        window.__transResultCb({
+          ok: true,
+          translation: 'سلام به همه دوستان',
+          detectedSrc: 'fa'
+        });
+      }
+    });
+
+    const trans = page.locator('#transContent');
+    await expect(trans).toBeVisible();
+    await expect(trans).toHaveAttribute('dir', 'rtl');
+  });
+
+  test('Offline model catalogue includes RapidOCR Arabic/Persian model with size shown', async ({ app }) => {
+    const { page } = app;
+    const model = await page.evaluate(() => {
+      return (window.MODEL_CATALOG?.models || []).find(m => m.id === 'ocr-rapid-arabic');
+    });
+    expect(model).toBeDefined();
+    expect(model.job).toBe('ocr');
+    expect(model.bytes).toBeGreaterThan(10 * 1024 * 1024);
+    expect(model.name).toContain('RapidOCR Arabic & Persian');
+  });
+
+  test('OCR settings display active reading engine and language status line', async ({ app }) => {
+    const { page } = app;
+    await page.locator('#btnSettings').click();
+    await expect(page.locator('#stActiveReadingStatus')).toBeVisible();
+    const txt = await page.locator('#stActiveReadingStatus').textContent();
+    expect(txt.length).toBeGreaterThan(0);
+
+    // Change to Windows and Persian
+    await page.locator('#stOcrEngine').selectOption('windows');
+    await page.locator('#stOcrLang').selectOption('fa');
+    await expect(page.locator('#stActiveReadingStatus')).toContainText('Windows Media OCR · Persian (fa)');
+    await expect(page.locator('#stPersianWarningLine')).toBeVisible();
+    await expect(page.locator('#stPersianWarningText')).toContainText('This engine cannot read Persian');
+  });
 });

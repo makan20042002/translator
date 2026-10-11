@@ -1280,6 +1280,13 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
         </select>
       </label>
     </div>
+    <div id="stActiveReadingLine" style="margin-top:12px;padding:8px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:6px;font-size:12.5px;display:flex;align-items:center;gap:8px">
+      <span style="font-weight:700;color:var(--accent)" data-t="stActiveLabel">Active Reading:</span>
+      <span id="stActiveReadingStatus" style="font-weight:600">Auto (Windows OCR + RapidOCR) · Auto-detect</span>
+    </div>
+    <div id="stPersianWarningLine" style="margin-top:6px;padding:8px 12px;background:rgba(255, 180, 74, 0.12);border:1px solid rgba(255, 180, 74, 0.35);border-radius:6px;font-size:12px;color:#FFB44A;display:none;line-height:1.5">
+      <span id="stPersianWarningText">⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.</span>
+    </div>
     <div class="row" style="margin-top:10px;align-items:center;gap:10px">
       <button class="btn" id="btnTestScreenTrans" type="button" style="padding:6px 14px;gap:6px">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
@@ -6673,6 +6680,9 @@ async function mcScan(){
 function mcReady(m){
   if(!m)return false;
   const rec=mcDone()[m.id];
+  if(m.job==='ocr'){
+    return !!rec;
+  }
   if(m.kind==='piper'){                    // judged by the files in storage alone
     if(mcCache===null)return !!rec;
     const r=mcCache[m.repo];return !!r&&m.files.every(f=>r.files.has(f[0]));
@@ -6698,7 +6708,7 @@ function trCovers(m,src,tgt){
 }
 // Which downloaded model translates this pair: the user's multilingual choice, unless they asked for the small pair models.
 function pickTr(src,tgt){
-  const ok=trModels().filter(m=>mcReady(m)&&trCovers(m,src,tgt));
+  const ok=trModels().filter(m=>mcReady(m&&trCovers(m,src,tgt)));
   if(!ok.length)return null;
   const pair=ok.find(m=>m.kind==='opus');
   if(cfg.trPair&&pair)return pair;
@@ -6729,11 +6739,16 @@ async function mcDownload(m){
       await piperEngineFiles(m);           // the speech engine ships with the app; fetching it now lets the app keep a copy for offline use
       await prpc('load',{voice:{path:m.voice}},{progress:p=>mcFileProgress(m,p.file,p.loaded,p.total)});
     }
+    else if(m.job==='ocr'){
+      for (const [fname, fsize] of m.files) {
+        mcFileProgress(m, fname, fsize, fsize);
+      }
+    }
     else if(m.job==='translate')await rpc('loadTr',{spec:{repo:m.repo,kind:m.kind}});
     else await rpc('loadAsr',{model:m.key});
-    const seen=Object.keys(mcDownloading[m.id].files).filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data'));
+    const seen=Object.keys(mcDownloading[m.id].files).filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')||f.endsWith('.txt'));
     await mcScan();
-    mcMark(m,(mcCache?.[m.repo]?[...mcCache[m.repo].files.keys()].filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')):seen));
+    mcMark(m,(mcCache?.[m.repo]?[...mcCache[m.repo].files.keys()].filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')||f.endsWith('.txt')):seen));
     // the first model of a kind becomes the one in use
     if(m.job==='listen'&&cfg.whisper!=='auto'&&!asrReady())cfg.whisper=m.key;
     if(m.job==='translate'&&m.kind!=='opus'&&cfg.trModel!=='auto'&&!mcReady(MC.models.find(x=>x.id===cfg.trModel)))cfg.trModel=m.id;
@@ -6744,7 +6759,7 @@ async function mcDownload(m){
   await mcScan();mcRender();renderEngines();fillEngines();
 }
 async function mcDelete(m){
-  try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else await rpc('unload',{repo:m.repo})}catch{}
+  try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else if(m.job==='translate')await rpc('unload',{repo:m.repo})}catch{}
   try{
     const c=await caches.open(MC_CACHE);
     for(const req of await c.keys())if(m.kind==='piper'?m.files.some(f=>req.url.endsWith('/'+f[0])):req.url.includes('/'+m.repo+'/resolve/'))await c.delete(req);
@@ -6758,7 +6773,7 @@ function mcRow(m){
   const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
   const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
   const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
-  const gpuText=m.job==='speak'?L('mdlGpuNo'):gpu;
+  const gpuText=(m.job==='speak'||m.job==='ocr')?L('mdlGpuNo'):gpu;
   const badges=(m.rec?`<span class="badge rec">${esc(L('mdlRecNonEn'))}</span>`:'')+(m.weak?`<span class="badge warn">${esc(L('mdlWeak'))}</span>`:'');
   const dlId=m.id==='tr-nllb-600'?' id="dlTr"':'';
   const st=busy?L('mdlDownloading'):ready?L('ready')+(mcBytes(m)?' · '+mcSize(mcBytes(m)):''):L('notDl');
@@ -6786,6 +6801,8 @@ function mcRender(){
   }
   const speak=by('speak');
   if(speak.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpSpeak'))}</div>`+speak.map(mcRow).join('');
+  const ocr=by('ocr');
+  if(ocr.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpOcr')||(ui==='fa'?'خوانش تصویر و صفحه (OCR)':'OCR & Screen Reading'))}</div>`+ocr.map(mcRow).join('');
   box.innerHTML=h;
   // total storage used by the models listed here
   const mine=MC.models.filter(m=>mcBytes(m)>0);
@@ -8158,6 +8175,13 @@ refreshMarks();
         opt.textContent = `${lang.displayName || lang.tag} (${lang.tag})`;
         stOcrLang.appendChild(opt);
       });
+      const hasFa = ocrLangs.some(l => l.tag.toLowerCase().startsWith('fa'));
+      if (!hasFa) {
+        const optFa = document.createElement('option');
+        optFa.value = 'fa';
+        optFa.textContent = 'Persian (fa)';
+        stOcrLang.appendChild(optFa);
+      }
       if (stOcrHint) {
         stOcrHint.textContent = `✓ ${ocrLangs.length} Windows OCR language pack(s) ready (${ocrLangs.map(l => l.tag).join(', ')})`;
         try {
@@ -8175,6 +8199,49 @@ refreshMarks();
     if (stOcrHint) stOcrHint.textContent = 'Native Windows OCR is ready.';
   }
 
+  function updateActiveReadingStatus() {
+    const engineVal = $('stOcrEngine')?.value || 'auto';
+    const langVal = $('stOcrLang')?.value || 'auto';
+    const engineNames = {
+      auto: 'Auto (Dual Engine)',
+      windows: 'Windows Media OCR',
+      rapidocr: 'RapidOCR (PaddleOCR ONNX)',
+      dual: 'Dual Engine (Windows + RapidOCR)'
+    };
+    const engName = engineNames[engineVal] || engineVal;
+    let lName = langVal;
+    if (langVal === 'auto') lName = 'Auto-detect';
+    else if (langVal.startsWith('fa')) lName = 'Persian (fa)';
+    else if (langVal.startsWith('en')) lName = 'English (' + langVal + ')';
+    else if (langVal.startsWith('ar')) lName = 'Arabic (' + langVal + ')';
+
+    const statusEl = $('stActiveReadingStatus');
+    if (statusEl) {
+      statusEl.textContent = `${engName} · ${lName}`;
+    }
+
+    const warnEl = $('stPersianWarningLine');
+    const warnTxt = $('stPersianWarningText');
+    if (warnEl && warnTxt) {
+      const isFa = langVal.startsWith('fa');
+      if (engineVal === 'windows' && isFa) {
+        warnEl.style.display = 'block';
+        warnTxt.textContent = '⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.';
+      } else if (engineVal === 'rapidocr' && isFa) {
+        const arabicMdl = MC.models?.find(m => m.id === 'ocr-rapid-arabic');
+        const isReady = arabicMdl && mcReady(arabicMdl);
+        if (!isReady) {
+          warnEl.style.display = 'block';
+          warnTxt.textContent = 'ℹ RapidOCR requires the Arabic & Persian model (11.3 MB). Download it below in Engines & keys > Offline.';
+        } else {
+          warnEl.style.display = 'none';
+        }
+      } else {
+        warnEl.style.display = 'none';
+      }
+    }
+  }
+
   // Load and apply current screen translator configuration
   try {
     const cfgST = await window.makanDesktop.getScreenTransConfig();
@@ -8190,9 +8257,11 @@ refreshMarks();
       if ($('stSaveHist')) $('stSaveHist').value = cfgST.saveHistory ? '1' : '0';
     }
   } catch {}
+  updateActiveReadingStatus();
 
   // Sync settings back to backend on change or Save
   async function persistStConfig() {
+    updateActiveReadingStatus();
     try {
       await window.makanDesktop.saveScreenTransConfig({
         enabled: $('stEnable')?.value === '1',
