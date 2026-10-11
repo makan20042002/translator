@@ -509,41 +509,17 @@ function renderTextStatusStrip(){
 
   const items=[];
 
-  // 1. Translation model readiness
+  // 1. Offline translation model readiness (NLLB or active catalogue translation model)
   const trOk=typeof trAnyReady==='function'&&trAnyReady();
-  const trM=(typeof trModels==='function'&&trModels().find(mcReady))||null;
-  const trName=trM?.name||'NLLB';
+  const trM=(typeof trModels==='function'&&typeof mcReady==='function'&&trModels().find(mcReady))||null;
+  const rawName=trM?.name||'NLLB';
+  const trName=typeof mcText==='function'?mcText(rawName):(typeof rawName==='object'?(rawName[ui]||rawName.en||''):rawName);
   items.push({
     ready:trOk,
     html:`<span class="status-dot ${trOk?'ok':'warn'}" aria-hidden="true"></span><span><bdi>${esc(trName)}</bdi> ${esc(trOk?L('statusReady'):L('statusNotDownloaded'))}</span>`
   });
 
-  // 2. Speech model readiness
-  const asrOk=typeof asrReady==='function'&&asrReady();
-  const asrM=(typeof asrModel==='function'&&asrModel())||null;
-  const asrName=asrM?.name||'Whisper';
-  items.push({
-    ready:asrOk,
-    html:`<span class="status-dot ${asrOk?'ok':'warn'}" aria-hidden="true"></span><span><bdi>${esc(asrName)}</bdi> ${esc(asrOk?L('statusReady'):L('statusNotDownloaded'))}</span>`
-  });
-
-  // 3. Ollama (only if known from engine check)
-  if(typeof engineConnStatus!=='undefined'&&engineConnStatus['ollama']){
-    const oSt=engineConnStatus['ollama'];
-    if(oSt.code==='works'){
-      items.push({
-        ready:true,
-        html:`<span class="status-dot ok" aria-hidden="true"></span><span><bdi>Ollama</bdi> ${esc(L('statusReady'))}</span>`
-      });
-    } else if(oSt.code==='localDown'){
-      items.push({
-        ready:false,
-        html:`<span class="status-dot warn" aria-hidden="true"></span><span><bdi>Ollama</bdi> ${esc(L('statusOllamaDown'))}</span>`
-      });
-    }
-  }
-
-  // Right-aligned status note
+  // Right-aligned status note: reflects current operation mode (offline mode vs online engines available)
   const infoText=isOff()?L('offMode'):L('statusOfflineAvail');
   const infoIcon=`<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="trans-status-info-icon" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
 
