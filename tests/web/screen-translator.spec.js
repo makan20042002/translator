@@ -326,8 +326,8 @@ test.describe('Screen Translator Desktop Web Integration', () => {
 
   test('OCR model dropdown lists OCR models with download status and saves selection', async ({ app }) => {
     const { page, context } = app;
-    let savedCfg = null;
     await context.addInitScript(() => {
+      window.__savedConfigs = [];
       window.makanDesktop = {
         isDesktop: true,
         getOcrLanguages: () => Promise.resolve([
@@ -344,8 +344,8 @@ test.describe('Screen Translator Desktop Web Integration', () => {
           saveHistory: true
         }),
         saveScreenTransConfig: (cfg) => {
-          savedCfg = cfg;
-          return Promise.resolve({ ok: true });
+          window.__savedConfigs.push(cfg);
+          return Promise.resolve({ ok: true, config: cfg });
         }
       };
     });
@@ -365,6 +365,7 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     // Change model and verify active reading status contains chosen model name
     await modelSel.selectOption('ocr-rapid-arabic');
     await expect(page.locator('#stActiveReadingStatus')).toContainText('RapidOCR Arabic & Persian');
+    const savedCfg = await page.evaluate(() => window.__savedConfigs[window.__savedConfigs.length - 1]);
     expect(savedCfg?.ocrModel).toBe('ocr-rapid-arabic');
   });
 });
