@@ -26,7 +26,9 @@ Neither has a build step for the app code itself. The only "build" is
 
 | File | What it does |
 | --- | --- |
-| `index.html` | The whole web app: page layout, styles (lines 14 to 395) and about 3,500 lines of JavaScript (lines 919 to 4429). Every tab, the settings window, all translation engines, voice input and output, and document handling live here. |
+| `index.html` | The main HTML page for the web app: page layout and markup, loading modular styles from `css/` and scripts from `js/`. |
+| `css/` | Modular stylesheets: `base.css` (tokens, reset, nav), `layout.css` (panes, cards, grids), `components.css` (modal, settings, toasts), `tabs.css` (document and voice tabs). |
+| `js/` | Modular application logic (classic scripts): `store.js`, `i18n.js`, `translate.js`, `speech.js`, `text.js`, `subtitles.js`, `documents.js`, `voice.js`, `compare.js`, `settings.js`, `models.js`, `voice-picker.js`, `init.js`, `dictionary.js`, `idioms.js`, `screen.js`. |
 | `extension/engine.js` | Loaded by `index.html` (line 918) **and** by the extension. See section 5 for what the web app actually uses from it. |
 | `ai-worker.js` | A background worker for the "offline" features. It downloads the NLLB translation model and the Whisper speech model from Hugging Face (through the `cdn.jsdelivr.net` library `@huggingface/transformers`) and runs them in the browser. |
 | `models-catalog.js` | The list shown in Engines & keys → Offline (name, files, sizes, memory, speed, languages, one-line use for every offline model and voice). **Generated** by `tools/model-check/build-catalog.mjs` from Hugging Face API sizes and saved test runs; do not edit by hand. See `docs/MODELS.md`. |

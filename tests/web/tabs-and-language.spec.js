@@ -34,10 +34,17 @@ test.describe('Web app: interface language', () => {
   test('every interface text the page uses exists in both English and Persian', async ({ app }) => {
     const { page } = app;
     const missing = await page.evaluate(async () => {
-      const src = await (await fetch('index.html')).text();
+      const htmlSrc = await (await fetch('index.html')).text();
+      const scriptUrls = Array.from(document.querySelectorAll('script[src]'))
+        .map(s => s.getAttribute('src'))
+        .filter(s => s && s.startsWith('js/'));
+      let allSrc = htmlSrc;
+      for (const s of scriptUrls) {
+        allSrc += '\n' + await (await fetch(s)).text();
+      }
       const used = new Set();
-      for (const m of src.matchAll(/data-tp?="([A-Za-z0-9_]+)"/g)) used.add(m[1]);
-      for (const m of src.matchAll(/\bL\('([A-Za-z0-9_]+)'\)/g)) used.add(m[1]);
+      for (const m of allSrc.matchAll(/data-tp?="([A-Za-z0-9_]+)"/g)) used.add(m[1]);
+      for (const m of allSrc.matchAll(/\bL\('([A-Za-z0-9_]+)'\)/g)) used.add(m[1]);
       // I18N is the app's own table of interface texts.
       return { en: [...used].filter(k => !(k in I18N.en)), fa: [...used].filter(k => !(k in I18N.fa)) };
     });

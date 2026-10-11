@@ -54,6 +54,8 @@ Upload these, keeping the same names and folders:
 
 ```
 index.html
+css/                     ← all CSS files (base.css, layout.css, components.css, tabs.css)
+js/                      ← all JavaScript files (store.js, i18n.js, translate.js, ...)
 ai-worker.js
 asr-guard.js
 models-catalog.js
