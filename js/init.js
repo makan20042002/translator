@@ -119,6 +119,8 @@ function boot(){
       history.replaceState(null, '', location.pathname || '/');
     } catch (e) {}
   }
+  if (typeof updateListenButtonState === 'function') updateListenButtonState();
+  if (typeof renderTextStatusStrip === 'function') renderTextStatusStrip();
   $('tIn').dispatchEvent(new Event('input'));
 }
 boot();

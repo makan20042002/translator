@@ -562,6 +562,5 @@ updateTextCounts();
 updateCardLangNames();
 updateTargetCardDirection();
 updateStatusChip();
-updateListenButtonState();
 renderRecentTranslations();
-renderTextStatusStrip();
+

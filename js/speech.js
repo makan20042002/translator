@@ -1005,4 +1005,5 @@ function voiceLabels(){
   if($('vNo')) $('vNo').hidden=sttMode()!=='browser'||!!SR;
   if(typeof updateVoiceLangPills==='function') updateVoiceLangPills();
   updateVoiceAutoEngineDisplay();
+  if(typeof updateListenButtonState==='function') updateListenButtonState();
 }
