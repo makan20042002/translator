@@ -34,6 +34,48 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#tmToggle')).toBeChecked();
     });
 
+    test('memory switch responds to real click in bar and Settings, and toggles via keyboard with Space', async ({ app }) => {
+      const { page, errors } = app;
+
+      // Assert zero page errors or uncaught exceptions on load (fails if any "X is not defined" occurs)
+      expect(errors, 'zero page errors or uncaught exceptions on load').toEqual([]);
+
+      const barSwitchLbl = page.locator('.switch-lbl[for="tmToggle"]');
+      const barToggle = page.locator('#tmToggle');
+      await expect(barSwitchLbl).toBeVisible();
+      await expect(barToggle).toBeChecked();
+
+      // Real mouse click on the visible bar switch toggles it off
+      await mouseClick(page, barSwitchLbl);
+      await expect(barToggle).not.toBeChecked();
+
+      // Open Settings and verify #setTmToggle is synchronized
+      await mouseClick(page, page.locator('#openSet'));
+      await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+      const setToggle = page.locator('#setTmToggle');
+      await expect(setToggle).not.toBeChecked();
+
+      // Click the visible Settings toggle label to re-enable
+      const setLbl = page.locator('label.chk:has(#setTmToggle)');
+      await expect(setLbl).toBeVisible();
+      await mouseClick(page, setLbl);
+      await expect(setToggle).toBeChecked();
+
+      // Close Settings and verify bar switch is synced back to checked
+      await mouseClick(page, page.locator('#closeSet'));
+      await expect(page.locator('#ov')).not.toHaveClass(/\bon\b/);
+      await expect(barToggle).toBeChecked();
+
+      // Keyboard toggling on #tmToggle using Space key
+      await barToggle.focus();
+      await page.keyboard.press('Space');
+      await expect(barToggle).not.toBeChecked();
+
+      // Toggle back on with Space key
+      await page.keyboard.press('Space');
+      await expect(barToggle).toBeChecked();
+    });
+
     test('bar does not cause horizontal overflow at 360, 700, and 1280px in English and Persian', async ({ app }) => {
       const { page } = app;
       const widths = [360, 700, 1280];
