@@ -60,4 +60,53 @@ test.describe('Web app: Theme & Responsive Layout', () => {
       });
     }
   });
+
+  test('narrow widths at 360px and 700px have no horizontal scroll and sidebar does not cover main content in English and Persian', async ({ app }) => {
+    const { page } = app;
+
+    for (const width of [700, 360]) {
+      await page.setViewportSize({ width, height: 800 });
+      await page.waitForTimeout(100);
+
+      for (const lang of ['en', 'fa']) {
+        if (lang === 'fa') {
+          await page.evaluate(() => {
+            ui = 'fa';
+            document.documentElement.dir = 'rtl';
+            document.documentElement.lang = 'fa';
+            applyI18n();
+          });
+        } else {
+          await page.evaluate(() => {
+            ui = 'en';
+            document.documentElement.dir = 'ltr';
+            document.documentElement.lang = 'en';
+            applyI18n();
+          });
+        }
+        await page.waitForTimeout(100);
+
+        // Verify zero horizontal scroll
+        const scrollWidth = await page.evaluate(() => document.documentElement.scrollWidth);
+        const clientWidth = await page.evaluate(() => document.documentElement.clientWidth);
+        expect(scrollWidth, `no horizontal scroll at ${width}px in ${lang}`).toBeLessThanOrEqual(clientWidth + 1);
+
+        // Verify sidebar does not cover main content
+        const sidebar = page.locator('#sidebar');
+        const main = page.locator('#mainViewport');
+        const sidebarBox = await sidebar.boundingBox();
+        const mainBox = await main.boundingBox();
+
+        expect(mainBox, `mainViewport exists at ${width}px in ${lang}`).toBeTruthy();
+
+        if (sidebarBox) {
+          const overlapsX = (sidebarBox.x < mainBox.x + mainBox.width) && (sidebarBox.x + sidebarBox.width > mainBox.x);
+          const overlapsY = (sidebarBox.y < mainBox.y + mainBox.height) && (sidebarBox.y + sidebarBox.height > mainBox.y);
+          const overlaps = overlapsX && overlapsY;
+          expect(overlaps, `sidebar does not cover main content at ${width}px in ${lang}`).toBe(false);
+        }
+      }
+    }
+  });
 });
+
