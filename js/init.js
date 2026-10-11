@@ -55,6 +55,7 @@ function updateStatusPill(){
   if(dot)dot.classList.toggle('ready',isReady);
   const txt=$('sidebarStatusText')||pill.querySelector('.status-text')||pill;
   if(txt)txt.textContent=isReady?(L('statusOfflineReady')||'Offline ready'):(L('statusOnlineOnly')||'Online only');
+  if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();
 }
 async function updateStorageCard(){
   const card=$('sidebarStorageCard');

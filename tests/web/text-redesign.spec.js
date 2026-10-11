@@ -1,5 +1,6 @@
 'use strict';
 const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { fakeDownloaded } = require('../support/model-helpers');
 
 test.describe('Web app: Text tab redesign', () => {
   test.describe('Item 1: Page header and language bar', () => {
@@ -259,9 +260,18 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(trItem.locator('bdi')).toContainText('NLLB');
 
       // Now simulate NLLB downloaded (mcReady becomes true)
-      await page.evaluate(() => {
-        localStorage.setItem('mkt_nllb', JSON.stringify(true));
-        renderTextStatusStrip();
+      const cat = await page.evaluate(() => MODEL_CATALOG);
+      const nllb = cat.models.find(x => x.id === 'tr-nllb-600');
+      await fakeDownloaded(page, nllb.repo, nllb.files);
+      await page.evaluate(async () => {
+        store.set('nllb', true);
+        const d = store.get('mdl', {});
+        d['tr-nllb-600'] = { at: Date.now(), files: [] };
+        store.set('mdl', d);
+        await mcScan();
+        if (typeof updateStatusPill === 'function') {
+          updateStatusPill();
+        }
       });
 
       // Now translation model shows ready (green dot)
