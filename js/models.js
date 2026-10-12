@@ -82,9 +82,30 @@ function mcUnmark(m){
   if(m.id==='tr-nllb-600')store.set('nllb',false);
   if(m.kind==='whisper'){for(const k of ['whisper_wasm','whisper_webgpu','whisper'])if(store.get(k,'')===m.key)store.set(k,'')}
 }
+const mcFailed={};
+function mcLicence(m){
+  if(m.kind==='nllb')return 'CC BY-NC 4.0';
+  if(m.kind==='whisper')return 'MIT / Apache 2.0';
+  if(m.kind==='piper'){
+    const licMap={
+      'fa_IR-amir-medium':'CC0 / Public domain',
+      'fa_IR-ganji-medium':'CC0 / Public domain',
+      'en_GB-alba-medium':'CC BY 4.0 (Univ of Edinburgh)',
+      'en_US-cori-medium':'CC0 / Public domain',
+      'en_US-kristin-medium':'CC0 / Public domain',
+      'en_US-ljspeech-medium':'CC0 / Public domain'
+    };
+    return licMap[m.id]||'CC0 / Public domain';
+  }
+  if(m.kind==='opus')return 'CC BY 4.0 (OPUS)';
+  if(m.kind==='rapidocr')return 'Apache 2.0 (PaddleOCR)';
+  return 'Open Source';
+}
 async function mcDownload(m){
   if(mcDownloading[m.id])return;
-  mcDownloading[m.id]={files:{}};
+  delete mcFailed[m.id];
+  const ab=new AbortController();
+  mcDownloading[m.id]={files:{},abort:ab};
   try{await navigator.storage?.persist?.()}catch{}
   await checkWebGpu();mcRender();
   try{
@@ -98,9 +119,10 @@ async function mcDownload(m){
       let cache=null;
       try{cache=await caches.open(MC_CACHE)}catch{}
       for(const [fname,fsize] of m.files){
+        if(ab.signal.aborted)throw new DOMException('Aborted','AbortError');
         const fileUrl=base+fname;
         try{
-          const resp=await fetch(fileUrl);
+          const resp=await fetch(fileUrl,{signal:ab.signal});
           if(resp.ok){
             const blob=await resp.blob();
             const buf=await blob.arrayBuffer();
@@ -109,7 +131,9 @@ async function mcDownload(m){
             }
             filesPayload[fname]=Array.from(new Uint8Array(buf));
           }
-        }catch(fetchErr){}
+        }catch(fetchErr){
+          if(fetchErr.name==='AbortError')throw fetchErr;
+        }
         mcFileProgress(m,fname,fsize,fsize);
       }
       if(window.makanDesktop?.saveOcrModelFiles&&Object.keys(filesPayload).length>0){
@@ -125,12 +149,27 @@ async function mcDownload(m){
     if(m.job==='listen'&&cfg.whisper!=='auto'&&!asrReady())cfg.whisper=m.key;
     if(m.job==='translate'&&m.kind!=='opus'&&cfg.trModel!=='auto'&&!mcReady(MC.models.find(x=>x.id===cfg.trModel)))cfg.trModel=m.id;
     saveCfg();
+    delete mcFailed[m.id];
     toast(L('dlDone'),'ok',6000);
-  }catch(e){toast(e.message,'err',9000)}
+  }catch(e){
+    if(e.name==='AbortError'){
+      toast(`${mcText(m.name)}: ${L('dlCancelled')||'Download cancelled'}`,'warn');
+    }else{
+      mcFailed[m.id]=e.message;
+      toast(e.message,'err',9000);
+    }
+  }
   delete mcDownloading[m.id];
   await mcScan();mcRender();renderEngines();fillEngines();
   if(typeof updateStatusPill==='function')updateStatusPill();
   if(typeof updateStorageCard==='function')updateStorageCard();
+}
+function mcCancel(m){
+  if(mcDownloading[m.id]){
+    try{mcDownloading[m.id].abort?.abort()}catch{}
+    delete mcDownloading[m.id];
+    mcRender();
+  }
 }
 async function mcDelete(m){
   try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else if(m.job==='translate')await rpc('unload',{repo:m.repo})}catch{}
@@ -215,7 +254,134 @@ function mcRender(){
   fillTestLangs();
   if(typeof renderUnifiedVoicePicker==='function')renderUnifiedVoicePicker();
   if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
+  renderModelHub();
 }
+let hubActiveCat='all';
+let hubDeleteConfirmId=null;
+let hubDeleteConfirmTimer=null;
+
+function renderModelHub(){
+  const grid=$('modelHubCatalog');
+  if(!grid)return;
+  const models=MC.models||[];
+  const filtered=models.filter(m=>{
+    if(hubActiveCat==='all')return true;
+    if(hubActiveCat==='translate')return m.job==='translate';
+    if(hubActiveCat==='listen')return m.job==='listen';
+    if(hubActiveCat==='speak')return m.job==='speak';
+    if(hubActiveCat==='ocr')return m.job==='ocr';
+    return true;
+  });
+
+  const categoryLabels={
+    translate:L('catTranslate')||'Translation',
+    listen:L('catSpeech')||'Speech',
+    speak:L('catVoices')||'Voice',
+    ocr:L('catOcr')||'OCR'
+  };
+
+  grid.innerHTML=filtered.map(m=>{
+    const ready=mcReady(m);
+    const busy=!!mcDownloading[m.id];
+    const failed=!!mcFailed[m.id];
+    const state=busy?'busy':(ready?'ready':(failed?'failed':'none'));
+    const lic=mcLicence(m);
+    const catLbl=categoryLabels[m.job]||m.job;
+
+    let stateBadge='';
+    if(busy)stateBadge=`<span class="hub-pill busy">⏳ ${esc(L('mdlDownloading'))}</span>`;
+    else if(ready)stateBadge=`<span class="hub-pill ready">✓ ${esc(L('statusReady')||'Installed')}</span>`;
+    else if(failed)stateBadge=`<span class="hub-pill failed" title="${esc(mcFailed[m.id])}">⚠ ${esc(L('failed')||'Failed')}</span>`;
+    else stateBadge=`<span class="hub-pill none">${esc(L('statusNotDownloaded')||'Not downloaded')}</span>`;
+
+    const dlSize=mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes);
+    const realDisk=(ready&&mcBytes(m)>0)?` · Disk: ${mcSize(mcBytes(m))}`:'';
+    const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
+    const isConfirming=(hubDeleteConfirmId===m.id);
+
+    return `<div class="hub-model-card" data-hub-mdl="${esc(m.id)}" data-state="${state}">
+      <div class="hub-model-head">
+        <div class="hub-model-title-wrap">
+          <strong class="hub-model-name"><bdi>${esc(mcText(m.name))}</bdi></strong>
+          <div class="hub-model-badges">
+            ${stateBadge}
+            <span class="hub-pill cat">${esc(catLbl)}</span>
+            <span class="hub-pill lic" title="Licence">${esc(lic)}</span>
+            ${m.rec?`<span class="hub-pill rec">${esc(L('mdlRecNonEn'))}</span>`:''}
+            ${m.weak?`<span class="hub-pill warn">${esc(L('mdlWeak'))}</span>`:''}
+          </div>
+        </div>
+      </div>
+      <div class="hub-model-meta">
+        <span>Download: ${esc(dlSize)}${realDisk}</span> · 
+        <span>RAM ≈ ${esc(mcSize(m.memMB*1048576))}</span> · 
+        <span>Langs: ${esc(langs)}</span>
+      </div>
+      <p class="hub-model-desc">${esc(mcText(m.good))}</p>
+      <div class="prog hub-prog" id="hubProg-${esc(m.id)}" ${busy?'':'hidden'}><i id="hubBar-${esc(m.id)}"></i></div>
+      <div class="hub-prog-meta" id="hubSt-${esc(m.id)}" ${busy?'':'hidden'}>${esc(L('mdlDownloading'))}</div>
+      <div class="hub-model-actions">
+        ${(!ready&&!busy)?`<button class="btn cta hub-act-btn" data-hub-act="dl" data-id="${esc(m.id)}" type="button"><span aria-hidden="true">⬇</span> ${esc(L('download'))}</button>`:''}
+        ${busy?`<button class="btn danger hub-act-btn" data-hub-act="cancel" data-id="${esc(m.id)}" type="button">${esc(L('cancel')||'Cancel')}</button>`:''}
+        ${(ready&&!busy)?`<button class="btn ghost danger hub-act-btn hub-btn-rm ${isConfirming?'confirming':''}" data-hub-act="rm" data-id="${esc(m.id)}" type="button">${isConfirming?esc(L('confirmDelete')||'Click again to confirm'):esc(L('mdlDelete'))}</button>`:''}
+      </div>
+    </div>`;
+  }).join('');
+
+  const mine=(MC.models||[]).filter(m=>mcBytes(m)>0);
+  const total=mine.reduce((a,m)=>a+mcBytes(m),0);
+  const storageEl=$('hubModelsStorageUsed');
+  if(storageEl){
+    storageEl.textContent=`${mcSize(total)} (${mine.length} models)`;
+  }
+  navigator.storage?.estimate?.().then(e=>{
+    if(e&&e.usage&&$('hubSiteStorageUsed')){
+      $('hubSiteStorageUsed').textContent=mcSize(e.usage)+(e.quota?' / '+mcSize(e.quota):'');
+    }
+  }).catch(()=>{});
+}
+
+$('hubFilterRow')?.addEventListener('click',e=>{
+  const btn=e.target.closest('.hub-filter-btn');
+  if(!btn)return;
+  document.querySelectorAll('#hubFilterRow .hub-filter-btn').forEach(b=>{
+    b.classList.remove('active');
+    b.setAttribute('aria-selected','false');
+  });
+  btn.classList.add('active');
+  btn.setAttribute('aria-selected','true');
+  hubActiveCat=btn.dataset.cat||'all';
+  renderModelHub();
+});
+
+$('modelHubCatalog')?.addEventListener('click',async e=>{
+  const btn=e.target.closest('[data-hub-act]');
+  if(!btn)return;
+  const id=btn.dataset.id;
+  const m=(MC.models||[]).find(x=>x.id===id);
+  if(!m)return;
+  const act=btn.dataset.hubAct;
+  if(act==='dl'){
+    mcDownload(m);
+  }else if(act==='cancel'){
+    mcCancel(m);
+  }else if(act==='rm'){
+    if(hubDeleteConfirmId!==m.id){
+      hubDeleteConfirmId=m.id;
+      btn.textContent=L('confirmDelete')||'Click again to confirm';
+      btn.classList.add('confirming');
+      clearTimeout(hubDeleteConfirmTimer);
+      hubDeleteConfirmTimer=setTimeout(()=>{
+        hubDeleteConfirmId=null;
+        renderModelHub();
+      },4000);
+      return;
+    }
+    clearTimeout(hubDeleteConfirmTimer);
+    hubDeleteConfirmId=null;
+    await mcDelete(m);
+  }
+});
 $('mdlCatalog').addEventListener('click',e=>{
   const b=e.target.closest('[data-act]');if(!b)return;
   const m=MC.models.find(x=>x.id===b.closest('[data-mdl]')?.dataset.mdl);if(!m)return;

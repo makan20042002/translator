@@ -383,6 +383,9 @@ function mcFileProgress(m,file,loaded,total){
   const bar=$('mdlBar-'+m.id),st=$('mdlSt-'+m.id),box=$('mdlProg-'+m.id);
   if(box)box.hidden=false;if(bar)bar.style.width=(a/b*100)+'%';
   if(st)st.textContent=`${L('mdlDownloading')} ${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)} MB`;
+  const hubBar=$('hubBar-'+m.id),hubSt=$('hubSt-'+m.id),hubProg=$('hubProg-'+m.id);
+  if(hubProg)hubProg.hidden=false;if(hubBar)hubBar.style.width=(a/b*100)+'%';
+  if(hubSt)hubSt.textContent=`${L('mdlDownloading')} ${(a/1048576).toFixed(0)} / ${(b/1048576).toFixed(0)} MB (${Math.round(a/b*100)}%)`;
 }
 // The name shown for an engine; the offline engine also says which downloaded model did the work.
 let offlineUsed='';

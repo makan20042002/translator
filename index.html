@@ -1192,19 +1192,51 @@
 
   <!-- MODEL HUB -->
   <section class="tab" id="tab-models">
-    <div class="card" style="padding:28px 24px">
-      <div class="row" style="margin-bottom:12px;align-items:center;gap:14px">
-        <div style="width:44px;height:44px;border-radius:12px;background:rgba(8,168,255,0.12);display:flex;align-items:center;justify-content:center;color:var(--accent);flex-shrink:0">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5v8Z"/><path d="m3.27 6.96 8.73 4.88 8.73-4.88"/><path d="M12 22.08V12"/></svg>
+    <div class="models-hub-card">
+      <!-- Header -->
+      <div class="models-hub-header">
+        <div class="models-hub-title-row">
+          <div class="models-hub-icon-wrap" aria-hidden="true">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21 16-9 5-9-5V8l9-5 9 5v8Z"/><path d="m3.27 6.96 8.73 4.88 8.73-4.88"/><path d="M12 22.08V12"/></svg>
+          </div>
+          <div class="models-hub-title-info">
+            <h2 class="models-hub-title" data-t="tabModels">Model Hub</h2>
+            <p class="models-hub-sub" data-t="offNote">Download AI translation, speech and OCR models to work offline.</p>
+          </div>
+          <span class="sp"></span>
+          <button class="btn ghost" id="tabModelsOpenSetBtn" type="button" data-t="openSettingsModels" style="padding:6px 14px;font-size:12.5px">Manage in Settings ↗</button>
         </div>
-        <div>
-          <h2 data-t="tabModels" style="margin:0 0 4px">Model Hub</h2>
-          <p class="hint" data-t="offNote" style="margin:0">Download AI translation, speech and OCR models to work offline.</p>
+
+        <!-- Storage status summary -->
+        <div class="models-hub-storage-bar" id="modelHubStorageBar">
+          <div class="models-hub-storage-item">
+            <span class="storage-lbl" data-t="storageModelsUsed">Offline models:</span>
+            <strong class="storage-val" id="hubModelsStorageUsed">0 MB (0 models)</strong>
+          </div>
+          <span class="storage-sep">·</span>
+          <div class="models-hub-storage-item">
+            <span class="storage-lbl" data-t="storageSiteTotal">Site storage:</span>
+            <strong class="storage-val" id="hubSiteStorageUsed">Measuring…</strong>
+          </div>
+          <span class="sp"></span>
+          <div class="models-hub-privacy-badge">
+            <span aria-hidden="true">🛡</span>
+            <span data-t="storagePrivacyNote">Everything stored locally</span>
+          </div>
         </div>
-        <span class="sp"></span>
-        <button class="btn cta" id="tabModelsOpenSetBtn" type="button" data-t="openSettingsModels">Manage Models</button>
+
+        <!-- Category Filter Pills -->
+        <div class="models-hub-filters" id="hubFilterRow" role="tablist" aria-label="Model categories">
+          <button type="button" class="btn btn-sm hub-filter-btn active" data-cat="all" role="tab" aria-selected="true"><span data-t="catAll">All models</span></button>
+          <button type="button" class="btn btn-sm hub-filter-btn" data-cat="translate" role="tab" aria-selected="false"><span data-t="catTranslate">Translation</span></button>
+          <button type="button" class="btn btn-sm hub-filter-btn" data-cat="listen" role="tab" aria-selected="false"><span data-t="catSpeech">Speech recognition</span></button>
+          <button type="button" class="btn btn-sm hub-filter-btn" data-cat="speak" role="tab" aria-selected="false"><span data-t="catVoices">Voices</span></button>
+          <button type="button" class="btn btn-sm hub-filter-btn" data-cat="ocr" role="tab" aria-selected="false"><span data-t="catOcr">OCR</span></button>
+        </div>
       </div>
-      <p class="hint" data-t="comingNextStep" style="margin:8px 0 0">Coming in the next step</p>
+
+      <!-- Models List Container -->
+      <div class="models-hub-grid" id="modelHubCatalog" role="region" aria-label="Model catalog"></div>
     </div>
   </section>
 </main>
