@@ -172,8 +172,40 @@ function updateVoiceReadiness() {
     subEl.textContent = allOffline ? L('pageVoiceSubOffline') : L('pageVoiceSub');
   }
 
+  updateVoicePrivacyNote(r);
+
   if (typeof updateVoiceStatusStrip === 'function') {
     updateVoiceStatusStrip(r);
+  }
+}
+
+function updateVoicePrivacyNote(readiness) {
+  const el = $('vPrivacyLine');
+  if (!el) return;
+  const r = readiness || ((typeof window !== 'undefined' && typeof window.getVoiceTabReadiness === 'function')
+    ? window.getVoiceTabReadiness()
+    : getVoiceTabReadiness());
+  const isAsrLocal = r.asr.ok && (r.asr.mode === 'whisper' || r.asr.mode === 'helper');
+  const activeTrans = r.trans?.engine || $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
+  const isTransLocal = r.trans.ok && (
+    isOff() ||
+    activeTrans === 'nllb' ||
+    activeTrans === 'bergamot' ||
+    activeTrans === 'offline' ||
+    activeTrans === 'local' ||
+    (ENG[activeTrans] && (ENG[activeTrans].tier === 'local' || ENG[activeTrans].off || ENG[activeTrans].offline))
+  );
+  const isVoiceLocal = r.voice.ok && (r.voice.kind === 'piper' || r.voice.kind === 'device');
+  const allLocal = isAsrLocal && isTransLocal && isVoiceLocal;
+
+  if (allLocal) {
+    el.hidden = false;
+    el.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg><span>${esc(L('voicePrivateNote'))}</span>`;
+    el.className = 'voice-privacy-note local';
+  } else {
+    el.hidden = true;
+    el.innerHTML = '';
+    el.className = 'voice-privacy-note';
   }
 }
 
@@ -736,6 +768,7 @@ function setupPTT(btn, onSend, viewType) {
         tapActive = false;
         if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
         setVoiceState('error', L('noSR'));
+        if (typeof showSpeakNotice === 'function') showSpeakNotice(L('noSR'));
         toast(L('noSR'), 'err');
         return;
       }
@@ -760,7 +793,12 @@ function setupPTT(btn, onSend, viewType) {
           if (display && partEl) partEl.textContent = display;
         };
         rec.onerror = e => {
-          if (e.error !== 'no-speech' && e.error !== 'aborted') toast('Mic: ' + e.error, 'err');
+          if (e.error !== 'no-speech' && e.error !== 'aborted') {
+            const isBlocked = e.error === 'not-allowed';
+            const msg = isBlocked ? L('micBlocked') : ((L('voiceSpeechError') || 'Speech error') + ': ' + e.error);
+            if (typeof showSpeakNotice === 'function') showSpeakNotice(msg);
+            toast(msg, 'err');
+          }
         };
         rec.onend = () => {
           isRecording = false;
@@ -790,8 +828,10 @@ function setupPTT(btn, onSend, viewType) {
         pttRec = null;
         curPttStop = null;
         if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
-        setVoiceState('error', err.message);
-        toast(err.message, 'err');
+        const errMsg = err.message || L('voiceSpeechError');
+        setVoiceState('error', errMsg);
+        if (typeof showSpeakNotice === 'function') showSpeakNotice(errMsg);
+        toast(errMsg, 'err');
         return;
       }
     }
@@ -855,8 +895,12 @@ function setupPTT(btn, onSend, viewType) {
       if (pttAc) { try { pttAc.close(); } catch {} pttAc = null; }
       resetMeterLevel();
       if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
-      setVoiceState('error', err.message || L('micBlocked'));
-      toast(err.message || L('micBlocked'), 'err');
+      const isNotAllowed = err && (err.name === 'NotAllowedError' || err.name === 'PermissionDeniedError');
+      const isNotFound = err && (err.name === 'NotFoundError' || err.name === 'DevicesNotFoundError');
+      const errMsg = isNotAllowed ? L('micBlocked') : isNotFound ? L('noMicrophone') : (err.message || L('micBlocked'));
+      setVoiceState('error', errMsg);
+      if (typeof showSpeakNotice === 'function') showSpeakNotice(errMsg);
+      toast(errMsg, 'err');
     }
   }
 
@@ -1030,6 +1074,7 @@ async function handleConvPttAudio(audioInput) {
     if (!voiceObj && resolveVoice(to).kind !== 'piper' && !noVoiceTold[to]) {
       noVoiceTold[to] = 1;
       toast(L('noVoiceWarn'), 'warn', 7000);
+      if (typeof showSpeakNotice === 'function') showSpeakNotice(L('voiceNoVoice') || L('noVoiceWarn'));
     }
 
     addBubble($('bubbles'), side, turnResult.transcript, turnResult.translation, from, to, {
@@ -1047,6 +1092,7 @@ async function handleConvPttAudio(audioInput) {
     setVoiceState('ready');
   } catch (err) {
     fail(err);
+    if (typeof showSpeakNotice === 'function') showSpeakNotice(err.message || L('failed'));
     setVoiceState('error', err.message);
   }
 }
@@ -1240,4 +1286,15 @@ $('vAskNew').onclick = () => {
 initVoiceLangs();
 updateVoiceLangPills();
 updateVoiceReadiness();
+
+$('tabs')?.addEventListener('click', e => {
+  const b = e.target.closest('button');
+  if (b?.dataset?.tab === 'voice') updateVoiceReadiness();
+});
+
+if (typeof window !== 'undefined') {
+  window.getVoiceTabReadiness = getVoiceTabReadiness;
+  window.updateVoicePrivacyNote = updateVoicePrivacyNote;
+  window.updateVoiceReadiness = updateVoiceReadiness;
+}
 

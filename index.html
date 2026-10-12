@@ -777,26 +777,33 @@
           <!-- Partial live transcript -->
           <div id="vPartial" class="v-partial" hidden dir="auto" aria-live="polite"></div>
 
-          <!-- Action row: Live button, Push to Talk hero button, Stop speaking button -->
-          <div class="v-action-dock">
-            <div class="v-live-ctrl-wrap" style="display:flex;align-items:center;gap:6px">
-              <button class="v-live-btn" id="vLiveBtn" type="button" aria-pressed="false" title="Continuous hands-free conversation">
-                <span class="v-live-dot"></span>
-                <span class="v-live-txt" id="vLiveTxt" data-t="vLive">Live</span>
+          <!-- Browser engine speaker box for Live mode -->
+          <div class="v-live-browser-box" id="vLiveBrowserBox" hidden>
+            <div class="v-live-browser-notice" id="vLiveBrowserNotice" data-t="vBrowserNoDetect">Browser speech recognition cannot detect language before listening. Choose who is speaking:</div>
+            <div class="v-live-spk-btns">
+              <button class="btn v-live-spk-btn" id="vLiveSpkABtn" type="button">
+                <span class="v-live-spk-icon">🎙️</span>
+                <span id="vLiveSpkAName">Speaker A</span>
+              </button>
+              <button class="btn v-live-spk-btn" id="vLiveSpkBBtn" type="button">
+                <span class="v-live-spk-icon">🎙️</span>
+                <span id="vLiveSpkBName">Speaker B</span>
               </button>
             </div>
+          </div>
 
-            <div class="v-live-browser-box" id="vLiveBrowserBox" hidden>
-              <div class="v-live-browser-notice" id="vLiveBrowserNotice" data-t="vBrowserNoDetect">Browser speech recognition cannot detect language before listening. Choose who is speaking:</div>
-              <div class="v-live-spk-btns">
-                <button class="btn v-live-spk-btn" id="vLiveSpkABtn" type="button">
-                  <span class="v-live-spk-icon">🎙️</span>
-                  <span id="vLiveSpkAName">Speaker A</span>
+          <!-- Action row: Live button, Push to Talk hero button, Stop speaking button -->
+          <div class="v-action-dock">
+            <div class="v-dock-flank v-dock-flank-start">
+              <div class="v-live-ctrl-wrap">
+                <button class="v-live-btn" id="vLiveBtn" type="button" aria-pressed="false" title="Continuous hands-free conversation">
+                  <span class="v-live-dot"></span>
+                  <span class="v-live-txt" id="vLiveTxt" data-t="vLive">Live</span>
                 </button>
-                <button class="btn v-live-spk-btn" id="vLiveSpkBBtn" type="button">
-                  <span class="v-live-spk-icon">🎙️</span>
-                  <span id="vLiveSpkBName">Speaker B</span>
-                </button>
+              </div>
+              <div class="v-space-hint" id="vPttSpaceHint" title="Hold Space to talk">
+                <kbd class="v-kbd">Space</kbd>
+                <span data-t="holdHint">hold</span>
               </div>
             </div>
 
@@ -811,12 +818,15 @@
               <div class="ptt-subtext" id="vPttSub" data-t="pttHold">Hold to speak · Release to send · <kbd>Space</kbd> or tap</div>
             </div>
 
-            <div class="v-stop-ctrl-wrap">
-              <span class="meta voice-used" id="vVoiceUsed" aria-live="polite"></span>
-              <button class="btn danger v-stop-speak-btn" id="vStopSpeak" hidden type="button" title="Stop speaking" aria-label="Stop speaking">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
-                <span data-t="stopSpeak">Stop</span>
-              </button>
+            <div class="v-dock-flank v-dock-flank-end">
+              <div class="v-stop-ctrl-wrap">
+                <span class="meta voice-used" id="vVoiceUsed" aria-live="polite"></span>
+                <button class="btn danger v-stop-speak-btn" id="vStopSpeak" hidden type="button" title="Stop speaking" aria-label="Stop speaking">
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
+                  <span data-t="stopSpeak">Stop</span>
+                </button>
+              </div>
+              <div class="voice-privacy-note" id="vPrivacyLine" role="note" hidden></div>
             </div>
           </div>
         </div>

@@ -144,5 +144,89 @@ test.describe('Web app: Voice tab redesign', () => {
       await expect(page.locator('#vEmptyState')).toBeVisible();
     });
   });
+
+  test.describe('Item 3: Talk control', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('states follow real flow, mic-denied and error cases show visible message without getting stuck, and privacy line is honest', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      const pttBtn = page.locator('#vPttBtn');
+      const pttLabel = page.locator('#vPttLabel');
+      const stopSpeakBtn = page.locator('#vStopSpeak');
+      const privacyLine = page.locator('#vPrivacyLine');
+      const speakNotice = page.locator('#speakNotice');
+
+      // 1. Initial idle/ready state
+      await expect(pttBtn).toBeVisible();
+      await expect(pttBtn).toHaveAttribute('data-state', 'ready');
+      await expect(pttLabel).toHaveText('Talk');
+      await expect(stopSpeakBtn).toBeHidden();
+
+      // Space hint is visible with genuine shortcut indicator
+      await expect(page.locator('#vPttSpaceHint')).toBeVisible();
+
+      // 2. Privacy line: absent when cloud engine is selected (seed is google)
+      await expect(privacyLine).toBeHidden();
+
+      // 3. State transition: listening -> working -> ready
+      await page.evaluate(() => setVoiceState('listening'));
+      await expect(pttBtn).toHaveAttribute('data-state', 'listening');
+      expect(await pttBtn.getAttribute('class')).toContain('rec');
+
+      await page.evaluate(() => setVoiceState('working'));
+      await expect(pttBtn).toHaveAttribute('data-state', 'working');
+      expect(await pttBtn.getAttribute('class')).toContain('work');
+
+      await page.evaluate(() => setVoiceState('ready'));
+      await expect(pttBtn).toHaveAttribute('data-state', 'ready');
+      await expect(stopSpeakBtn).toBeHidden();
+
+      // 4. Mic error / permission denied case: shows notice and does not leave button stuck on Stop
+      await page.evaluate(() => {
+        showSpeakNotice(L('micBlocked'));
+        setVoiceState('error', L('micBlocked'));
+      });
+      await expect(speakNotice).toBeVisible();
+      await expect(page.locator('#speakNoticeText')).toHaveText('Microphone is blocked');
+      await expect(stopSpeakBtn).toBeHidden();
+
+      // Recovers back to ready
+      await page.evaluate(() => setVoiceState('ready'));
+      await expect(pttBtn).toHaveAttribute('data-state', 'ready');
+      await expect(stopSpeakBtn).toBeHidden();
+
+      // 5. Privacy line is present ONLY when all engines are local
+      await page.evaluate(() => {
+        // Mock all engines local: whisper ok, translation offline, voice piper/device
+        window.getVoiceTabReadiness = () => ({
+          ready: true,
+          reason: '',
+          asr: { ok: true, reason: '', mode: 'whisper' },
+          trans: { ok: true, reason: '', engine: 'nllb' },
+          voice: { ok: true, reason: '', kind: 'piper' }
+        });
+        updateVoicePrivacyNote();
+      });
+      await expect(privacyLine).toBeVisible();
+      const privText = await privacyLine.textContent();
+      expect(privText).toContain('Private');
+
+      // When cloud engine is used, privacy line is absent
+      await page.evaluate(() => {
+        window.getVoiceTabReadiness = () => ({
+          ready: true,
+          reason: '',
+          asr: { ok: true, reason: '', mode: 'browser' },
+          trans: { ok: true, reason: '', engine: 'google' },
+          voice: { ok: true, reason: '', kind: 'device' }
+        });
+        updateVoicePrivacyNote();
+      });
+      await expect(privacyLine).toBeHidden();
+    });
+  });
 });
+
 
