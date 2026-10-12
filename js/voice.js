@@ -907,6 +907,7 @@ function setupPTT(btn, onSend, viewType) {
         rec.onend = () => {
           isRecording = false;
           tapActive = false;
+          isEndingPress = false;
           pttRec = null;
           curPttStop = null;
           if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
@@ -934,6 +935,7 @@ function setupPTT(btn, onSend, viewType) {
       } catch (err) {
         isRecording = false;
         tapActive = false;
+        isEndingPress = false;
         pttRec = null;
         curPttStop = null;
         if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
@@ -971,6 +973,7 @@ function setupPTT(btn, onSend, viewType) {
       mr.onstop = async () => {
         isRecording = false;
         tapActive = false;
+        isEndingPress = false;
         pttRec = null;
         curPttStop = null;
         if (pttAc) { try { pttAc.close(); } catch {} pttAc = null; }
@@ -1006,6 +1009,7 @@ function setupPTT(btn, onSend, viewType) {
     } catch (err) {
       isRecording = false;
       tapActive = false;
+      isEndingPress = false;
       curPttStop = null;
       if (pttAc) { try { pttAc.close(); } catch {} pttAc = null; }
       resetMeterLevel();
@@ -1024,10 +1028,11 @@ function setupPTT(btn, onSend, viewType) {
     if (pttRec) pttRec.stop();
   }
 
-  let activePointerId = null, cancelled = false;
+  let activePointerId = null, cancelled = false, isEndingPress = false;
 
   function endPointerPress(e) {
-    if (!isRecording) return;
+    if (!isRecording || isEndingPress) return;
+    isEndingPress = true;
     const pid = activePointerId;
     activePointerId = null;
     if (pid !== null) {
@@ -1056,6 +1061,7 @@ function setupPTT(btn, onSend, viewType) {
   btn.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     e.preventDefault();
+    isEndingPress = false;
     activePointerId = e.pointerId;
     try { btn.setPointerCapture?.(e.pointerId); } catch {}
     if (tapActive) {
@@ -1068,6 +1074,7 @@ function setupPTT(btn, onSend, viewType) {
 
   btn.addEventListener('pointerup', e => {
     e.preventDefault();
+    e.stopPropagation?.();
     endPointerPress(e);
   });
 
@@ -1087,15 +1094,7 @@ function setupPTT(btn, onSend, viewType) {
     if (isRecording) {
       cancelled = true;
       tapActive = false;
-      stopRec();
-      setVoiceState('ready');
-    }
-  });
-
-  btn.addEventListener('lostpointercapture', () => {
-    if (isRecording && !tapActive) {
-      cancelled = true;
-      tapActive = false;
+      isEndingPress = false;
       stopRec();
       setVoiceState('ready');
     }

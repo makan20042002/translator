@@ -1,5 +1,5 @@
 'use strict';
-const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { test, expect, mouseClick, onlyEngines, VALID_KEY } = require('../support/fixtures');
 
 test.describe('Web app: Voice tab redesign', () => {
   test.describe('Item 1: Header and control bar', () => {
@@ -456,6 +456,28 @@ test.describe('Web app: Voice tab redesign', () => {
       // Ask AI Talk control must return to idle (data-state not "listening")
       await expect(askBtn).not.toHaveAttribute('data-state', 'listening');
       await expect(askBtn).toHaveAttribute('data-state', 'ready');
+    });
+  });
+
+  test.describe('Regression Group 1: PTT normal release processing', () => {
+    test.use({ appOptions: { seed: { cfg: { ...onlyEngines(['gemini', 'google'], { gemini: VALID_KEY }), stt: 'gemini' }, src: 'en', tgt: 'fa' } } });
+
+    test('holding Talk and releasing normally inside button does not get cancelled by lostpointercapture and creates a bubble', async ({ app }) => {
+      test.setTimeout(60_000);
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+      await mouseClick(page, page.locator('#vTabConv'));
+
+      const btn = page.locator('#vPttBtn');
+      const box = await btn.boundingBox();
+      expect(box).not.toBeNull();
+      await page.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+      await page.mouse.down();
+      await page.waitForTimeout(2600);
+      await page.mouse.up();
+
+      const bub = page.locator('#bubbles .bub').first();
+      await expect(bub.locator('.bub-text')).toBeVisible({ timeout: 20_000 });
     });
   });
 });
