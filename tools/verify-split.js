@@ -49,12 +49,40 @@ while ((m = linkRegex.exec(currentHtml)) !== null) {
   if (m[1].startsWith('css/')) cssLinks.push(m[1]);
 }
 
+// Expected JS modules in load order, including new modules like js/welcome.js
+const EXPECTED_JS_MODULES = [
+  'js/store.js',
+  'js/i18n.js',
+  'js/translate.js',
+  'js/speech.js',
+  'js/text.js',
+  'js/subtitles.js',
+  'js/documents.js',
+  'js/voice.js',
+  'js/compare.js',
+  'js/settings.js',
+  'js/models.js',
+  'js/voice-picker.js',
+  'js/init.js',
+  'js/dictionary.js',
+  'js/idioms.js',
+  'js/screen.js',
+  'js/welcome.js'
+];
+
 // Match <script src="...">
 const jsScripts = [];
 const scriptRegex = /<script\s+[^>]*src=["']([^"']+)["'][^>]*><\/script>/gi;
 while ((m = scriptRegex.exec(currentHtml)) !== null) {
   if (m[1].startsWith('js/')) jsScripts.push(m[1]);
 }
+
+// Verify that all expected modules exist
+EXPECTED_JS_MODULES.forEach(mod => {
+  if (!jsScripts.includes(mod)) {
+    console.warn(`[verify-split] Note: ${mod} is in EXPECTED_JS_MODULES but not linked in index.html`);
+  }
+});
 
 console.log('--- CSS SPLIT VERIFICATION ---');
 console.log(`Discovered ${cssLinks.length} CSS link(s) in load order:`, cssLinks.join(', '));

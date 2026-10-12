@@ -1263,6 +1263,7 @@
     <div class="row" style="margin:8px 0 12px;gap:10px;align-items:center;flex-wrap:wrap">
       <button class="btn" id="btnCheckConn" type="button" style="padding:5px 14px;font-size:13px;gap:6px"><span>⚡</span><span data-t="checkConn">Check connections</span></button>
       <button class="btn ghost" id="btnResetOrder" type="button" style="padding:5px 14px;font-size:13px;gap:6px" title="Reset engine list order to default"><span>↺</span><span data-t="resetOrder">Reset order</span></button>
+      <button class="btn ghost" id="btnReopenWelcome" type="button" style="padding:5px 14px;font-size:13px;gap:6px" title="Reopen welcome wizard"><span>🪄</span><span data-t="openWizardBtn">Welcome wizard</span></button>
       <button class="btn ghost" id="btnExportForExt" type="button" style="padding:5px 14px;font-size:13px;gap:6px" title="Export settings and keys for the MAKAN browser extension"><span>📦</span><span data-t="exportForExt">Export for Extension</span></button>
       <span class="hint" id="checkConnSummary" style="font-size:12.5px"></span>
     </div>
@@ -1506,6 +1507,150 @@
     <button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button>
   </div>
 </div></div>
+
+<!-- WELCOME WIZARD (First Run) -->
+<div class="ov welcome-ov" id="welcomeOverlay" role="dialog" aria-modal="true" aria-labelledby="welcomeTitle" hidden>
+  <div class="modal welcome-modal">
+    <!-- Header with progress dots and skip button -->
+    <div class="welcome-header">
+      <div class="welcome-step-indicator" id="welcomeStepIndicator" aria-label="Step progress">
+        <span class="step-dot active" data-step="1"></span>
+        <span class="step-dot" data-step="2"></span>
+        <span class="step-dot" data-step="3"></span>
+        <span class="step-dot" data-step="4"></span>
+      </div>
+      <span class="sp"></span>
+      <button class="btn ghost welcome-skip-btn" id="welcomeSkipBtn" type="button" data-t="wizardSkip">Skip for now</button>
+    </div>
+
+    <!-- Wizard Steps Container -->
+    <div class="welcome-steps-container">
+      <!-- Step 1: Language -->
+      <div class="welcome-step-pane" id="welcomeStep1">
+        <div class="welcome-step-icon">🌐</div>
+        <h2 class="welcome-step-title" id="welcomeTitle" data-t="wizardStep1Title">Choose your language</h2>
+        <p class="welcome-step-sub" data-t="wizardStep1Sub">Select the primary language for the interface and default translations.</p>
+        <div class="welcome-cards-grid">
+          <label class="welcome-choice-card active" data-choice-lang="fa">
+            <input type="radio" name="welcomeLang" value="fa" checked>
+            <div class="choice-card-content">
+              <strong>فارسی (Persian)</strong>
+              <span>رابط کاربری فارسی و راست‌به‌چپ</span>
+            </div>
+            <span class="choice-badge">پیشنهادی</span>
+          </label>
+          <label class="welcome-choice-card" data-choice-lang="en">
+            <input type="radio" name="welcomeLang" value="en">
+            <div class="choice-card-content">
+              <strong>English</strong>
+              <span>English user interface</span>
+            </div>
+          </label>
+        </div>
+      </div>
+
+      <!-- Step 2: Translation Engine -->
+      <div class="welcome-step-pane" id="welcomeStep2" hidden>
+        <div class="welcome-step-icon">⚡</div>
+        <h2 class="welcome-step-title" data-t="wizardStep2Title">Choose your translation engine</h2>
+        <p class="welcome-step-sub" data-t="wizardStep2Sub">How would you like MAKAN Translate to process translations?</p>
+        <div class="welcome-cards-grid">
+          <label class="welcome-choice-card active" data-choice-engine="offline">
+            <input type="radio" name="welcomeEngine" value="offline" checked>
+            <div class="choice-card-content">
+              <strong><bdi>Offline (NLLB)</bdi></strong>
+              <span data-t="wizardEngineOfflineDesc">Completely offline in your browser. Maximum privacy.</span>
+            </div>
+            <span class="choice-badge ok">100% Private</span>
+          </label>
+          <label class="welcome-choice-card" data-choice-engine="ollama">
+            <input type="radio" name="welcomeEngine" value="ollama">
+            <div class="choice-card-content">
+              <strong><bdi>Ollama (Local AI)</bdi></strong>
+              <span data-t="wizardEngineOllamaDesc">Run open LLMs locally via Ollama (default: http://localhost:11434).</span>
+            </div>
+            <span class="choice-badge ok">Local AI</span>
+          </label>
+          <label class="welcome-choice-card" data-choice-engine="online">
+            <input type="radio" name="welcomeEngine" value="online">
+            <div class="choice-card-content">
+              <strong>Online (Cloud Engines)</strong>
+              <span data-t="wizardEngineOnlineDesc">Fast translation via Google, MyMemory, or free AI keys (Gemini, Groq).</span>
+            </div>
+            <span class="choice-badge">Fast</span>
+          </label>
+        </div>
+        <div class="welcome-privacy-notice" id="welcomePrivacyNotice">
+          <span class="privacy-icon">🛡</span>
+          <span class="privacy-text" id="welcomePrivacyText">Everything stays on this device</span>
+        </div>
+      </div>
+
+      <!-- Step 3: Optional Model Download -->
+      <div class="welcome-step-pane" id="welcomeStep3" hidden>
+        <div class="welcome-step-icon">📦</div>
+        <h2 class="welcome-step-title" data-t="wizardStep3Title">Download offline models (optional)</h2>
+        <p class="welcome-step-sub" data-t="wizardStep3Sub">Download translation and speech recognition models for full offline use now, or do it later.</p>
+        <div class="welcome-cards-grid">
+          <label class="welcome-choice-card active" data-choice-package="none">
+            <input type="radio" name="welcomePackage" value="none" checked>
+            <div class="choice-card-content">
+              <strong>Skip download for now</strong>
+              <span data-t="wizardPkgSkipDesc">Keep setup fast. Download offline models anytime from the Model Hub.</span>
+            </div>
+            <span class="choice-badge">Instant</span>
+          </label>
+          <label class="welcome-choice-card" data-choice-package="light">
+            <input type="radio" name="welcomePackage" value="light">
+            <div class="choice-card-content">
+              <strong>Light Offline Package</strong>
+              <span data-t="wizardPkgLightDesc"><bdi>NLLB</bdi> offline translation model (~600 MB).</span>
+            </div>
+            <span class="choice-badge">~600 MB</span>
+          </label>
+          <label class="welcome-choice-card" data-choice-package="full">
+            <input type="radio" name="welcomePackage" value="full">
+            <div class="choice-card-content">
+              <strong>Recommended Complete Package</strong>
+              <span data-t="wizardPkgFullDesc">Translation (<bdi>NLLB</bdi>) + Speech recognition (<bdi>Whisper</bdi>) (~850 MB).</span>
+            </div>
+            <span class="choice-badge">~850 MB</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Step 4: Finish -->
+      <div class="welcome-step-pane" id="welcomeStep4" hidden>
+        <div class="welcome-step-icon">🎉</div>
+        <h2 class="welcome-step-title" data-t="wizardStep4Title">You’re all set!</h2>
+        <p class="welcome-step-sub" data-t="wizardStep4Sub">MAKAN Translate is configured and ready to use.</p>
+        <div class="welcome-summary-card">
+          <div class="summary-item">
+            <span class="summary-lbl">Interface Language:</span>
+            <strong class="summary-val" id="welcomeSummaryLang">فارسی</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-lbl">Primary Engine:</span>
+            <strong class="summary-val" id="welcomeSummaryEngine">Offline (NLLB)</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-lbl">Privacy Mode:</span>
+            <strong class="summary-val" id="welcomeSummaryPrivacy">Local &amp; Private</strong>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Wizard Footer with Back and Next buttons -->
+    <div class="welcome-footer">
+      <button class="btn ghost" id="welcomeBackBtn" type="button" hidden>← <span data-t="back">Back</span></button>
+      <span class="sp"></span>
+      <button class="btn cta" id="welcomeNextBtn" type="button"><span data-t="continue">Continue</span> →</button>
+      <button class="btn cta" id="welcomeFinishBtn" type="button" hidden data-t="getStarted">Get Started</button>
+    </div>
+  </div>
+</div>
+
 <datalist id="models"></datalist>
 <div class="credits-box" id="creditsBox" role="dialog" aria-labelledby="creditsTitle" hidden>
   <div class="row"><strong id="creditsTitle" data-t="creditsBtn">About &amp; credits</strong><span class="sp"></span><button class="btn ghost" id="creditsClose" type="button" aria-label="Close">✕</button></div>
@@ -1540,5 +1685,6 @@
 <script src="js/dictionary.js"></script>
 <script src="js/idioms.js"></script>
 <script src="js/screen.js"></script>
+<script src="js/welcome.js"></script>
 </body>
 </html>

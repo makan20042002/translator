@@ -72,6 +72,7 @@ Originally contained in a single `<script>` block (lines 1355 to 8594). Split in
 | 7893 – 8071 | `js/dictionary.js` | Offline dictionary tab: pack indexing (`dict/packs.json`), Wiktionary pack downloads, normalized word lookup, word card popup, and local CSV export. | `dictSearch`, `dictLookup`, `dictBuildUi`, `myWords` | `extension/dictionary.js`, `init.js` |
 | 8072 – 8214 | `js/idioms.js` | Idioms tab: search by term, search by meaning via AI explanation, idiom detection in text (`isMarkable`), and stored idioms. | `findIdiom`, `explainIdiomAi`, `renderIdioms` | `translate.js`, `dictionary.js` |
 | 8215 – 8593 | `js/screen.js` | Makan Screen Translator desktop integration: Electron IPC bridge (`window.makanDesktop`), hotkey shortcut (Ctrl+Shift+S), OCR language catalogue, OCR model selection, and overlay translation handler. | `initScreenTranslatorDesktop`, Screen Translator IPC bindings | `translate.js`, `models.js`, `init.js` |
+| Post-split | `js/welcome.js` | Welcome wizard (first run experience): 4-step wizard (language, engine choice with conditional privacy, optional model packages, finish summary), skippable, resumable, localStorage persistence, and settings reopen trigger. | `openWelcomeWizard`, `initWelcomeWizard`, `isWelcomeDone` | `store`, `i18n`, `models`, `translate` |
 
 ---
 
@@ -105,6 +106,7 @@ graph TD
     js_init --> js_dictionary["js/dictionary.js"]
     js_dictionary --> js_idioms["js/idioms.js"]
     js_idioms --> js_screen["js/screen.js"]
+    js_screen --> js_welcome["js/welcome.js"]
 ```
 
 ## 5. Verification Plan (Stage B)
