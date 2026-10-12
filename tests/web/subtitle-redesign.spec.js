@@ -78,6 +78,15 @@ test.describe('Web app: Subtitle tab redesign', () => {
   test.describe('Item 2: File bar after file load', () => {
     test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
 
+    test.beforeEach(async ({ app }) => {
+      const { page } = app;
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+    });
+
     test('shows cue count and file name; sGo, sSrt, sVtt exist with preserved IDs; export keeps identical timings', async ({ app, files }) => {
       const { page } = app;
       await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
