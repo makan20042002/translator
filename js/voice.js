@@ -1016,13 +1016,14 @@ function setupPTT(btn, onSend, viewType) {
   btn.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     e.preventDefault();
-    btn.setPointerCapture?.(e.pointerId);
+    try { btn.setPointerCapture?.(e.pointerId); } catch {}
     if (tapActive) stopRec();
     else startRec();
   });
 
   btn.addEventListener('pointerup', e => {
     e.preventDefault();
+    try { btn.releasePointerCapture?.(e.pointerId); } catch {}
     if (!isRecording) return;
     const elapsed = Date.now() - pressTime;
     if (elapsed < 350) {
