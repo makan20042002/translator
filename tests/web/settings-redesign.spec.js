@@ -19,7 +19,7 @@ test.describe('Web app: Settings Redesign (Stage 2)', () => {
     // Ollama has default URL field
     const ollamaBase = page.locator('#engList .eng[data-id="ollama"] input[data-f="base"]');
     await expect(ollamaBase).toBeVisible();
-    await expect(ollamaBase).toHaveValue('http://localhost:11434');
+    await expect(ollamaBase).toHaveValue('http://localhost:11434/v1');
 
     // Gemini key input is masked and shows show-last-4
     const geminiInput = page.locator('#engList .eng[data-id="gemini"] input[data-f="key"]');
