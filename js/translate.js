@@ -278,6 +278,12 @@ function preGloss(s){ // for non-AI engines: put the wanted term straight into t
 }
 
 /* basic engines */
+// Google web translation:
+// 1. Primary endpoint: clients5.google.com (/translate_a/t?client=dict-chrome-ex), batch POST with URLSearchParams.
+//    Moves to secondary endpoint on: HTTP error (!r.ok), network error/drop, empty or non-JSON reply, length mismatch.
+//    Rethrows immediately on AbortError.
+// 2. Secondary endpoint: translate.googleapis.com (/translate_a/single?client=gtx), sequential GET per line.
+//    If secondary also fails, error bubbles up to translateItems and caller (e.g. Subtitles tab marks Error).
 async function eGoogle(items,src,tgt,signal){
   try{
     const body=new URLSearchParams();items.forEach(s=>body.append('q',s));
