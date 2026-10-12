@@ -238,6 +238,54 @@ test.describe('Web app: Document tab redesign', () => {
       await expect(page.locator('#dGo')).toBeEnabled();
     });
   });
+
+  test.describe('Item 4: Result area and honest summary card', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('summary card displays real segment counters and quality facts, and strictly contains NO "Layout preserved" text in EN or FA', async ({ app, files }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      // 1. Check in English
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await expect(page.locator('#dWork')).toBeVisible();
+
+      // Before translating, summary card is hidden
+      await expect(page.locator('#docSummaryCard')).toBeHidden();
+
+      // Translate
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+
+      // Summary card is visible with real numbers only
+      await expect(page.locator('#docSummaryCard')).toBeVisible();
+      await expect(page.locator('#docSummaryCount')).toHaveText('3');
+      await expect(page.locator('#docSummaryFormat')).toHaveText('TXT');
+
+      // Verify NO "Layout preserved" badge or text exists anywhere in #tab-doc
+      const docHtmlEn = await page.locator('#tab-doc').innerHTML();
+      expect(docHtmlEn).not.toMatch(/layout preserved/i);
+
+      // 2. Check in Persian UI
+      await page.evaluate(() => {
+        ui = 'fa';
+        document.documentElement.dir = 'rtl';
+        document.documentElement.lang = 'fa';
+        applyI18n();
+      });
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+
+      await expect(page.locator('#docSummaryCard')).toBeVisible();
+      await expect(page.locator('#docSummaryCount')).toHaveText('3');
+
+      // Verify NO "حفظ چیدمان" badge or text exists anywhere in #tab-doc
+      const docHtmlFa = await page.locator('#tab-doc').innerHTML();
+      expect(docHtmlFa).not.toContain('حفظ چیدمان');
+    });
+  });
 });
+
 
 

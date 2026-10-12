@@ -711,6 +711,69 @@ function updateDocProgCounts(done, total){
   }
 }
 
+function renderDocSummary(validCount, totalCount, failedCount, memHits, engUsed){
+  const card=$('docSummaryCard');
+  if(!card||!doc) return;
+  card.hidden=false;
+
+  let countVal=String(validCount);
+  let countLbl=ui==='fa'?'بخش ترجمه‌شده':'Translated segments';
+  if(doc.ext==='pptx'&&doc.meta?.slides){
+    countVal=`${validCount} / ${totalCount}`;
+    countLbl=ui==='fa'?'بخش‌های اسلاید':'Slide segments';
+  }else if(doc.ext==='xlsx'&&doc.meta?.sheets){
+    countVal=`${validCount} / ${totalCount}`;
+    countLbl=ui==='fa'?'بخش‌های برگه':'Sheet segments';
+  }else if(doc.ext==='csv'&&doc.getRows){
+    countVal=`${validCount} / ${totalCount}`;
+    countLbl=ui==='fa'?'بخش‌های سطر':'Row segments';
+  }
+  if($('docSummaryCount')) $('docSummaryCount').textContent=countVal;
+  if($('docSummaryCountLbl')) $('docSummaryCountLbl').textContent=countLbl;
+
+  const outFmtSel=$('dOutFmt')?.value||'same';
+  const outExt=(outFmtSel==='same'?doc.ext:outFmtSel).toUpperCase();
+  if($('docSummaryFormat')) $('docSummaryFormat').textContent=outExt;
+  if($('docSummaryEngine')) $('docSummaryEngine').textContent=engUsed||(ui==='fa'?'خودکار':'Auto');
+
+  const factsList=$('docSummaryFacts');
+  if(!factsList) return;
+  factsList.innerHTML='';
+
+  const tgtLang=$('tgt')?.value;
+  const rtl=isRtlLang(tgtLang);
+  if(rtl){
+    const factEl=document.createElement('div');
+    factEl.className='doc-summary-fact ok';
+    factEl.textContent=ui==='fa'?'جهت متن راست‌به‌چپ (RTL) اعمال شد':'Right-to-left (RTL) text direction applied';
+    factsList.appendChild(factEl);
+    if(doc.ext==='xlsx'){
+      const xFact=document.createElement('div');
+      xFact.className='doc-summary-fact ok';
+      xFact.textContent=ui==='fa'?'چینش برگه‌ها روی راست‌به‌چپ تنظیم شد':'Worksheet views updated to right-to-left';
+      factsList.appendChild(xFact);
+    }
+  }
+  if(memHits>0){
+    const mFact=document.createElement('div');
+    mFact.className='doc-summary-fact info';
+    mFact.textContent=ui==='fa'?`${memHits} بخش از حافظه ترجمه بازیابی شد`:`${memHits} segment(s) retrieved from Translation Memory`;
+    factsList.appendChild(mFact);
+  }
+  if(failedCount>0){
+    const fFact=document.createElement('div');
+    fFact.className='doc-summary-fact warn';
+    fFact.textContent=ui==='fa'?`${failedCount} بخش ناموفق بود (متن اصلی حفظ شد)`:`${failedCount} segment(s) failed (original text retained)`;
+    factsList.appendChild(fFact);
+  }
+  if($('docNotes')?.checked){
+    const nFact=document.createElement('div');
+    nFact.className='doc-summary-fact info';
+    nFact.textContent=ui==='fa'?'یادداشت‌های مترجم در سند درج شدند':'Translator footnotes/notes embedded';
+    factsList.appendChild(nFact);
+  }
+}
+
 async function loadDoc(f){
   if(/\.pdf$/i.test(f.name)){
     toast(L('pdfNotSupported')||'PDF files are not supported yet.','warn',6000);
@@ -769,6 +832,7 @@ async function loadDoc(f){
   updateDocProgCounts(null, doc.items.length);
   $('dProgText').textContent=ui==='fa'?'آماده ترجمه':'Ready to translate';
   $('dEngineUsed').textContent='';
+  if($('docSummaryCard')) $('docSummaryCard').hidden=true;
 
   // Reset terms and detect subject
   renderDocTerms([]);
@@ -859,6 +923,7 @@ $('dGo').onclick=async()=>{
     updateDocProgCounts(doc.items.length, doc.items.length);
     updateDocStatus('ok');
     $('dProgText').textContent=`${L('done')} · ${memMsg}`;
+    renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
     toast(`${L('done')} · ${memMsg}`,'ok');
     return;
   }
@@ -940,6 +1005,9 @@ $('dGo').onclick=async()=>{
     $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
     $('dSave').disabled=(validCount===0);
 
+    const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
+    renderDocSummary(validCount, doc.items.length, failedCount, memHits, r.used);
+
     if(failedCount>0){
       updateDocStatus('warn', ui==='fa'?'ناقص':'Partial');
       const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
@@ -953,7 +1021,6 @@ $('dGo').onclick=async()=>{
       updateDocStatus('ok');
       $('dBar').style.width='100%';
       updateDocProgCounts(doc.items.length, doc.items.length);
-      const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
       if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
       $('dProgText').textContent=`${L('done')} · ${usedStr}`;
       toast(`${L('done')} · ${usedStr}`,'ok');
@@ -971,6 +1038,12 @@ $('dGo').onclick=async()=>{
         failedCount++;
         if(partialOut[i]==null) partialOut[i]=doc.items[i];
       }
+    }
+
+    if(validCount>0){
+      renderDocSummary(validCount, doc.items.length, failedCount, memHits, '');
+    }else{
+      if($('docSummaryCard')) $('docSummaryCard').hidden=true;
     }
 
     if(e.name==='AbortError'||dCtl?.signal?.aborted){
