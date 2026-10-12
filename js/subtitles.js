@@ -63,11 +63,11 @@ const sInfo=()=>{
   if($('sLangPair'))$('sLangPair').textContent=`${srcName} → ${tgtName}`;
 };
 function updateSubProg(pct){
-  const validCues=cues.filter(c=>c.t&&!isSubErr(c.t)).length;
+  const validCues=cues.filter(c=>c.t&&c.t.trim()&&!isSubErr(c.t)).length;
   const memCues=cues.filter(c=>c.fromMemory).length;
-  if(pct!=null)$('sBar').style.width=pct+'%';
+  const curPct=pct!=null?(pct===100&&validCues<cues.length?Math.round((validCues/cues.length)*100):pct):(cues.length?Math.round((validCues/cues.length)*100):0);
+  if($('sBar'))$('sBar').style.width=curPct+'%';
   if($('sProgText')){
-    const curPct=pct!=null?pct:(cues.length?Math.round((validCues/cues.length)*100):0);
     const memPart=memCues?` · ${memCues} ${L('fromMemory')||'from memory'}`:'';
     const memPartFa=memCues?` · ${memCues} از حافظه`:'';
     $('sProgText').textContent=ui==='fa'
@@ -131,6 +131,13 @@ $('cues').addEventListener('input',e=>{
     cues[i].fromMemory=false;
     const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
     if(badge)badge.hidden=true;
+    const row=$('cues').querySelector(`.cue[data-i="${i}"]`);
+    if(row&&cues[i].t.trim()&&!isSubErr(cues[i].t))row.classList.remove('error');
+    const hasRemainingFailed=cues.some(c=>!c.t||!c.t.trim()||isSubErr(c.t));
+    if(!hasRemainingFailed){
+      if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+      if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
+    }
     sInfo();
     updateSubProg();
     clearTimeout(subEditTmTimer);
@@ -180,7 +187,7 @@ if($('sCloseFile'))$('sCloseFile').onclick=()=>{
   closeSubs();
 };
 async function doSubs(onlyEmpty){
-  const idx=cues.map((c,i)=>i).filter(i=>!onlyEmpty||!cues[i].t.trim());if(!idx.length)return;
+  const idx=cues.map((c,i)=>i).filter(i=>!onlyEmpty||!cues[i].t.trim()||isSubErr(cues[i].t));if(!idx.length)return;
   // unit = one cue, or one dialogue line when every line starts with a dash
   const units=[],map=[];
   idx.forEach(i=>{const ls=cues[i].o.split('\n');
@@ -188,6 +195,7 @@ async function doSubs(onlyEmpty){
     else{units.push(ls.join(' '));map.push([i,0,1])}});
   const parts={};
   sCtl=new AbortController();busy([$('sGo'),$('sRest')],$('sStop'),true);
+  $('cues').querySelectorAll('.cue.error').forEach(el=>el.classList.remove('error'));
   if($('sStatusChip'))$('sStatusChip').className='sub-status-chip translating';
   if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'در حال ترجمه':'Translating';
 
@@ -284,6 +292,8 @@ async function doSubs(onlyEmpty){
             if(el)el.textContent=cues[i].t;
             const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
             if(badge)badge.hidden=true;
+            const row=$('cues').querySelector(`.cue[data-i="${i}"]`);
+            if(row&&cues[i].t.trim()&&!isSubErr(cues[i].t))row.classList.remove('error');
           }
 
           if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
@@ -303,16 +313,36 @@ async function doSubs(onlyEmpty){
         updateSubProg();
       }}));
 
-    updateSubProg(100);
-    const memCues=cues.filter(c=>c.fromMemory).length;
-    const memMsg=memCues?` (${memCues} ${L('fromMemory')||'lines from memory'})`:'';
-    toast(`${L('done')} · ${r.used}${memMsg}`,'ok');
-    if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
-    if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
+    const failedCues=cues.filter(c=>!c.t||!c.t.trim()||isSubErr(c.t));
+    if(failedCues.length>0){
+      if($('sStatusChip'))$('sStatusChip').className='sub-status-chip error';
+      if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'خطا':'Error';
+      cues.forEach((c,idx)=>{
+        const row=$('cues').querySelector(`.cue[data-i="${idx}"]`);
+        if(row&&(!c.t||!c.t.trim()||isSubErr(c.t)))row.classList.add('error');
+      });
+      updateSubProg();
+    }else{
+      updateSubProg(100);
+      const memCues=cues.filter(c=>c.fromMemory).length;
+      const memMsg=memCues?` (${memCues} ${L('fromMemory')||'lines from memory'})`:'';
+      toast(`${L('done')} · ${r.used}${memMsg}`,'ok');
+      if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+      if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
+    }
   }catch(e){
     fail(e);
-    if($('sStatusChip'))$('sStatusChip').className='sub-status-chip error';
-    if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'خطا':'Error';
+    if(e.name==='AbortError'){
+      if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
+      if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
+    }else{
+      if($('sStatusChip'))$('sStatusChip').className='sub-status-chip error';
+      if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'خطا':'Error';
+      cues.forEach((c,idx)=>{
+        const row=$('cues').querySelector(`.cue[data-i="${idx}"]`);
+        if(row&&(!c.t||!c.t.trim()||isSubErr(c.t)))row.classList.add('error');
+      });
+    }
     updateSubProg();
   }
   busy([$('sGo'),$('sRest')],$('sStop'),false);

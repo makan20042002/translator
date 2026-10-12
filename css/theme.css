@@ -2105,6 +2105,15 @@ html[lang="fa"] .cues-header {
 [data-theme="light"] .cue:hover {
   background: rgba(0, 0, 0, 0.02);
 }
+.cue.error {
+  background: rgba(239, 68, 68, 0.08);
+}
+[data-theme="light"] .cue.error {
+  background: rgba(239, 68, 68, 0.05);
+}
+.cue.error .tr-cell {
+  background: rgba(239, 68, 68, 0.04);
+}
 .cue .n {
   font-family: var(--mono, monospace);
   font-size: 12px;
