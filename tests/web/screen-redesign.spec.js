@@ -86,12 +86,15 @@ test.describe('Web app: Screen tab redesign (Stage 1)', () => {
     // Initially visible
     await expect(overlay).toBeVisible();
 
-    // Toggle off
-    await toggle.uncheck();
+    // Toggle off by clicking the visible switch label/slider (as in tmToggle tests)
+    const switchLbl = page.locator('.switch-lbl[for="screenOverlayToggle"]');
+    await mouseClick(page, switchLbl);
+    await expect(toggle).not.toBeChecked();
     await expect(overlay).toBeHidden();
 
     // Toggle on
-    await toggle.check();
+    await mouseClick(page, switchLbl);
+    await expect(toggle).toBeChecked();
     await expect(overlay).toBeVisible();
 
     // Click "Open in App" button from overlay
