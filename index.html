@@ -417,19 +417,58 @@
       </label>
 
       <div id="dWork" hidden style="display:flex;flex-direction:column;gap:14px">
-        <!-- Top Toolbar with metadata and format badge -->
-        <div class="doc-toolbar">
-          <div class="doc-file-meta">
-            <span class="doc-badge" id="dBadge">DOCX</span>
-            <strong id="dFileName" style="font-family:var(--display);font-size:15px">file.docx</strong>
-            <span class="doc-size-pill" id="dSizePill">0 KB</span>
-            <span class="meta" id="dInfo">0 segments</span>
+        <!-- Unified File Card Bar (Item 2) -->
+        <div class="doc-file-card" id="dFileCard">
+          <div class="doc-file-info-group">
+            <div class="doc-file-badge" aria-hidden="true">
+              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+              </svg>
+              <span class="doc-badge" id="dBadge">DOCX</span>
+            </div>
+            <div class="doc-file-text-meta">
+              <div class="doc-file-title-row">
+                <strong id="dFileName" dir="ltr" class="doc-file-name">file.docx</strong>
+                <span class="doc-size-pill" id="dSizePill">0 KB</span>
+                <span class="meta" id="dInfo">0 segments</span>
+              </div>
+            </div>
+            <button class="btn ghost doc-btn-change" id="dChangeFile" type="button">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+              <span data-t="subChangeFile">Change file</span>
+            </button>
           </div>
-          <span class="sp"></span>
-          <button class="btn ghost" id="dChangeFile" type="button" style="font-size:12px;min-height:30px">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-            <span data-t="subChangeFile">Change file</span>
-          </button>
+
+          <div class="doc-file-controls-group">
+            <div class="grp doc-fmt-grp">
+              <label for="dOutFmt" data-t="outFormat">Output format</label>
+              <select id="dOutFmt">
+                <option value="same" data-t="outSame">Same as input</option>
+                <option value="docx" data-t="outWord">Word (.docx)</option>
+                <option value="pdf" data-t="outPdf">PDF (.pdf)</option>
+                <option value="md" data-t="outMd">Markdown (.md)</option>
+                <option value="txt" data-t="outTxt">Plain text (.txt)</option>
+              </select>
+            </div>
+            <button class="btn danger" id="dStop" hidden data-t="stop">Stop</button>
+            <button class="btn cta doc-btn-go" id="dGo">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
+              <span data-t="dGo">Translate file</span>
+            </button>
+            <button class="btn doc-btn-save" id="dSave" disabled data-t="download">Download</button>
+          </div>
+        </div>
+
+        <div class="doc-sub-options-row">
+          <label class="chk" id="docKeepLayoutWrap" title="Keep page layout: scale font size down slightly per paragraph so content stays on original pages">
+            <input type="checkbox" id="docKeepLayout" checked>
+            <span data-t="docKeepLayout">Keep page layout</span>
+          </label>
+          <label class="chk" id="docNotesWrap" title="Attach footnotes or slide notes for ambiguous terms & context">
+            <input type="checkbox" id="docNotes">
+            <span data-t="docNotes">Translator notes</span>
+          </label>
         </div>
 
         <div id="docEngineNotice" class="doc-notice" hidden>
@@ -478,30 +517,6 @@
             </div>
             <div class="doc-terms-list" id="docTermsList"></div>
           </div>
-        </div>
-
-        <!-- Action & Option Row -->
-        <div class="doc-actions-row">
-          <label class="chk" id="docKeepLayoutWrap" title="Keep page layout: scale font size down slightly per paragraph so content stays on original pages">
-            <input type="checkbox" id="docKeepLayout" checked>
-            <span data-t="docKeepLayout">Keep page layout</span>
-          </label>
-          <label class="chk" id="docNotesWrap" title="Attach footnotes or slide notes for ambiguous terms & context">
-            <input type="checkbox" id="docNotes">
-            <span data-t="docNotes">Translator notes</span>
-          </label>
-          <span class="sp"></span>
-          <div class="grp"><label for="dOutFmt" data-t="outFormat">Output format</label>
-            <select id="dOutFmt">
-              <option value="same" data-t="outSame">Same as input</option>
-              <option value="docx" data-t="outWord">Word (.docx)</option>
-              <option value="pdf" data-t="outPdf">PDF (.pdf)</option>
-              <option value="md" data-t="outMd">Markdown (.md)</option>
-              <option value="txt" data-t="outTxt">Plain text (.txt)</option>
-            </select></div>
-          <button class="btn danger" id="dStop" hidden data-t="stop">Stop</button>
-          <button class="btn cta" id="dGo" data-t="dGo">Translate file</button>
-          <button class="btn" id="dSave" disabled data-t="download">Download</button>
         </div>
 
         <div class="prog"><i id="dBar"></i></div>

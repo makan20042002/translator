@@ -717,7 +717,22 @@ async function loadDoc(f){
   }
 
   dResult='';dOutItems=null;
-  $('dSizePill').textContent=doc.meta?.sizeEstimate||`${Math.round(f.size/1024)} KB`;
+  const sizeKb=Math.round(f.size/1024)||(f.size>0?1:0);
+  let detail='';
+  if(doc.ext==='docx'&&doc.parsed&&doc.parsed['word/document.xml']){
+    const trCount=doc.parsed['word/document.xml'].getElementsByTagName('w:tr').length;
+    if(trCount>0) detail=`${trCount} ${L('rows')||'table rows'}`;
+    else detail=`${doc.items.length} ${L('segments')}`;
+  }else if(doc.ext==='pptx'&&doc.meta?.slides){
+    detail=`${doc.meta.slides} ${L('slides')||'slides'}`;
+  }else if(doc.ext==='xlsx'&&doc.meta?.sheets){
+    detail=`${doc.meta.sheets} ${L('sheets')||'sheets'}`;
+  }else if(doc.ext==='csv'&&doc.getRows){
+    detail=`${doc.getRows().length} ${L('rows')||'rows'}`;
+  }else{
+    detail=`${doc.items.length} ${L('segments')}`;
+  }
+  $('dSizePill').textContent=`${sizeKb} KB · ${detail}`;
   $('dInfo').textContent=`${doc.items.length} ${L('segments')}`;
   $('dIn').value=doc.items.slice(0,25).join('\n\n').slice(0,50000);
   $('dOut').value='';

@@ -85,4 +85,54 @@ test.describe('Web app: Document tab redesign', () => {
       await expect(page.locator('#dWork')).toBeVisible();
     });
   });
+
+  test.describe('Item 2: File card and controls', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('after loading a TXT/DOCX the card shows real file name, size and details; Translate/Save controls preserve IDs; export produces valid file with expected content', async ({ app, files }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      // 1. Load TXT
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await expect(page.locator('#dWork')).toBeVisible();
+
+      // Card displays real file name and size
+      await expect(page.locator('#dFileName')).toContainText('sample.txt');
+      const sizePillTxt = await page.locator('#dSizePill').textContent();
+      expect(sizePillTxt).toMatch(/\d+\s*KB/i);
+      expect(sizePillTxt).toContain('3 segments');
+      await expect(page.locator('#dInfo')).toHaveText('3 segments');
+
+      // Preserve controls and IDs
+      await expect(page.locator('#dGo')).toBeVisible();
+      await expect(page.locator('#dSave')).toBeVisible();
+      await expect(page.locator('#dOutFmt')).toBeVisible();
+      await expect(page.locator('#dChangeFile')).toBeVisible();
+
+      // Translate TXT and export
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+
+      const txtDl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+      expect(txtDl.name).toBe('sample.fa.txt');
+      const textLines = txtDl.bytes.toString('utf8').replace(/^﻿/, '').split('\n');
+      expect(textLines).toEqual(['[fa] The first line of plain text.', '[fa] The second line.', '', '[fa] A line after an empty line.', '']);
+
+      // 2. Change file to DOCX using #dDrop
+      await chooseFile(page, page.locator('#dDrop'), files.docx);
+      await expect(page.locator('#dFileName')).toContainText('sample.docx');
+      const docxSize = await page.locator('#dSizePill').textContent();
+      expect(docxSize).toMatch(/\d+\s*KB/i);
+
+      // Translate DOCX and export
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+
+      const docxDl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+      expect(docxDl.name).toBe('sample.fa.docx');
+      expect(docxDl.bytes.length).toBeGreaterThan(1000);
+    });
+  });
 });
+
