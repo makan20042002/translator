@@ -2238,6 +2238,128 @@ html[lang="fa"] .cue-tm-badge {
   }
 }
 
+/* ==================== DOCUMENT TAB REDESIGN (ITEM 1) ==================== */
+.doc-page-header {
+  margin-block-end: 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.doc-page-title {
+  margin: 0;
+  font-family: var(--display, 'Plus Jakarta Sans', system-ui);
+  font-size: 28px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+html[lang="fa"] .doc-page-title {
+  font-family: 'Vazirmatn', system-ui;
+  font-weight: 800;
+}
+.doc-page-sub {
+  margin: 0;
+  font-size: 13.5px;
+  color: var(--muted, #94a3b8);
+  line-height: 1.4;
+}
+
+.doc-drop-area {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  width: 100%;
+  max-width: 100%;
+  box-sizing: border-box;
+  padding: 22px 24px;
+  border-radius: var(--r-m, 14px);
+  border: 1.5px dashed rgba(56, 189, 248, 0.35);
+  background: radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.08) 0%, rgba(9, 20, 40, 0.95) 70%);
+  cursor: pointer;
+  transition: all 0.2s ease;
+  min-width: 0;
+}
+.doc-drop-area:hover, .doc-drop-area.over {
+  border-color: var(--accent, #38bdf8);
+  background: radial-gradient(circle at 20% 50%, rgba(14, 165, 233, 0.16) 0%, rgba(9, 20, 40, 0.95) 70%);
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.3);
+}
+.doc-drop-main {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  min-width: 0;
+  flex-shrink: 1;
+}
+.doc-drop-icon-wrap {
+  width: 52px;
+  height: 52px;
+  border-radius: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(56, 189, 248, 0.12);
+  color: var(--cyan, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.3);
+  box-shadow: 0 0 20px rgba(56, 189, 248, 0.15);
+  flex-shrink: 0;
+}
+.doc-drop-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.doc-drop-text strong {
+  font-family: var(--display, 'Plus Jakarta Sans', system-ui);
+  font-size: 16px;
+  font-weight: 700;
+  color: var(--text, #fff);
+  word-break: break-word;
+}
+html[lang="fa"] .doc-drop-text strong {
+  font-family: 'Vazirmatn', system-ui;
+}
+.doc-drop-text .hint {
+  font-size: 13px;
+  color: var(--muted, #94a3b8);
+  word-break: break-word;
+}
+.doc-format-chips {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+.doc-chip {
+  font-family: var(--mono, monospace);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  padding: 4px 9px;
+  border-radius: 6px;
+  background: rgba(56, 189, 248, 0.08);
+  color: var(--cyan, #38bdf8);
+  border: 1px solid rgba(56, 189, 248, 0.22);
+  user-select: none;
+}
+@media (max-width: 640px) {
+  .doc-drop-area {
+    padding: 16px 14px;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 12px;
+  }
+  .doc-format-chips {
+    justify-content: flex-start;
+  }
+}
+
+
 
 
 
