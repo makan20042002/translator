@@ -42,6 +42,14 @@ test.describe('Web app: Settings Redesign (Stage 2)', () => {
     await expect(geminiInput).toHaveAttribute('type', 'text');
     await mouseClick(page, eyeBtn);
     await expect(geminiInput).toHaveAttribute('type', 'password');
+
+    // Revealing key and switching sub-tabs must return field to password
+    await mouseClick(page, eyeBtn);
+    await expect(geminiInput).toHaveAttribute('type', 'text');
+    await mouseClick(page, page.locator('#setTabBtnVoices'));
+    await mouseClick(page, page.locator('#setTabBtnEngines'));
+    await expect(geminiInput).toHaveAttribute('type', 'password');
+    await expect(eyeBtn).toHaveText('👁');
   });
 
   test('voices show license notes, speech rate works and auto-saves', async ({ app }) => {

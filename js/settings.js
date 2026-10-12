@@ -312,8 +312,21 @@ $('engList').addEventListener('change',e=>{
     }
     return;
   }
-  const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng').dataset.id;
-  cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();showSettingsAutoSaved();fillEngines();if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();renderEngines();
+  const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng')?.dataset.id;if(!id)return;
+  if(e.target.type==='checkbox'){
+    cfg.eng[id][f]=e.target.checked;
+    saveCfg();showSettingsAutoSaved();fillEngines();
+    if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();
+    renderEngines();
+  }else{
+    cfg.eng[id][f]=e.target.value.trim();
+    saveCfg();showSettingsAutoSaved();
+  }
+});
+$('engList').addEventListener('mousedown',e=>{
+  if(e.target.closest('.eng-key-toggle-btn')){
+    e.preventDefault();
+  }
 });
 $('engList').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id==='ollamaCustomModel'){
@@ -325,6 +338,7 @@ $('engList').addEventListener('keydown',e=>{
 $('engList').addEventListener('click',async e=>{
   const eyeBtn=e.target.closest('.eng-key-toggle-btn');
   if(eyeBtn){
+    e.preventDefault();
     const wrap=eyeBtn.closest('.eng-key-wrap');
     const inp=wrap?.querySelector('input[data-f="key"]');
     if(inp){
@@ -533,10 +547,20 @@ $('openSet').onclick=()=>{
   updateTmCount();
   $('ov').classList.add('on');
 };
-$('closeSet').onclick=()=>{saveAllInputs();$('ov').classList.remove('on')};
-$('btnSaveDone').onclick=()=>{saveAllInputs();$('ov').classList.remove('on');toast('Settings saved','ok')};
+function maskAllKeys(){
+  document.querySelectorAll('#engList input[data-f="key"]').forEach(inp=>{
+    inp.type='password';
+  });
+  document.querySelectorAll('#engList .eng-key-toggle-btn').forEach(btn=>{
+    btn.textContent='👁';
+  });
+}
+$('closeSet').onclick=()=>{maskAllKeys();saveAllInputs();$('ov').classList.remove('on')};
+$('btnSaveDone').onclick=()=>{maskAllKeys();saveAllInputs();$('ov').classList.remove('on');toast('Settings saved','ok')};
+$('ov').addEventListener('click',e=>{if(e.target===$('ov'))maskAllKeys()});
 document.querySelectorAll('.set-tab-btn').forEach(btn=>{
   btn.addEventListener('click',()=>{
+    maskAllKeys();
     document.querySelectorAll('.set-tab-btn').forEach(b=>b.classList.remove('active'));
     btn.classList.add('active');
     const sec=$(btn.dataset.sec);
