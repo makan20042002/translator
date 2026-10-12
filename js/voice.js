@@ -910,6 +910,11 @@ function setupPTT(btn, onSend, viewType) {
           pttRec = null;
           curPttStop = null;
           if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
+          if (cancelled) {
+            cancelled = false;
+            setVoiceState('ready');
+            return;
+          }
           const dur = Date.now() - pressTime;
           const combined = (finalTx + (finalTx && interimTx && !finalTx.endsWith(' ') && !interimTx.startsWith(' ') ? ' ' : '') + interimTx).trim();
           if (dur < 350 && !combined) {
@@ -972,6 +977,12 @@ function setupPTT(btn, onSend, viewType) {
         resetMeterLevel();
         if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
 
+        if (cancelled) {
+          cancelled = false;
+          setVoiceState('ready');
+          return;
+        }
+
         const dur = Date.now() - pressTime;
         if (dur < 350) {
           setVoiceState('ready');
@@ -1013,28 +1024,82 @@ function setupPTT(btn, onSend, viewType) {
     if (pttRec) pttRec.stop();
   }
 
+  let activePointerId = null, cancelled = false;
+
+  function endPointerPress(e) {
+    if (!isRecording) return;
+    const pid = activePointerId;
+    activePointerId = null;
+    if (pid !== null) {
+      try { btn.releasePointerCapture?.(pid); } catch {}
+    }
+    const elapsed = Date.now() - pressTime;
+    let isOutside = false;
+    if (e && typeof e.clientX === 'number') {
+      const rect = btn.getBoundingClientRect();
+      isOutside = e.clientX < rect.left || e.clientX > rect.right || e.clientY < rect.top || e.clientY > rect.bottom;
+    }
+    if (isOutside) {
+      cancelled = true;
+      tapActive = false;
+      stopRec();
+      setVoiceState('ready');
+    } else if (elapsed < 350) {
+      tapActive = true;
+      setVoiceState('listening', L('vStatusListening'), { isTap: true });
+    } else {
+      tapActive = false;
+      stopRec();
+    }
+  }
+
   btn.addEventListener('pointerdown', e => {
     if (e.button !== 0) return;
     e.preventDefault();
+    activePointerId = e.pointerId;
     try { btn.setPointerCapture?.(e.pointerId); } catch {}
-    if (tapActive) stopRec();
-    else startRec();
+    if (tapActive) {
+      tapActive = false;
+      stopRec();
+    } else {
+      startRec();
+    }
   });
 
   btn.addEventListener('pointerup', e => {
     e.preventDefault();
-    try { btn.releasePointerCapture?.(e.pointerId); } catch {}
-    if (!isRecording) return;
-    const elapsed = Date.now() - pressTime;
-    if (elapsed < 350) {
-      tapActive = true;
-      setVoiceState('listening', L('vStatusListening'), { isTap: true });
-    } else {
-      stopRec();
+    endPointerPress(e);
+  });
+
+  window.addEventListener('pointerup', e => {
+    if (isRecording) {
+      endPointerPress(e);
     }
   });
 
-  btn.addEventListener('pointercancel', () => { if (isRecording) stopRec(); });
+  window.addEventListener('mouseup', e => {
+    if (isRecording) {
+      endPointerPress(e);
+    }
+  });
+
+  window.addEventListener('pointercancel', () => {
+    if (isRecording) {
+      cancelled = true;
+      tapActive = false;
+      stopRec();
+      setVoiceState('ready');
+    }
+  });
+
+  btn.addEventListener('lostpointercapture', () => {
+    if (isRecording && !tapActive) {
+      cancelled = true;
+      tapActive = false;
+      stopRec();
+      setVoiceState('ready');
+    }
+  });
 
   btn.addEventListener('ptt-start', () => {
     if (tapActive) stopRec();
