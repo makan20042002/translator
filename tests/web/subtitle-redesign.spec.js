@@ -1,4 +1,7 @@
 'use strict';
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
 const { test, expect, mouseClick, chooseFile, downloadOf, onlyEngines } = require('../support/fixtures');
 
 test.describe('Web app: Subtitle tab redesign', () => {
@@ -236,6 +239,76 @@ test.describe('Web app: Subtitle tab redesign', () => {
       expect(vtt.name).toBe('sample.fa.vtt');
       const vttText = vtt.bytes.toString('utf8');
       expect(vttText).toContain('Hand edited line 4');
+    });
+  });
+
+  test.describe('Item 3: All counters agree on file with blank cue and repeated line', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test.beforeEach(async ({ app }) => {
+      const { page } = app;
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+    });
+
+    test('file bar, sInfo, sProgText, table rows, and export all agree on cue count', async ({ app }) => {
+      const { page } = app;
+
+      // Fixture with Cue 1 (valid), Cue 2 (blank cue with timing but no text), Cue 3 (repeated text)
+      const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'makan-sub-agree-'));
+      const srtPath = path.join(tmpDir, 'agree.srt');
+      const srtContent = [
+        '1',
+        '00:00:01,000 --> 00:00:02,000',
+        'Welcome to the show.',
+        '',
+        '2',
+        '00:00:03,000 --> 00:00:04,000',
+        '',
+        '3',
+        '00:00:05,000 --> 00:00:06,000',
+        'Welcome to the show.',
+        ''
+      ].join('\r\n');
+      fs.writeFileSync(srtPath, srtContent, 'utf8');
+
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), srtPath);
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // On load: blank cue is ignored by parser, so exactly 2 cues exist
+      await expect(page.locator('#sCuesCount')).toHaveText('2 cues');
+      await expect(page.locator('#sInfo')).toHaveText('agree · 0/2 lines');
+      await expect(page.locator('#sProgText')).toContainText('0 of 2');
+      await expect(page.locator('#cues .cue')).toHaveCount(2);
+
+      // Translate
+      await mouseClick(page, page.locator('#sGo'));
+
+      // After translation: 2 of 2 lines everywhere
+      await expect(page.locator('#sCuesCount')).toHaveText('2 cues');
+      await expect(page.locator('#sInfo')).toHaveText('agree · 2/2 lines');
+      await expect(page.locator('#sProgText')).toContainText('2 of 2');
+      // Repeated line hits memory: 1 from memory
+      await expect(page.locator('#sProgText')).toContainText('1 from memory');
+
+      // Table rows: exactly 2 rows
+      await expect(page.locator('#cues .cue')).toHaveCount(2);
+      // Row 0 translated by engine, row 1 from memory
+      await expect(page.locator('#cues .cue[data-i="0"] .cue-tm-badge')).toBeHidden();
+      await expect(page.locator('#cues .cue[data-i="1"] .cue-tm-badge')).toBeVisible();
+
+      // Export: exactly 2 cues in downloaded file
+      const srt = await downloadOf(page, () => mouseClick(page, page.locator('#sSrt')));
+      expect(srt.name).toBe('agree.fa.srt');
+      const lines = srt.bytes.toString('utf8').trim().split(/\r?\n\r?\n/);
+      expect(lines).toHaveLength(2);
+
+      // Clean up tmp
+      try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
     });
   });
 });
