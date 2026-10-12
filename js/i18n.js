@@ -71,7 +71,7 @@ const I18N={en:{
  docEngineNoticeText:'Subject analysis & translator notes require an AI engine. With non-AI engines, standard translation and Glossary are used.',
  docFormattingNote:'Formatting note: Paragraphs, tables, images, slides and formulas are preserved byte-for-byte; complex inline run styling within single sentences is merged.',
  tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page',
- pages:'pages',words:'words',slides:'slides',sheets:'sheets',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed',
+ pages:'pages',words:'words',slides:'slides',sheets:'sheets',rows:'rows',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed',
  vListenLabel:'Mic:',vTransLabel:'Translate:',tmEstimate:'estimate',tmPersistent:'Persistent',tmStandard:'Standard',
  secCreate:'CREATE',secTools:'TOOLS',secSystem:'SYSTEM',
  tabScreen:'Screen',tabGames:'Games',tabModels:'Model Hub',tabSettings:'Settings',
@@ -148,7 +148,7 @@ const I18N={en:{
  docEngineNoticeText:'تحلیل خودکار موضوع و یادداشت‌های مترجم نیازمند موتور هوش مصنوعی است. با موتورهای معمولی، ترجمه استاندارد و واژه‌نامه اعمال می‌شود.',
  docFormattingNote:'نکته قالب‌بندی: پاراگراف‌ها، جدول‌ها، تصاویر، اسلایدها و فرمول‌ها عینا حفظ می‌شوند؛ قالب‌بندی‌های تکه‌تکه درون جملات برای یکپارچگی ترکیب می‌شوند.',
  tSubject:'موضوع',tSubjectPh:'موضوع (مثلاً کامپیوتر، حقوق، پزشکی…)',subColSlide:'اسلاید',subColPage:'صفحه',
- pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال',
+ pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',rows:'سطر',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال',
  vListenLabel:'میکروفون:',vTransLabel:'ترجمه:'
 }};
 Object.assign(I18N.en,{
