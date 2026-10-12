@@ -388,6 +388,9 @@ function addBubble(container, side, said, trans, fromLang, toLang, meta = {}) {
   const speakerName = side === 'a' ? L('speakerA') : L('speakerB');
   const langLabel = fromLang === 'auto' ? '' : langShort(fromLang);
 
+  const vRes = resolveVoice(toLang);
+  const canSpeak = vRes && vRes.kind !== 'none';
+
   d.innerHTML = `
     <div class="bub-header">
       <span class="bub-speaker">${esc(speakerName)}${langLabel ? ' · ' + esc(langLabel) : ''}</span>
@@ -399,17 +402,17 @@ function addBubble(container, side, said, trans, fromLang, toLang, meta = {}) {
     </div>
     <div class="bub-text" dir="${dirTo}">${esc(trans)}</div>
     <div class="bub-actions">
-      <button class="replay-btn" type="button" data-lang="${esc(toLang)}" title="${esc(L('replay'))}">
+      <button class="replay-btn" type="button" data-lang="${esc(toLang)}" ${canSpeak ? '' : 'disabled aria-disabled="true"'} title="${esc(canSpeak ? L('replay') : (L('noVoiceInstalled') || 'No voice available for this language'))}">
         ${SVG_ICONS.speakerSmall}<span>${esc(L('replay'))}</span>
       </button>
       <button class="copy-btn" type="button" title="${esc(L('copy'))}">
         ${SVG_ICONS.copySmall}<span>${esc(L('copy'))}</span>
       </button>
       <div class="bub-meta-tags">
-        ${meta.stt ? `<span class="bub-tag">${esc(meta.stt)}${meta.sttModel ? ' · ' + esc(meta.sttModel) : ''}</span>` : ''}
-        ${meta.engine ? `<span class="bub-tag">${esc(meta.engine)}</span>` : ''}
-        ${meta.voice ? `<span class="bub-tag">${esc(meta.voice)}</span>` : ''}
-        ${meta.dur ? `<span class="bub-tag">${esc(meta.dur)}</span>` : ''}
+        ${meta.stt ? `<span class="bub-tag"><bdi>${esc(meta.stt)}${meta.sttModel ? ' · ' + esc(meta.sttModel) : ''}</bdi></span>` : ''}
+        ${meta.engine ? `<span class="bub-tag"><bdi>${esc(meta.engine)}</bdi></span>` : ''}
+        ${meta.voice ? `<span class="bub-tag"><bdi>${esc(meta.voice)}</bdi></span>` : ''}
+        ${meta.dur ? `<span class="bub-tag bub-time-chip"><bdi>${esc(meta.dur)}</bdi></span>` : ''}
       </div>
     </div>
   `;
@@ -417,6 +420,11 @@ function addBubble(container, side, said, trans, fromLang, toLang, meta = {}) {
   // Replay speech
   d.querySelector('.replay-btn').onclick = e => {
     e.stopPropagation();
+    const curRes = resolveVoice(toLang);
+    if (!curRes || curRes.kind === 'none') {
+      toast(L('noVoiceInstalled'), 'warn');
+      return;
+    }
     const txt = d.querySelector('.bub-text').textContent;
     if (txt && txt !== '…' && txt !== '—') speak(txt, toLang);
   };

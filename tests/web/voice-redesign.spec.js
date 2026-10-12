@@ -81,4 +81,68 @@ test.describe('Web app: Voice tab redesign', () => {
       }
     });
   });
+
+  test.describe('Item 2: Conversation list', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('exchanges show original and translation, real engine chips, replay disabled when no voice, and clear button empties list', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      // Initially empty state is visible
+      await expect(page.locator('#vEmptyState')).toBeVisible();
+      await expect(page.locator('#bubbles .bub')).toHaveCount(0);
+
+      // Programmatically add a bubble with metadata to verify chip rendering & replay button
+      await page.evaluate(() => {
+        addBubble(document.getElementById('bubbles'), 'a', 'Hello there', 'سلام', 'en', 'fa', {
+          stt: 'Whisper Base',
+          engine: 'Google',
+          voice: 'Ganji',
+          dur: '0.8s'
+        });
+      });
+
+      await expect(page.locator('#vEmptyState')).toBeHidden();
+      await expect(page.locator('#bubbles .bub')).toHaveCount(1);
+
+      const bub = page.locator('#bubbles .bub').first();
+      await expect(bub.locator('.bub-orig-text')).toHaveText('Hello there');
+      await expect(bub.locator('.bub-text')).toHaveText('سلام');
+      await expect(bub.locator('.bub-time')).toBeVisible();
+
+      // Check real engine chips
+      const chips = bub.locator('.bub-meta-tags .bub-tag');
+      await expect(chips).toHaveCount(4);
+      await expect(chips.nth(0)).toContainText('Whisper Base');
+      await expect(chips.nth(1)).toContainText('Google');
+      await expect(chips.nth(2)).toContainText('Ganji');
+      await expect(chips.nth(3)).toContainText('0.8s');
+
+      // Add another bubble WITHOUT duration to verify no time chip is shown if app has no timing
+      await page.evaluate(() => {
+        addBubble(document.getElementById('bubbles'), 'b', 'Good morning', 'صبح بخیر', 'en', 'fa', {
+          stt: 'Browser',
+          engine: 'Google'
+        });
+      });
+
+      const bub2 = page.locator('#bubbles .bub').nth(1);
+      const bub2Chips = bub2.locator('.bub-meta-tags .bub-tag');
+      await expect(bub2Chips).toHaveCount(2);
+      await expect(bub2.locator('.bub-meta-tags .bub-time-chip')).toHaveCount(0);
+
+      // Check replay button when no voice can speak
+      // Since seed has only google (no Gemini key) and browser has no Persian voice, resolveVoice('fa') is none
+      const replayBtn = bub.locator('.replay-btn');
+      const isDisabled = await replayBtn.getAttribute('disabled');
+      expect(isDisabled !== null || (await replayBtn.getAttribute('aria-disabled')) === 'true').toBe(true);
+
+      // Clear conversation
+      await mouseClick(page, page.locator('#vClearConv'));
+      await expect(page.locator('#bubbles .bub')).toHaveCount(0);
+      await expect(page.locator('#vEmptyState')).toBeVisible();
+    });
+  });
 });
+
