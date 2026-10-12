@@ -134,5 +134,110 @@ test.describe('Web app: Document tab redesign', () => {
       expect(docxDl.bytes.length).toBeGreaterThan(1000);
     });
   });
+
+  test.describe('Item 3: Progress strip, honest counters, memory note, and failure status', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('counters equal real segments, memory note appears only after real memory hit, and unrescued failure gives non-Done status without 100%', async ({ app, files, stub }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      // 1. Load sample.txt (3 segments)
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await expect(page.locator('#dWork')).toBeVisible();
+
+      // Initial state: 3 segments, Ready status, empty memory note
+      await expect(page.locator('#dProgCounts')).toHaveText('3 segments');
+      await expect(page.locator('#dStatusText')).toHaveText('Ready');
+      await expect(page.locator('#dStatusChip')).toHaveClass(/idle/);
+      await expect(page.locator('#dEngineUsed')).toHaveText('');
+
+      // Clean translation memory so no previous tests affect this
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+
+      // 2. Normal translation without memory: memory note must stay empty
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+      await expect(page.locator('#dStatusText')).toHaveText('Done');
+      await expect(page.locator('#dStatusChip')).toHaveClass(/ok/);
+      await expect(page.locator('#dProgCounts')).toHaveText('3 / 3 segments');
+      await expect(page.locator('#dEngineUsed')).toHaveText('');
+
+      // 3. Translate again: now segments are in memory, so memory note appears!
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 20_000 });
+      await expect(page.locator('#dStatusText')).toHaveText('Done');
+      await expect(page.locator('#dStatusChip')).toHaveClass(/ok/);
+      await expect(page.locator('#dEngineUsed')).toContainText('from memory');
+
+      // 4. Forced engine failure (unrescued failure)
+      // Clear memory so engine call is required
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+
+      // Force all Google endpoints to fail
+      for (const h of ['clients5.google.com', 'translate.googleapis.com']) stub.failHost(h, 500);
+
+      // Reload fresh document to reset state
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await mouseClick(page, page.locator('#dGo'));
+
+      // Error status is shown, NOT Ready, NOT Done
+      await expect(page.locator('#dStatusText')).not.toHaveText('Ready');
+      await expect(page.locator('#dStatusText')).not.toHaveText('Done');
+      await expect(page.locator('#dStatusText')).toHaveText('Error');
+      await expect(page.locator('#dStatusChip')).toHaveClass(/error/);
+
+      // Failed segments are NOT counted as translated: 0 / 3 segments
+      await expect(page.locator('#dProgCounts')).toHaveText('0 / 3 segments');
+      await expect(page.locator('#dProgText')).not.toContainText('100%');
+      await expect(page.locator('#dProgText')).not.toContainText('Done');
+
+      // Translate button is usable again so user can retry
+      await expect(page.locator('#dGo')).toBeEnabled();
+    });
+
+    test('when every engine fails in Persian UI: status is not Ready/Done, shows Persian failure text, and failed segments are not counted', async ({ app, files, stub }) => {
+      const { page } = app;
+      await page.evaluate(() => {
+        ui = 'fa';
+        document.documentElement.dir = 'rtl';
+        document.documentElement.lang = 'fa';
+        applyI18n();
+      });
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+
+      // Force failure
+      for (const h of ['clients5.google.com', 'translate.googleapis.com']) stub.failHost(h, 500);
+
+      await chooseFile(page, page.locator('#dDrop'), files.txt);
+      await mouseClick(page, page.locator('#dGo'));
+
+      // Status is NOT Ready (آماده) and NOT Done (انجام شد)
+      await expect(page.locator('#dStatusText')).not.toHaveText('آماده');
+      await expect(page.locator('#dStatusText')).not.toHaveText('انجام شد');
+      await expect(page.locator('#dStatusText')).toHaveText('خطا');
+      await expect(page.locator('#dStatusChip')).toHaveClass(/error/);
+
+      // Honest progress: 0 از 3 بخش
+      await expect(page.locator('#dProgCounts')).toHaveText('0 از 3 بخش');
+      await expect(page.locator('#dProgText')).not.toContainText('100%');
+      await expect(page.locator('#dGo')).toBeEnabled();
+    });
+  });
 });
+
 

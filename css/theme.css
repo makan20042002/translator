@@ -2514,6 +2514,128 @@ html[lang="fa"] .doc-drop-text strong {
   }
 }
 
+/* ==================== DOCUMENT PROGRESS STRIP (ITEM 3) ==================== */
+.doc-prog-strip {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  background: var(--surface1, #0a1324);
+  border: 1px solid var(--border1, rgba(28, 64, 118, 0.35));
+  border-radius: var(--rad-lg, 12px);
+  padding: 14px 18px;
+  margin-top: 14px;
+}
+
+.doc-prog-strip-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.doc-prog-counts-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.doc-prog-counts {
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--text, #f8fafc);
+}
+
+.doc-prog-detail {
+  font-size: 13px;
+  color: var(--muted, #94a3b8);
+}
+
+.doc-mem-note {
+  font-size: 12px;
+  color: #38bdf8;
+  background: rgba(56, 189, 248, 0.1);
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid rgba(56, 189, 248, 0.25);
+  display: inline-flex;
+  align-items: center;
+}
+.doc-mem-note:empty {
+  display: none;
+}
+
+.doc-prog-status-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.doc-status-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 600;
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  background: var(--surface2, #0e1e38);
+  color: var(--muted, #94a3b8);
+  transition: all 0.2s ease;
+}
+
+.doc-status-chip.idle {
+  background: var(--surface2, #0e1e38);
+  color: var(--muted, #94a3b8);
+  border-color: var(--border2, rgba(28, 64, 118, 0.45));
+}
+
+.doc-status-chip.active,
+.doc-status-chip.translating {
+  background: rgba(56, 189, 248, 0.12);
+  color: #38bdf8;
+  border-color: rgba(56, 189, 248, 0.35);
+}
+
+.doc-status-chip.ok,
+.doc-status-chip.done {
+  background: rgba(34, 197, 94, 0.12);
+  color: #4ade80;
+  border-color: rgba(34, 197, 94, 0.3);
+}
+
+.doc-status-chip.warn,
+.doc-status-chip.partial {
+  background: rgba(245, 158, 11, 0.12);
+  color: #fbbf24;
+  border-color: rgba(245, 158, 11, 0.3);
+}
+
+.doc-status-chip.error {
+  background: rgba(239, 68, 68, 0.12);
+  color: #f87171;
+  border-color: rgba(239, 68, 68, 0.3);
+}
+
+.doc-prog-bar-wrap {
+  height: 6px;
+  background: var(--surface2, #0e1e38);
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 0;
+}
+
+.doc-prog-bar-wrap i {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: linear-gradient(90deg, var(--accent, #38bdf8), #60a5fa);
+  transition: width 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+
 
 
 

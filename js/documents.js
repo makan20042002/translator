@@ -682,6 +682,35 @@ Return ONLY the raw JSON array.`;
 }
 $('docReviewTermsBtn').onclick=reviewDocTermsInContext;
 
+const isDocErr=s=>!s||!s.trim()||/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i.test(s.trim());
+
+function updateDocStatus(status, text){
+  const chip=$('dStatusChip');
+  const txt=$('dStatusText');
+  if(chip) chip.className='doc-status-chip '+(status||'idle');
+  if(txt){
+    if(text) txt.textContent=text;
+    else if(status==='idle') txt.textContent=(ui==='fa'?'آماده':'Ready');
+    else if(status==='active'||status==='translating') txt.textContent=(ui==='fa'?'در حال ترجمه…':'Translating…');
+    else if(status==='ok'||status==='done') txt.textContent=(ui==='fa'?'انجام شد':'Done');
+    else if(status==='warn'||status==='partial') txt.textContent=(ui==='fa'?'ناقص':'Partial');
+    else if(status==='error') txt.textContent=(ui==='fa'?'خطا':'Error');
+  }
+}
+
+function updateDocProgCounts(done, total){
+  const el=$('dProgCounts');
+  if(!el) return;
+  const segWord=ui==='fa'?'بخش':'segments';
+  if(total==null||total===0){
+    el.textContent=`0 ${segWord}`;
+  }else if(done==null){
+    el.textContent=`${total} ${segWord}`;
+  }else{
+    el.textContent=ui==='fa'?`${done} از ${total} ${segWord}`:`${done} / ${total} ${segWord}`;
+  }
+}
+
 async function loadDoc(f){
   if(/\.pdf$/i.test(f.name)){
     toast(L('pdfNotSupported')||'PDF files are not supported yet.','warn',6000);
@@ -693,7 +722,6 @@ async function loadDoc(f){
   $('dWork').hidden=false;
   $('dSave').disabled=true;
   $('dBar').style.width='0';
-  $('dProgText').textContent=L('ready');
   $('dFileName').textContent=f.name;
   $('dBadge').textContent=ext.toUpperCase();
 
@@ -737,6 +765,11 @@ async function loadDoc(f){
   $('dIn').value=doc.items.slice(0,25).join('\n\n').slice(0,50000);
   $('dOut').value='';
 
+  updateDocStatus('idle');
+  updateDocProgCounts(null, doc.items.length);
+  $('dProgText').textContent=ui==='fa'?'آماده ترجمه':'Ready to translate';
+  $('dEngineUsed').textContent='';
+
   // Reset terms and detect subject
   renderDocTerms([]);
   detectSubjectAndTerms(doc);
@@ -749,8 +782,11 @@ $('dGo').onclick=async()=>{
   if(!doc)return;
   dCtl=new AbortController();
   busy([$('dGo')],$('dStop'),true);
-  $('dProgText').textContent='Translating…';
+  updateDocStatus('active');
+  $('dProgText').textContent=ui==='fa'?'در حال ترجمه…':'Translating…';
   $('dEngineUsed').textContent='';
+  updateDocProgCounts(0, doc.items.length);
+  $('dBar').style.width='0%';
 
   const extraOpts={
     subject:$('docSubjectField').value.trim(),
@@ -802,6 +838,14 @@ $('dGo').onclick=async()=>{
     }
   }
 
+  // Update initial memory state if there were hits
+  if(memHits>0){
+    const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
+    $('dEngineUsed').textContent=memMsg;
+    updateDocProgCounts(memHits, doc.items.length);
+    $('dBar').style.width=Math.min(99, Math.round((memHits/doc.items.length)*100))+'%';
+  }
+
   // If all segments hit memory, no engine call needed
   if(missItems.length===0){
     busy([$('dGo')],$('dStop'),false);
@@ -812,6 +856,8 @@ $('dGo').onclick=async()=>{
     $('dBar').style.width='100%';
     const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
     $('dEngineUsed').textContent=memMsg;
+    updateDocProgCounts(doc.items.length, doc.items.length);
+    updateDocStatus('ok');
     $('dProgText').textContent=`${L('done')} · ${memMsg}`;
     toast(`${L('done')} · ${memMsg}`,'ok');
     return;
@@ -824,10 +870,14 @@ $('dGo').onclick=async()=>{
       onProgress:(pos,tot,engId)=>{
         const done=memHits+pos;
         const total=doc.items.length;
-        const pct=Math.round((done/total)*100);
+        const pct=Math.min(99, Math.round((done/total)*100));
         $('dBar').style.width=pct+'%';
+        updateDocProgCounts(done, total);
         const engName=ENG[engId]?.name||engId;
-        const memNote=memHits?` · ${memHits} from memory`:'';
+        const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
+        if(memHits>0){
+          $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
+        }
         if(doc.ext==='pptx'&&doc.meta?.slides){
           const curSlide=Math.min(doc.meta.slides,Math.max(1,Math.ceil((done/total)*doc.meta.slides)));
           $('dProgText').textContent=`Slide ${curSlide} of ${doc.meta.slides} (${pct}%) · ${engName}${memNote}`;
@@ -835,7 +885,9 @@ $('dGo').onclick=async()=>{
           const curPage=Math.min(doc.meta.estPages,Math.max(1,Math.ceil((done/total)*doc.meta.estPages)));
           $('dProgText').textContent=`Page ${curPage} of ${doc.meta.estPages} (${pct}%) · ${engName}${memNote}`;
         }else{
-          $('dProgText').textContent=`${done} / ${total} (${pct}%) · ${engName}${memNote}`;
+          $('dProgText').textContent=ui==='fa'
+            ? `${done} از ${total} (${pct}%) · ${engName}${memNote}`
+            : `${done} / ${total} (${pct}%) · ${engName}${memNote}`;
         }
       },
       onBatch:(batchIndices,res,currentOut,currentNotes)=>{
@@ -869,32 +921,91 @@ $('dGo').onclick=async()=>{
       }
     },extraOpts)));
 
+    // Verify results segment by segment
+    let validCount=0;
+    let failedCount=0;
+    for(let i=0;i<doc.items.length;i++){
+      const val=partialOut[i];
+      const txt=typeof val==='string'?val:(val?.text||'');
+      if(txt&&txt.trim()&&!isDocErr(txt)){
+        validCount++;
+      }else{
+        failedCount++;
+        if(partialOut[i]==null) partialOut[i]=doc.items[i];
+      }
+    }
+
     dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
     dOutItems=partialOut.slice();
     $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-    $('dSave').disabled=false;
-    const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
-    $('dEngineUsed').textContent=usedStr;
-    $('dProgText').textContent=`${L('done')} · ${usedStr}`;
-    toast(`${L('done')} · ${usedStr}`,'ok');
+    $('dSave').disabled=(validCount===0);
+
+    if(failedCount>0){
+      updateDocStatus('warn', ui==='fa'?'ناقص':'Partial');
+      const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+      $('dBar').style.width=pct+'%';
+      updateDocProgCounts(validCount, doc.items.length);
+      $('dProgText').textContent=ui==='fa'
+        ? `${validCount} از ${doc.items.length} ترجمه شد · ${failedCount} ناموفق`
+        : `${validCount} of ${doc.items.length} translated · ${failedCount} failed`;
+      toast(ui==='fa'?`ترجمه با ${failedCount} خط ناموفق انجام شد`:`Done with ${failedCount} failed segments`,'warn');
+    }else{
+      updateDocStatus('ok');
+      $('dBar').style.width='100%';
+      updateDocProgCounts(doc.items.length, doc.items.length);
+      const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
+      if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
+      $('dProgText').textContent=`${L('done')} · ${usedStr}`;
+      toast(`${L('done')} · ${usedStr}`,'ok');
+    }
     updateTmCount();
   }catch(e){
-    if(e.name==='AbortError'||dCtl.signal.aborted){
-      // Preserve completed segments!
-      for(let i=0;i<doc.items.length;i++){
+    let validCount=0;
+    let failedCount=0;
+    for(let i=0;i<doc.items.length;i++){
+      const val=partialOut[i];
+      const txt=typeof val==='string'?val:(val?.text||'');
+      if(txt&&txt.trim()&&!isDocErr(txt)){
+        validCount++;
+      }else{
+        failedCount++;
         if(partialOut[i]==null) partialOut[i]=doc.items[i];
       }
+    }
+
+    if(e.name==='AbortError'||dCtl?.signal?.aborted){
       try{
         dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
         dOutItems=partialOut.slice();
         $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-        $('dSave').disabled=false;
+        $('dSave').disabled=(validCount===0);
+        updateDocStatus('warn', ui==='fa'?'متوقف شد':'Stopped');
+        const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+        $('dBar').style.width=pct+'%';
+        updateDocProgCounts(validCount, doc.items.length);
         $('dProgText').textContent='Stopped (partial translation saved)';
         toast(L('stopped')+' — partial file saved','warn');
       }catch(be){
         fail(e);
       }
     }else{
+      updateDocStatus('error', ui==='fa'?'خطا':'Error');
+      const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+      $('dBar').style.width=pct+'%';
+      updateDocProgCounts(validCount, doc.items.length);
+      $('dProgText').textContent=ui==='fa'
+        ? `${validCount} از ${doc.items.length} ترجمه شد`
+        : `${validCount} of ${doc.items.length} translated`;
+      if(validCount>0){
+        try{
+          dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+          dOutItems=partialOut.slice();
+          $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+          $('dSave').disabled=false;
+        }catch(_){}
+      }else{
+        $('dSave').disabled=true;
+      }
       fail(e);
     }
   }

@@ -456,7 +456,6 @@
               <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m5 8 6 6"/><path d="m4 14 6-6 2-3"/><path d="M2 5h12"/><path d="M7 2h1"/><path d="m22 22-5-10-5 10"/><path d="M14 18h6"/></svg>
               <span data-t="dGo">Translate file</span>
             </button>
-            <button class="btn doc-btn-save" id="dSave" disabled data-t="download">Download</button>
           </div>
         </div>
 
@@ -519,23 +518,36 @@
           </div>
         </div>
 
-        <div class="prog"><i id="dBar"></i></div>
-        <div class="doc-prog-meta">
-          <span id="dProgText">Ready to translate</span>
-          <span id="dEngineUsed"></span>
-        </div>
-
         <!-- Split Preview Panes -->
-        <div class="panes" style="margin-top:6px">
-          <div class="pane">
+        <div class="panes doc-panes" style="margin-top:6px">
+          <div class="pane doc-pane">
             <div class="pane-h"><span class="lbl" data-t="original">Original</span></div>
             <textarea id="dIn" readonly dir="auto" style="font-size:13.5px;font-family:var(--mono)"></textarea>
           </div>
           <div class="seam"></div>
-          <div class="pane">
+          <div class="pane doc-pane">
             <div class="pane-h"><span class="lbl" data-t="translation">Translation</span></div>
             <textarea id="dOut" readonly dir="auto" style="font-size:13.5px;font-family:var(--mono)"></textarea>
           </div>
+        </div>
+
+        <!-- Progress Strip (Item 3) -->
+        <div class="doc-prog-strip" id="dProgStrip">
+          <div class="doc-prog-strip-top">
+            <div class="doc-prog-counts-wrap">
+              <span class="doc-prog-counts" id="dProgCounts">0 segments</span>
+              <span class="doc-prog-detail" id="dProgText">Ready to translate</span>
+              <span class="doc-mem-note" id="dEngineUsed"></span>
+            </div>
+            <div class="doc-prog-status-wrap">
+              <span class="doc-status-chip idle" id="dStatusChip">
+                <svg class="doc-status-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                <span id="dStatusText">Ready</span>
+              </span>
+              <button class="btn doc-btn-save" id="dSave" disabled data-t="download">Download</button>
+            </div>
+          </div>
+          <div class="prog doc-prog-bar-wrap"><i id="dBar"></i></div>
         </div>
       </div>
     </div>
