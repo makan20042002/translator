@@ -132,6 +132,7 @@ $('cues').addEventListener('input',e=>{
     const badge=$('cues').querySelector(`.cue-tm-badge[data-i="${i}"]`);
     if(badge)badge.hidden=true;
     sInfo();
+    updateSubProg();
     clearTimeout(subEditTmTimer);
     subEditTmTimer=setTimeout(()=>saveSubCueCorrection(i),300);
   }
@@ -309,6 +310,7 @@ async function doSubs(onlyEmpty){
     fail(e);
     if($('sStatusChip'))$('sStatusChip').className='sub-status-chip error';
     if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'خطا':'Error';
+    updateSubProg();
   }
   busy([$('sGo'),$('sRest')],$('sStop'),false);
   sInfo();
