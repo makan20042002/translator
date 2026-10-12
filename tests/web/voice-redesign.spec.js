@@ -400,6 +400,63 @@ test.describe('Web app: Voice tab redesign', () => {
         }
       }
     });
+
+    test('after pressing and releasing mouse far outside button, talk control returns to idle', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      // 1. Check conversation Talk button
+      await mouseClick(page, page.locator('#vTabConv'));
+      const pttBtn = page.locator('#vPttBtn');
+      await expect(pttBtn).toBeVisible();
+      await pttBtn.scrollIntoViewIfNeeded();
+
+      const boxPtt = await pttBtn.boundingBox();
+      expect(boxPtt, 'boundingBox of #vPttBtn').not.toBeNull();
+      const pttCx = boxPtt.x + boxPtt.width / 2;
+      const pttCy = boxPtt.y + boxPtt.height / 2;
+
+      // Press down on Talk button
+      await page.mouse.move(pttCx, pttCy);
+      await page.mouse.down();
+      await expect(pttBtn).toHaveAttribute('data-state', 'listening');
+
+      // Drag mouse far outside the button
+      await page.mouse.move(Math.max(10, pttCx - 250), Math.max(10, pttCy - 250));
+
+      // Release mouse outside
+      await page.mouse.up();
+
+      // Talk control must return to idle (data-state not "listening")
+      await expect(pttBtn).not.toHaveAttribute('data-state', 'listening');
+      await expect(pttBtn).toHaveAttribute('data-state', 'ready');
+
+      // 2. Check Ask AI Talk button
+      await mouseClick(page, page.locator('#vTabAsk'));
+      const askBtn = page.locator('#vAskPttBtn');
+      await expect(askBtn).toBeVisible();
+      await askBtn.scrollIntoViewIfNeeded();
+
+      const boxAsk = await askBtn.boundingBox();
+      expect(boxAsk, 'boundingBox of #vAskPttBtn').not.toBeNull();
+      const askCx = boxAsk.x + boxAsk.width / 2;
+      const askCy = boxAsk.y + boxAsk.height / 2;
+
+      // Press down on Ask AI Talk button
+      await page.mouse.move(askCx, askCy);
+      await page.mouse.down();
+      await expect(askBtn).toHaveAttribute('data-state', 'listening');
+
+      // Drag mouse far outside the button
+      await page.mouse.move(Math.max(10, askCx - 250), Math.max(10, askCy - 250));
+
+      // Release mouse outside
+      await page.mouse.up();
+
+      // Ask AI Talk control must return to idle (data-state not "listening")
+      await expect(askBtn).not.toHaveAttribute('data-state', 'listening');
+      await expect(askBtn).toHaveAttribute('data-state', 'ready');
+    });
   });
 });
 
