@@ -317,5 +317,54 @@ test.describe('Web app: Subtitle tab redesign', () => {
       try { fs.rmSync(tmpDir, { recursive: true, force: true }); } catch (_) {}
     });
   });
+
+  test.describe('Item 3: Failed batch handling', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('failed lines are not counted as translated, status shows Error, and progress text does not say 100%', async ({ app, files, stub }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), files.srt);
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // Pre-save cue 0 into translation memory so 1 cue succeeds from memory while engine batch fails
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+          await window.TranslationMemory.put({
+            sourceText: 'Hello there.',
+            translatedText: '[fa] Hello there.',
+            src: 'en',
+            tgt: 'fa',
+            modeClass: 'fast',
+            tone: '',
+            subject: '',
+            subStyle: 'film'
+          });
+        }
+      });
+
+      // Force Google endpoint to fail
+      stub.failHost('clients5.google.com', 500);
+
+      // Translate
+      await mouseClick(page, page.locator('#sGo'));
+
+      // Error status is shown
+      await expect(page.locator('#sStatusText')).toHaveText('Error');
+      await expect(page.locator('#sStatusChip')).toHaveClass(/error/);
+
+      // Failed lines are NOT counted as translated: 1 translated of 5 lines (20%)
+      await expect(page.locator('#sInfo')).toHaveText('sample · 1/5 lines');
+      await expect(page.locator('#sProgText')).toContainText('1 of 5');
+      await expect(page.locator('#sProgText')).toContainText('20%');
+      await expect(page.locator('#sProgText')).not.toContainText('100%');
+
+      // Failed row has empty translation and not counted
+      await expect(page.locator('#cues .tr[data-i="0"]')).toHaveText('[fa] Hello there.');
+      await expect(page.locator('#cues .tr[data-i="1"]')).toHaveText('');
+    });
+  });
 });
+
 
