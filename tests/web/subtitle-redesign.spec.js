@@ -321,6 +321,16 @@ test.describe('Web app: Subtitle tab redesign', () => {
   test.describe('Item 3: Failed batch handling', () => {
     test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
 
+    test.beforeEach(async ({ app, stub }) => {
+      stub.resetModes();
+      stub.clearLog();
+      await app.page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+    });
+
     test('when primary endpoint fails, secondary endpoint rescues batch: status ends as Ready and progress says 100%', async ({ app, files, stub }) => {
       const { page } = app;
       await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
@@ -351,7 +361,7 @@ test.describe('Web app: Subtitle tab redesign', () => {
       await mouseClick(page, page.locator('#sGo'));
 
       // Rescued by secondary endpoint: all 5 lines succeed
-      expect(stub.calls('translate.googleapis.com').length).toBeGreaterThan(0);
+      await expect.poll(() => stub.calls('translate.googleapis.com').length).toBeGreaterThan(0);
       await expect(page.locator('#sStatusText')).toHaveText('Ready');
       await expect(page.locator('#sStatusChip')).toHaveClass(/idle/);
       await expect(page.locator('#sInfo')).toHaveText('sample · 5/5 lines');
@@ -359,6 +369,7 @@ test.describe('Web app: Subtitle tab redesign', () => {
       await expect(page.locator('#sProgText')).toContainText('100%');
       await expect(page.locator('#cues .tr[data-i="0"]')).toHaveText('[fa] Hello there.');
       await expect(page.locator('#cues .tr[data-i="1"]')).not.toHaveText('');
+      await expect(page.locator('#cues .cue.error')).toHaveCount(0);
     });
 
     test('failed lines are not counted as translated, status shows Error, and progress text does not say 100%', async ({ app, files, stub }) => {
@@ -390,7 +401,8 @@ test.describe('Web app: Subtitle tab redesign', () => {
       // Translate
       await mouseClick(page, page.locator('#sGo'));
 
-      // Error status is shown
+      // Error status is shown, NOT Ready
+      await expect(page.locator('#sStatusText')).not.toHaveText('Ready');
       await expect(page.locator('#sStatusText')).toHaveText('Error');
       await expect(page.locator('#sStatusChip')).toHaveClass(/error/);
 
@@ -400,12 +412,59 @@ test.describe('Web app: Subtitle tab redesign', () => {
       await expect(page.locator('#sProgText')).toContainText('20%');
       await expect(page.locator('#sProgText')).not.toContainText('100%');
 
-      // Failed row has empty translation, not counted, and is visibly marked
+      // Failed row has empty translation, not counted, keeps original text, and is visibly marked
       await expect(page.locator('#cues .tr[data-i="0"]')).toHaveText('[fa] Hello there.');
       await expect(page.locator('#cues .tr[data-i="1"]')).toHaveText('');
+      await expect(page.locator('#cues .cue[data-i="1"] .o')).toHaveText('Where are you going?');
       await expect(page.locator('#cues .cue[data-i="1"]')).toHaveClass(/error/);
 
-      // User can retry untranslated lines via #sRest
+      // Translate button and #sRest are usable again so the user can retry
+      await expect(page.locator('#sGo')).toBeEnabled();
+      await expect(page.locator('#sRest')).toBeEnabled();
+    });
+
+    test('when every engine/endpoint fails for a batch in Persian UI: status is not Ready, shows Persian failure text, and Translate button is usable again', async ({ app, files, stub }) => {
+      const { page } = app;
+      await page.evaluate(() => {
+        ui = 'fa';
+        document.documentElement.dir = 'rtl';
+        document.documentElement.lang = 'fa';
+        applyI18n();
+      });
+      await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+      await chooseFile(page, page.locator('#sDrop'), files.srt);
+      await expect(page.locator('#sWork')).toBeVisible();
+
+      // Clean translation memory so no previous test rescues this run
+      await page.evaluate(async () => {
+        if (window.TranslationMemory) {
+          await window.TranslationMemory.clear();
+        }
+      });
+
+      // Force all Google endpoints to fail (unrescued failure)
+      for (const h of ['clients5.google.com', 'translate.googleapis.com']) stub.failHost(h, 500);
+
+      // Translate
+      await mouseClick(page, page.locator('#sGo'));
+
+      // Status is NOT Ready (آماده), shows Persian failure text (خطا)
+      await expect(page.locator('#sStatusText')).not.toHaveText('آماده');
+      await expect(page.locator('#sStatusText')).toHaveText('خطا');
+      await expect(page.locator('#sStatusChip')).toHaveClass(/error/);
+
+      // Progress does NOT say 100% and does not count failed lines as translated
+      await expect(page.locator('#sInfo')).toHaveText('sample · 0/5 خط');
+      await expect(page.locator('#sProgText')).toContainText('0 از 5');
+      await expect(page.locator('#sProgText')).not.toContainText('100%');
+
+      // Failed rows are visibly marked and keep their original text
+      await expect(page.locator('#cues .cue.error')).toHaveCount(5);
+      await expect(page.locator('#cues .cue[data-i="0"] .o')).toHaveText('Hello there.');
+      await expect(page.locator('#cues .tr[data-i="0"]')).toHaveText('');
+
+      // Translate button is usable again so user can retry
+      await expect(page.locator('#sGo')).toBeEnabled();
       await expect(page.locator('#sRest')).toBeEnabled();
     });
   });
