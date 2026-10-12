@@ -9,7 +9,7 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   }
   if(b.dataset.tab==='voice')checkFileProtoNotice();
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
-  if(b.dataset.tab==='models'&&typeof renderModelHub==='function')renderModelHub();
+  if(b.dataset.tab==='models'){if(typeof renderModelHub==='function')renderModelHub();if(typeof mcScan==='function')mcScan().then(()=>{if(typeof renderModelHub==='function')renderModelHub();});}
   if(b.dataset.tab==='sub')updateSubEngineNotice();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });

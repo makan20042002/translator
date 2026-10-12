@@ -57,6 +57,7 @@ test.describe('Web app: Model Hub Redesign (Stage 3)', () => {
       store.set('mdl', { 'asr-small': { at: 1, files: a } });
     }, { a: small.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
     await fakeDownloaded(page, small.repo, small.files);
+    await page.evaluate(() => mcScan());
 
     // Switch to Model Hub tab
     await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
