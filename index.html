@@ -800,6 +800,16 @@
                   <span class="v-live-dot"></span>
                   <span class="v-live-txt" id="vLiveTxt" data-t="vLive">Live</span>
                 </button>
+                <div class="compact-voice-picker-wrap" id="vLiveVoicePickerWrap">
+                  <button class="btn ghost compact-voice-btn" id="vLiveVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Live Voice" aria-label="Live Voice">
+                    <span class="compact-voice-icon">🗣️</span>
+                    <span class="compact-voice-cur" id="vLiveVoiceCurLabel">Auto</span>
+                    <span class="compact-voice-caret" style="font-size:9px">▼</span>
+                  </button>
+                  <div class="compact-voice-popup popup-up" id="vLiveVoicePopup" role="dialog" aria-label="Live voice" hidden>
+                    <div class="voice-picker-list" id="vLiveVoicePickerList" data-context="live"></div>
+                  </div>
+                </div>
               </div>
               <div class="v-space-hint" id="vPttSpaceHint" title="Hold Space to talk">
                 <kbd class="v-kbd">Space</kbd>
@@ -905,6 +915,9 @@
         </div>
       </div>
     </div>
+
+    <!-- SLIM BOTTOM STATUS STRIP (ITEM 4) -->
+    <div class="voice-status-strip" id="vStatusStrip" role="status" aria-live="polite"></div>
   </section>
 
   <!-- COMPARE -->

@@ -227,6 +227,67 @@ test.describe('Web app: Voice tab redesign', () => {
       await expect(privacyLine).toBeHidden();
     });
   });
+
+  test.describe('Item 4: Status strip', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('slim bottom strip reflects real readiness for speech recognition, translation, and voice without inventing anything', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      const strip = page.locator('#vStatusStrip');
+      await expect(strip).toBeVisible();
+
+      const asrChip = page.locator('#vStripAsrChip');
+      const transChip = page.locator('#vStripTransChip');
+      const voiceChip = page.locator('#vStripVoiceChip');
+
+      await expect(asrChip).toBeVisible();
+      await expect(transChip).toBeVisible();
+      await expect(voiceChip).toBeVisible();
+
+      // Test not-ready state reflection (e.g. whisper not downloaded, no voice installed)
+      await page.evaluate(() => {
+        window.getVoiceTabReadiness = () => ({
+          ready: false,
+          reason: 'Model not downloaded',
+          asr: { ok: false, reason: 'Model not downloaded', mode: 'whisper' },
+          trans: { ok: true, reason: '', engine: 'google' },
+          voice: { ok: false, reason: 'No voice for target language', kind: 'none' }
+        });
+        updateVoiceStatusStrip();
+      });
+
+      // ASR chip shows amber warn dot and real reason
+      await expect(asrChip.locator('.status-dot')).toHaveClass(/warn/);
+      expect(await asrChip.textContent()).toContain('Model not downloaded');
+
+      // Translation chip shows green ok dot
+      await expect(transChip.locator('.status-dot')).toHaveClass(/ok/);
+      expect(await transChip.textContent()).toContain('Ready');
+
+      // Voice chip shows amber warn dot and real reason
+      await expect(voiceChip.locator('.status-dot')).toHaveClass(/warn/);
+      expect(await voiceChip.textContent()).toContain('No voice for target language');
+
+      // Test fully-ready state reflection
+      await page.evaluate(() => {
+        window.getVoiceTabReadiness = () => ({
+          ready: true,
+          reason: '',
+          asr: { ok: true, reason: '', mode: 'browser' },
+          trans: { ok: true, reason: '', engine: 'google' },
+          voice: { ok: true, reason: '', kind: 'device' }
+        });
+        updateVoiceStatusStrip();
+      });
+
+      await expect(asrChip.locator('.status-dot')).toHaveClass(/ok/);
+      await expect(transChip.locator('.status-dot')).toHaveClass(/ok/);
+      await expect(voiceChip.locator('.status-dot')).toHaveClass(/ok/);
+    });
+  });
 });
+
 
 

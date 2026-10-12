@@ -88,7 +88,7 @@ function getVoiceTabReadiness() {
   const mode = sttMode();
   let asrOk = true, asrReason = '';
   if (mode === 'whisper') {
-    asrOk = asrReady();
+    asrOk = typeof asrReady === 'function' ? asrReady() : false;
     if (!asrOk) asrReason = L('voiceNoModel') || 'Model not downloaded';
   } else if (mode === 'browser') {
     const hasSR = 'SpeechRecognition' in self || 'webkitSpeechRecognition' in self;
@@ -113,7 +113,11 @@ function getVoiceTabReadiness() {
   // Translation engine readiness
   const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
   let transOk = true, transReason = '';
-  if (activeTransEng === 'auto') {
+  if (typeof trAnyReady !== 'function') {
+    transOk = true;
+  } else if (isOff()) {
+    transOk = trAnyReady();
+  } else if (activeTransEng === 'auto') {
     transOk = cfg.order.some(usable);
   } else {
     transOk = usable(activeTransEng);
@@ -124,11 +128,15 @@ function getVoiceTabReadiness() {
 
   // Voice readiness
   const tLang = $('tgt')?.value || 'fa';
-  const vRes = resolveVoice(tLang);
-  const voiceOk = vRes && vRes.kind !== 'none';
-  let voiceReason = '';
-  if (!voiceOk) {
-    voiceReason = L('voiceNoVoice') || 'No voice for target language';
+  let voiceOk = true, voiceReason = '';
+  let vKind = 'device';
+  if (typeof MC !== 'undefined') {
+    const vRes = resolveVoice(tLang);
+    voiceOk = vRes && vRes.kind !== 'none';
+    vKind = vRes?.kind;
+    if (!voiceOk) {
+      voiceReason = L('voiceNoVoice') || 'No voice for target language';
+    }
   }
 
   const allOk = asrOk && transOk && voiceOk;
@@ -142,12 +150,14 @@ function getVoiceTabReadiness() {
     reason: overallReason,
     asr: { ok: asrOk, reason: asrReason, mode },
     trans: { ok: transOk, reason: transReason, engine: activeTransEng },
-    voice: { ok: voiceOk, reason: voiceReason, kind: vRes?.kind }
+    voice: { ok: voiceOk, reason: voiceReason, kind: vKind }
   };
 }
 
 function updateVoiceReadiness() {
-  const r = getVoiceTabReadiness();
+  const r = (typeof window !== 'undefined' && typeof window.getVoiceTabReadiness === 'function')
+    ? window.getVoiceTabReadiness()
+    : getVoiceTabReadiness();
   const chip = $('vVoiceReadyChip');
   const txt = $('vVoiceReadyText');
   if (chip) {
@@ -207,6 +217,100 @@ function updateVoicePrivacyNote(readiness) {
     el.innerHTML = '';
     el.className = 'voice-privacy-note';
   }
+}
+
+function updateVoiceStatusStrip(readiness) {
+  const strip = $('vStatusStrip');
+  if (!strip) return;
+  const r = readiness || ((typeof window !== 'undefined' && typeof window.getVoiceTabReadiness === 'function')
+    ? window.getVoiceTabReadiness()
+    : getVoiceTabReadiness());
+
+  let asrName = 'Browser';
+  if (r.asr.mode === 'whisper') {
+    const wm = typeof asrModel === 'function' ? asrModel() : null;
+    asrName = wm ? mcText(wm.name) : 'Whisper';
+  } else if (r.asr.mode === 'groq') {
+    asrName = 'Groq';
+  } else if (r.asr.mode === 'helper') {
+    asrName = 'Helper (' + (cfg.helperModel || 'Whisper') + ')';
+  } else if (r.asr.mode === 'gemini') {
+    asrName = 'Gemini';
+  }
+
+  let transName = 'Auto';
+  const activeTrans = r.trans?.engine || $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
+  if (activeTrans !== 'auto' && ENG[activeTrans]) {
+    transName = ENG[activeTrans].name;
+  } else if (isOff()) {
+    const trM = (typeof trModels === 'function' && typeof mcReady === 'function' && trModels().find(mcReady)) || (typeof trModels === 'function' && trModels()[0]);
+    transName = trM ? mcText(trM.name) : 'Offline';
+  }
+
+  const tLang = $('tgt')?.value || 'fa';
+  let voiceName = '';
+  if (r.voice.kind === 'piper') {
+    voiceName = (typeof MC !== 'undefined' && typeof resolveVoice === 'function') ? mcText(resolveVoice(tLang)?.m?.name) : 'Piper';
+  } else if (r.voice.kind === 'gemini') {
+    voiceName = cfg.tts?.voices?.[tLang.split('-')[0]] || 'Gemini';
+  } else if (r.voice.kind === 'device') {
+    const voiceObj = (typeof speechSynthesis !== 'undefined' && typeof pickVoice === 'function') ? pickVoice(tLang) : null;
+    voiceName = voiceObj ? voiceObj.name : langName(tLang);
+  } else if (r.voice.kind === 'none') {
+    voiceName = langName(tLang);
+  }
+  if (!voiceName) {
+    const voiceObj = (typeof speechSynthesis !== 'undefined' && typeof pickVoice === 'function') ? pickVoice(tLang) : null;
+    voiceName = voiceObj ? voiceObj.name : langName(tLang);
+  }
+
+  const asrOk = r.asr.ok;
+  const transOk = r.trans.ok;
+  const voiceOk = r.voice.ok;
+  const okText = L('voiceReady') || 'Ready';
+
+  const items = [
+    {
+      id: 'vStripAsrChip',
+      ok: asrOk,
+      html: `<span class="status-dot ${asrOk ? 'ok' : 'warn'}" aria-hidden="true"></span><span title="${esc(r.asr.reason || okText)}"><bdi>${esc(asrName)}</bdi> ${esc(asrOk ? okText : r.asr.reason)}</span>`
+    },
+    {
+      id: 'vStripTransChip',
+      ok: transOk,
+      html: `<span class="status-dot ${transOk ? 'ok' : 'warn'}" aria-hidden="true"></span><span title="${esc(r.trans.reason || okText)}"><bdi>${esc(transName)}</bdi> ${esc(transOk ? okText : r.trans.reason)}</span>`
+    },
+    {
+      id: 'vStripVoiceChip',
+      ok: voiceOk,
+      html: `<span class="status-dot ${voiceOk ? 'ok' : 'warn'}" aria-hidden="true"></span><span title="${esc(r.voice.reason || okText)}"><bdi>${esc(voiceName)}</bdi> ${esc(voiceOk ? okText : r.voice.reason)}</span>`
+    }
+  ];
+
+  const isAsrLocal = r.asr.ok && (r.asr.mode === 'whisper' || r.asr.mode === 'helper');
+  const isTransLocal = r.trans.ok && (
+    isOff() ||
+    activeTrans === 'nllb' ||
+    activeTrans === 'bergamot' ||
+    activeTrans === 'offline' ||
+    activeTrans === 'local' ||
+    (ENG[activeTrans] && (ENG[activeTrans].tier === 'local' || ENG[activeTrans].off || ENG[activeTrans].offline))
+  );
+  const isVoiceLocal = r.voice.ok && (r.voice.kind === 'piper' || r.voice.kind === 'device');
+  const allLocal = isAsrLocal && isTransLocal && isVoiceLocal;
+
+  const infoText = allLocal ? L('voicePrivateNote') : (isOff() ? L('offMode') : L('statusOnlineActive'));
+  const infoIcon = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="voice-status-info-icon" aria-hidden="true"><circle cx="12" cy="12" r="10"/><line x1="12" y1="16" x2="12" y2="12"/><line x1="12" y1="8" x2="12.01" y2="8"/></svg>`;
+
+  strip.innerHTML = `
+    <div class="voice-status-items">
+      ${items.map(it => `<div class="voice-status-item" id="${it.id}">${it.html}</div>`).join('<span class="voice-status-sep" aria-hidden="true">|</span>')}
+    </div>
+    <div class="voice-status-info">
+      ${infoIcon}
+      <span>${esc(infoText)}</span>
+    </div>
+  `;
 }
 
 function updateVoiceLangPills() {
@@ -1295,6 +1399,7 @@ $('tabs')?.addEventListener('click', e => {
 if (typeof window !== 'undefined') {
   window.getVoiceTabReadiness = getVoiceTabReadiness;
   window.updateVoicePrivacyNote = updateVoicePrivacyNote;
+  window.updateVoiceStatusStrip = updateVoiceStatusStrip;
   window.updateVoiceReadiness = updateVoiceReadiness;
 }
 

@@ -255,6 +255,7 @@ function applyI18n(){
   if(typeof updateTextCounts==='function')updateTextCounts();
   if(typeof renderRecentTranslations==='function')renderRecentTranslations();
   if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();
+  if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
 }
 
 /* ---------- languages ---------- */
