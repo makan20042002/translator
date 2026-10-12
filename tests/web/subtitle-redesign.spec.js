@@ -288,17 +288,23 @@ test.describe('Web app: Subtitle tab redesign', () => {
       // Translate
       await mouseClick(page, page.locator('#sGo'));
 
-      // After translation: 2 of 2 lines everywhere
+      // First run: both lines sent to engine since memory is populated after batch ends
       await expect(page.locator('#sCuesCount')).toHaveText('2 cues');
       await expect(page.locator('#sInfo')).toHaveText('agree · 2/2 lines');
       await expect(page.locator('#sProgText')).toContainText('2 of 2');
-      // Repeated line hits memory: 1 from memory
-      await expect(page.locator('#sProgText')).toContainText('1 from memory');
-
-      // Table rows: exactly 2 rows
+      await expect(page.locator('#sProgText')).not.toContainText('from memory');
+      await expect(page.locator('#sStatusText')).toHaveText('Ready');
       await expect(page.locator('#cues .cue')).toHaveCount(2);
-      // Row 0 translated by engine, row 1 from memory
       await expect(page.locator('#cues .cue[data-i="0"] .cue-tm-badge')).toBeHidden();
+      await expect(page.locator('#cues .cue[data-i="1"] .cue-tm-badge')).toBeHidden();
+
+      // Second run on same file: lines are now served from translation memory
+      await mouseClick(page, page.locator('#sGo'));
+      await expect(page.locator('#sCuesCount')).toHaveText('2 cues');
+      await expect(page.locator('#sInfo')).toHaveText('agree · 2/2 lines');
+      await expect(page.locator('#sProgText')).toContainText('2 of 2');
+      await expect(page.locator('#sProgText')).toContainText('from memory');
+      await expect(page.locator('#cues .cue[data-i="0"] .cue-tm-badge')).toBeVisible();
       await expect(page.locator('#cues .cue[data-i="1"] .cue-tm-badge')).toBeVisible();
 
       // Export: exactly 2 cues in downloaded file
