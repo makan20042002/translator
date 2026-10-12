@@ -295,9 +295,7 @@ async function doSubs(onlyEmpty){
           }
         });
         sInfo();
-        const doneUnits=missIndices.length?(units.length-missIndices.length)+(k+1):k+1;
-        const pct=units.length?Math.round((doneUnits/units.length)*100):0;
-        updateSubProg(pct);
+        updateSubProg();
       }}));
 
     updateSubProg(100);
