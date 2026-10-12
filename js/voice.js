@@ -66,13 +66,127 @@ function updateLiveSpeakerLabels() {
   if ($('vLiveSpkBName')) $('vLiveSpkBName').textContent = nameB;
 }
 
+function initVoiceLangs() {
+  const vSrc = $('vSrc'), vTgt = $('vTgt');
+  if (!vSrc || !vTgt) return;
+  vSrc.innerHTML = `<option value="auto">${esc(L('detect'))}</option>` +
+    LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+  vTgt.innerHTML = LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+  vSrc.value = $('src')?.value || 'auto';
+  vTgt.value = $('tgt')?.value || 'fa';
+  vSrc.onchange = () => {
+    if ($('src')) { $('src').value = vSrc.value; $('src').onchange(); }
+    updateVoiceLangPills();
+  };
+  vTgt.onchange = () => {
+    if ($('tgt')) { $('tgt').value = vTgt.value; $('tgt').onchange(); }
+    updateVoiceLangPills();
+  };
+}
+
+function getVoiceTabReadiness() {
+  const mode = sttMode();
+  let asrOk = true, asrReason = '';
+  if (mode === 'whisper') {
+    asrOk = asrReady();
+    if (!asrOk) asrReason = L('voiceNoModel') || 'Model not downloaded';
+  } else if (mode === 'browser') {
+    const hasSR = 'SpeechRecognition' in self || 'webkitSpeechRecognition' in self;
+    asrOk = !!hasSR;
+    if (!asrOk) asrReason = L('voiceNoSR') || 'Speech recognition unavailable';
+  } else if (mode === 'helper') {
+    asrOk = !!(typeof isHelperConnected === 'function' && isHelperConnected());
+    if (!asrOk) asrReason = L('voiceNoHelper') || 'Speech helper not connected';
+  } else if (mode === 'groq') {
+    asrOk = !!cfg.eng.groq.key;
+    if (!asrOk) asrReason = L('voiceNoKey') || 'API key required';
+  } else if (mode === 'gemini') {
+    asrOk = !!(cfg.eng.gemini.key && !sessionBlocked.has('gemini'));
+    if (!asrOk) asrReason = L('voiceNoKey') || 'API key required';
+  }
+
+  if (window.__micBlocked || window.__micDenied) {
+    asrOk = false;
+    asrReason = L('voiceNoMic') || 'Microphone blocked';
+  }
+
+  // Translation engine readiness
+  const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
+  let transOk = true, transReason = '';
+  if (activeTransEng === 'auto') {
+    transOk = cfg.order.some(usable);
+  } else {
+    transOk = usable(activeTransEng);
+  }
+  if (!transOk) {
+    transReason = L('voiceNoTrans') || 'Translation engine not ready';
+  }
+
+  // Voice readiness
+  const tLang = $('tgt')?.value || 'fa';
+  const vRes = resolveVoice(tLang);
+  const voiceOk = vRes && vRes.kind !== 'none';
+  let voiceReason = '';
+  if (!voiceOk) {
+    voiceReason = L('voiceNoVoice') || 'No voice for target language';
+  }
+
+  const allOk = asrOk && transOk && voiceOk;
+  let overallReason = '';
+  if (!asrOk) overallReason = asrReason;
+  else if (!transOk) overallReason = transReason;
+  else if (!voiceOk) overallReason = voiceReason;
+
+  return {
+    ready: allOk,
+    reason: overallReason,
+    asr: { ok: asrOk, reason: asrReason, mode },
+    trans: { ok: transOk, reason: transReason, engine: activeTransEng },
+    voice: { ok: voiceOk, reason: voiceReason, kind: vRes?.kind }
+  };
+}
+
+function updateVoiceReadiness() {
+  const r = getVoiceTabReadiness();
+  const chip = $('vVoiceReadyChip');
+  const txt = $('vVoiceReadyText');
+  if (chip) {
+    chip.dataset.ready = String(r.ready);
+    chip.classList.toggle('ready', r.ready);
+    chip.classList.toggle('not-ready', !r.ready);
+  }
+  if (txt) {
+    txt.textContent = r.ready ? L('voiceReady') : `${L('voiceNotReady')}: ${r.reason}`;
+  }
+  if (chip) {
+    chip.title = r.ready ? (L('voiceReady') + ' — All engines ready') : (L('voiceNotReady') + ': ' + r.reason);
+  }
+
+  // Update subtitle: do not say "offline" unless the selected engines are offline
+  const subEl = $('vPageSub');
+  if (subEl) {
+    const isAsrOff = r.asr.mode === 'whisper' && r.asr.ok;
+    const isTransOff = isOff() || (r.trans.engine && ENG[r.trans.engine]?.offline);
+    const isVoiceOff = r.voice.kind === 'piper' || r.voice.kind === 'device';
+    const allOffline = isAsrOff && isTransOff && isVoiceOff;
+    subEl.textContent = allOffline ? L('pageVoiceSubOffline') : L('pageVoiceSub');
+  }
+
+  if (typeof updateVoiceStatusStrip === 'function') {
+    updateVoiceStatusStrip(r);
+  }
+}
+
 function updateVoiceLangPills() {
   const s = $('src').value, t = $('tgt').value;
   const aText = s === 'auto' ? L('detect') : langName(s);
   const bText = langName(t);
   if ($('vLangA')) $('vLangA').textContent = aText;
   if ($('vLangB')) $('vLangB').textContent = bText;
+  if ($('vSrc') && $('vSrc').value !== s) $('vSrc').value = s;
+  if ($('vTgt') && $('vTgt').value !== t) $('vTgt').value = t;
   updateLiveSpeakerLabels();
+  updateVoiceReadiness();
 }
 
 function fillVoiceTransEngines() {
@@ -1114,3 +1228,8 @@ $('vAskNew').onclick = () => {
   setVoiceState('ready');
   toast(L('done'), 'ok', 1500);
 };
+
+initVoiceLangs();
+updateVoiceLangPills();
+updateVoiceReadiness();
+

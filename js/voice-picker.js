@@ -77,6 +77,7 @@ function updateCompactVoiceButtons(){
   const askL=(($('vAskLang')?.value==='auto'?$('tgt')?.value:$('vAskLang')?.value)||'fa').split('-')[0].toLowerCase();
   const askVal=cfg.tts?.voices?.[askL]||'';
   if($('vAskVoiceCurLabel'))$('vAskVoiceCurLabel').textContent=getVoiceDisplayName(askVal,askL);
+  if(typeof updateVoiceReadiness === 'function') updateVoiceReadiness();
 }
 
 function toggleCompactVoicePopup(wrapId, popupId, listId, context){
@@ -528,6 +529,7 @@ function updateSttPickerDisplay(){
   if(list && !$('vMicSttPopup')?.hidden){
     list.innerHTML=renderSttPickerListHTML();
   }
+  if(typeof updateVoiceReadiness === 'function') updateVoiceReadiness();
 }
 
 /* voice + offline settings */

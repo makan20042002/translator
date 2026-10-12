@@ -580,48 +580,96 @@
 
   <!-- VOICE -->
   <section class="tab" id="tab-voice">
-    <div class="v-card">
-      <!-- Top Header Bar: Language Pair with swap control, Mode Switch, Actions -->
-      <div class="v-header-bar">
-        <div class="v-lang-pair" title="Voice Language Pair">
-          <span class="v-lang-pill" id="vLangA"></span>
-          <button class="v-swap-btn" id="vSwap" type="button" title="Swap languages" aria-label="Swap languages">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 16-4-4 4-4"/><path d="M3 12h18"/><path d="m17 8 4 4-4 4"/></svg>
-          </button>
-          <span class="v-lang-pill" id="vLangB"></span>
-        </div>
+    <!-- Voice Page Header (Item 1) -->
+    <div class="voice-page-header">
+      <h1 class="voice-page-title" data-t="pageVoiceTitle">Voice</h1>
+      <p class="voice-page-sub" id="vPageSub" data-t="pageVoiceSub">Talk and hear the translation.</p>
+    </div>
 
+    <!-- Voice Control Bar (Item 1) -->
+    <div class="bar voice-bar" id="vControlBar">
+      <!-- 1. Language pair (source, swap, target) as in Translate, NO country flags -->
+      <div class="grp voice-lang-grp" id="vLangPair" title="Voice Language Pair">
+        <select id="vSrc" class="voice-lang-select" aria-label="Source language"></select>
+        <button class="btn icon-only v-swap-btn" id="vSwap" type="button" title="Swap languages" aria-label="Swap languages">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m7 16-4-4 4-4"/><path d="M3 12h18"/><path d="m17 8 4 4-4 4"/></svg>
+        </button>
+        <select id="vTgt" class="voice-lang-select" aria-label="Target language"></select>
+        <!-- Keep legacy pill spans for test/code compatibility -->
+        <span class="v-lang-pill" id="vLangA" hidden></span>
+        <span class="v-lang-pill" id="vLangB" hidden></span>
+      </div>
+
+      <!-- 2. Speech-recognition engine selector (Microphone engine setting) -->
+      <div class="v-mic-stt-picker-wrap" id="vMicSttPickerWrap">
+        <button class="btn ghost v-mic-stt-btn" id="vMicSttBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Speech recognition" aria-label="Speech recognition">
+          <span class="mic-stt-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/><line x1="8" y1="22" x2="16" y2="22"/></svg>
+          </span>
+          <span class="v-stt-label-wrap">
+            <span class="v-stt-prefix" data-t="vSttPrefix">Speech recognition:</span>
+            <span class="mic-stt-cur" id="vMicSttCurLabel">Auto</span>
+          </span>
+          <span class="compact-voice-caret" style="font-size:9px" aria-hidden="true">▼</span>
+        </button>
+        <div class="compact-voice-popup" id="vMicSttPopup" role="dialog" aria-label="Speech recognition options" hidden>
+          <div class="stt-picker-list" id="vMicSttList"></div>
+        </div>
+      </div>
+
+      <!-- 3. Voice selector (Target voice) -->
+      <div class="compact-voice-picker-wrap" id="vConvVoicePickerWrap">
+        <button class="btn ghost compact-voice-btn" id="vConvVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
+          <span class="compact-voice-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
+          </span>
+          <span class="v-voice-label-wrap">
+            <span class="v-voice-prefix" data-t="vVoicePrefix">Voice:</span>
+            <span class="compact-voice-cur" id="vConvVoiceCurLabel">Auto</span>
+          </span>
+          <span class="compact-voice-caret" style="font-size:9px" aria-hidden="true">▼</span>
+        </button>
+        <div class="compact-voice-popup" id="vConvVoicePopup" role="dialog" aria-label="Conversation voice" hidden>
+          <div class="voice-picker-list" id="vConvVoicePickerList" data-context="conv"></div>
+        </div>
+      </div>
+
+      <span class="sp"></span>
+
+      <!-- 4. Honest Status Chip (Ready / Not ready with reason) -->
+      <div class="voice-status-chip" id="vVoiceReadyChip" role="status" aria-live="polite">
+        <span class="voice-ready-dot" id="vVoiceReadyDot"></span>
+        <span class="voice-ready-text" id="vVoiceReadyText" data-t="voiceReady">Ready</span>
+      </div>
+
+      <!-- Actions & Mode tabs preserved -->
+      <div class="v-top-actions">
         <div class="v-modes" role="tablist" aria-label="Voice Mode">
           <button class="v-mode on" id="vTabConv" role="tab" aria-selected="true" data-t="vModeConv">Conversation</button>
           <button class="v-mode" id="vTabAsk" role="tab" aria-selected="false" data-t="vModeAsk">Ask AI</button>
         </div>
-
-        <div class="v-auto-engines" id="vAutoEngines" title="Active voice engines">
-          <span class="v-eng-pill" id="vListenEngPill"><span data-t="vListenLabel">Mic:</span> <strong id="vListenEngName">—</strong></span>
-          <span class="v-eng-pill" id="vTransEngPill"><span data-t="vTransLabel">Translate:</span> <strong id="vTransEngName">—</strong></span>
-        </div>
-
-        <span class="sp"></span>
-
-        <div class="v-top-actions">
-          <button class="btn ghost v-icon-btn" id="vAudioInputToggle" type="button" title="Audio Input: Switch between Microphone and PC/Video Audio" aria-label="Audio Input">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
-            <span id="vAudioInputLabel">Mic</span>
-          </button>
-          <button class="btn ghost v-icon-btn" id="vSaveConv" type="button" title="Save conversation" aria-label="Save conversation">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
-            <span data-t="saveConv">Save</span>
-          </button>
-          <button class="btn ghost v-icon-btn" id="vClearConv" type="button" title="Clear conversation" aria-label="Clear conversation">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
-            <span data-t="clear">Clear</span>
-          </button>
-          <button class="btn ghost v-icon-btn" id="vToggleSettings" type="button" title="Voice settings" aria-label="Voice settings" aria-expanded="false">
-            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
-            <span data-t="settings">Settings</span>
-          </button>
-        </div>
+        <button class="btn ghost v-icon-btn" id="vAudioInputToggle" type="button" title="Audio Input: Switch between Microphone and PC/Video Audio" aria-label="Audio Input">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+          <span id="vAudioInputLabel">Mic</span>
+        </button>
+        <button class="btn ghost v-icon-btn" id="vSaveConv" type="button" title="Save conversation" aria-label="Save conversation">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+          <span data-t="saveConv">Save</span>
+        </button>
+        <button class="btn ghost v-icon-btn" id="vToggleSettings" type="button" title="Voice settings" aria-label="Voice settings" aria-expanded="false">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="21" x2="4" y2="14"/><line x1="4" y1="10" x2="4" y2="3"/><line x1="12" y1="21" x2="12" y2="12"/><line x1="12" y1="8" x2="12" y2="3"/><line x1="20" y1="21" x2="20" y2="16"/><line x1="20" y1="12" x2="20" y2="3"/><line x1="1" y1="14" x2="7" y2="14"/><line x1="9" y1="8" x2="15" y2="8"/><line x1="17" y1="16" x2="23" y2="16"/></svg>
+          <span data-t="settings">Settings</span>
+        </button>
       </div>
+
+      <!-- Preserved engine pills for microphone-engine.spec.js -->
+      <div class="v-auto-engines" id="vAutoEngines" title="Active voice engines">
+        <span class="v-eng-pill" id="vListenEngPill"><span data-t="vListenLabel">Mic:</span> <strong id="vListenEngName">—</strong></span>
+        <span class="v-eng-pill" id="vTransEngPill"><span data-t="vTransLabel">Translate:</span> <strong id="vTransEngName">—</strong></span>
+      </div>
+    </div>
+
+    <div class="v-card">
 
       <!-- Notice on file:// protocol for microphone permission -->
       <div class="v-file-proto-notice" id="vFileProtoNotice" hidden data-t="vFileProtoNotice">Browsers cannot save microphone permission for local files (file://). Permission will be remembered when running on localhost or a website.</div>
@@ -682,6 +730,18 @@
 
       <!-- VIEW 1: CONVERSATION -->
       <div id="vViewConv" class="v-view-wrap">
+        <!-- Card Header: Live conversation indicator and Clear button -->
+        <div class="v-conv-card-header">
+          <div class="v-conv-card-title">
+            <span class="v-live-status-dot" aria-hidden="true"></span>
+            <span data-t="liveConversation">Live conversation</span>
+          </div>
+          <button class="btn ghost v-icon-btn v-conv-clear-btn" id="vClearConv" type="button" title="Clear conversation" aria-label="Clear conversation">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+            <span data-t="clear">Clear</span>
+          </button>
+        </div>
+
         <!-- Middle: Conversation messages -->
         <div class="v-conv-container" id="vConvContainer">
           <div class="v-empty-state" id="vEmptyState">
@@ -724,16 +784,6 @@
                 <span class="v-live-dot"></span>
                 <span class="v-live-txt" id="vLiveTxt" data-t="vLive">Live</span>
               </button>
-              <div class="compact-voice-picker-wrap" id="vLiveVoicePickerWrap">
-                <button class="btn ghost compact-voice-btn" id="vLiveVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Live Voice" aria-label="Live Voice">
-                  <span class="compact-voice-icon">🗣️</span>
-                  <span class="compact-voice-cur" id="vLiveVoiceCurLabel">Auto</span>
-                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
-                </button>
-                <div class="compact-voice-popup popup-up" id="vLiveVoicePopup" role="dialog" aria-label="Live voice" hidden>
-                  <div class="voice-picker-list" id="vLiveVoicePickerList" data-context="live"></div>
-                </div>
-              </div>
             </div>
 
             <div class="v-live-browser-box" id="vLiveBrowserBox" hidden>
@@ -759,30 +809,10 @@
                 <span class="ptt-label" id="vPttLabel" data-t="talk">Talk</span>
               </button>
               <div class="ptt-subtext" id="vPttSub" data-t="pttHold">Hold to speak · Release to send · <kbd>Space</kbd> or tap</div>
-              <div class="v-mic-stt-picker-wrap" id="vMicSttPickerWrap" style="margin-top:6px;display:flex;justify-content:center;position:relative">
-                <button class="btn ghost v-mic-stt-btn" id="vMicSttBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Speech recognition" aria-label="Speech recognition" style="font-size:11.5px;padding:2px 10px;border-radius:12px;background:var(--surface2)">
-                  <span class="mic-stt-icon">🎙️</span>
-                  <span class="mic-stt-cur" id="vMicSttCurLabel">Auto</span>
-                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
-                </button>
-                <div class="compact-voice-popup popup-up" id="vMicSttPopup" role="dialog" aria-label="Speech recognition options" hidden style="left:50%;transform:translateX(-50%);inset-inline-end:auto;min-width:320px;max-width:390px;max-height:380px;overflow-y:auto">
-                  <div class="stt-picker-list" id="vMicSttList"></div>
-                </div>
-              </div>
             </div>
 
             <div class="v-stop-ctrl-wrap">
               <span class="meta voice-used" id="vVoiceUsed" aria-live="polite"></span>
-              <div class="compact-voice-picker-wrap" id="vConvVoicePickerWrap">
-                <button class="btn ghost compact-voice-btn" id="vConvVoicePickerBtn" type="button" aria-haspopup="dialog" aria-expanded="false" title="Voice" aria-label="Voice">
-                  <span class="compact-voice-icon">🗣️</span>
-                  <span class="compact-voice-cur" id="vConvVoiceCurLabel">Auto</span>
-                  <span class="compact-voice-caret" style="font-size:9px">▼</span>
-                </button>
-                <div class="compact-voice-popup popup-up" id="vConvVoicePopup" role="dialog" aria-label="Conversation voice" hidden>
-                  <div class="voice-picker-list" id="vConvVoicePickerList" data-context="conv"></div>
-                </div>
-              </div>
               <button class="btn danger v-stop-speak-btn" id="vStopSpeak" hidden type="button" title="Stop speaking" aria-label="Stop speaking">
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="5" y="5" width="14" height="14" rx="2"/></svg>
                 <span data-t="stopSpeak">Stop</span>
