@@ -8,6 +8,15 @@ const VOICE_SAMPLES={
   fr:'Bonjour, ceci est un test de voix.',
   es:'Hola, esta es una prueba de voz.'
 };
+const VOICE_LICENCES = {
+  'fa_IR-amir-medium': 'CC0 / Public domain',
+  'fa_IR-ganji-medium': 'CC0 / Public domain',
+  'en_GB-alba-medium': 'CC BY 4.0 (Univ of Edinburgh)',
+  'en_US-cori-medium': 'CC0 / Public domain',
+  'en_US-kristin-medium': 'CC0 / Public domain',
+  'en_US-libritts_r-medium': 'CC0 / Public domain',
+  'en_US-ljspeech-medium': 'CC0 / Public domain'
+};
 function getVoiceSample(lang){
   const b=(lang||'en').split('-')[0].toLowerCase();
   return VOICE_SAMPLES[b]||VOICE_SAMPLES.en;
@@ -145,16 +154,6 @@ function buildVoicePickerHTML(lang, radioName){
     html+=`<div class="voice-group" data-group="device" style="margin-bottom:12px">
       <div class="voice-group-title" style="font-size:12.5px;font-weight:700;color:var(--muted);margin:8px 0 6px">${esc(L('deviceVoicesGrp'))} (${devVoices.length})</div>
       <div class="voice-group-items" style="display:flex;flex-direction:column;gap:6px">`;
-    const VOICE_LICENCES = {
-      'fa_IR-amir-medium': 'CC0 / Public domain',
-      'fa_IR-ganji-medium': 'CC0 / Public domain',
-      'en_GB-alba-medium': 'CC BY 4.0 (Univ of Edinburgh)',
-      'en_US-cori-medium': 'CC0 / Public domain',
-      'en_US-kristin-medium': 'CC0 / Public domain',
-      'en_US-libritts_r-medium': 'CC0 / Public domain',
-      'en_US-ljspeech-medium': 'CC0 / Public domain'
-    };
-
     devVoices.forEach(v=>{
       const isSel=(curr===v.voiceURI);
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(v.voiceURI)}" data-source="device" data-lang="${esc(v.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">

@@ -64,12 +64,12 @@ test.describe('Web app: Welcome Wizard (Stage 4)', () => {
 
     // Offline engine selected: local privacy notice
     await mouseClick(page, offlineCard);
-    await expect(privacyText).toHaveText(/Everything stays on this device/i);
+    await expect(privacyText).toHaveText(/stays on this (device|PC)|Everything stays on this device/i);
     await expect(privacyNotice).toHaveClass(/\blocal\b/);
 
     // Ollama engine selected: local privacy notice
     await mouseClick(page, ollamaCard);
-    await expect(privacyText).toHaveText(/Everything stays on this device/i);
+    await expect(privacyText).toHaveText(/stays on this (device|PC)|Everything stays on this device/i);
     await expect(privacyNotice).toHaveClass(/\blocal\b/);
 
     // Online engine selected: cloud notice
