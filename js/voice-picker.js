@@ -145,16 +145,25 @@ function buildVoicePickerHTML(lang, radioName){
     html+=`<div class="voice-group" data-group="device" style="margin-bottom:12px">
       <div class="voice-group-title" style="font-size:12.5px;font-weight:700;color:var(--muted);margin:8px 0 6px">${esc(L('deviceVoicesGrp'))} (${devVoices.length})</div>
       <div class="voice-group-items" style="display:flex;flex-direction:column;gap:6px">`;
+    const VOICE_LICENCES = {
+      'fa_IR-amir-medium': 'CC0 / Public domain',
+      'fa_IR-ganji-medium': 'CC0 / Public domain',
+      'en_GB-alba-medium': 'CC BY 4.0 (Univ of Edinburgh)',
+      'en_US-cori-medium': 'CC0 / Public domain',
+      'en_US-kristin-medium': 'CC0 / Public domain',
+      'en_US-libritts_r-medium': 'CC0 / Public domain',
+      'en_US-ljspeech-medium': 'CC0 / Public domain'
+    };
+
     devVoices.forEach(v=>{
       const isSel=(curr===v.voiceURI);
-      const isFa=(v.lang||'').toLowerCase().startsWith('fa');
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(v.voiceURI)}" data-source="device" data-lang="${esc(v.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
           <input type="radio" name="${esc(rName)}" value="${esc(v.voiceURI)}" ${isSel?'checked':''} style="cursor:pointer">
           <div style="min-width:0">
-            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">${esc(v.name)}${isFa?' 🇮🇷':''}</div>
+            <div style="font-weight:600;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis"><bdi>${esc(v.name)}</bdi></div>
             <div style="font-size:11.5px;color:var(--muted)">
-              <span>${esc(langName(v.lang))}</span> · <span>${esc(L('voiceDevice'))}</span>
+              <span>${esc(langName(v.lang))}</span> · <span>${esc(L('voiceDevice'))}</span> · <span class="voice-lic-note" style="color:var(--accent);font-size:10.5px">System voice</span>
             </div>
           </div>
         </div>
@@ -173,13 +182,14 @@ function buildVoicePickerHTML(lang, radioName){
     dlPipers.forEach(m=>{
       const vVal='piper:'+m.id;
       const isSel=(curr===vVal);
+      const lic = VOICE_LICENCES[m.id] || 'Open source';
       html+=`<div class="voice-card ${isSel?'selected':''}" data-voice="${esc(vVal)}" data-source="offline" data-lang="${esc(m.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
           <input type="radio" name="${esc(rName)}" value="${esc(vVal)}" ${isSel?'checked':''} style="cursor:pointer">
           <div style="min-width:0">
-            <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
+            <div style="font-weight:600;font-size:13px"><bdi>${esc(mcText(m.name))}</bdi></div>
             <div style="font-size:11.5px;color:var(--muted)">
-              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('voiceOffline'))}</span>
+              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('voiceOffline'))}</span> · <span class="voice-lic-note" style="color:var(--accent);font-size:10.5px">${esc(lic)}</span>
             </div>
           </div>
         </div>
@@ -198,12 +208,13 @@ function buildVoicePickerHTML(lang, radioName){
     undlPipers.forEach(m=>{
       const vVal='piper:'+m.id;
       const isBusy=!!mcDownloading[m.id];
+      const lic = VOICE_LICENCES[m.id] || 'Open source';
       html+=`<div class="voice-card" data-voice="${esc(vVal)}" data-source="offline" data-lang="${esc(m.lang)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid var(--border);border-radius:6px;background:var(--surface2);gap:8px">
         <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
           <div style="min-width:0">
-            <div style="font-weight:600;font-size:13px">${esc(mcText(m.name))}</div>
+            <div style="font-weight:600;font-size:13px"><bdi>${esc(mcText(m.name))}</bdi></div>
             <div style="font-size:11.5px;color:var(--muted)">
-              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('offline'))}</span> · <span>${esc(mcSize(m.bytes))}</span>
+              <span>${esc(langName(m.lang))}</span> · <span>${esc(L('offline'))}</span> · <span>${esc(mcSize(m.bytes))}</span> · <span class="voice-lic-note" style="color:var(--accent);font-size:10.5px">${esc(lic)}</span>
             </div>
           </div>
         </div>

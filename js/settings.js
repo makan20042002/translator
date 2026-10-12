@@ -208,6 +208,18 @@ async function updateOllamaManager(){
 }
 
 /* ---------- SETTINGS ---------- */
+let autoSaveTimer = null;
+function showSettingsAutoSaved() {
+  const chip = $('settingsAutoSaveNotice');
+  if (chip) {
+    chip.classList.add('visible');
+    clearTimeout(autoSaveTimer);
+    autoSaveTimer = setTimeout(() => {
+      chip.classList.remove('visible');
+    }, 2000);
+  }
+}
+
 function renderEngines(){
   $('engList').innerHTML=cfg.order.map((id,i)=>{const d=ENG[id],e=cfg.eng[id],w=why(id);
     const conn=engineConnStatus[id];
@@ -215,13 +227,37 @@ function renderEngines(){
     if(conn){
       const cls=conn.code==='works'?'ok':((conn.code==='needsKey'||conn.code==='needsUrl'||conn.code==='needsDl')?'warn':'err');
       connHtml=`<span class="eng-status ${cls}" title="${esc(conn.text)}">${esc(conn.text)}</span>`;
+    } else {
+      let initText = '';
+      let initCls = '';
+      if (d.tier === 'free' && !d.key) {
+        initText = (L('free') || 'free') + ', ' + (L('noKey') || 'no key');
+        initCls = 'ok';
+      } else if (id === 'ollama') {
+        const ok = usable('ollama');
+        initText = ok ? (L('ready') || 'ready') : (L('connLocalDown') || 'unreachable');
+        initCls = ok ? 'ok' : 'err';
+      } else if (id === 'offline') {
+        const ok = usable('offline');
+        initText = ok ? (L('ready') || 'ready') : (L('notDl') || 'not installed');
+        initCls = ok ? 'ok' : 'warn';
+      } else if (d.key) {
+        const hasKey = !!(e.key && e.key.trim());
+        initText = hasKey ? (L('ready') || 'ready') : (L('needKey') || 'needs key');
+        initCls = hasKey ? 'ok' : 'warn';
+      } else {
+        const ok = usable(id);
+        initText = ok ? (L('ready') || 'ready') : (L('notHere') || 'unreachable');
+        initCls = ok ? 'ok' : 'err';
+      }
+      connHtml=`<span class="eng-status ${initCls}" title="${esc(initText)}">${esc(initText)}</span>`;
     }
-    return `<div class="eng ${e.on?'':'off'}" data-id="${id}"><div class="eng-h"><span class="dot ${usable(id)?'ok':''}"></span><strong>${esc(d.name)}</strong>${connHtml}<span class="tier ${d.tier}">${esc(L(d.tier))}</span>${w?`<span class="meta">${esc(w)}</span>`:''}<span class="sp"></span>
+    return `<div class="eng ${e.on?'':'off'}" data-id="${id}"><div class="eng-h"><span class="dot ${usable(id)?'ok':''}"></span><strong><bdi>${esc(d.name)}</bdi></strong>${connHtml}<span class="tier ${d.tier}">${esc(L(d.tier))}</span>${w?`<span class="meta">${esc(w)}</span>`:''}<span class="sp"></span>
       ${d.url?`<a href="${d.url}" target="_blank" rel="noopener">${esc(L(d.key?'getKey':'install'))} ↗</a>`:''}
       <button class="btn ghost" data-a="up" ${i?'':'disabled'} aria-label="Move up">↑</button><button class="btn ghost" data-a="down" ${i<cfg.order.length-1?'':'disabled'} aria-label="Move down">↓</button>
       <label class="chk"><input type="checkbox" data-f="on" ${e.on?'checked':''}>On</label></div>
-      ${d.ai?`<div class="eng-b">${id==='custom'||id==='ollama'?`<input type="text" data-f="base" value="${esc(e.base)}" placeholder="${esc(L('baseUrl'))}" style="grid-column:1/-1" spellcheck="false">`:''}
-        ${id==='ollama'?'':`<input type="password" data-f="key" value="${esc(e.key)}" placeholder="${esc(L('key'))}" autocomplete="off" spellcheck="false">`}
+      ${d.ai?`<div class="eng-b">${id==='custom'||id==='ollama'?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:3px;margin-bottom:4px"><span style="font-size:11px;font-family:var(--mono);color:var(--muted)">Ollama base URL:</span><input type="text" data-f="base" value="${esc(e.base || (id==='ollama'?'http://localhost:11434':''))}" placeholder="${id==='ollama'?'http://localhost:11434':esc(L('baseUrl'))}" spellcheck="false"></div>`:''}
+        ${id==='ollama'?'':`<div class="eng-key-wrap" style="position:relative;display:flex;align-items:center;width:100%"><input type="password" data-f="key" value="${esc(e.key)}" placeholder="${esc(L('key'))}" autocomplete="off" spellcheck="false" style="padding-inline-end:${e.key && e.key.length > 4 ? '70px' : '36px'}">${e.key && e.key.length > 4 ? `<span class="eng-key-last4" style="position:absolute;inset-inline-end:34px;font-family:var(--mono);font-size:11px;color:var(--accent);pointer-events:none">…${esc(e.key.slice(-4))}</span>` : ''}<button type="button" class="btn icon-only eng-key-toggle-btn" style="position:absolute;inset-inline-end:4px;width:26px;height:26px;padding:0;min-height:0;background:none;border:none;color:var(--muted);cursor:pointer" title="Toggle visibility" aria-label="Toggle key visibility">👁</button></div>`}
         ${id==='groq'&&e.key&&!e.key.startsWith('gsk_')?`<div class="warn-groq" style="color:var(--warn);font-size:12px;margin-top:6px;grid-column:1/-1">${esc(L('groqKeyWarn'))}</div>`:''}
         <input type="text" data-f="model" value="${esc(e.model)}" placeholder="${esc(L('model'))}" list="models">
         <button class="btn" data-a="models">${esc(L('loadModels'))}</button><button class="btn" data-a="test">${esc(L('test'))}</button></div>`
@@ -236,7 +272,23 @@ $('engList').addEventListener('input',e=>{
   if(e.target.id==='ollamaCustomModel')return;
   const f=e.target.dataset.f;if(!f||e.target.type==='checkbox')return;
   const engEl=e.target.closest('.eng');const id=engEl?.dataset.id;if(!id||!cfg.eng[id])return;
-  cfg.eng[id][f]=e.target.value.trim();saveCfg();
+  cfg.eng[id][f]=e.target.value.trim();saveCfg();showSettingsAutoSaved();
+  if(f==='key'){
+    const wrap=engEl.querySelector('.eng-key-wrap');
+    let last4=wrap?.querySelector('.eng-key-last4');
+    const val=e.target.value.trim();
+    if(val&&val.length>4){
+      if(!last4&&wrap){
+        last4=document.createElement('span');
+        last4.className='eng-key-last4';
+        last4.style.cssText='position:absolute;inset-inline-end:34px;font-family:var(--mono);font-size:11px;color:var(--accent);pointer-events:none';
+        wrap.appendChild(last4);
+      }
+      if(last4)last4.textContent=`…${val.slice(-4)}`;
+    }else if(last4){
+      last4.textContent='';
+    }
+  }
   if(id==='ollama'&&f==='model'){const sel=$('ollamaModelSel');if(sel&&[...sel.options].some(o=>o.value===e.target.value.trim()))sel.value=e.target.value.trim()}
   if(id==='groq'&&f==='key'){
     let w=engEl.querySelector('.warn-groq');
@@ -250,7 +302,7 @@ $('engList').addEventListener('change',e=>{
     const chosen=e.target.value;
     if(chosen){
       cfg.eng.ollama.model=chosen;
-      saveCfg();
+      saveCfg();showSettingsAutoSaved();
       const inp=document.querySelector('#engList .eng[data-id="ollama"] input[data-f="model"]');
       if(inp)inp.value=chosen;
       fillEngines();
@@ -261,7 +313,8 @@ $('engList').addEventListener('change',e=>{
     return;
   }
   const f=e.target.dataset.f;if(!f)return;const id=e.target.closest('.eng').dataset.id;
-  cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();fillEngines();if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();renderEngines()});
+  cfg.eng[id][f]=e.target.type==='checkbox'?e.target.checked:e.target.value.trim();saveCfg();showSettingsAutoSaved();fillEngines();if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();renderEngines();
+});
 $('engList').addEventListener('keydown',e=>{
   if(e.key==='Enter'&&e.target.id==='ollamaCustomModel'){
     e.preventDefault();
@@ -270,6 +323,21 @@ $('engList').addEventListener('keydown',e=>{
   }
 });
 $('engList').addEventListener('click',async e=>{
+  const eyeBtn=e.target.closest('.eng-key-toggle-btn');
+  if(eyeBtn){
+    const wrap=eyeBtn.closest('.eng-key-wrap');
+    const inp=wrap?.querySelector('input[data-f="key"]');
+    if(inp){
+      if(inp.type==='password'){
+        inp.type='text';
+        eyeBtn.textContent='🔒';
+      }else{
+        inp.type='password';
+        eyeBtn.textContent='👁';
+      }
+    }
+    return;
+  }
   const pullTarget=e.target.closest('[data-pull]');
   if(pullTarget){
     pullOllamaModel(pullTarget.dataset.pull);
@@ -285,15 +353,38 @@ $('engList').addEventListener('click',async e=>{
     return;
   }
   const a=e.target.dataset.a;if(!a)return;const id=e.target.closest('.eng').dataset.id,i=cfg.order.indexOf(id);
-  if(a==='up'||a==='down'){const j=a==='up'?i-1:i+1;[cfg.order[i],cfg.order[j]]=[cfg.order[j],cfg.order[i]];saveCfg();renderEngines();fillEngines();return}
+  if(a==='up'||a==='down'){const j=a==='up'?i-1:i+1;[cfg.order[i],cfg.order[j]]=[cfg.order[j],cfg.order[i]];saveCfg();showSettingsAutoSaved();renderEngines();fillEngines();return}
   e.target.disabled=true;
   try{
-    if(a==='test'){if(why(id))throw new Error(why(id));const tg=$('tgt').value==='en'?'fa':$('tgt').value;const r=await translateItems(['Good morning, how are you?'],{src:'en',tgt:tg,engine:id,tone:''});sessionBlocked.delete(id);toast(`${ENG[id].name} ${L('works')}: ${r.out[0]}`,'ok',6000)}
+    if(a==='test'){
+      if(why(id))throw new Error(why(id));
+      const tg=$('tgt').value==='en'?'fa':$('tgt').value;
+      const r=await translateItems(['Good morning, how are you?'],{src:'en',tgt:tg,engine:id,tone:''});
+      sessionBlocked.delete(id);
+      engineConnStatus[id]={code:'works',text:L('connWorks')||'works'};
+      renderEngines();
+      toast(`${ENG[id].name} ${L('works')}: ${r.out[0]}`,'ok',6000);
+    }
     if(a==='models'){const m=await listModels(id);$('models').innerHTML=m.map(x=>`<option value="${esc(x)}">`).join('');toast(`${m.length} ${L('model')}`,'ok');e.target.closest('.eng').querySelector('[data-f=model]').focus()}
-  }catch(err){toast(`${ENG[id].name}: ${err.message}`,'err',7000)}
+  }catch(err){
+    engineConnStatus[id]={code:'err',text:err.message};
+    renderEngines();
+    toast(`${ENG[id].name}: ${err.message}`,'err',7000);
+  }
   e.target.disabled=false;
 });
 $('btnCheckConn').onclick=runCheckConnections;
+const btnResetOrder=$('btnResetOrder');
+if(btnResetOrder){
+  btnResetOrder.onclick=()=>{
+    cfg.order=DEF_ORDER.slice();
+    saveCfg();
+    showSettingsAutoSaved();
+    renderEngines();
+    fillEngines();
+    toast(L('resetOrder')||'Engine order reset','ok');
+  };
+}
 $('btnExportForExt').onclick=()=>{
   saveAllInputs();
   const exportData={
@@ -317,7 +408,7 @@ $('btnExportForExt').onclick=()=>{
   URL.revokeObjectURL(url);
   toast(L('settingsExported')||'Settings exported for Extension!','ok');
 };
-$('mmEmail').onchange=()=>{cfg.mmEmail=$('mmEmail').value.trim();saveCfg()};
+$('mmEmail').onchange=()=>{cfg.mmEmail=$('mmEmail').value.trim();saveCfg();showSettingsAutoSaved()};
 const saveAllInputs=()=>{
   document.querySelectorAll('#engList .eng').forEach(el=>{
     const id=el.dataset.id;if(!id||!cfg.eng[id])return;
