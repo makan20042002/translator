@@ -256,6 +256,11 @@ async function doSubs(onlyEmpty){
   }
 
   // 2. Translate only missing units
+  // Flow on batch failure:
+  // (a) Within engine: eGoogle falls back from clients5.google.com to translate.googleapis.com if primary endpoint fails.
+  // (b) Across engines: translateItems tries fallback engines in cfg.order if the current engine throws.
+  // (c) Unrescued failure: if every engine/endpoint fails, translateItems throws. The run stops,
+  //     untranslated rows remain empty/marked, and the status chip shows Error (never Ready).
   try{
     const r=await translateItems(missTexts,opts({kind:'sub',signal:sCtl.signal,
       onProgress:(pos,tot,engId)=>{
