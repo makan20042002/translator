@@ -1,3 +1,265 @@
+/* ---------- MAKAN SCREEN TRANSLATOR (WEB UI & DESKTOP INTEGRATION) ---------- */
+function initScreenWebUI() {
+  const tabScreen = $('tab-screen');
+  if (!tabScreen) return;
+
+  // Browser banner visibility
+  const browserBanner = $('screenBrowserBanner');
+  if (browserBanner) {
+    browserBanner.hidden = !!(window.makanDesktop?.isDesktop);
+  }
+
+  // Populate language dropdowns
+  const srcSelect = $('screenSrcLang');
+  const tgtSelect = $('screenTgtLang');
+  if (srcSelect && typeof LANGS !== 'undefined') {
+    srcSelect.innerHTML = '<option value="auto">Auto-detect</option>';
+    LANGS.forEach(([code, name]) => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = name;
+      if (code === 'en') opt.selected = true;
+      srcSelect.appendChild(opt);
+    });
+  }
+  if (tgtSelect && typeof LANGS !== 'undefined') {
+    tgtSelect.innerHTML = '';
+    LANGS.forEach(([code, name]) => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = name;
+      if (code === 'fa') opt.selected = true;
+      tgtSelect.appendChild(opt);
+    });
+  }
+
+  // Swap languages button
+  $('screenSwapBtn')?.addEventListener('click', () => {
+    if (!srcSelect || !tgtSelect) return;
+    const curSrc = srcSelect.value;
+    const curTgt = tgtSelect.value;
+    if (curSrc === 'auto') {
+      if (typeof toast === 'function') toast(L('sameLang'), 'warn');
+      return;
+    }
+    srcSelect.value = curTgt;
+    tgtSelect.value = curSrc;
+    updateScreenPrivacyNotice();
+  });
+
+  // Populate engines
+  const engSelect = $('screenTransEngine');
+  if (engSelect) {
+    const screenEngines = [
+      ['auto', 'Auto (Best available)'],
+      ['offline', 'NLLB (Offline)'],
+      ['ollama', 'Ollama (Local)'],
+      ['google', 'Google Translate (Web)'],
+      ['gemini', 'Google Gemini'],
+      ['groq', 'Groq Inference']
+    ];
+    engSelect.innerHTML = '';
+    screenEngines.forEach(([id, name]) => {
+      const opt = document.createElement('option');
+      opt.value = id;
+      opt.textContent = name;
+      engSelect.appendChild(opt);
+    });
+    engSelect.addEventListener('change', updateScreenPrivacyNotice);
+  }
+
+  // Privacy notice check
+  function updateScreenPrivacyNotice() {
+    const curEng = engSelect?.value || 'auto';
+    const privEl = $('screenPrivacyText');
+    if (!privEl) return;
+    const isStrictlyLocal = (curEng === 'offline' || curEng === 'ollama');
+    privEl.textContent = isStrictlyLocal ? L('screenPrivacyLocal') : L('screenPrivacyCloud');
+  }
+  updateScreenPrivacyNotice();
+
+  // Mode Selection Cards
+  const modeCards = tabScreen.querySelectorAll('.screen-mode-card');
+  modeCards.forEach(card => {
+    card.addEventListener('click', () => {
+      modeCards.forEach(c => {
+        c.classList.remove('on');
+        c.setAttribute('aria-checked', 'false');
+      });
+      card.classList.add('on');
+      card.setAttribute('aria-checked', 'true');
+      const chosenMode = card.dataset.mode;
+      if (chosenMode === 'freeze' && $('stFreezeFrame')) $('stFreezeFrame').value = '1';
+      if (chosenMode === 'clip' && $('stClipboardWatcher')) $('stClipboardWatcher').value = '1';
+    });
+  });
+
+  // Overlay toggle
+  const ovToggle = $('screenOverlayToggle');
+  const resOv = $('screenResultOverlay');
+  ovToggle?.addEventListener('change', () => {
+    if (resOv) resOv.style.display = ovToggle.checked ? '' : 'none';
+  });
+
+  $('screenOvCloseBtn')?.addEventListener('click', () => {
+    if (resOv) resOv.style.display = 'none';
+    if (ovToggle) ovToggle.checked = false;
+  });
+
+  // Overlay copy button
+  $('screenOvCopyBtn')?.addEventListener('click', async () => {
+    const txt = $('screenOvTrans')?.textContent || '';
+    if (!txt) return;
+    try {
+      await navigator.clipboard.writeText(txt);
+      if (typeof toast === 'function') toast(L('copied'), 'ok');
+    } catch {
+      if (typeof toast === 'function') toast(txt, 'ok');
+    }
+  });
+
+  // Overlay speak button
+  $('screenOvSpeakBtn')?.addEventListener('click', () => {
+    const txt = $('screenOvTrans')?.textContent || '';
+    const tgt = tgtSelect?.value || 'fa';
+    if (txt && typeof speak === 'function') {
+      speak(txt, tgt);
+    }
+  });
+
+  // Overlay open in Translate app button
+  $('screenOvOpenInAppBtn')?.addEventListener('click', () => {
+    const orig = $('screenOvOrig')?.textContent || '';
+    const src = srcSelect?.value || 'auto';
+    const tgt = tgtSelect?.value || 'fa';
+    if ($('tIn')) {
+      $('tIn').value = orig;
+      if (src && src !== 'auto' && $('src')) $('src').value = src;
+      if (tgt && $('tgt')) $('tgt').value = tgt;
+      $('tIn').dispatchEvent(new Event('input'));
+      document.querySelector('[data-tab=text]')?.click();
+    }
+  });
+
+  // Toolbar actions
+  let zoomLevel = 1;
+  $('screenZoomInBtn')?.addEventListener('click', () => {
+    if (zoomLevel < 1.4) zoomLevel += 0.1;
+    const vp = $('screenSceneViewport');
+    if (vp) vp.style.transform = `scale(${zoomLevel})`;
+  });
+  $('screenZoomOutBtn')?.addEventListener('click', () => {
+    if (zoomLevel > 0.8) zoomLevel -= 0.1;
+    const vp = $('screenSceneViewport');
+    if (vp) vp.style.transform = `scale(${zoomLevel})`;
+  });
+  $('screenPinBtn')?.addEventListener('click', (e) => {
+    e.currentTarget.classList.toggle('active');
+  });
+
+  // History buttons
+  $('screenViewAllBtn')?.addEventListener('click', () => {
+    document.querySelector('[data-tab=hist]')?.click();
+  });
+  $('screenClearHistBtn')?.addEventListener('click', () => {
+    if (typeof store !== 'undefined') store.set('screen_hist', []);
+    renderScreenCaptures();
+  });
+
+  // Render recent captures
+  function renderScreenCaptures() {
+    const listEl = $('screenCapturesList');
+    if (!listEl) return;
+    let list = (typeof store !== 'undefined' ? store.get('screen_hist', null) : null);
+    if (!Array.isArray(list)) {
+      list = [
+        { id: 'c1', orig: 'Find the hidden path', trans: 'مسیر پنهان را پیدا کن', time: '2 min ago' },
+        { id: 'c2', orig: 'Inventory is full', trans: 'موجودی پر است', time: '8 min ago' },
+        { id: 'c3', orig: 'New objective', trans: 'هدف جدید', time: '12 min ago' }
+      ];
+    }
+    listEl.innerHTML = '';
+    if (list.length === 0) {
+      listEl.innerHTML = `<div class="screen-empty-captures">${L('screenNoCaptures')}</div>`;
+      return;
+    }
+    list.forEach(item => {
+      const row = document.createElement('div');
+      row.className = 'screen-capture-item';
+      row.innerHTML = `
+        <div class="screen-capture-thumb" aria-hidden="true">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="20" height="14" x="2" y="3" rx="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+        </div>
+        <div class="screen-capture-meta">
+          <span class="screen-capture-orig"><bdi>${item.orig}</bdi></span>
+          <span class="screen-capture-arrow" aria-hidden="true">→</span>
+          <span class="screen-capture-trans" dir="rtl">${item.trans}</span>
+          <span class="screen-capture-time">${item.time}</span>
+        </div>
+        <div class="screen-capture-acts">
+          <button class="btn icon-only screen-ov-act-btn" data-act="copy" title="Copy" aria-label="Copy">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
+          </button>
+          <button class="btn icon-only screen-ov-act-btn" data-act="open" title="Open in Translate" aria-label="Open in Translate">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          </button>
+        </div>
+      `;
+      row.querySelector('[data-act=copy]')?.addEventListener('click', async () => {
+        try {
+          await navigator.clipboard.writeText(item.trans);
+          if (typeof toast === 'function') toast(L('copied'), 'ok');
+        } catch {}
+      });
+      row.querySelector('[data-act="open"]')?.addEventListener('click', () => {
+        if ($('tIn')) {
+          $('tIn').value = item.orig;
+          $('tIn').dispatchEvent(new Event('input'));
+          document.querySelector('[data-tab=text]')?.click();
+        }
+      });
+      listEl.appendChild(row);
+    });
+  }
+  renderScreenCaptures();
+
+  // Primary capture button handler for browser / desktop
+  $('tabScreenLaunchBtn')?.addEventListener('click', async () => {
+    if (window.makanDesktop?.startScreenTranslator) {
+      window.makanDesktop.startScreenTranslator();
+      return;
+    }
+    if (typeof toast === 'function') {
+      toast(L('screenBrowserNotice'), 'info');
+    }
+    // Demo translation on preview box
+    const origBox = $('screenOvOrig');
+    const transBox = $('screenOvTrans');
+    if (origBox && transBox && typeof translateItems === 'function') {
+      const origText = origBox.textContent.trim();
+      const s = srcSelect?.value || 'auto';
+      const t = tgtSelect?.value || 'fa';
+      const e = engSelect?.value || 'auto';
+      if (resOv) resOv.style.display = '';
+      if (ovToggle) ovToggle.checked = true;
+      try {
+        const r = await translateItems([origText], opts({ src: s, tgt: t, engine: e }));
+        if (r && r.out && r.out[0]) {
+          transBox.textContent = r.out[0];
+          if ($('screenOvEngPill')) $('screenOvEngPill').textContent = r.used || e;
+        }
+      } catch (_) {}
+    }
+  });
+}
+
+// Auto-run web initialization on script load or DOM ready
+if (document.readyState === 'loading') {
+  document.addEventListener('DOMContentLoaded', initScreenWebUI);
+} else {
+  initScreenWebUI();
+}
+
 /* ---------- MAKAN SCREEN TRANSLATOR (DESKTOP INTEGRATION) ---------- */
 (async function initScreenTranslatorDesktop() {
   if (!window.makanDesktop?.isDesktop) return;
