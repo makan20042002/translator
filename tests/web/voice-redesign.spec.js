@@ -287,6 +287,120 @@ test.describe('Web app: Voice tab redesign', () => {
       await expect(voiceChip.locator('.status-dot')).toHaveClass(/ok/);
     });
   });
+
+  test.describe('Item 5: Talk button occlusion and mouse press guard', () => {
+    test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });
+
+    test('real mouse press at center of #vAskPttBtn and #vPttBtn hits button/child with no occlusion at 360, 700, 1280px in EN and FA', async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+      const assertTopmostAtPoint = async (targetId, cx, cy, stateLabel, w, lang) => {
+        const result = await page.evaluate(({ id, x, y }) => {
+          const el = document.elementFromPoint(x, y);
+          const btn = document.getElementById(id);
+          const isTarget = el === btn || (btn && btn.contains(el));
+          let elDesc = 'null (outside viewport)';
+          if (el) {
+            elDesc = el.tagName.toLowerCase();
+            if (el.id) elDesc += '#' + el.id;
+            if (el.className) elDesc += '.' + String(el.className).trim().replace(/\s+/g, '.');
+          }
+          return {
+            isTarget,
+            topElement: elDesc
+          };
+        }, { id: targetId, x: cx, y: cy });
+
+        expect(
+          result.isTarget,
+          `#${targetId} occluded (${stateLabel}) at (${cx.toFixed(1)}, ${cy.toFixed(1)}) at viewport ${w}x800 in ${lang}. Topmost element was <${result.topElement}>`
+        ).toBe(true);
+      };
+
+      for (const lang of ['en', 'fa']) {
+        if (lang === 'fa') {
+          await page.evaluate(() => {
+            ui = 'fa';
+            document.documentElement.dir = 'rtl';
+            document.documentElement.lang = 'fa';
+            if (typeof applyI18n === 'function') applyI18n();
+          });
+        } else {
+          await page.evaluate(() => {
+            ui = 'en';
+            document.documentElement.dir = 'ltr';
+            document.documentElement.lang = 'en';
+            if (typeof applyI18n === 'function') applyI18n();
+          });
+        }
+
+        for (const w of [360, 700, 1280]) {
+          await page.setViewportSize({ width: w, height: 800 });
+
+          // 1. Check main Talk button in Conversation view
+          await mouseClick(page, page.locator('#vTabConv'));
+          const pttBtn = page.locator('#vPttBtn');
+          await expect(pttBtn).toBeVisible();
+          await pttBtn.scrollIntoViewIfNeeded();
+
+          const boxPtt = await pttBtn.boundingBox();
+          expect(boxPtt, `#vPttBtn bounding box at ${w}px in ${lang}`).not.toBeNull();
+          const pttCx = boxPtt.x + boxPtt.width / 2;
+          const pttCy = boxPtt.y + boxPtt.height / 2;
+
+          // Before pressing
+          await assertTopmostAtPoint('vPttBtn', pttCx, pttCy, 'before press', w, lang);
+
+          // Real mouse press at centre
+          await page.mouse.move(pttCx, pttCy);
+          await page.mouse.down();
+
+          // While pressed: check at press coordinates (nothing covered the mouse location)
+          await assertTopmostAtPoint('vPttBtn', pttCx, pttCy, 'during press at click point', w, lang);
+
+          // While pressed: re-measure active centre to ensure active button centre is also unoccluded
+          const boxPttDown = await pttBtn.boundingBox();
+          expect(boxPttDown, `#vPttBtn bounding box while pressed at ${w}px in ${lang}`).not.toBeNull();
+          const pttCxDown = boxPttDown.x + boxPttDown.width / 2;
+          const pttCyDown = boxPttDown.y + boxPttDown.height / 2;
+          await assertTopmostAtPoint('vPttBtn', pttCxDown, pttCyDown, 'during press at active center', w, lang);
+
+          await page.mouse.up();
+
+          // 2. Check Ask AI Talk button in Ask AI view
+          await mouseClick(page, page.locator('#vTabAsk'));
+          const askBtn = page.locator('#vAskPttBtn');
+          await expect(askBtn).toBeVisible();
+          await askBtn.scrollIntoViewIfNeeded();
+
+          const boxAsk = await askBtn.boundingBox();
+          expect(boxAsk, `#vAskPttBtn bounding box at ${w}px in ${lang}`).not.toBeNull();
+          const askCx = boxAsk.x + boxAsk.width / 2;
+          const askCy = boxAsk.y + boxAsk.height / 2;
+
+          // Before pressing
+          await assertTopmostAtPoint('vAskPttBtn', askCx, askCy, 'before press', w, lang);
+
+          // Real mouse press at centre
+          await page.mouse.move(askCx, askCy);
+          await page.mouse.down();
+
+          // While pressed: check at press coordinates
+          await assertTopmostAtPoint('vAskPttBtn', askCx, askCy, 'during press at click point', w, lang);
+
+          // While pressed: re-measure active centre
+          const boxAskDown = await askBtn.boundingBox();
+          expect(boxAskDown, `#vAskPttBtn bounding box while pressed at ${w}px in ${lang}`).not.toBeNull();
+          const askCxDown = boxAskDown.x + boxAskDown.width / 2;
+          const askCyDown = boxAskDown.y + boxAskDown.height / 2;
+          await assertTopmostAtPoint('vAskPttBtn', askCxDown, askCyDown, 'during press at active center', w, lang);
+
+          await page.mouse.up();
+        }
+      }
+    });
+  });
 });
 
 
