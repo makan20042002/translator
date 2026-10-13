@@ -4489,6 +4489,33 @@ html[dir="rtl"] .bub-orig-text {
     overflow-x: hidden;
     min-width: 0;
   }
+  .set-section {
+    max-width: 100% !important;
+    overflow-x: hidden !important;
+  }
+  .set-section .row {
+    flex-wrap: wrap !important;
+  }
+  .set-section input,
+  .set-section select {
+    max-width: 100% !important;
+    box-sizing: border-box !important;
+  }
+  .eng-b {
+    grid-template-columns: 1fr !important;
+    gap: 6px !important;
+  }
+  .eng-b > * {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
+  .eng-h {
+    gap: 6px !important;
+  }
+  .eng-key-wrap input {
+    min-width: 0 !important;
+    max-width: 100% !important;
+  }
   .set-tabs-nav {
     padding-bottom: 8px;
     margin-bottom: 10px;

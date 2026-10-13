@@ -1278,8 +1278,8 @@
       <span class="hint" id="checkConnSummary" style="font-size:12.5px"></span>
     </div>
     <div id="engList"></div>
-    <div class="row" style="margin-top:14px"><label class="lbl" for="mmEmail" data-t="mmEmail">MyMemory e-mail (optional, raises the daily limit)</label>
-      <input type="email" id="mmEmail" placeholder="you@example.com" style="flex:1;min-width:200px"></div>
+    <div class="row" style="margin-top:14px;flex-wrap:wrap;gap:8px"><label class="lbl" for="mmEmail" data-t="mmEmail">MyMemory e-mail (optional, raises the daily limit)</label>
+      <input type="email" id="mmEmail" placeholder="you@example.com" style="flex:1;min-width:140px;max-width:100%"></div>
 
     <h3 data-t="tmH" style="margin-top:20px">Translation memory</h3>
     <p class="note" data-t="tmNote"></p>
@@ -1315,7 +1315,7 @@
       </div>
       <p class="hint" style="margin-top:8px" id="ttsHint" data-t="ttsHint"></p>
     </div>
-    <div class="row" style="margin-top:12px"><p class="hint" data-t="edgeHint" style="flex:1;min-width:220px"></p><button class="btn" id="ttsTest" data-t="ttsTest">Test voice</button></div>
+    <div class="row" style="margin-top:12px;flex-wrap:wrap;gap:8px"><p class="hint" data-t="edgeHint" style="flex:1;min-width:140px;max-width:100%"></p><button class="btn" id="ttsTest" data-t="ttsTest">Test voice</button></div>
     <div id="unifiedVoicePickerWrap" style="margin-top:16px;border-top:1px solid var(--border);padding-top:12px">
       <div class="row" style="margin-bottom:8px;align-items:center;justify-content:space-between">
         <strong data-t="allVoicesH">Available voices</strong>
@@ -1400,7 +1400,7 @@
           <select id="testMdlSrc" style="min-width:120px" aria-label="Source language"></select>
           <span style="align-self:center;color:var(--muted)">→</span>
           <select id="testMdlTgt" style="min-width:120px" aria-label="Target language"></select>
-          <input type="text" id="testMdlText" data-tp="testSentencePh" placeholder="Sentence to translate…" value="The quick brown fox jumps over the lazy dog." style="flex:1;min-width:200px" dir="auto">
+          <input type="text" id="testMdlText" data-tp="testSentencePh" placeholder="Sentence to translate…" value="The quick brown fox jumps over the lazy dog." style="flex:1;min-width:140px;max-width:100%" dir="auto">
           <button class="btn cta" id="testTrRun" type="button" data-t="testTrBtn">Test translation models</button>
           <button class="btn danger" id="testTrStop" type="button" hidden data-t="stop">Stop</button>
         </div>

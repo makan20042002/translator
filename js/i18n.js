@@ -354,19 +354,40 @@ function detectRealLanguage(text){
   if(/[\u0530-\u058F]/.test(trimmed))return 'hy';
   if(/[\u0980-\u09FF]/.test(trimmed))return 'bn';
 
-  const lower=' '+trimmed.toLowerCase().replace(/[^a-zà-ÿ]/g,' ')+' ';
-  if(/\b(und|der|die|das|nicht|ist|ein|eine|mit|auf|für|von|sie|wir|aber|auch)\b/.test(lower)||/[äöüß]/.test(trimmed))return 'de';
-  if(/\b(le|la|les|des|est|une|dans|pour|avec|sur|sont|que|qui|pas|plus|ce|cette)\b/.test(lower)||/[éèêëàâôûùç]/.test(trimmed))return 'fr';
-  if(/\b(el|los|las|una|para|como|pero|con|por|este|esta|que|del|mas)\b/.test(lower)||/[ñáíóú¿¡]/.test(trimmed))return 'es';
-  if(/\b(bir|ve|bu|için|olan|ile|da|de|çok|ama|var|yok|gibi)\b/.test(lower)||/[ğışİI]/.test(trimmed))return 'tr';
-  if(/\b(non|sono|della|delle|questo|anche|con|per|gli|dei|nel|nella)\b/.test(lower)||/[àèéìíîòóùú]/.test(trimmed))return 'it';
+  const clean=trimmed.toLowerCase().replace(/[^a-zà-ÿ\s]/g,' ');
+  const words=clean.trim().split(/\s+/).filter(Boolean);
+  if(!words.length)return null;
 
-  if(/\b(the|is|and|of|in|to|it|you|that|was|for|on|are|as|with|they|at|be|this|from|have|or|by|one|had|not|but|what|all|were|when|we|there|can|an|your|which|their|if|do|will|each|about|how|up|out|them|then|she|many|some|so|these|would|other|into|has|more|her|two|like|him|see|time|no|make|than|first|been|its|who|now|my|over|down|only|way|find|use|water|long|little|very|after|words|just|where|most|know)\b/.test(lower)){
+  const lower=' '+clean+' ';
+
+  if(/[äöüß]/.test(trimmed)||/\b(und|der|die|das|nicht|ist|ein|eine|mit|auf|für|von|sie|wir|aber|auch|guten|morgen|willkommen)\b/.test(lower)){
+    return 'de';
+  }
+
+  if(/[éèêëàâôûùç]/.test(trimmed)||/\b(le|la|les|des|est|une|dans|pour|avec|sur|sont|que|qui|pas|plus|ce|cette|bonjour|tout|monde)\b/.test(lower)){
+    return 'fr';
+  }
+
+  if(/[ñáíóú¿¡]/.test(trimmed)||/\b(el|los|las|una|para|como|pero|con|por|este|esta|que|del|mas|hola)\b/.test(lower)){
+    return 'es';
+  }
+
+  if(/[ğışİI]/.test(trimmed)||/\b(bir|ve|bu|için|olan|ile|da|de|çok|ama|var|yok|gibi)\b/.test(lower)){
+    return 'tr';
+  }
+
+  if(/\b(non|sono|della|delle|questo|anche|con|per|gli|dei|nel|nella)\b/.test(lower)){
+    return 'it';
+  }
+
+  const englishWords=/\b(the|is|and|of|in|to|it|you|that|was|for|on|are|as|with|they|at|be|this|from|have|or|by|one|had|not|but|what|all|were|when|we|there|can|an|your|which|their|if|do|will|each|about|how|up|out|them|then|she|many|some|so|these|would|other|into|has|more|her|two|like|him|see|time|no|make|than|first|been|its|who|now|my|over|down|only|way|find|use|water|long|little|very|after|words|just|where|most|know|hello|world|good|morning|hi|please|thank|thanks|welcome|name|book|car|house|water|food|cat|dog|test|help|yes|ok)\b/;
+  if(englishWords.test(lower)){
     return 'en';
   }
 
-  if(/^[a-zA-Z\s,.'!?"'-]+$/.test(trimmed) && trimmed.length >= 3){
-    if(/\b(hello|world|good|morning|hi|please|thank|thanks|welcome|name|book|car|house|water|food|cat|dog|test|help|yes|ok)\b/i.test(trimmed)){
+  if(words.length>=6){
+    const validLatinWords=words.every(w=>/^[a-z]{1,20}$/.test(w));
+    if(validLatinWords){
       return 'en';
     }
   }
@@ -391,6 +412,7 @@ function setupUnifiedLanguagePicker(options){
 
   function wrapSelect(sel,role){
     if(!sel)return null;
+    if(sel.id==='vAskLang')role='ask';
     sel.classList.add('unified-select');
     let parentBox=sel.closest('.unified-lang-box');
     let pickerWrap=sel.closest('.unified-lang-picker');
@@ -407,15 +429,15 @@ function setupUnifiedLanguagePicker(options){
       const lbl=document.createElement('label');
       lbl.className='lang-picker-lbl';
       lbl.htmlFor=sel.id;
-      if(role==='src'){
+      if(role==='ask'||options.labelKey==='vAskLang'||sel.id==='vAskLang'){
+        lbl.setAttribute('data-t','vAskLang');
+        lbl.innerHTML=L('vAskLang')||'Answer language';
+      }else if(role==='src'){
         lbl.setAttribute('data-t','from');
         lbl.innerHTML=L('from');
       }else if(role==='tgt'){
         lbl.setAttribute('data-t','to');
         lbl.innerHTML=L('to');
-      }else if(role==='ask'||options.labelKey==='vAskLang'){
-        lbl.setAttribute('data-t','vAskLang');
-        lbl.innerHTML=L('vAskLang')||'Answer language';
       }else if(options.labelKey){
         lbl.setAttribute('data-t',options.labelKey);
         lbl.innerHTML=L(options.labelKey)||options.label||'';
@@ -445,7 +467,6 @@ function setupUnifiedLanguagePicker(options){
     if(!display){
       display=document.createElement('div');
       display.className='lang-picker-display';
-      display.setAttribute('aria-hidden','true');
       display.innerHTML=`<span class="lang-display-inner"></span><span class="lang-picker-arrow">▾</span>`;
       parentBox.insertBefore(display,sel);
     }
