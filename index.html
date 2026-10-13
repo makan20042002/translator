@@ -1623,26 +1623,26 @@
           <label class="welcome-choice-card" data-choice-engine="online">
             <input type="radio" name="welcomeEngine" value="online">
             <div class="choice-card-content">
-              <strong>سریع <bdi>(Fast)</bdi></strong>
-              <span data-t="wizardEngineOnlineDesc">ترجمه آنلاین پرسرعت با گوگل یا MyMemory؛ متن برای ترجمه به سرور ابری ارسال می‌شود.</span>
+              <strong data-t="wizardEngineOnlineTitle">سریع</strong>
+              <span data-t="wizardEngineOnlineDesc">ترجمه آنلاین پرسرعت و رایگان با گوگل و MyMemory؛ متن برای ترجمه به ارائه‌دهنده ابری ارسال می‌شود.</span>
             </div>
-            <span class="choice-badge">ارسال به ابر</span>
+            <span class="choice-badge" data-t="wizardBadgeOnline">آنلاین</span>
           </label>
           <label class="welcome-choice-card" data-choice-engine="ollama">
             <input type="radio" name="welcomeEngine" value="ollama">
             <div class="choice-card-content">
-              <strong>هوشمند <bdi>(Smart)</bdi></strong>
-              <span data-t="wizardEngineOllamaDesc">ترجمه هوش مصنوعی با Ollama محلی یا ارائه‌دهنده ابری؛ مدل‌های Ollama روی رایانه می‌مانند.</span>
+              <strong data-t="wizardEngineSmartTitle">هوشمند</strong>
+              <span data-t="wizardEngineOllamaDesc">ترجمه هوش مصنوعی با Gemini، Groq یا OpenRouter (با کلید شما) یا اجرای مدل‌های محلی با Ollama.</span>
             </div>
-            <span class="choice-badge ok">مدل محلی</span>
+            <span class="choice-badge ok" data-t="wizardBadgeSmart">هوش مصنوعی</span>
           </label>
           <label class="welcome-choice-card active" data-choice-engine="offline">
             <input type="radio" name="welcomeEngine" value="offline" checked>
             <div class="choice-card-content">
-              <strong>آفلاین <bdi>(Offline - NLLB)</bdi></strong>
-              <span data-t="wizardEngineOfflineDesc">ترجمه ۱۰۰٪ آفلاین درون مرورگر با NLLB؛ همه متن‌ها روی رایانه می‌مانند و چیزی خارج نمی‌شود.</span>
+              <strong data-t="wizardEngineOfflineTitle">آفلاین</strong>
+              <span data-t="wizardEngineOfflineDesc">ترجمه با مدل NLLB درون مرورگر؛ متن از دستگاه خارج نمی‌شود (نیاز به دانلود اولیه بسته مدل).</span>
             </div>
-            <span class="choice-badge ok">۱۰۰٪ آفلاین</span>
+            <span class="choice-badge ok" data-t="wizardBadgeOffline">درون دستگاه</span>
           </label>
         </div>
         <div class="welcome-privacy-notice" id="welcomePrivacyNotice">

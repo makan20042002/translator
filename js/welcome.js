@@ -82,12 +82,23 @@ function updateWelcomeStepUI() {
 
     if (sumLang) sumLang.textContent = welcomeSelectedLang === 'fa' ? 'فارسی (Persian)' : 'English';
 
-    const engNames = {
-      offline: 'آفلاین (NLLB)',
-      ollama: 'هوشمند (Ollama)',
-      online: 'سریع (Google / MyMemory)'
-    };
-    if (sumEng) sumEng.textContent = engNames[welcomeSelectedEngine] || welcomeSelectedEngine;
+    const isEn = (typeof ui !== 'undefined' && ui === 'en');
+    let engName = '';
+    if (welcomeSelectedEngine === 'offline') {
+      engName = isEn ? 'Offline (NLLB)' : 'آفلاین (NLLB)';
+    } else if (welcomeSelectedEngine === 'online') {
+      engName = isEn ? 'Fast (Google / MyMemory)' : 'سریع (Google / MyMemory)';
+    } else {
+      const hasKey = (typeof cfg !== 'undefined' && cfg.eng) ? (cfg.eng.gemini?.key ? 'Gemini' : (cfg.eng.groq?.key ? 'Groq' : (cfg.eng.openrouter?.key ? 'OpenRouter' : ''))) : '';
+      if (hasKey) {
+        engName = isEn ? `Smart (${hasKey})` : `هوشمند (${hasKey})`;
+      } else if (welcomeOllamaReachable) {
+        engName = isEn ? 'Smart (Ollama)' : 'هوشمند (Ollama)';
+      } else {
+        engName = isEn ? 'Smart (AI / Ollama)' : 'هوشمند (Ollama / هوش مصنوعی)';
+      }
+    }
+    if (sumEng) sumEng.textContent = engName;
 
     if (sumPriv) {
       const disc = getWelcomePrivacyDisclosure();
@@ -381,13 +392,35 @@ function finishWelcomeWizard() {
     if ($('engine')) $('engine').value = 'nllb';
     store.set('engine', 'nllb');
   } else if (welcomeSelectedEngine === 'ollama') {
-    const idx = cfg.order.indexOf('ollama');
-    if (idx > -1) {
-      cfg.order.splice(idx, 1);
-      cfg.order.unshift('ollama');
+    const pSel = $('welcomeKeyProvider');
+    const pref = pSel?.value || 'gemini';
+    const keyProvider = (cfg.eng?.[pref]?.key) ? pref : (cfg.eng?.gemini?.key ? 'gemini' : (cfg.eng?.groq?.key ? 'groq' : (cfg.eng?.openrouter?.key ? 'openrouter' : '')));
+
+    if (keyProvider) {
+      const idx = cfg.order.indexOf(keyProvider);
+      if (idx > -1) {
+        cfg.order.splice(idx, 1);
+        cfg.order.unshift(keyProvider);
+      }
+      if ($('engine')) $('engine').value = 'auto';
+      store.set('engine', 'auto');
+    } else if (welcomeOllamaReachable) {
+      const idx = cfg.order.indexOf('ollama');
+      if (idx > -1) {
+        cfg.order.splice(idx, 1);
+        cfg.order.unshift('ollama');
+      }
+      if ($('engine')) $('engine').value = 'ollama';
+      store.set('engine', 'ollama');
+    } else {
+      const idx = cfg.order.indexOf('ollama');
+      if (idx > -1) {
+        cfg.order.splice(idx, 1);
+        cfg.order.unshift('ollama');
+      }
+      if ($('engine')) $('engine').value = 'auto';
+      store.set('engine', 'auto');
     }
-    if ($('engine')) $('engine').value = 'ollama';
-    store.set('engine', 'ollama');
   } else if (welcomeSelectedEngine === 'online') {
     if ($('engine')) $('engine').value = 'auto';
     store.set('engine', 'auto');
