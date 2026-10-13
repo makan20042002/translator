@@ -237,9 +237,61 @@ function finishWelcomeWizard() {
   closeWelcomeWizard();
 }
 
+function initWelcomeKeyHandling() {
+  const providerSel = $('welcomeKeyProvider');
+  const keyInp = $('welcomeApiKeyInput');
+  const toggleBtn = $('welcomeKeyToggleBtn');
+  const last4 = $('welcomeKeyLast4');
+  const savedHint = $('welcomeKeySavedHint');
+
+  if (!providerSel || !keyInp) return;
+
+  function syncKeyInput() {
+    const p = providerSel.value || 'gemini';
+    const existing = (typeof cfg !== 'undefined' && cfg.eng && cfg.eng[p] && cfg.eng[p].key) ? cfg.eng[p].key : '';
+    keyInp.value = existing;
+    if (last4) {
+      last4.textContent = existing.length > 4 ? `…${existing.slice(-4)}` : '';
+    }
+    if (savedHint) savedHint.style.display = 'none';
+  }
+
+  providerSel.addEventListener('change', syncKeyInput);
+
+  keyInp.addEventListener('input', () => {
+    const p = providerSel.value || 'gemini';
+    const val = keyInp.value.trim();
+    if (typeof cfg !== 'undefined' && cfg.eng && cfg.eng[p]) {
+      cfg.eng[p].key = val;
+      if (typeof saveCfg === 'function') saveCfg();
+    }
+    if (last4) {
+      last4.textContent = val.length > 4 ? `…${val.slice(-4)}` : '';
+    }
+    if (savedHint) {
+      savedHint.style.display = val ? 'block' : 'none';
+    }
+  });
+
+  toggleBtn?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (keyInp.type === 'password') {
+      keyInp.type = 'text';
+      toggleBtn.textContent = '🔒';
+    } else {
+      keyInp.type = 'password';
+      toggleBtn.textContent = '👁';
+    }
+  });
+
+  syncKeyInput();
+}
+
 function initWelcomeWizard() {
   const ov = $('welcomeOverlay');
   if (!ov) return;
+
+  initWelcomeKeyHandling();
 
   // Language choice cards
   document.querySelectorAll('[data-choice-lang]').forEach(card => {

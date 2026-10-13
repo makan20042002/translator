@@ -1649,6 +1649,32 @@
           <span class="privacy-icon">🛡</span>
           <span class="privacy-text" id="welcomePrivacyText">Everything stays on this device</span>
         </div>
+
+        <!-- Optional AI Key Section (Step 2) -->
+        <div class="welcome-key-section" id="welcomeKeySection" style="margin-top:16px;padding:14px;background:#0E1726;border:1px solid rgba(28,64,118,0.5);border-radius:12px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+            <strong style="font-size:13.5px;color:var(--text,#fff)">کلید هوش مصنوعی (اختیاری) <bdi>(Optional AI key)</bdi></strong>
+            <span style="font-size:11.5px;color:var(--text-dim,#B5C2D4)">Gemini, Groq, OpenRouter</span>
+          </div>
+          <p style="margin:0 0 10px 0;font-size:12px;color:var(--text-dim,#B5C2D4);line-height:1.4">
+            برای ترجمه هوشمند یا سریع‌تر می‌توانید یک کلید رایگان اضافه کنید. کلید تنها در همین مرورگر ذخیره شده و به هیچ سرور دیگری ارسال نمی‌شود.
+          </p>
+          <div style="display:flex;gap:8px;flex-wrap:wrap">
+            <select id="welcomeKeyProvider" aria-label="AI Provider" style="background:#060B14;border:1px solid rgba(28,64,118,0.5);color:var(--text,#fff);border-radius:8px;padding:6px 10px;font-size:13px;min-width:110px">
+              <option value="gemini">Google Gemini</option>
+              <option value="groq">Groq</option>
+              <option value="openrouter">OpenRouter</option>
+            </select>
+            <div class="welcome-key-wrap" style="position:relative;flex:1;min-width:180px;display:flex;align-items:center">
+              <input type="password" id="welcomeApiKeyInput" placeholder="کلید API را اینجا وارد کنید (اختیاری)" autocomplete="off" spellcheck="false" style="width:100%;background:#060B14;border:1px solid rgba(28,64,118,0.5);color:var(--text,#fff);border-radius:8px;padding:7px 40px 7px 10px;font-size:13px;box-sizing:border-box">
+              <span class="welcome-key-last4" id="welcomeKeyLast4" style="position:absolute;inset-inline-end:34px;font-family:var(--mono,monospace);font-size:11px;color:var(--accent,#08A8FF);pointer-events:none"></span>
+              <button type="button" class="btn icon-only" id="welcomeKeyToggleBtn" style="position:absolute;inset-inline-end:4px;width:26px;height:26px;padding:0;min-height:0;background:none;border:none;color:var(--muted,#B5C2D4);cursor:pointer" title="نمایش/پنهان‌سازی کلید" aria-label="Toggle key visibility">👁</button>
+            </div>
+          </div>
+          <div class="welcome-key-saved" id="welcomeKeySavedHint" style="font-size:11.5px;color:#3FB950;margin-top:6px;display:none">
+            ✓ خودکار ذخیره شد <bdi>(Auto-saved)</bdi>
+          </div>
+        </div>
       </div>
 
       <!-- Step 3: Optional Model Download -->

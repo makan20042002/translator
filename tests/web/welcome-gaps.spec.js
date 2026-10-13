@@ -97,4 +97,35 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
     await expect(privacyNotice).toHaveClass(/\blocal\b/);
     await expect(privacyText).toHaveText(/stays on this (device|PC)|Everything stays on this device|همین رایانه/i);
   });
+
+  test('Gap 3: optional AI key input is masked with eye toggle button and auto-saves to cfg', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => window.openWelcomeWizard(2));
+
+    const keyInp = page.locator('#welcomeApiKeyInput');
+    const toggleBtn = page.locator('#welcomeKeyToggleBtn');
+    const last4 = page.locator('#welcomeKeyLast4');
+
+    await expect(keyInp).toBeVisible();
+    // 1. Key input is masked by default
+    await expect(keyInp).toHaveAttribute('type', 'password');
+
+    // 2. Eye button toggles visibility
+    await mouseClick(page, toggleBtn);
+    await expect(keyInp).toHaveAttribute('type', 'text');
+    await expect(toggleBtn).toHaveText('🔒');
+
+    await mouseClick(page, toggleBtn);
+    await expect(keyInp).toHaveAttribute('type', 'password');
+    await expect(toggleBtn).toHaveText('👁');
+
+    // 3. Typing key auto-saves to cfg without Save button
+    await keyInp.fill('AIzaSyTestSecretKey9988');
+    await expect(last4).toHaveText('…9988');
+
+    const savedKey = await page.evaluate(() => {
+      return window.cfg?.eng?.gemini?.key;
+    });
+    expect(savedKey).toBe('AIzaSyTestSecretKey9988');
+  });
 });
