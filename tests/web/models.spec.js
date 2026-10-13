@@ -447,7 +447,7 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
   test('dropdown lists only downloaded Whisper models plus Auto', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page, 'trModels');
+    await openSettings(page, 'voiceModels');
     await page.evaluate(() => mcRender());
     const sel = page.locator('#offWhisperSel');
     await expect(sel).toBeVisible();
@@ -467,18 +467,18 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
   test('choice survives reload', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page, 'trModels');
+    await openSettings(page, 'voiceModels');
     await page.locator('#offWhisperSel').selectOption('small');
     expect(await page.evaluate(() => store.get('cfg').whisper)).toBe('small');
     await page.reload();
-    await openSettings(page, 'trModels');
+    await openSettings(page, 'voiceModels');
     await expect(page.locator('#offWhisperSel')).toHaveValue('small');
   });
 
   test('changing dropdown updates radios and the reverse', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page, 'trModels');
+    await openSettings(page, 'voiceModels');
     await page.evaluate(() => mcRender());
 
     // Changing dropdown updates radio
@@ -487,7 +487,9 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
     await expect(row(page, 'asr-base').locator('input[type="radio"]')).not.toBeChecked();
 
     // Clicking radio updates dropdown
+    await activateSettingsTab(page, 'trModels');
     await mouseClick(page, row(page, 'asr-base').locator('input[type="radio"]'));
+    await activateSettingsTab(page, 'voiceModels');
     await expect(page.locator('#offWhisperSel')).toHaveValue('base');
     expect(await page.evaluate(() => cfg.whisper)).toBe('base');
 
@@ -705,7 +707,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('speech test runs downloaded Whisper models', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base']);
-    await openSettings(page, 'trModels');
+    await openSettings(page, 'voiceModels');
     await page.evaluate(() => {
       window.record = async () => new Blob([new Uint8Array(2000)], { type: 'audio/webm' });
       window.to16k = async () => new Float32Array(1600);
