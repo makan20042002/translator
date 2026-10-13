@@ -5273,7 +5273,7 @@ html[dir="rtl"] .bub-orig-text {
 /* Item 5: Position speak-notice above Voice bottom dock so it never occludes Talk buttons */
 body:has(#tab-voice.on) .speak-notice,
 .speak-notice.voice-mode {
-  bottom: 170px;
+  bottom: 210px;
 }
 
 
