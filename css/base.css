@@ -14,6 +14,7 @@
 }
 *,*::before,*::after{box-sizing:border-box}
 html,body{margin:0}
+html{scroll-padding-top:80px}
 body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15px;line-height:1.6;-webkit-font-smoothing:antialiased;min-height:100vh;
   background-image:radial-gradient(900px 420px at 85% -10%,rgba(59,107,255,.10),transparent 60%),radial-gradient(700px 380px at 5% 0%,rgba(34,229,138,.06),transparent 60%);background-attachment:fixed}
 button,input,select,textarea{font:inherit;color:inherit}

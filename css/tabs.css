@@ -55,11 +55,11 @@
 .v-swap-btn:hover{transform:rotate(180deg);background:var(--accent-dim);border-color:var(--accent)}
 .v-swap-btn:active{transform:rotate(180deg) scale(.92)}
 
-.v-modes{display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:var(--r-s);border:1px solid var(--border)}
-.v-mode{background:none;border:0;padding:6px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px;transition:background .18s var(--ease),color .18s var(--ease)}
+.v-modes{display:flex;gap:4px;background:var(--surface2);padding:3px;border-radius:var(--r-s);border:1px solid var(--border);scroll-margin-top:80px}
+.v-mode{background:none;border:0;padding:6px 14px;border-radius:7px;cursor:pointer;color:var(--muted);font-weight:600;font-size:13px;transition:background .18s var(--ease),color .18s var(--ease);scroll-margin-top:80px}
 .v-mode.on{background:var(--surface);color:var(--text);box-shadow:0 2px 8px rgba(0,0,0,.3)}
 
-.v-top-actions{display:flex;align-items:center;gap:6px}
+.v-top-actions{display:flex;align-items:center;gap:6px;scroll-margin-top:80px}
 .v-icon-btn{padding:0 10px;min-height:32px;display:inline-flex;align-items:center;gap:5px;font-size:12.5px;border-radius:var(--r-s);border:1px solid var(--border2);background:transparent;color:var(--muted);cursor:pointer;transition:all .18s}
 .v-icon-btn:hover{color:var(--text);background:var(--surface2);border-color:var(--accent-line)}
 .v-icon-btn.on{color:var(--accent);background:var(--accent-dim);border-color:var(--accent)}

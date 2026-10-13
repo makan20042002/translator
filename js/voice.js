@@ -875,6 +875,7 @@ function setupPTT(btn, onSend, viewType) {
 
   async function startRec() {
     if (isRecording) return;
+    cancelled = false;
     if (isSpeaking()) {
       stopSpeak();
       await sleep(35);
@@ -1135,11 +1136,13 @@ function setupPTT(btn, onSend, viewType) {
   });
 
   btn._resetPtt = () => {
+    if (isRecording) {
+      cancelled = true;
+    }
     isRecording = false;
     tapActive = false;
     isEndingPress = false;
     activePointerId = null;
-    cancelled = true;
     if (pttRec) {
       try { pttRec.stop(); } catch {}
       pttRec = null;
