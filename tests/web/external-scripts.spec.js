@@ -34,6 +34,7 @@ test.describe('Web app: scripts loaded from other websites', () => {
     await expect(page.locator('#dInfo')).toHaveText(/\d+ segments/);
     // Starting the offline model download loads the worker library.
     await mouseClick(page, page.locator('#openSet'));
+    await require('../support/fixtures').activateSettingsTab(page, 'trModels');
     await mouseClick(page, page.locator('#dlTr'));
     await page.waitForTimeout(2500);
 
