@@ -27,6 +27,7 @@ contextBridge.exposeInMainWorld('makanOverlay', {
   setPinned: (pinned) => ipcRenderer.send('screen-trans:overlay-pin', pinned),
   requestTranslation: (req) => ipcRenderer.send('screen-trans:request-translate', req),
   openInMainApp: (data) => ipcRenderer.send('screen-trans:open-in-app', data),
+  openInBrowser: (data) => ipcRenderer.send('screen-trans:open-in-browser', data),
   ready: () => ipcRenderer.send('screen-trans:overlay-ready'),
   toggleLiveWatcher: () => ipcRenderer.send('screen-trans:toggle-live-watcher'),
   reselectZone: () => ipcRenderer.send('screen-trans:reselect-zone'),

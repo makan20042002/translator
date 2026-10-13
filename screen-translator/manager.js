@@ -4,7 +4,7 @@
  * clipboard watcher, and floating translation panel.
  */
 
-const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, clipboard } = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, clipboard, shell } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { OcrService } = require('./ocr-service');
@@ -182,6 +182,7 @@ class ScreenTranslatorManager {
     });
 
     ipcMain.on('screen-trans:overlay-close', () => {
+      console.log('[ScreenTranslator] Received screen-trans:overlay-close IPC');
       this.closeOverlayWindow();
     });
 
@@ -210,8 +211,44 @@ class ScreenTranslatorManager {
       }
     });
 
+    ipcMain.on('screen-trans:open-in-browser', (event, payload) => {
+      console.log('[ScreenTranslator] Received screen-trans:open-in-browser IPC');
+      const FIXED_PORT = 50505;
+      const ALLOWED_ORIGIN = `http://127.0.0.1:${FIXED_PORT}`;
+      let targetUrl = ALLOWED_ORIGIN;
+      if (payload && typeof payload === 'object') {
+        const params = new URLSearchParams();
+        if (typeof payload.text === 'string' && payload.text.trim()) {
+          params.set('text', payload.text.trim().slice(0, 4000));
+        }
+        if (typeof payload.src === 'string' && /^[a-zA-Z-]{2,10}$/.test(payload.src)) {
+          params.set('src', payload.src);
+        }
+        if (typeof payload.tgt === 'string' && /^[a-zA-Z-]{2,10}$/.test(payload.tgt)) {
+          params.set('tgt', payload.tgt);
+        }
+        const qs = params.toString();
+        if (qs) targetUrl = `${ALLOWED_ORIGIN}/?${qs}`;
+      }
+      try {
+        const parsed = new URL(targetUrl);
+        if (parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === String(FIXED_PORT)) {
+          console.log('[ScreenTranslator] Opening allow-listed URL in external browser:', targetUrl);
+          shell.openExternal(targetUrl);
+        } else {
+          console.warn('[ScreenTranslator] Blocked non-allow-listed URL attempt:', targetUrl);
+          shell.openExternal(ALLOWED_ORIGIN);
+        }
+      } catch (err) {
+        console.error('[ScreenTranslator] Failed to open external browser:', err);
+        shell.openExternal(ALLOWED_ORIGIN);
+      }
+    });
+
     ipcMain.on('screen-trans:open-in-app', (event, { text, src, tgt }) => {
+      console.log('[ScreenTranslator] Received screen-trans:open-in-app IPC');
       if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+        this.mainWindow.show();
         if (this.mainWindow.isMinimized()) this.mainWindow.restore();
         this.mainWindow.focus();
         this.mainWindow.webContents.send('load-translation-input', { text, src, tgt });
@@ -406,14 +443,16 @@ class ScreenTranslatorManager {
     });
   }
 
-  closeCaptureWindow() {
+  closeCaptureWindow(keepMainWindowHidden = false) {
+    console.log('[ScreenTranslator] Closing capture window, keepMainWindowHidden:', keepMainWindowHidden);
     if (this.captureWindow && !this.captureWindow.isDestroyed()) {
       this.captureWindow.close();
     }
     this.captureWindow = null;
     this.isCapturing = false;
     this._frozenSnapshot = null;
-    if (this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (!keepMainWindowHidden && this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      console.log('[ScreenTranslator] Restoring mainWindow after capture window closed');
       this.mainWindow.show();
       this._wasMainWindowVisible = false;
     }
@@ -423,14 +462,16 @@ class ScreenTranslatorManager {
    * Handles user completed selection rectangle.
    */
   async onCaptureComplete(rect) {
+    console.log('[ScreenTranslator] onCaptureComplete rect:', rect);
     const frozen = this._frozenSnapshot;
-    const hadMainWindowVisible = this._wasMainWindowVisible;
-    this._wasMainWindowVisible = false;
-    this.closeCaptureWindow();
+    const hasValidRect = Boolean(rect && rect.width >= 8 && rect.height >= 8);
+    this.closeCaptureWindow(hasValidRect);
 
-    if (!rect || rect.width < 8 || rect.height < 8) {
-      if (hadMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+    if (!hasValidRect) {
+      if (this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+        console.log('[ScreenTranslator] Restoring mainWindow after invalid/cancelled capture');
         this.mainWindow.show();
+        this._wasMainWindowVisible = false;
       }
       return;
     }
@@ -597,7 +638,13 @@ class ScreenTranslatorManager {
       this.overlayWindow.loadFile(path.join(__dirname, 'overlay.html'));
 
       this.overlayWindow.on('closed', () => {
+        console.log('[ScreenTranslator] overlayWindow on(closed) event fired');
         this.overlayWindow = null;
+        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+          console.log('[ScreenTranslator] Ensuring mainWindow is visible after overlay window closed');
+          this.mainWindow.show();
+        }
+        this._wasMainWindowVisible = false;
       });
     } else {
       this.overlayWindow.setPosition(Math.round(posX), Math.round(posY));
@@ -608,11 +655,18 @@ class ScreenTranslatorManager {
   }
 
   closeOverlayWindow() {
+    console.log('[ScreenTranslator] Closing overlay window');
     this.stopLiveWatcher();
     if (this.overlayWindow && !this.overlayWindow.isDestroyed()) {
       this.overlayWindow.close();
     }
     this.overlayWindow = null;
+    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
+      console.log('[ScreenTranslator] Restoring mainWindow after overlay close');
+      this.mainWindow.show();
+      this.mainWindow.focus();
+    }
+    this._wasMainWindowVisible = false;
   }
 
   sendToOverlay(channel, data) {
