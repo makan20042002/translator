@@ -9,6 +9,7 @@ function stopRecNow() {
     try { curPttStop(); } catch {}
     curPttStop = null;
   }
+  if (typeof resetPttState === 'function') resetPttState();
 }
 
 function isSilenceHallucination(text) {
@@ -359,16 +360,21 @@ function fillAskLangs() {
 
 // Mode switcher: Conversation vs Ask AI
 $('vTabConv').onclick = () => {
+  if (typeof stopRecNow === 'function') stopRecNow();
+  if (typeof resetPttState === 'function') resetPttState();
   $('vTabConv').classList.add('on');
   $('vTabAsk').classList.remove('on');
   $('vTabConv').setAttribute('aria-selected', 'true');
   $('vTabAsk').setAttribute('aria-selected', 'false');
   $('vViewConv').hidden = false;
   $('vViewAsk').hidden = true;
+  if ($('vPttWrap')) $('vPttWrap').style.display = '';
   updateEmptyState();
   setVoiceState('ready');
 };
 $('vTabAsk').onclick = () => {
+  if (typeof stopRecNow === 'function') stopRecNow();
+  if (typeof resetPttState === 'function') resetPttState();
   stopLive();
   $('vTabAsk').classList.add('on');
   $('vTabConv').classList.remove('on');
@@ -1127,6 +1133,27 @@ function setupPTT(btn, onSend, viewType) {
       stopRec();
     }
   });
+
+  btn._resetPtt = () => {
+    isRecording = false;
+    tapActive = false;
+    isEndingPress = false;
+    activePointerId = null;
+    cancelled = true;
+    if (pttRec) {
+      try { pttRec.stop(); } catch {}
+      pttRec = null;
+    }
+    curPttStop = null;
+    if (pttAc) { try { pttAc.close(); } catch {} pttAc = null; }
+    resetMeterLevel();
+    if (partEl) { partEl.hidden = true; partEl.textContent = ''; }
+  };
+}
+
+function resetPttState() {
+  if ($('vPttBtn') && typeof $('vPttBtn')._resetPtt === 'function') $('vPttBtn')._resetPtt();
+  if ($('vAskPttBtn') && typeof $('vAskPttBtn')._resetPtt === 'function') $('vAskPttBtn')._resetPtt();
 }
 
 async function handleConvPttAudio(audioInput) {
