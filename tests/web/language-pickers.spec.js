@@ -120,4 +120,29 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
     const langGrpBox = await page.locator('#tab-text .trans-lang-grp').boundingBox();
     expect(langGrpBox.width).toBeLessThanOrEqual(360);
   });
+
+  test('detectRealLanguage returns null and never guesses English on numbers, symbols, Finglish, or unsure text', async ({ app }) => {
+    const { page } = app;
+    const results = await page.evaluate(() => {
+      return {
+        numeric: detectRealLanguage('12345'),
+        punctuation: detectRealLanguage('...?!'),
+        finglish: detectRealLanguage('salam chetori azizam'),
+        english: detectRealLanguage('The quick brown fox jumps over the lazy dog'),
+        persian: detectRealLanguage('سلام، حال شما چطور است؟'),
+        french: detectRealLanguage('Bonjour tout le monde'),
+        german: detectRealLanguage('Guten Morgen und willkommen'),
+        ambiguous: detectRealLanguage('xyz 999')
+      };
+    });
+
+    expect(results.numeric).toBeNull();
+    expect(results.punctuation).toBeNull();
+    expect(results.finglish).toBeNull();
+    expect(results.ambiguous).toBeNull();
+    expect(results.english).toBe('en');
+    expect(results.persian).toBe('fa');
+    expect(results.french).toBe('fr');
+    expect(results.german).toBe('de');
+  });
 });

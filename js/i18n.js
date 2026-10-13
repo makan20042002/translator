@@ -326,6 +326,15 @@ function detectRealLanguage(text){
   if(!text||typeof text!=='string')return null;
   const trimmed=text.trim();
   if(!trimmed)return null;
+
+  if(!/[a-zA-Z\u00C0-\u024F\u0600-\u06FF\u0400-\u04FF\u3040-\u30FF\uAC00-\uD7AF\u4E00-\u9FFF\u0900-\u097F\u0590-\u05FF\u0E00-\u0E7F\u0370-\u03FF\u0530-\u058F\u0980-\u09FF]/.test(trimmed)){
+    return null;
+  }
+
+  if(typeof detectFinglish==='function'&&detectFinglish(trimmed)){
+    return null;
+  }
+
   if(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(trimmed)){
     if(/[\u067E\u0686\u0698\u06AF\u06A9\u06CC]/.test(trimmed))return 'fa';
     if(/[\u0629\u0649\u064A]/.test(trimmed))return 'ar';
@@ -344,13 +353,25 @@ function detectRealLanguage(text){
   if(/[\u0370-\u03FF]/.test(trimmed))return 'el';
   if(/[\u0530-\u058F]/.test(trimmed))return 'hy';
   if(/[\u0980-\u09FF]/.test(trimmed))return 'bn';
+
   const lower=' '+trimmed.toLowerCase().replace(/[^a-zà-ÿ]/g,' ')+' ';
-  if(/\b(und|der|die|das|nicht|ist|ein|eine)\b/.test(lower)||/[äöüß]/.test(trimmed))return 'de';
-  if(/\b(le|la|les|des|est|une|dans|pour)\b/.test(lower)||/[éèêëàâôûùç]/.test(trimmed))return 'fr';
-  if(/\b(el|los|las|una|para|como|pero)\b/.test(lower)||/[ñáíóú¿¡]/.test(trimmed))return 'es';
-  if(/\b(bir|ve|bu|için|olan|ile)\b/.test(lower)||/[ğışİI]/.test(trimmed))return 'tr';
-  if(/\b(non|sono|della|delle|questo)\b/.test(lower)||/[àèéìíîòóùú]/.test(trimmed))return 'it';
-  return 'en';
+  if(/\b(und|der|die|das|nicht|ist|ein|eine|mit|auf|für|von|sie|wir|aber|auch)\b/.test(lower)||/[äöüß]/.test(trimmed))return 'de';
+  if(/\b(le|la|les|des|est|une|dans|pour|avec|sur|sont|que|qui|pas|plus|ce|cette)\b/.test(lower)||/[éèêëàâôûùç]/.test(trimmed))return 'fr';
+  if(/\b(el|los|las|una|para|como|pero|con|por|este|esta|que|del|mas)\b/.test(lower)||/[ñáíóú¿¡]/.test(trimmed))return 'es';
+  if(/\b(bir|ve|bu|için|olan|ile|da|de|çok|ama|var|yok|gibi)\b/.test(lower)||/[ğışİI]/.test(trimmed))return 'tr';
+  if(/\b(non|sono|della|delle|questo|anche|con|per|gli|dei|nel|nella)\b/.test(lower)||/[àèéìíîòóùú]/.test(trimmed))return 'it';
+
+  if(/\b(the|is|and|of|in|to|it|you|that|was|for|on|are|as|with|they|at|be|this|from|have|or|by|one|had|not|but|what|all|were|when|we|there|can|an|your|which|their|if|do|will|each|about|how|up|out|them|then|she|many|some|so|these|would|other|into|has|more|her|two|like|him|see|time|no|make|than|first|been|its|who|now|my|over|down|only|way|find|use|water|long|little|very|after|words|just|where|most|know)\b/.test(lower)){
+    return 'en';
+  }
+
+  if(/^[a-zA-Z\s,.'!?"'-]+$/.test(trimmed) && trimmed.length >= 3){
+    if(/\b(hello|world|good|morning|hi|please|thank|thanks|welcome|name|book|car|house|water|food|cat|dog|test|help|yes|ok)\b/i.test(trimmed)){
+      return 'en';
+    }
+  }
+
+  return null;
 }
 
 window.MakanLangPickers=window.MakanLangPickers||{};
@@ -363,6 +384,10 @@ function setupUnifiedLanguagePicker(options){
   if(!srcSelect&&!tgtSelect)return null;
 
   const idPrefix=options.idPrefix||(srcSelect?srcSelect.id:(tgtSelect?tgtSelect.id:'picker'));
+
+  let detectedLang=null;
+  let srcWrapped=null;
+  let tgtWrapped=null;
 
   function wrapSelect(sel,role){
     if(!sel)return null;
@@ -427,7 +452,7 @@ function setupUnifiedLanguagePicker(options){
       if(role==='src'&&sel.value!=='auto'){
         const badge=pickerWrap.querySelector('.lang-detected-badge');
         if(badge)badge.hidden=true;
-        pickerInstance.detectedLang=null;
+        detectedLang=null;
       }
     }
 
@@ -436,21 +461,19 @@ function setupUnifiedLanguagePicker(options){
     return {sel,pickerWrap,parentBox,display,update};
   }
 
-  const srcWrapped=wrapSelect(srcSelect,'src');
-  const tgtWrapped=wrapSelect(tgtSelect,'tgt');
-
   const pickerInstance={
     srcSelect,
     tgtSelect,
     swapBtn,
-    detectedLang:null,
+    get detectedLang(){return detectedLang;},
+    set detectedLang(val){detectedLang=val;},
 
     setDetected(langCode){
       if(!srcSelect||srcSelect.value!=='auto'||!langCode){
         this.clearDetected();
         return;
       }
-      this.detectedLang=langCode;
+      detectedLang=langCode;
       if(srcWrapped&&srcWrapped.pickerWrap){
         const badge=srcWrapped.pickerWrap.querySelector('.lang-detected-badge');
         if(badge){
@@ -462,7 +485,7 @@ function setupUnifiedLanguagePicker(options){
     },
 
     clearDetected(){
-      this.detectedLang=null;
+      detectedLang=null;
       if(srcWrapped&&srcWrapped.pickerWrap){
         const badge=srcWrapped.pickerWrap.querySelector('.lang-detected-badge');
         if(badge)badge.hidden=true;
@@ -477,9 +500,9 @@ function setupUnifiedLanguagePicker(options){
         if(lbl)lbl.innerHTML=L('from');
         const badgePrefix=srcWrapped.pickerWrap.querySelector('.detected-prefix');
         if(badgePrefix)badgePrefix.textContent=L('detectedPrefix');
-        if(this.detectedLang){
+        if(detectedLang){
           const valEl=srcWrapped.pickerWrap.querySelector('.detected-val');
-          if(valEl)valEl.innerHTML=formatLangDisplayHtml(this.detectedLang);
+          if(valEl)valEl.innerHTML=formatLangDisplayHtml(detectedLang);
         }
       }
       if(tgtWrapped&&tgtWrapped.pickerWrap){
@@ -488,6 +511,9 @@ function setupUnifiedLanguagePicker(options){
       }
     }
   };
+
+  srcWrapped=wrapSelect(srcSelect,'src');
+  tgtWrapped=wrapSelect(tgtSelect,'tgt');
 
   if(swapBtn&&srcSelect&&tgtSelect){
     swapBtn.addEventListener('click',e=>{
@@ -503,9 +529,9 @@ function setupUnifiedLanguagePicker(options){
         tgtSelect.dispatchEvent(new Event('change',{bubbles:true}));
         options.onChanged?.(srcSelect.value,tgtSelect.value);
       }else{
-        if(pickerInstance.detectedLang){
+        if(detectedLang){
           srcSelect.value=curTgt;
-          tgtSelect.value=pickerInstance.detectedLang;
+          tgtSelect.value=detectedLang;
           pickerInstance.clearDetected();
           srcSelect.dispatchEvent(new Event('change',{bubbles:true}));
           tgtSelect.dispatchEvent(new Event('change',{bubbles:true}));
