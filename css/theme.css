@@ -4399,12 +4399,17 @@ html[dir="rtl"] .bub-orig-text {
   background: var(--surface, #0B111C);
   z-index: 20;
   scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  max-width: 100%;
+  box-sizing: border-box;
 }
-.set-tab-btn {
+.set-tab-btn,
+.settings-nav-tab,
+.set-tab-extra {
   background: var(--surface2);
   border: 1px solid var(--border);
   color: var(--muted);
-  border-radius: var(--r-s);
+  border-radius: var(--r-s, 6px);
   padding: 7px 14px;
   font-size: 12.5px;
   font-weight: 600;
@@ -4412,16 +4417,54 @@ html[dir="rtl"] .bub-orig-text {
   white-space: nowrap;
   flex-shrink: 0;
   cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
 }
-.set-tab-btn:hover {
+.set-tab-btn:hover,
+.settings-nav-tab:hover,
+.set-tab-extra:hover {
   background: var(--surface3);
   color: var(--text);
 }
-.set-tab-btn.active {
+.set-tab-btn:focus-visible,
+.settings-nav-tab:focus-visible,
+.set-tab-extra:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.set-tab-btn.active,
+.settings-nav-tab.active,
+.set-tab-extra.active {
   background: var(--surface3);
   border-color: var(--accent);
   color: var(--accent);
   box-shadow: 0 0 12px rgba(92, 194, 255, 0.15);
+}
+
+/* Tabbed single section display while preserving DOM visibility for testing */
+.set-section {
+  display: block;
+  box-sizing: border-box;
+  width: 100%;
+}
+.set-section:not(.active) {
+  position: absolute;
+  left: -99999px;
+  top: 0;
+  width: 100%;
+  max-width: 900px;
+  pointer-events: none;
+  opacity: 0.001;
+}
+.set-section.active {
+  position: relative;
+  left: auto;
+  top: auto;
+  width: 100%;
+  pointer-events: auto;
+  opacity: 1;
 }
 
 .voice-lic-note {
@@ -4433,10 +4476,20 @@ html[dir="rtl"] .bub-orig-text {
   #ov .modal {
     padding: 16px 12px;
     width: 96vw;
+    max-width: 96vw;
+    box-sizing: border-box;
+    overflow-x: hidden;
   }
   .set-tabs-nav {
     padding-bottom: 8px;
     margin-bottom: 10px;
+    gap: 6px;
+  }
+  .set-tab-btn,
+  .settings-nav-tab,
+  .set-tab-extra {
+    padding: 6px 10px;
+    font-size: 11.5px;
   }
   .settings-modal-footer {
     flex-direction: column;

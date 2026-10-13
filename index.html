@@ -1258,16 +1258,17 @@
 <!-- SETTINGS -->
 <div class="ov" id="ov"><div class="modal" role="dialog" aria-modal="true" aria-labelledby="setT">
   <div class="row" style="align-items:center"><h2 id="setT" data-t="engines">Engines &amp; keys</h2><span class="sp"></span><span class="settings-autosave-notice" id="settingsAutoSaveNotice" style="display:none;font-size:12px;color:var(--ok);background:var(--ok-dim,rgba(63,185,80,0.15));border:1px solid rgba(63,185,80,0.3);padding:2px 8px;border-radius:12px;margin-inline-end:10px">✓ <span data-t="savedNotice">Saved</span></span><button class="btn ghost" id="closeSet">✕</button></div>
-  <div class="set-tabs-nav" id="setTabsNav" style="display:flex;gap:8px;overflow-x:auto;padding:6px 0 12px;margin:6px 0 14px;border-bottom:1px solid var(--border);position:sticky;top:0;background:var(--surface,#0B111C);z-index:20">
-    <button type="button" class="btn btn-sm set-tab-btn active" id="setTabBtnEngines" data-sec="secEngines"><span data-t="tabEnginesKeys">Translation engines &amp; keys</span></button>
-    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoices" data-sec="secVoices"><span data-t="tabVoices">Voices (reading aloud)</span></button>
-    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoiceModels" data-sec="secVoiceModels"><span data-t="tabVoiceModels">Voice models (speech recognition)</span></button>
-    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnTrModels" data-sec="secTrModels"><span data-t="tabTrModels">Translation models (offline)</span></button>
-    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnOcr" data-sec="secOcr"><span data-t="tabOcr">Screen reading (OCR)</span></button>
+  <div class="set-tabs-nav" id="setTabsNav" role="tablist" aria-label="Settings categories">
+    <button type="button" class="btn btn-sm set-tab-btn active" id="setTabBtnEngines" data-sec="secEngines" role="tab" aria-selected="true" aria-controls="secEngines" tabindex="0"><span data-t="tabEnginesKeys">Translation engines &amp; keys</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoices" data-sec="secVoices" role="tab" aria-selected="false" aria-controls="secVoices" tabindex="-1"><span data-t="tabVoices">Voices (reading aloud)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnVoiceModels" data-sec="secVoiceModels" role="tab" aria-selected="false" aria-controls="secVoiceModels" tabindex="-1"><span data-t="tabVoiceModels">Voice models (speech recognition)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnTrModels" data-sec="secTrModels" role="tab" aria-selected="false" aria-controls="secTrModels" tabindex="-1"><span data-t="tabTrModels">Translation models (offline)</span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnOcr" data-sec="secOcr" role="tab" aria-selected="false" aria-controls="secOcr" tabindex="-1"><span data-t="tabOcr">Screen reading (OCR)</span></button>
+    <button type="button" class="btn btn-sm set-tab-extra settings-nav-tab" id="setTabBtnDict" data-sec="secDict" role="tab" aria-selected="false" aria-controls="secDict" tabindex="-1"><span data-t="tabDict">فرهنگ لغت <bdi>(Dictionary)</bdi></span></button>
   </div>
 
   <!-- Section 1: Translation engines and keys -->
-  <div class="set-section" id="secEngines" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+  <div class="set-section active" id="secEngines" role="tabpanel" aria-labelledby="setTabBtnEngines" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
     <h3 data-t="tabEnginesKeys" style="margin-top:0">Translation engines &amp; keys</h3>
     <p class="note" data-t="setNote">Free engines work with no setup. For better quality add a free key (Gemini, Groq or OpenRouter). In Auto mode engines are tried from top to bottom, and the next one takes over if one fails.</p>
     <div class="row" style="margin:8px 0 12px;gap:10px;align-items:center;flex-wrap:wrap">
@@ -1293,7 +1294,7 @@
   </div>
 
   <!-- Section 2: Voices (reading aloud) -->
-  <div class="set-section" id="secVoices" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+  <div class="set-section" id="secVoices" role="tabpanel" aria-labelledby="setTabBtnVoices" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
     <h3 data-t="tabVoices" style="margin-top:0">Voices (reading aloud)</h3>
     <div class="setg">
       <label><span data-t="ttsL">Text to speech (read aloud)</span><select id="ttsMode">
@@ -1325,7 +1326,7 @@
   </div>
 
   <!-- Section 3: Voice models (speech recognition) -->
-  <div class="set-section" id="secVoiceModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+  <div class="set-section" id="secVoiceModels" role="tabpanel" aria-labelledby="setTabBtnVoiceModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
     <h3 data-t="tabVoiceModels" style="margin-top:0">Voice models (speech recognition)</h3>
     <div class="setg">
       <label><span data-t="sttL">Speech to text (microphone)</span><select id="sttSel">
@@ -1377,7 +1378,7 @@
   </div>
 
   <!-- Section 4: Translation models (offline) -->
-  <div class="set-section" id="secTrModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
+  <div class="set-section" id="secTrModels" role="tabpanel" aria-labelledby="setTabBtnTrModels" style="margin-bottom:22px;border-bottom:1px solid var(--border);padding-bottom:18px">
     <h3 data-t="offH" style="margin-top:0">Offline</h3>
     <p class="note" data-t="offNote"></p>
     <div class="setg off-models-pickers" style="margin:12px 0 14px">
@@ -1411,7 +1412,7 @@
   </div>
 
   <!-- Section 5: Screen reading (OCR) -->
-  <div class="set-section" id="secOcr" style="margin-bottom:18px">
+  <div class="set-section" id="secOcr" role="tabpanel" aria-labelledby="setTabBtnOcr" style="margin-bottom:18px">
     <div id="screenTransSettingsBlock" style="border-top:1px solid var(--border);padding-top:16px;margin-top:16px">
       <h3 style="display:flex;align-items:center;gap:8px;margin-top:0"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/><circle cx="12" cy="12" r="3"/></svg> <span data-t="tabOcr">Screen reading (OCR)</span></h3>
       <p class="note" data-t="screenTransNote">Capture any region of your screen to recognize text with native Windows OCR and translate instantly.</p>
@@ -1509,12 +1510,67 @@
       </div>
     </div>
   </div>
+
+  <!-- Section 6: Dictionary (NEW Dictionary tab) -->
+  <div class="set-section" id="secDict" role="tabpanel" aria-labelledby="setTabBtnDict" style="margin-bottom:18px">
+    <div style="display:flex;align-items:center;gap:8px;margin-top:0;margin-bottom:8px">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>
+      <h3 style="margin:0" data-t="tabDict">فرهنگ لغت <bdi>(Dictionary)</bdi></h3>
+    </div>
+    <p class="note" style="margin-bottom:14px">
+      فرهنگ لغت آفلاین و واژه‌نامه دوزبانه بدون نیاز به اینترنت. بسته‌های واژگانی پس از دانلود مستقیماً در مرورگر ذخیره می‌شوند.
+      <br><bdi>(Offline bilingual dictionary and glossary. Language packs run entirely in-browser once downloaded.)</bdi>
+    </p>
+
+    <div class="card" style="padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span>📚</span> <span>وضعیت بسته‌های فرهنگ لغت <bdi>(Dictionary Language Packs Status)</bdi></span>
+      </div>
+      <div id="setDictPacksList" style="display:flex;flex-direction:column;gap:8px"></div>
+    </div>
+
+    <div class="card" style="padding:12px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;margin-bottom:16px">
+      <div style="font-weight:700;font-size:13px;margin-bottom:8px;display:flex;align-items:center;gap:6px">
+        <span>⚙</span> <span>تنظیمات واژه‌نامه <bdi>(Dictionary Options)</bdi></span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:10px">
+        <label class="chk">
+          <input type="checkbox" id="setDictVulgar">
+          <span>نمایش واژه‌های عامیانه و اصطلاحات خودمانی <bdi>(Show vulgar &amp; sensitive words)</bdi></span>
+        </label>
+        <label class="chk">
+          <input type="checkbox" id="setDictOfflineAuto" checked>
+          <span>فعال بودن جستجوی محلی و اصطلاحات در ترجمه متن <bdi>(Enable offline dictionary lookup in text translation)</bdi></span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Honest not available yet state -->
+    <div class="card" id="setDictUnbuiltNotice" style="padding:12px 16px;background:rgba(255,255,255,0.02);border:1px dashed var(--border);border-radius:8px;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:12.5px">
+        <span>⏳</span>
+        <div>
+          <strong>سایر زبان‌ها: در حال حاضر موجود نیست <bdi>(Other language packs: Not available yet)</bdi></strong>
+          <div style="font-size:11.5px;margin-top:2px;color:var(--muted2)">
+            بسته‌های فرهنگ لغت آفلاین در حال حاضر برای جفت‌های انگلیسی-فارسی (<bdi>en-fa</bdi>) و فارسی-انگلیسی (<bdi>fa-en</bdi>) ارائه شده‌اند. بسته‌های سایر زبان‌ها (فرانسوی، آلمانی، عربی) هنوز ساخته نشده‌اند.
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CC BY-SA 4.0 license note -->
+    <div class="card" id="setDictLicenseCard" style="padding:10px 14px;background:rgba(92,194,255,0.06);border:1px solid rgba(92,194,255,0.2);border-radius:8px;font-size:12px;line-height:1.6">
+      <strong>مجوز و اعتبار داده‌ها <bdi>(Data License &amp; Credits)</bdi>:</strong>
+      داده‌های فرهنگ لغت از <bdi>Wiktionary</bdi> (ویکی‌واژه) و <bdi>Kaikki.org</bdi> استخراج شده و تحت مجوز رسمی <bdi>Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</bdi> ارائه می‌شوند.
+    </div>
+  </div>
+
   <div class="row settings-modal-footer" style="margin-top:20px;align-items:center;justify-content:space-between">
     <div style="font-size:12px;color:var(--muted);display:flex;align-items:center;gap:6px">
       <span>💾</span>
-      <span data-t="settingsAutoSaveHint">Settings save automatically</span>
+      <span data-t="settingsAutoSaveHint">تنظیمات به‌طور خودکار ذخیره می‌شوند <bdi>(Settings save automatically)</bdi></span>
     </div>
-    <button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">Save &amp; Close</button>
+    <button class="btn" id="btnSaveDone" style="min-width:140px;justify-content:center;background:var(--grad);color:#03111A;font-weight:700">بستن <bdi>(Close)</bdi></button>
   </div>
 </div></div>
 

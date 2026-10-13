@@ -538,32 +538,189 @@ if($('tmClearBtn'))$('tmClearBtn').onclick=async()=>{
   }
   toast(L('tmCleared'),'ok');
 };
-$('openSet').onclick=()=>{
+let lastActiveTabBeforeSettings = null;
+const SETTINGS_TAB_KEY = 'mkt_active_settings_tab';
+
+async function renderDictSettingsTab() {
+  const box = $('setDictPacksList');
+  if (!box) return;
+  const vulgarInput = $('setDictVulgar');
+  if (vulgarInput) {
+    vulgarInput.checked = !!store.get('showVulgar', false);
+    vulgarInput.onchange = () => {
+      store.set('showVulgar', vulgarInput.checked);
+      if ($('dcVulgar')) $('dcVulgar').checked = vulgarInput.checked;
+      if (typeof dictSearch === 'function' && $('dcSearch') && $('dcSearch').value.trim()) dictSearch();
+      toast(L('savedNotice') || 'Saved', 'ok');
+    };
+  }
+  const autoInput = $('setDictOfflineAuto');
+  if (autoInput) {
+    autoInput.checked = store.get('dictOfflineAuto', true);
+    autoInput.onchange = () => {
+      store.set('dictOfflineAuto', autoInput.checked);
+      toast(L('savedNotice') || 'Saved', 'ok');
+    };
+  }
+
+  box.innerHTML = '';
+  const pairs = (typeof DICT_PAIRS !== 'undefined' && DICT_PAIRS.length) ? DICT_PAIRS : ['en-fa', 'fa-en'];
+  for (const pair of pairs) {
+    const info = (typeof MakanDict !== 'undefined' && MakanDict.PAIR_INFO) ? MakanDict.PAIR_INFO[pair] : null;
+    let isReady = false;
+    let entries = '';
+    if (typeof MakanDict !== 'undefined' && MakanDict.status) {
+      const st = await MakanDict.status(pair).catch(() => null);
+      if (st) {
+        isReady = true;
+        entries = st.entries ? `${st.entries} مدخل` : '';
+      }
+    }
+    const mb = info ? (info.bytes / 1048576).toFixed(1) : (pair === 'en-fa' ? '1.1' : '0.9');
+    const name = (typeof packName === 'function') ? packName(pair) : (pair === 'en-fa' ? 'English → فارسی' : 'فارسی → English');
+
+    const card = document.createElement('div');
+    card.className = 'dict-pack-card';
+    card.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;gap:8px';
+    card.innerHTML = `
+      <div style="display:flex;align-items:center;gap:8px">
+        <span class="dot ${isReady ? 'ok' : ''}" style="width:8px;height:8px;border-radius:50%;background:${isReady ? 'var(--ok, #3fb950)' : 'var(--muted, #8b949e)'};display:inline-block"></span>
+        <div>
+          <strong style="font-size:12.5px">${esc(name)}</strong>
+          <span style="font-size:11px;color:var(--muted);margin-inline-start:6px">~${mb} MB ${entries ? '· ' + esc(entries) : ''}</span>
+        </div>
+      </div>
+      <div>
+        <span class="ocr-badge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:${isReady ? 'rgba(63,185,80,0.15)' : 'rgba(255,180,74,0.15)'};color:${isReady ? 'var(--ok,#3fb950)' : '#FFB44A'}">${isReady ? (L('ready') || 'Ready') : (L('notDl') || 'Not downloaded')}</span>
+      </div>
+    `;
+    box.appendChild(card);
+  }
+}
+
+function switchSettingsTab(targetSecId) {
+  maskAllKeys();
+  const allTabs = document.querySelectorAll('#setTabsNav [role="tab"], #setTabsNav .set-tab-btn, #setTabsNav .settings-nav-tab');
+  const allSections = document.querySelectorAll('.set-section');
+
+  let matched = false;
+  allTabs.forEach(btn => {
+    const isTarget = btn.dataset.sec === targetSecId;
+    btn.classList.toggle('active', isTarget);
+    btn.setAttribute('aria-selected', isTarget ? 'true' : 'false');
+    btn.setAttribute('tabindex', isTarget ? '0' : '-1');
+    if (isTarget) matched = true;
+  });
+
+  if (!matched && allTabs.length > 0) {
+    targetSecId = allTabs[0].dataset.sec;
+    allTabs[0].classList.add('active');
+    allTabs[0].setAttribute('aria-selected', 'true');
+    allTabs[0].setAttribute('tabindex', '0');
+  }
+
+  allSections.forEach(sec => {
+    const isTarget = sec.id === targetSecId;
+    sec.classList.toggle('active', isTarget);
+    sec.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+  });
+
+  try {
+    store.set(SETTINGS_TAB_KEY, targetSecId);
+  } catch {}
+
+  if (targetSecId === 'secDict') {
+    renderDictSettingsTab();
+  }
+}
+
+$('openSet').onclick = () => {
+  lastActiveTabBeforeSettings = document.querySelector('.tab.active') || document.activeElement;
   renderEngines();
-  let ok=0,total=cfg.order.length;
-  cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
-  if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
+  let ok = 0, total = cfg.order.length;
+  cfg.order.forEach(id => { if (engineConnStatus[id]?.code === 'works') ok++; });
+  if (Object.keys(engineConnStatus).length && $('checkConnSummary')) $('checkConnSummary').textContent = `${ok}/${total} ${L('connWorks')}`;
   syncTmToggles();
   updateTmCount();
   $('ov').classList.add('on');
+  const savedTab = store.get(SETTINGS_TAB_KEY, 'secEngines');
+  switchSettingsTab(savedTab);
 };
-function maskAllKeys(){
-  document.querySelectorAll('#engList input[data-f="key"]').forEach(inp=>{
-    inp.type='password';
+
+function maskAllKeys() {
+  document.querySelectorAll('#engList input[data-f="key"]').forEach(inp => {
+    inp.type = 'password';
   });
-  document.querySelectorAll('#engList .eng-key-toggle-btn').forEach(btn=>{
-    btn.textContent='👁';
+  document.querySelectorAll('#engList .eng-key-toggle-btn').forEach(btn => {
+    btn.textContent = '👁';
   });
 }
-$('closeSet').onclick=()=>{maskAllKeys();saveAllInputs();$('ov').classList.remove('on')};
-$('btnSaveDone').onclick=()=>{maskAllKeys();saveAllInputs();$('ov').classList.remove('on');toast('Settings saved','ok')};
-$('ov').addEventListener('click',e=>{if(e.target===$('ov'))maskAllKeys()});
-document.querySelectorAll('.set-tab-btn').forEach(btn=>{
-  btn.addEventListener('click',()=>{
-    maskAllKeys();
-    document.querySelectorAll('.set-tab-btn').forEach(b=>b.classList.remove('active'));
-    btn.classList.add('active');
-    const sec=$(btn.dataset.sec);
-    if(sec)sec.scrollIntoView({behavior:'smooth',block:'start'});
+
+function closeSettings() {
+  maskAllKeys();
+  saveAllInputs();
+  $('ov').classList.remove('on');
+  if (lastActiveTabBeforeSettings && typeof lastActiveTabBeforeSettings.focus === 'function') {
+    try { lastActiveTabBeforeSettings.focus(); } catch {}
+  }
+}
+
+$('closeSet').onclick = closeSettings;
+$('btnSaveDone').onclick = () => {
+  closeSettings();
+  toast(L('savedNotice') || 'Settings saved', 'ok');
+};
+$('ov').addEventListener('click', e => {
+  if (e.target === $('ov')) maskAllKeys();
+});
+
+window.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && $('ov') && $('ov').classList.contains('on')) {
+    e.preventDefault();
+    closeSettings();
+  }
+});
+
+document.querySelectorAll('#setTabsNav [role="tab"], #setTabsNav .set-tab-btn, #setTabsNav .settings-nav-tab').forEach(btn => {
+  btn.addEventListener('click', () => {
+    if (btn.dataset.sec) switchSettingsTab(btn.dataset.sec);
+  });
+});
+
+const tabsNav = $('setTabsNav');
+if (tabsNav) {
+  tabsNav.addEventListener('keydown', (e) => {
+    const tabs = Array.from(tabsNav.querySelectorAll('[role="tab"]'));
+    const curIndex = tabs.findIndex(t => t.classList.contains('active') || t === document.activeElement);
+    if (curIndex === -1) return;
+
+    let nextIndex = -1;
+    if (e.key === 'ArrowRight') {
+      nextIndex = (curIndex + 1) % tabs.length;
+    } else if (e.key === 'ArrowLeft') {
+      nextIndex = (curIndex - 1 + tabs.length) % tabs.length;
+    } else if (e.key === 'Home') {
+      nextIndex = 0;
+    } else if (e.key === 'End') {
+      nextIndex = tabs.length - 1;
+    } else if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      switchSettingsTab(tabs[curIndex].dataset.sec);
+      return;
+    }
+
+    if (nextIndex !== -1) {
+      e.preventDefault();
+      tabs[nextIndex].focus();
+      switchSettingsTab(tabs[nextIndex].dataset.sec);
+    }
+  });
+}
+
+document.querySelectorAll('.set-section').forEach(sec => {
+  sec.addEventListener('focusin', () => {
+    if (!sec.classList.contains('active')) {
+      switchSettingsTab(sec.id);
+    }
   });
 });
