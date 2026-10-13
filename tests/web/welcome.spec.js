@@ -62,6 +62,21 @@ test.describe('Web app: Welcome Wizard (Stage 4)', () => {
     const privacyText = page.locator('#welcomePrivacyText');
     const privacyNotice = page.locator('#welcomePrivacyNotice');
 
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    const nllb = cat.models.find(m => m.id === 'tr-nllb-600');
+    await page.evaluate(({ nllbFiles }) => {
+      store.set('mdl', {
+        'tr-nllb-600': { at: 1, files: nllbFiles }
+      });
+    }, {
+      nllbFiles: nllb.files.map(f => f[0]).filter(f => f.endsWith('.onnx'))
+    });
+    await page.route('http://localhost:11434/api/tags', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ models: [{ name: 'translategemma:4b' }] })
+    }));
+
     // Offline engine selected: local privacy notice
     await mouseClick(page, offlineCard);
     await expect(privacyText).toHaveText(/stays on this (device|PC)|Everything stays on this device/i);
@@ -117,9 +132,9 @@ test.describe('Web app: Welcome Wizard (Stage 4)', () => {
 
   test('completing wizard applies settings and finishes', async ({ app }) => {
     const { page } = app;
-    await page.evaluate(() => window.openWelcomeWizard(4));
+    await page.evaluate(() => window.openWelcomeWizard(5));
 
-    await expect(page.locator('#welcomeStep4')).toBeVisible();
+    await expect(page.locator('#welcomeStep5')).toBeVisible();
     const finishBtn = page.locator('#welcomeFinishBtn');
     await expect(finishBtn).toBeVisible();
 

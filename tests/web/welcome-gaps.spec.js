@@ -79,6 +79,21 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
     const privacyNotice = page.locator('#welcomePrivacyNotice');
     const privacyText = page.locator('#welcomePrivacyText');
 
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    const nllb = cat.models.find(m => m.id === 'tr-nllb-600');
+    await page.evaluate(({ nllbFiles }) => {
+      store.set('mdl', {
+        'tr-nllb-600': { at: 1, files: nllbFiles }
+      });
+    }, {
+      nllbFiles: nllb.files.map(f => f[0]).filter(f => f.endsWith('.onnx'))
+    });
+    await page.route('http://localhost:11434/api/tags', route => route.fulfill({
+      status: 200,
+      contentType: 'application/json',
+      body: JSON.stringify({ models: [{ name: 'translategemma:4b' }] })
+    }));
+
     // 1. Fast (Online) choice discloses server/cloud transmission
     await mouseClick(page, onlineCard);
     await expect(onlineCard).toHaveClass(/\bactive\b/);
@@ -210,10 +225,10 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
 
   test('Gap 5: Done summary lists configured items and Go to Text button activates Text tab', async ({ app }) => {
     const { page } = app;
-    await page.evaluate(() => window.openWelcomeWizard(4));
+    await page.evaluate(() => window.openWelcomeWizard(5));
 
-    const step4 = page.locator('#welcomeStep4');
-    await expect(step4).toBeVisible();
+    const step5 = page.locator('#welcomeStep5');
+    await expect(step5).toBeVisible();
 
     const goTextBtn = page.locator('#welcomeGoTextBtn');
     await expect(goTextBtn).toBeVisible();
