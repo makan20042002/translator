@@ -130,4 +130,47 @@ test.describe('Web app: Settings redesign tabs and dictionary', () => {
     expect(activeSecId).toBeTruthy();
     await expect(page.locator(`#${activeSecId}`)).toHaveClass(/active/);
   });
+
+  test('Tab key never focuses a control inside an inactive section', async ({ app }) => {
+    const { page } = app;
+    await openSettings(page);
+
+    // Ensure we start on Engines tab
+    await mouseClick(page, page.locator('#setTabBtnEngines'));
+    await expect(page.locator('#secEngines')).toHaveClass(/active/);
+
+    // Tab through elements in modal 30 times
+    for (let i = 0; i < 30; i++) {
+      await page.keyboard.press('Tab');
+      const focusedSectionInfo = await page.evaluate(() => {
+        const el = document.activeElement;
+        const sec = el?.closest('.set-section');
+        return sec ? { id: sec.id, isActive: sec.classList.contains('active') } : null;
+      });
+      if (focusedSectionInfo) {
+        expect(focusedSectionInfo.isActive, `Focused element in section ${focusedSectionInfo.id} must be active`).toBe(true);
+        expect(focusedSectionInfo.id).toBe('secEngines');
+      }
+    }
+  });
+
+  test('no horizontal scroll in Persian at 360 px', async ({ app }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 360, height: 740 });
+
+    // Switch UI to Persian
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+
+    await openSettings(page);
+    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+
+    const hasHorizontalOverflow = await page.evaluate(() => {
+      const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
+      const modal = document.querySelector('#ov .modal');
+      const modalOverflow = modal ? modal.scrollWidth > modal.clientWidth : false;
+      return docOverflow || modalOverflow;
+    });
+    expect(hasHorizontalOverflow, 'No horizontal scroll in Persian at 360px').toBe(false);
+  });
 });

@@ -623,6 +623,24 @@ function switchSettingsTab(targetSecId) {
     const isTarget = sec.id === targetSecId;
     sec.classList.toggle('active', isTarget);
     sec.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+
+    const focusable = sec.querySelectorAll('button, input, select, textarea, a, [tabindex]');
+    focusable.forEach(el => {
+      if (isTarget) {
+        if (el.hasAttribute('data-prev-tabindex')) {
+          el.setAttribute('tabindex', el.getAttribute('data-prev-tabindex'));
+          el.removeAttribute('data-prev-tabindex');
+        } else {
+          el.removeAttribute('tabindex');
+        }
+      } else {
+        if (!el.hasAttribute('data-prev-tabindex')) {
+          const currentTi = el.getAttribute('tabindex');
+          if (currentTi !== null) el.setAttribute('data-prev-tabindex', currentTi);
+        }
+        el.setAttribute('tabindex', '-1');
+      }
+    });
   });
 
   try {
