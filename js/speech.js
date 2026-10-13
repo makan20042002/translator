@@ -320,6 +320,7 @@ function showSpeakNotice(text,retry,onClose){
   box._onClose=onClose||null;
   $('speakNoticeText').textContent=text;
   const rb=$('speakNoticeRetry');rb.hidden=!retry;rb.textContent=L('retry');rb.onclick=()=>{hideSpeakNotice();retry&&retry()};
+  if($('tab-voice')?.classList.contains('on'))box.classList.add('voice-mode');else box.classList.remove('voice-mode');
   box.hidden=false;
 }
 function hideSpeakNotice(){const box=$('speakNotice');if(box){box.hidden=true;box._onClose=null}}

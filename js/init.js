@@ -2,6 +2,7 @@
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.tab));
+  if($('speakNotice'))$('speakNotice').classList.toggle('voice-mode',b.dataset.tab==='voice');
   if($('sidebar'))$('sidebar').classList.remove('open');
   if($('sidebarBackdrop'))$('sidebarBackdrop').classList.remove('open');
   if(b.dataset.tab!=='voice'){
