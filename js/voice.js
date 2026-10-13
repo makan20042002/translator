@@ -345,7 +345,14 @@ function fillAskLangs() {
   $('vAskLang').value = cur;
   if ($('vAskLang').selectedIndex < 0) $('vAskLang').value = $('tgt').value;
   if (typeof setupUnifiedLanguagePicker === 'function') {
-    setupUnifiedLanguagePicker({ srcSelect: 'vAskLang', idPrefix: 'ask', label: L('vAskLang') || 'Answer language' });
+    setupUnifiedLanguagePicker({
+      srcSelect: 'vAskLang',
+      role: 'ask',
+      idPrefix: 'ask',
+      labelKey: 'vAskLang',
+      label: L('vAskLang') || 'Answer language',
+      noDetected: true
+    });
   }
   $('vAskLang').onchange = () => { if (typeof updateCompactVoiceButtons === 'function') updateCompactVoiceButtons(); };
 }

@@ -413,12 +413,18 @@ function setupUnifiedLanguagePicker(options){
       }else if(role==='tgt'){
         lbl.setAttribute('data-t','to');
         lbl.innerHTML=L('to');
+      }else if(role==='ask'||options.labelKey==='vAskLang'){
+        lbl.setAttribute('data-t','vAskLang');
+        lbl.innerHTML=L('vAskLang')||'Answer language';
+      }else if(options.labelKey){
+        lbl.setAttribute('data-t',options.labelKey);
+        lbl.innerHTML=L(options.labelKey)||options.label||'';
       }else{
         lbl.textContent=options.label||'';
       }
       topLine.appendChild(lbl);
 
-      if(role==='src'){
+      if(role==='src'&&!options.noDetected){
         const badge=document.createElement('span');
         badge.className='lang-detected-badge';
         badge.id=`${sel.id}-detected-badge`;
@@ -497,7 +503,14 @@ function setupUnifiedLanguagePicker(options){
       if(tgtWrapped)tgtWrapped.update();
       if(srcWrapped&&srcWrapped.pickerWrap){
         const lbl=srcWrapped.pickerWrap.querySelector('.lang-picker-lbl');
-        if(lbl)lbl.innerHTML=L('from');
+        const r=options.role||'src';
+        if(r==='src'){
+          if(lbl)lbl.innerHTML=L('from');
+        }else if(r==='ask'||options.labelKey==='vAskLang'){
+          if(lbl)lbl.innerHTML=L('vAskLang')||'Answer language';
+        }else if(options.labelKey){
+          if(lbl)lbl.innerHTML=L(options.labelKey)||options.label||'';
+        }
         const badgePrefix=srcWrapped.pickerWrap.querySelector('.detected-prefix');
         if(badgePrefix)badgePrefix.textContent=L('detectedPrefix');
         if(detectedLang){
@@ -512,7 +525,7 @@ function setupUnifiedLanguagePicker(options){
     }
   };
 
-  srcWrapped=wrapSelect(srcSelect,'src');
+  srcWrapped=wrapSelect(srcSelect,options.role||'src');
   tgtWrapped=wrapSelect(tgtSelect,'tgt');
 
   if(swapBtn&&srcSelect&&tgtSelect){

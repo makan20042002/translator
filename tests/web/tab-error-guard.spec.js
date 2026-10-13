@@ -26,15 +26,16 @@ test.describe('Web app: stability guard and language picker initialization', () 
 
     // 2. Voice page
     await page.locator('#tabs button[data-tab="voice"]').click();
-    const voiceSrc = page.locator('#tab-voice [data-picker-role="src"] .lang-picker-display .lang-display-inner');
-    const voiceTgt = page.locator('#tab-voice [data-picker-role="tgt"] .lang-picker-display .lang-display-inner');
+    const voiceSrc = page.locator('#vLangPair [data-picker-role="src"] .lang-picker-display .lang-display-inner');
+    const voiceTgt = page.locator('#vLangPair [data-picker-role="tgt"] .lang-picker-display .lang-display-inner');
     await expect(voiceSrc).toBeVisible();
     await expect(voiceTgt).toBeVisible();
     expect((await voiceSrc.textContent()).trim().length).toBeGreaterThan(0);
     expect((await voiceTgt.textContent()).trim().length).toBeGreaterThan(0);
 
-    // 3. Subtitles page
+    // 3. Subtitles page (unhide file workspace to test picker text)
     await page.locator('#tabs button[data-tab="sub"]').click();
+    await page.evaluate(() => { const el = document.getElementById('sWork'); if (el) el.hidden = false; });
     const subSrc = page.locator('#tab-sub [data-picker-role="src"] .lang-picker-display .lang-display-inner');
     const subTgt = page.locator('#tab-sub [data-picker-role="tgt"] .lang-picker-display .lang-display-inner');
     await expect(subSrc).toBeVisible();
@@ -42,8 +43,9 @@ test.describe('Web app: stability guard and language picker initialization', () 
     expect((await subSrc.textContent()).trim().length).toBeGreaterThan(0);
     expect((await subTgt.textContent()).trim().length).toBeGreaterThan(0);
 
-    // 4. Documents page
+    // 4. Documents page (unhide file workspace to test picker text)
     await page.locator('#tabs button[data-tab="doc"]').click();
+    await page.evaluate(() => { const el = document.getElementById('dWork'); if (el) el.hidden = false; });
     const docSrc = page.locator('#tab-doc [data-picker-role="src"] .lang-picker-display .lang-display-inner');
     const docTgt = page.locator('#tab-doc [data-picker-role="tgt"] .lang-picker-display .lang-display-inner');
     await expect(docSrc).toBeVisible();
@@ -63,7 +65,7 @@ test.describe('Web app: stability guard and language picker initialization', () 
     // 6. Ask AI (under Voice tab)
     await page.locator('#tabs button[data-tab="voice"]').click();
     await page.locator('#vTabAsk').click();
-    const askDisplay = page.locator('#vAskView .lang-picker-display .lang-display-inner');
+    const askDisplay = page.locator('#vViewAsk [data-picker-role="ask"] .lang-picker-display .lang-display-inner');
     await expect(askDisplay).toBeVisible();
     expect((await askDisplay.textContent()).trim().length).toBeGreaterThan(0);
   });
