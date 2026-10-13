@@ -120,13 +120,53 @@ function updateWelcomePrivacyNotice() {
   }
 }
 
+let welcomeLastFocusedElement = null;
+
+function trapWelcomeFocus(e) {
+  const ov = $('welcomeOverlay');
+  if (!ov || ov.hidden || !ov.classList.contains('on')) return;
+
+  if (e.key === 'Escape') {
+    e.preventDefault();
+    skipWelcomeWizard();
+    return;
+  }
+
+  if (e.key === 'Tab') {
+    const focusable = ov.querySelectorAll('button:not([hidden]):not([disabled]), [href], input:not([hidden]):not([disabled]):not([type="hidden"]), select:not([hidden]):not([disabled]), textarea:not([hidden]):not([disabled]), [tabindex]:not([tabindex="-1"])');
+    const visibleFocusable = Array.from(focusable).filter(el => el.offsetParent !== null && !el.closest('[hidden]'));
+    if (!visibleFocusable.length) return;
+
+    const first = visibleFocusable[0];
+    const last = visibleFocusable[visibleFocusable.length - 1];
+
+    if (e.shiftKey) {
+      if (document.activeElement === first || !ov.contains(document.activeElement)) {
+        e.preventDefault();
+        last.focus();
+      }
+    } else {
+      if (document.activeElement === last || !ov.contains(document.activeElement)) {
+        e.preventDefault();
+        first.focus();
+      }
+    }
+  }
+}
+
 function openWelcomeWizard(step = 1) {
   const ov = $('welcomeOverlay');
   if (!ov) return;
+  welcomeLastFocusedElement = document.activeElement;
   welcomeCurrentStep = step;
   ov.hidden = false;
   ov.classList.add('on');
   updateWelcomeStepUI();
+  setTimeout(() => {
+    const pane = $('welcomeStep' + welcomeCurrentStep);
+    const target = pane?.querySelector('input:checked, button:not([hidden]), [tabindex="0"]') || $('welcomeNextBtn') || $('welcomeSkipBtn');
+    if (target && typeof target.focus === 'function') target.focus();
+  }, 30);
 }
 
 function closeWelcomeWizard() {
@@ -134,6 +174,17 @@ function closeWelcomeWizard() {
   if (!ov) return;
   ov.classList.remove('on');
   ov.hidden = true;
+  if (welcomeLastFocusedElement && typeof welcomeLastFocusedElement.focus === 'function') {
+    try {
+      welcomeLastFocusedElement.focus();
+    } catch {}
+  }
+  welcomeLastFocusedElement = null;
+}
+
+function skipWelcomeWizard() {
+  setWelcomeDone();
+  closeWelcomeWizard();
 }
 
 function finishWelcomeWizard() {
@@ -249,8 +300,12 @@ function initWelcomeWizard() {
 
   // Skip button
   $('welcomeSkipBtn')?.addEventListener('click', () => {
-    finishWelcomeWizard();
+    skipWelcomeWizard();
   });
+
+  // Keyboard navigation & trap
+  document.removeEventListener('keydown', trapWelcomeFocus);
+  document.addEventListener('keydown', trapWelcomeFocus);
 
   // Finish button
   $('welcomeFinishBtn')?.addEventListener('click', () => {
