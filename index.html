@@ -1617,35 +1617,35 @@
       <!-- Step 2: Translation Engine -->
       <div class="welcome-step-pane" id="welcomeStep2" hidden>
         <div class="welcome-step-icon">⚡</div>
-        <h2 class="welcome-step-title" data-t="wizardStep2Title">Choose your translation engine</h2>
-        <p class="welcome-step-sub" data-t="wizardStep2Sub">How would you like MAKAN Translate to process translations?</p>
+        <h2 class="welcome-step-title" data-t="wizardStep2Title">روش ترجمه: سریع، هوشمند یا آفلاین <bdi>(How to translate)</bdi></h2>
+        <p class="welcome-step-sub" data-t="wizardStep2Sub">روش پردازش ترجمه‌ها را با شفافیت کامل درباره حریم خصوصی و خروج داده انتخاب کنید.</p>
         <div class="welcome-cards-grid">
-          <label class="welcome-choice-card active" data-choice-engine="offline">
-            <input type="radio" name="welcomeEngine" value="offline" checked>
+          <label class="welcome-choice-card" data-choice-engine="online">
+            <input type="radio" name="welcomeEngine" value="online">
             <div class="choice-card-content">
-              <strong><bdi>Offline (NLLB)</bdi></strong>
-              <span data-t="wizardEngineOfflineDesc">Completely offline in your browser. Maximum privacy.</span>
+              <strong>سریع <bdi>(Fast)</bdi></strong>
+              <span data-t="wizardEngineOnlineDesc">ترجمه آنلاین پرسرعت با گوگل یا MyMemory؛ متن برای ترجمه به سرور ابری ارسال می‌شود.</span>
             </div>
-            <span class="choice-badge ok">100% Private</span>
+            <span class="choice-badge">ارسال به ابر</span>
           </label>
           <label class="welcome-choice-card" data-choice-engine="ollama">
             <input type="radio" name="welcomeEngine" value="ollama">
             <div class="choice-card-content">
-              <strong><bdi>Ollama (Local AI)</bdi></strong>
-              <span data-t="wizardEngineOllamaDesc">Run open LLMs locally via Ollama (default: http://localhost:11434).</span>
+              <strong>هوشمند <bdi>(Smart)</bdi></strong>
+              <span data-t="wizardEngineOllamaDesc">ترجمه هوش مصنوعی با Ollama محلی یا ارائه‌دهنده ابری؛ مدل‌های Ollama روی رایانه می‌مانند.</span>
             </div>
-            <span class="choice-badge ok">Local AI</span>
+            <span class="choice-badge ok">مدل محلی</span>
           </label>
-          <label class="welcome-choice-card" data-choice-engine="online">
-            <input type="radio" name="welcomeEngine" value="online">
+          <label class="welcome-choice-card active" data-choice-engine="offline">
+            <input type="radio" name="welcomeEngine" value="offline" checked>
             <div class="choice-card-content">
-              <strong>Online (Cloud Engines)</strong>
-              <span data-t="wizardEngineOnlineDesc">Fast translation via Google, MyMemory, or free AI keys (Gemini, Groq).</span>
+              <strong>آفلاین <bdi>(Offline - NLLB)</bdi></strong>
+              <span data-t="wizardEngineOfflineDesc">ترجمه ۱۰۰٪ آفلاین درون مرورگر با NLLB؛ همه متن‌ها روی رایانه می‌مانند و چیزی خارج نمی‌شود.</span>
             </div>
-            <span class="choice-badge">Fast</span>
+            <span class="choice-badge ok">۱۰۰٪ آفلاین</span>
           </label>
         </div>
-        <div class="welcome-privacy-notice" id="welcomePrivacyNotice">
+        <div class="welcome-privacy-notice local" id="welcomePrivacyNotice">
           <span class="privacy-icon">🛡</span>
           <span class="privacy-text" id="welcomePrivacyText">Everything stays on this device</span>
         </div>
