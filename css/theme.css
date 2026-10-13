@@ -2637,7 +2637,7 @@ html[lang="fa"] .doc-drop-text strong {
 
 /* ==================== DOCUMENT PREVIEW PANES & SUMMARY (ITEM 4) ==================== */
 .doc-panes {
-  margin-top: 14px !important;
+  margin-top: 8px !important;
   gap: 12px;
 }
 
@@ -2657,14 +2657,14 @@ html[lang="fa"] .doc-drop-text strong {
 .doc-pane .pane-h {
   background: var(--surface2, #0e1e38);
   border-bottom: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
-  padding: 8px 14px;
+  padding: 6px 14px;
 }
 
 .doc-pane textarea {
-  padding: 14px 16px;
-  line-height: 1.6;
+  padding: 10px 14px;
+  line-height: 1.5;
   resize: vertical;
-  min-height: 220px;
+  min-height: 140px;
 }
 
 .doc-summary-card {
