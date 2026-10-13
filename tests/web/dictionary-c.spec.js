@@ -74,6 +74,7 @@ test.describe('Web app: dictionary language pairs and normalisation per language
     const { page } = app;
     await withFakeArabicPack(page);
     await mouseClick(page, page.locator('#openSet'));
+    await activateSettingsTab(page, 'trModels');
     await expect(page.locator('#dictDl-ar-en')).toBeVisible();
     await expect(page.locator('#dictPackRows')).toContainText('Arabic');
     await mouseClick(page, page.locator('#dictDl-ar-en'));

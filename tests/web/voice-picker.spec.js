@@ -57,7 +57,7 @@ test.describe('Web app: unified voice picker', () => {
     // Download Amir offline voice
     await mockPiperDownloaded(page, 'tts-fa-amir');
 
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
 
     const picker = page.locator('#voicePickerList');
@@ -95,7 +95,7 @@ test.describe('Web app: unified voice picker', () => {
     const { page } = app;
     await setupVoices(page);
 
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
 
     const availGroup = page.locator('#voicePickerList [data-group="offline-available"]');
@@ -129,7 +129,7 @@ test.describe('Web app: unified voice picker', () => {
       ]
     });
 
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
 
     // Click the device voice card in the unified picker
@@ -184,7 +184,7 @@ test.describe('Web app: unified voice picker', () => {
       ]
     });
 
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
 
     // Select Gemini voice Puck
@@ -200,7 +200,7 @@ test.describe('Web app: unified voice picker', () => {
     await page.reload();
 
     // Open settings and verify voice remains chosen
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
 
     const isChecked = await page.locator('#voicePickerList input[name="voiceRadio"][value="gemini:Puck"]').isChecked();

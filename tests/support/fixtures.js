@@ -123,4 +123,11 @@ async function downloadOf(page, action) {
   return { name: dl.suggestedFilename(), bytes: Buffer.concat(chunks) };
 }
 
-module.exports = { test, expect, onlyEngines, mouseClick, chooseFile, downloadOf, watchConsole, VALID_KEY, BAD_KEY };
+async function activateSettingsTab(page, tab) {
+  return require('./model-helpers').activateSettingsTab(page, tab);
+}
+async function openSettings(page, tab) {
+  return require('./model-helpers').openSettings(page, tab);
+}
+
+module.exports = { test, expect, onlyEngines, mouseClick, chooseFile, downloadOf, watchConsole, VALID_KEY, BAD_KEY, activateSettingsTab, openSettings };

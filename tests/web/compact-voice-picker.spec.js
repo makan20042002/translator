@@ -115,7 +115,7 @@ test.describe('Web app: compact voice picker where voices are used', () => {
     await expect(page.locator('#tVoiceCurLabel')).toContainText('Persian Dilnavaz');
 
     // 2. The reverse: change voice in settings picker to Gemini Puck
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.locator('#voiceSel').selectOption('gemini:Puck');
     await page.locator('#voiceSel').dispatchEvent('change');
 

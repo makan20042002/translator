@@ -84,6 +84,7 @@ test.describe('Web app: Engines & keys', () => {
     test('"Silence wait" in Engines & keys is saved', async ({ app }) => {
       const { page } = app;
       await openSettings(page);
+      await activateSettingsTab(page, 'voiceModels');
       // There are two elements with id="vSilenceWait"; this is the one inside the Engines & keys window.
       const sel = page.locator('#ov select#vSilenceWait');
       await expect(sel).toBeVisible();
@@ -115,9 +116,13 @@ test.describe('Web app: Engines & keys', () => {
     await expect(page.locator('#setTabBtnOcr')).toHaveClass(/active/);
 
     // Verify key controls in each section remain fully operational
+    await activateSettingsTab(page, 'engines');
     await expect(page.locator('#engList')).toBeVisible();
+    await activateSettingsTab(page, 'voices');
     await expect(page.locator('#voiceSel')).toBeVisible();
+    await activateSettingsTab(page, 'voiceModels');
     await expect(page.locator('#ov select#vSilenceWait')).toBeVisible();
+    await activateSettingsTab(page, 'trModels');
     await expect(page.locator('#offTrModelSel')).toBeVisible();
   });
 

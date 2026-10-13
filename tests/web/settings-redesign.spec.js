@@ -95,6 +95,7 @@ test.describe('Web app: Settings Redesign (Stage 2)', () => {
     await expect(badge).toHaveText(/Not installed|Ready/i);
 
     // TM toggles stay in sync
+    await activateSettingsTab(page, 'engines');
     const setTmToggle = page.locator('#setTmToggle');
     await expect(setTmToggle).toBeChecked();
     await setTmToggle.uncheck();

@@ -752,6 +752,7 @@ function openOfflineSettings(){
   cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
   if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
   $('ov').classList.add('on');
+  if(typeof switchSettingsTab==='function')switchSettingsTab('secTrModels');
   setTimeout(()=>{
     const target=document.querySelector('[data-t="offH"]')||$('nllbDot');
     target?.scrollIntoView({behavior:'smooth',block:'center'});

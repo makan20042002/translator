@@ -150,7 +150,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(await page.locator('#sttSel').inputValue()).toBe('browser');
 
     // 3. Changing settings #sttSel to auto updates mic STT picker
-    await openSettings(page);
+    await openSettings(page, 'voiceModels');
     await page.locator('#sttSel').selectOption('auto');
     await page.locator('#sttSel').dispatchEvent('change');
 

@@ -68,6 +68,7 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     // 3. Open settings modal
     await mouseClick(page, page.locator('#openSet'));
     await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+    await activateSettingsTab(page, 'ocr');
 
     // 4. Verify Screen Translator settings section is visible
     const stBlock = page.locator('#screenTransSettingsBlock');
@@ -312,6 +313,7 @@ test.describe('Screen Translator Desktop Web Integration', () => {
 
     await page.reload();
     await mouseClick(page, page.locator('#openSet'));
+    await activateSettingsTab(page, 'ocr');
     await expect(page.locator('#stActiveReadingStatus')).toBeVisible();
     const txt = await page.locator('#stActiveReadingStatus').textContent();
     expect(txt.length).toBeGreaterThan(0);
@@ -352,6 +354,7 @@ test.describe('Screen Translator Desktop Web Integration', () => {
 
     await page.reload();
     await mouseClick(page, page.locator('#openSet'));
+    await activateSettingsTab(page, 'ocr');
     const modelSel = page.locator('#stOcrModel');
     await expect(modelSel).toBeVisible();
     const optCount = await modelSel.locator('option').count();

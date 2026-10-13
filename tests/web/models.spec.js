@@ -14,7 +14,7 @@ test.describe('Web app: offline model catalogue', () => {
   test('lists every model by job, with size, memory, WebGPU, languages and a one-line use', async ({ app }) => {
     const { page } = app;
     const cat = await page.evaluate(() => MODEL_CATALOG);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('.mdl-grp')).toContainText([/Listening/, /Translation/]);
     expect(cat.models.length).toBeGreaterThan(5);
     // With WebGPU the app downloads other files for Tiny/Base/Small (gpuBytes): expect the size of the path this browser takes.
@@ -35,7 +35,7 @@ test.describe('Web app: offline model catalogue', () => {
 
   test('Tiny, Base, Small and Large v3 Turbo are listed; Small and above are recommended for languages other than English', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     for (const k of ['tiny', 'base', 'small', 'large-v3-turbo']) await expect(row(page, 'asr-' + k)).toHaveCount(1);
     for (const k of ['small', 'large-v3-turbo']) await expect(row(page, 'asr-' + k).locator('.badge.rec')).toHaveCount(1);
     for (const k of ['tiny', 'base']) {
@@ -46,13 +46,13 @@ test.describe('Web app: offline model catalogue', () => {
 
   test('Whisper Medium is not offered: in a real browser its engine cannot allocate the memory it needs (see docs/MODELS.md)', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(row(page, 'asr-medium')).toHaveCount(0);
   });
 
   test('nothing is downloaded: every row says so, the storage total is 0, and Download is offered', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     const rows = page.locator('[data-mdl]');
     const n = await rows.count();
     for (let i = 0; i < n; i++) {
@@ -70,7 +70,7 @@ test.describe('Web app: offline model catalogue', () => {
     await page.evaluate(({ a, b }) => { store.set('mdl', { 'asr-small': { at: 1, files: a }, 'asr-base': { at: 1, files: b } }); }, { a: small.files.map(f => f[0]).filter(f => f.endsWith('.onnx')), b: base.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
     await fakeDownloaded(page, small.repo, small.files);
     await fakeDownloaded(page, base.repo, base.files);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await expect(row(page, 'asr-small')).toHaveAttribute('data-state', 'ready');
     await expect(row(page, 'asr-small').locator('.mdl-h .meta')).toContainText('ready · ' + mb(small.bytes));
@@ -89,7 +89,7 @@ test.describe('Web app: offline model catalogue', () => {
   test('a model whose files vanished from browser storage is shown as not downloaded, even if it was marked done', async ({ app }) => {
     const { page } = app;
     await page.evaluate(() => { store.set('nllb', true); store.set('whisper_wasm', 'base'); store.set('whisper', 'base'); });
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await expect(row(page, 'tr-nllb-600')).toHaveAttribute('data-state', 'none');
     await expect(row(page, 'asr-base')).toHaveAttribute('data-state', 'none');
@@ -104,7 +104,7 @@ test.describe('Web app: offline model catalogue', () => {
     await page.evaluate(() => { store.set('nllb', true); store.set('whisper_wasm', 'base'); store.set('whisper', 'base'); });
     await fakeDownloaded(page, nllb.repo, nllb.files);
     await fakeDownloaded(page, base.repo, base.files);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await expect(row(page, 'tr-nllb-600')).toHaveAttribute('data-state', 'ready');
     await expect(row(page, 'asr-base')).toHaveAttribute('data-state', 'ready');
@@ -116,7 +116,7 @@ test.describe('Web app: offline model catalogue', () => {
 
   test('the original NLLB download button keeps its id', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('#dlTr')).toBeVisible();
     await expect(page.locator('#dlTr')).toHaveText('Download');
   });
@@ -124,7 +124,7 @@ test.describe('Web app: offline model catalogue', () => {
   test('a failed download is reported and leaves the model not downloaded', async ({ app }) => {
     test.setTimeout(60_000);
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await mouseClick(page, row(page, 'asr-tiny').locator('[data-act="dl"]'));
     await expect(page.locator('.toast.err').first()).toBeVisible({ timeout: 30_000 });
     await expect(row(page, 'asr-tiny')).toHaveAttribute('data-state', 'none');
@@ -139,7 +139,7 @@ test.describe('Web app: offline model catalogue', () => {
       await page.evaluate(({ id, f }) => { const d = store.get('mdl', {}); d[id] = { at: 1, files: f }; store.set('mdl', d); }, { id, f: m.files.map(f => f[0]).filter(f => f.endsWith('.onnx')) });
       await fakeDownloaded(page, m.repo, m.files);
     }
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await mouseClick(page, row(page, 'asr-small').locator('input[data-act="use"]'));
     expect(await page.evaluate(() => JSON.parse(localStorage.getItem('mkt_cfg')).whisper)).toBe('small');
@@ -150,7 +150,7 @@ test.describe('Web app: offline model catalogue', () => {
   test('the list and its labels follow the interface language', async ({ app }) => {
     const { page } = app;
     await mouseClick(page, page.locator('#uiLang'));
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('.mdl-grp').first()).toContainText('شنیدن');
     await expect(row(page, 'asr-small').locator('.badge.rec')).toContainText('غیر از انگلیسی');
     await expect(row(page, 'asr-small').locator('[data-act="dl"]')).toHaveText('دانلود');
@@ -181,7 +181,7 @@ test.describe('Web app: which offline translation model is used', () => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-opus-en-de']);
     expect(await page.evaluate(() => pickTr('en', 'de').id)).toBe('tr-nllb-600');
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await mouseClick(page, page.locator('#mdlPrefPair'));
     expect(await page.evaluate(() => pickTr('en', 'de').id)).toBe('tr-opus-en-de');
@@ -334,7 +334,7 @@ test.describe('Web app: Offline translation model dropdown (Item 1)', () => {
   test('dropdown lists only downloaded models plus Auto', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
     const sel = page.locator('#offTrModelSel');
     await expect(sel).toBeVisible();
@@ -376,7 +376,7 @@ test.describe('Web app: Offline translation model dropdown (Item 1)', () => {
   test('unsupported pair falls back to Auto with a visible message', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => { cfg.trModel = 'tr-m2m100-418'; mcRender(); });
     // tr-m2m100-418 does not cover en -> ja, but tr-nllb-600 does
     const res = await page.evaluate(async () => {
@@ -399,18 +399,18 @@ test.describe('Web app: Offline translation model dropdown (Item 1)', () => {
   test('choice survives reload', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.locator('#offTrModelSel').selectOption('tr-m2m100-418');
     expect(await page.evaluate(() => store.get('cfg').trModel)).toBe('tr-m2m100-418');
     await page.reload();
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('#offTrModelSel')).toHaveValue('tr-m2m100-418');
   });
 
   test('changing the dropdown updates the radios and the reverse', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
 
     // Changing dropdown updates radio
@@ -447,7 +447,7 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
   test('dropdown lists only downloaded Whisper models plus Auto', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
     const sel = page.locator('#offWhisperSel');
     await expect(sel).toBeVisible();
@@ -467,18 +467,18 @@ test.describe('Web app: Offline speech model dropdown (Item 2)', () => {
   test('choice survives reload', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.locator('#offWhisperSel').selectOption('small');
     expect(await page.evaluate(() => store.get('cfg').whisper)).toBe('small');
     await page.reload();
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('#offWhisperSel')).toHaveValue('small');
   });
 
   test('changing dropdown updates radios and the reverse', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base', 'asr-small']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
 
     // Changing dropdown updates radio
@@ -536,7 +536,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('all downloaded translation models run in order and results appear', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       window.Worker = class {
         constructor() {}
@@ -589,7 +589,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
       });
     });
 
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       window.Worker = class {
         constructor() {}
@@ -616,7 +616,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('one failing model does not stop the others', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       let callCount = 0;
       window.Worker = class {
@@ -649,7 +649,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('Stop button works', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600', 'tr-m2m100-418']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       window.Worker = class {
         constructor() {}
@@ -674,7 +674,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('results are NOT written to translation memory or history', async ({ app }) => {
     const { page } = app;
     await ready(page, ['tr-nllb-600']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       store.set('tm', []);
       store.set('hist', []);
@@ -705,7 +705,7 @@ test.describe('Web app: Test models panel (Item 3)', () => {
   test('speech test runs downloaded Whisper models', async ({ app }) => {
     const { page } = app;
     await ready(page, ['asr-base']);
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => {
       window.record = async () => new Blob([new Uint8Array(2000)], { type: 'audio/webm' });
       window.to16k = async () => new Float32Array(1600);

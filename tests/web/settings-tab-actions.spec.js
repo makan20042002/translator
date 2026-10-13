@@ -50,9 +50,9 @@ test.describe('Web app: Settings tab controls with correct tab active', () => {
 
     await openSettings(page);
 
-    // Switch to Voice models tab
-    await mouseClick(page, page.locator('#setTabBtnVoiceModels'));
-    await expect(page.locator('#secVoiceModels')).toHaveClass(/active/);
+    // Switch to Translation models tab (which holds the models catalogue #mdlCatalog)
+    await mouseClick(page, page.locator('#setTabBtnTrModels'));
+    await expect(page.locator('#secTrModels')).toHaveClass(/active/);
 
     await page.evaluate(() => offStatus());
     const smallRow = row(page, 'asr-small');
@@ -66,7 +66,7 @@ test.describe('Web app: Settings tab controls with correct tab active', () => {
     await expect(smallRow).toHaveAttribute('data-state', 'none');
   });
 
-  test('Voice delete succeeds via real mouse click when Voices tab is active', async ({ app }) => {
+  test('Voice delete succeeds via real mouse click when Translation models tab is active', async ({ app }) => {
     const { page } = app;
     const cat = await page.evaluate(() => MODEL_CATALOG);
     const amir = cat.models.find(m => m.id === 'tts-fa-amir');
@@ -76,9 +76,9 @@ test.describe('Web app: Settings tab controls with correct tab active', () => {
 
     await openSettings(page);
 
-    // Switch to Voices tab
-    await mouseClick(page, page.locator('#setTabBtnVoices'));
-    await expect(page.locator('#secVoices')).toHaveClass(/active/);
+    // Switch to Translation models tab (which holds the models catalogue #mdlCatalog)
+    await mouseClick(page, page.locator('#setTabBtnTrModels'));
+    await expect(page.locator('#secTrModels')).toHaveClass(/active/);
 
     await page.evaluate(() => offStatus());
     const amirRow = row(page, 'tts-fa-amir');

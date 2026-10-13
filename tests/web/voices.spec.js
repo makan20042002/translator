@@ -42,7 +42,7 @@ test.describe('Web app: offline voices', () => {
     const voices = cat.models.filter(m => m.job === 'speak');
     expect(voices.map(v => v.lang).sort()).toContain('fa');
     expect(voices.map(v => v.lang)).toContain('en');
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await expect(page.locator('.mdl-grp')).toContainText([/Listening/, /Translation/, /Speaking/]);
     for (const v of voices) {
       await expect(row(page, v.id).locator('.mdl-m')).toContainText(`Download ${mb(v.bytes)} (+${mb(v.extraBytes)} speech engine, once)`);
@@ -80,7 +80,7 @@ test.describe('Web app: offline voices', () => {
     await standIn(page, { devices: ['fa-IR'] });
     await voiceReady(page, 'tts-fa-amir');
     expect(await page.evaluate(() => resolveVoice('fa').kind)).toBe('device');
-    await openSettings(page);
+    await openSettings(page, 'voices');
     await page.evaluate(() => fillVoices());
     await page.locator('#voiceSel').selectOption('piper:tts-fa-amir');
     expect(await page.evaluate(() => resolveVoice('fa').kind)).toBe('piper');
@@ -110,7 +110,7 @@ test.describe('Web app: offline voices', () => {
     await standIn(page);
     await voiceReady(page, 'tts-fa-amir');
     await voiceReady(page, 'tts-fa-ganji');
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => offStatus());
     await expect(row(page, 'tts-fa-amir')).toHaveAttribute('data-state', 'ready');
     await expect(row(page, 'tts-fa-ganji')).toHaveAttribute('data-state', 'ready');

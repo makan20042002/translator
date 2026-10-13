@@ -4463,28 +4463,11 @@ html[dir="rtl"] .bub-orig-text {
   min-width: 0;
 }
 .set-section:not(.active) {
-  position: absolute;
-  left: 0;
-  right: 0;
-  top: 0;
-  width: 100%;
-  max-width: 100%;
-  pointer-events: none;
-  opacity: 0.001;
-  overflow: hidden;
-  clip-path: inset(0 0 100% 0);
+  display: none !important;
   visibility: hidden;
 }
 .set-section.active {
-  position: relative;
-  left: auto;
-  right: auto;
-  top: auto;
-  width: 100%;
-  max-width: 100%;
-  pointer-events: auto;
-  opacity: 1;
-  clip-path: none;
+  display: block !important;
   visibility: visible;
 }
 

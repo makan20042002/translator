@@ -41,6 +41,7 @@ test.describe('Web app: offline dictionary', () => {
   test('Engines & keys > Offline: each pack can be downloaded (size shown), is then ready, and can be removed', async ({ app }) => {
     const { page } = app;
     await mouseClick(page, page.locator('#openSet'));
+    await activateSettingsTab(page, 'trModels');
     await expect(page.locator('#dictSt-en-fa')).toHaveText(/not downloaded/i);
     await expect(page.locator('#ov')).toContainText('~1.0 MB');
     await mouseClick(page, page.locator('#dictDl-en-fa'));

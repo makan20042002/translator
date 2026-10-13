@@ -15,8 +15,80 @@ async function fakeDownloaded(page, repo, files) {
   }, { CACHE, repo, files });
 }
 const cacheKeys = page => page.evaluate(async CACHE => (await (await caches.open(CACHE)).keys()).map(r => r.url), CACHE);
-const openSettings = async page => { await mouseClick(page, page.locator('#openSet')); await expect(page.locator('#ov')).toHaveClass(/on/); };
+const TAB_MAP = {
+  engines: { btn: '#setTabBtnEngines', sec: '#secEngines' },
+  secEngines: { btn: '#setTabBtnEngines', sec: '#secEngines' },
+  '#secEngines': { btn: '#setTabBtnEngines', sec: '#secEngines' },
+  setTabBtnEngines: { btn: '#setTabBtnEngines', sec: '#secEngines' },
+  '#setTabBtnEngines': { btn: '#setTabBtnEngines', sec: '#secEngines' },
+
+  voices: { btn: '#setTabBtnVoices', sec: '#secVoices' },
+  secVoices: { btn: '#setTabBtnVoices', sec: '#secVoices' },
+  '#secVoices': { btn: '#setTabBtnVoices', sec: '#secVoices' },
+  setTabBtnVoices: { btn: '#setTabBtnVoices', sec: '#secVoices' },
+  '#setTabBtnVoices': { btn: '#setTabBtnVoices', sec: '#secVoices' },
+
+  voiceModels: { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  voicemodels: { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  speech: { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  secVoiceModels: { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  '#secVoiceModels': { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  setTabBtnVoiceModels: { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+  '#setTabBtnVoiceModels': { btn: '#setTabBtnVoiceModels', sec: '#secVoiceModels' },
+
+  trModels: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  trmodels: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  models: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  offline: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  secTrModels: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  '#secTrModels': { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  setTabBtnTrModels: { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+  '#setTabBtnTrModels': { btn: '#setTabBtnTrModels', sec: '#secTrModels' },
+
+  ocr: { btn: '#setTabBtnOcr', sec: '#secOcr' },
+  secOcr: { btn: '#setTabBtnOcr', sec: '#secOcr' },
+  '#secOcr': { btn: '#setTabBtnOcr', sec: '#secOcr' },
+  setTabBtnOcr: { btn: '#setTabBtnOcr', sec: '#secOcr' },
+  '#setTabBtnOcr': { btn: '#setTabBtnOcr', sec: '#secOcr' },
+
+  dict: { btn: '#setTabBtnDict', sec: '#secDict' },
+  dictionary: { btn: '#setTabBtnDict', sec: '#secDict' },
+  secDict: { btn: '#setTabBtnDict', sec: '#secDict' },
+  '#secDict': { btn: '#setTabBtnDict', sec: '#secDict' },
+  setTabBtnDict: { btn: '#setTabBtnDict', sec: '#secDict' },
+  '#setTabBtnDict': { btn: '#setTabBtnDict', sec: '#secDict' }
+};
+
+async function activateSettingsTab(page, tab) {
+  if (!tab) return;
+  const info = TAB_MAP[tab] || { btn: tab.startsWith('#') ? tab : `#${tab}`, sec: '' };
+  const btn = page.locator(info.btn);
+  await mouseClick(page, btn);
+  if (info.sec) {
+    await expect(page.locator(info.sec)).toBeVisible();
+  } else {
+    const secId = await btn.getAttribute('data-sec');
+    if (secId) await expect(page.locator(`#${secId}`)).toBeVisible();
+  }
+}
+
+const openSettings = async (page, tab) => {
+  const ov = page.locator('#ov');
+  const isOpen = await ov.evaluate(el => el.classList.contains('on')).catch(() => false);
+  if (!isOpen) {
+    await mouseClick(page, page.locator('#openSet'));
+    await expect(ov).toHaveClass(/\bon\b/);
+  }
+  if (tab) {
+    await activateSettingsTab(page, tab);
+  }
+};
 const row = (page, id) => page.locator(`[data-mdl="${id}"]`);
 
+if (typeof global !== 'undefined') {
+  global.activateSettingsTab = activateSettingsTab;
+  global.openSettings = openSettings;
+}
 
-module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, row };
+module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row };
+

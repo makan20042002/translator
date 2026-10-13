@@ -623,6 +623,11 @@ function switchSettingsTab(targetSecId) {
     const isTarget = sec.id === targetSecId;
     sec.classList.toggle('active', isTarget);
     sec.setAttribute('aria-hidden', isTarget ? 'false' : 'true');
+    if (isTarget) {
+      sec.removeAttribute('inert');
+    } else {
+      sec.setAttribute('inert', '');
+    }
 
     const focusable = sec.querySelectorAll('button, input, select, textarea, a, [tabindex]');
     focusable.forEach(el => {

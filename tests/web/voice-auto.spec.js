@@ -136,6 +136,7 @@ test.describe('Web app: automatic voice for a language with no device voice', ()
       await page.reload();
       await mouseClick(page, page.locator('#openSet'));
       await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+      await activateSettingsTab(page, 'voices');
       const options = await page.locator('#voiceSel option').allTextContents();
       expect(options[0]).toMatch(/^Auto/);
       expect(options).toContain('Test English Voice');
@@ -148,6 +149,7 @@ test.describe('Web app: automatic voice for a language with no device voice', ()
       expect(streamCalls(stub)).toEqual([]);
       // Choosing a Gemini voice for English overrides the device voice.
       await mouseClick(page, page.locator('#openSet'));
+      await activateSettingsTab(page, 'voices');
       await page.locator('#voiceSel').selectOption('gemini:Puck');
       await mouseClick(page, page.locator('#btnSaveDone'));
       await page.waitForTimeout(600);

@@ -11,7 +11,7 @@ test.describe('Web app: offline Piper voice catalogue and confirmed gender label
 
   test('new voices appear in the catalogue with correct language and gender labels', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
 
     // Check MODEL_CATALOG structure directly
@@ -49,7 +49,7 @@ test.describe('Web app: offline Piper voice catalogue and confirmed gender label
 
   test('unknown gender shows "unknown" in catalogue and picker labels', async ({ app }) => {
     const { page } = app;
-    await openSettings(page);
+    await openSettings(page, 'trModels');
     await page.evaluate(() => mcRender());
 
     // Ganji's model card does not specify gender, so it must display (unknown)
@@ -62,6 +62,7 @@ test.describe('Web app: offline Piper voice catalogue and confirmed gender label
     await expect(row(page, 'tts-fa-ganji')).toContainText('unknown');
 
     // Check unified voice picker list
+    await activateSettingsTab(page, 'voices');
     const pickerList = page.locator('#voicePickerList');
     await expect(pickerList).toContainText('unknown');
   });
