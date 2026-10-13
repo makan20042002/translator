@@ -331,7 +331,7 @@ function detectRealLanguage(text){
     return null;
   }
 
-  if(typeof detectFinglish==='function'&&detectFinglish(trimmed)){
+  if(typeof detectFinglish==='function'&&detectFinglish(trimmed)?.finglish){
     return null;
   }
 
