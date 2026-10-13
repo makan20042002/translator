@@ -5047,6 +5047,43 @@ html[dir="rtl"] .bub-orig-text {
   filter: brightness(1.1);
 }
 
+.welcome-how-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+}
+.welcome-how-card {
+  background: #0E1726;
+  border: 1px solid rgba(28, 64, 118, 0.45);
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  box-sizing: border-box;
+}
+.welcome-how-card .how-card-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.welcome-how-card .how-card-icon {
+  font-size: 18px;
+  line-height: 1;
+  flex-shrink: 0;
+}
+.welcome-how-card strong {
+  font-size: 13.5px;
+  color: var(--text, #fff);
+  font-weight: 700;
+}
+.welcome-how-card p {
+  margin: 0;
+  font-size: 12px;
+  color: var(--text-dim, #B5C2D4);
+  line-height: 1.45;
+}
+
 @media (max-width: 600px) {
   .welcome-ov {
     padding: 10px;
@@ -5060,6 +5097,10 @@ html[dir="rtl"] .bub-orig-text {
   }
   .welcome-cards-grid {
     grid-template-columns: 1fr;
+  }
+  .welcome-how-grid {
+    grid-template-columns: 1fr;
+    gap: 10px;
   }
   .welcome-step-title {
     font-size: 17px;

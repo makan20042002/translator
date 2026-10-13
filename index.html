@@ -1583,6 +1583,7 @@
         <span class="step-dot" data-step="2"></span>
         <span class="step-dot" data-step="3"></span>
         <span class="step-dot" data-step="4"></span>
+        <span class="step-dot" data-step="5"></span>
       </div>
       <span class="sp"></span>
       <button class="btn ghost welcome-skip-btn" id="welcomeSkipBtn" type="button" data-t="wizardSkip">بعداً</button>
@@ -1624,7 +1625,7 @@
             <input type="radio" name="welcomeEngine" value="online">
             <div class="choice-card-content">
               <strong data-t="wizardEngineOnlineTitle">سریع</strong>
-              <span data-t="wizardEngineOnlineDesc">ترجمه آنلاین پرسرعت و رایگان با گوگل و MyMemory؛ متن برای ترجمه به ارائه‌دهنده ابری ارسال می‌شود.</span>
+              <span data-t="wizardEngineOnlineDesc">ترجمه آنلاین پرسرعت و رایگان با گوگل و <bdi>MyMemory</bdi>؛ متن برای ترجمه به ارائه‌دهنده ابری ارسال می‌شود.</span>
             </div>
             <span class="choice-badge" data-t="wizardBadgeOnline">آنلاین</span>
           </label>
@@ -1632,7 +1633,7 @@
             <input type="radio" name="welcomeEngine" value="ollama">
             <div class="choice-card-content">
               <strong data-t="wizardEngineSmartTitle">هوشمند</strong>
-              <span data-t="wizardEngineOllamaDesc">ترجمه هوش مصنوعی با Gemini، Groq یا OpenRouter (با کلید شما) یا اجرای مدل‌های محلی با Ollama.</span>
+              <span data-t="wizardEngineOllamaDesc">ترجمه هوش مصنوعی با <bdi>Gemini</bdi>، <bdi>Groq</bdi> یا <bdi>OpenRouter</bdi> (با کلید شما) یا اجرای مدل‌های محلی با <bdi>Ollama</bdi>.</span>
             </div>
             <span class="choice-badge ok" data-t="wizardBadgeSmart">هوش مصنوعی</span>
           </label>
@@ -1640,7 +1641,7 @@
             <input type="radio" name="welcomeEngine" value="offline" checked>
             <div class="choice-card-content">
               <strong data-t="wizardEngineOfflineTitle">آفلاین</strong>
-              <span data-t="wizardEngineOfflineDesc">ترجمه با مدل NLLB درون مرورگر؛ متن از دستگاه خارج نمی‌شود (نیاز به دانلود اولیه بسته مدل).</span>
+              <span data-t="wizardEngineOfflineDesc">ترجمه با مدل <bdi>NLLB</bdi> درون مرورگر؛ متن از دستگاه خارج نمی‌شود (نیاز به دانلود اولیه بسته مدل).</span>
             </div>
             <span class="choice-badge ok" data-t="wizardBadgeOffline">درون دستگاه</span>
           </label>
@@ -1695,7 +1696,7 @@
             <input type="radio" name="welcomePackage" value="light">
             <div class="choice-card-content">
               <strong data-t="wizardPkgLightTitle">مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi></strong>
-              <span data-t="wizardPkgLightDesc">مدل ترجمه NLLB-200 برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.</span>
+              <span data-t="wizardPkgLightDesc">مدل ترجمه <bdi>NLLB-200</bdi> برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.</span>
             </div>
             <span class="choice-badge" id="welcomeNllbBadge">۸۷۰ مگابایت</span>
           </label>
@@ -1703,7 +1704,7 @@
             <input type="radio" name="welcomePackage" value="full">
             <div class="choice-card-content">
               <strong data-t="wizardPkgFullTitle">بسته کامل: ترجمه و گفتار</strong>
-              <span data-t="wizardPkgFullDesc">ترجمه NLLB (حدود ۸۷۰ مگابایت) و تشخیص گفتار Whisper Small (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).</span>
+              <span data-t="wizardPkgFullDesc">ترجمه <bdi>NLLB</bdi> (حدود ۸۷۰ مگابایت) و تشخیص گفتار <bdi>Whisper Small</bdi> (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).</span>
             </div>
             <span class="choice-badge" id="welcomeFullBadge">۱٫۱ گیگابایت</span>
           </label>
@@ -1727,38 +1728,75 @@
         </div>
       </div>
 
-      <!-- Step 4: Finish -->
-      <div class="welcome-step-pane" id="welcomeStep4" hidden>
+      <!-- Step 4: How It Works -->
+      <div class="welcome-step-pane" id="welcomeStepHow" hidden>
+        <div class="welcome-step-icon">💡</div>
+        <h2 class="welcome-step-title" data-t="wizardStepHowTitle">راهنمای کارکرد برنامه</h2>
+        <p class="welcome-step-sub" data-t="wizardStepHowSub">آشنایی کوتاه با بخش‌های اصلی، جریان داده‌ها و نحوه تنظیمات.</p>
+        <div class="welcome-how-grid">
+          <div class="welcome-how-card">
+            <div class="how-card-head">
+              <span class="how-card-icon">📑</span>
+              <strong data-t="wizardHowTabsTitle">بخش‌های اصلی برنامه</strong>
+            </div>
+            <p data-t="wizardHowTabsDesc">متن برای ترجمه فوری، زیرنویس برای فایل‌های <bdi>srt</bdi> و <bdi>vtt</bdi>، اسناد برای فایل‌های اداری، صدا برای مکالمه، و صفحه برای ترجمه تصویر.</p>
+          </div>
+          <div class="welcome-how-card">
+            <div class="how-card-head">
+              <span class="how-card-icon">⚡</span>
+              <strong data-t="wizardHowModesTitle">سریع در برابر هوشمند و آفلاین</strong>
+            </div>
+            <p data-t="wizardHowModesDesc">سریع از سرورهای رایگان آنلاین استفاده می‌کند، هوشمند با هوش مصنوعی یا <bdi>Ollama</bdi> کار می‌کند، و آفلاین با <bdi>NLLB</bdi> کاملاً در دستگاه اجرا می‌شود.</p>
+          </div>
+          <div class="welcome-how-card">
+            <div class="how-card-head">
+              <span class="how-card-icon">🛡</span>
+              <strong data-t="wizardHowDataTitle">مسیر انتقال داده‌ها و حریم خصوصی</strong>
+            </div>
+            <p data-t="wizardHowDataDesc">در حالت آفلاین هیچ متنی از دستگاه خارج نمی‌شود؛ در حالت‌های آنلاین یا هوش مصنوعی، متن فقط به ارائه‌دهنده انتخاب‌شده شما ارسال می‌شود.</p>
+          </div>
+          <div class="welcome-how-card">
+            <div class="how-card-head">
+              <span class="how-card-icon">⚙️</span>
+              <strong data-t="wizardHowSettingsTitle">تنظیمات و دسترسی مجدد</strong>
+            </div>
+            <p data-t="wizardHowSettingsDesc">تمام گزینه‌ها، کلیدها و دانلود مدل‌ها در بخش تنظیمات در دسترس است؛ این راهنما را نیز هرزمان می‌توانید از تنظیمات مجدداً باز کنید.</p>
+          </div>
+        </div>
+      </div>
+
+      <!-- Step 5: Finish -->
+      <div class="welcome-step-pane" id="welcomeStep5" hidden>
         <div class="welcome-step-icon">🎉</div>
-        <h2 class="welcome-step-title" data-t="wizardStep4Title">همه‌چیز آماده است! <bdi>(You’re all set!)</bdi></h2>
-        <p class="welcome-step-sub" data-t="wizardStep4Sub">مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.</p>
+        <h2 class="welcome-step-title" data-t="wizardStep5Title">همه‌چیز آماده است!</h2>
+        <p class="welcome-step-sub" data-t="wizardStep5Sub">مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.</p>
         <div class="welcome-summary-card">
           <div class="summary-item">
-            <span class="summary-lbl">زبان رابط کاربری:</span>
+            <span class="summary-lbl" data-t="wizardSumLangLbl">زبان رابط کاربری:</span>
             <strong class="summary-val" id="welcomeSummaryLang">فارسی</strong>
           </div>
           <div class="summary-item">
-            <span class="summary-lbl">روش ترجمه:</span>
+            <span class="summary-lbl" data-t="wizardSumEngineLbl">روش ترجمه:</span>
             <strong class="summary-val" id="welcomeSummaryEngine">آفلاین (NLLB)</strong>
           </div>
           <div class="summary-item">
-            <span class="summary-lbl">حریم خصوصی:</span>
+            <span class="summary-lbl" data-t="wizardSumPrivacyLbl">حریم خصوصی:</span>
             <strong class="summary-val" id="welcomeSummaryPrivacy">—</strong>
           </div>
           <div class="summary-item" id="welcomeSummaryKeyRow" hidden>
-            <span class="summary-lbl">کلید هوش مصنوعی:</span>
+            <span class="summary-lbl" data-t="wizardSumKeyLbl">کلید هوش مصنوعی:</span>
             <strong class="summary-val" id="welcomeSummaryKey">—</strong>
           </div>
           <div class="summary-item" id="welcomeSummaryPkgRow">
-            <span class="summary-lbl">بسته آفلاین:</span>
+            <span class="summary-lbl" data-t="wizardSumPkgLbl">بسته آفلاین:</span>
             <strong class="summary-val" id="welcomeSummaryPkg">بدون دانلود</strong>
           </div>
           <div class="summary-item">
-            <span class="summary-lbl">صدا و صفحه:</span>
+            <span class="summary-lbl" data-t="wizardSumStatusLbl">صدا و صفحه:</span>
             <strong class="summary-val" id="welcomeSummaryStatus">—</strong>
           </div>
         </div>
-        <button class="btn cta" id="welcomeGoTextBtn" type="button" style="margin-top:16px;width:100%;justify-content:center;font-weight:700;padding:10px 16px;border-radius:10px;font-size:14px">ورود به بخش ترجمه متن <bdi>(Go to Text tab)</bdi> →</button>
+        <button class="btn cta" id="welcomeGoTextBtn" type="button" style="margin-top:16px;width:100%;justify-content:center;font-weight:700;padding:10px 16px;border-radius:10px;font-size:14px" data-t="wizardGoTextBtn">ورود به بخش ترجمه متن →</button>
       </div>
     </div>
 

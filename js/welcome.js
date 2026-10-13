@@ -38,7 +38,7 @@ function saveWelcomeStep(step) {
 function getSavedWelcomeStep() {
   try {
     const s = parseInt(localStorage.getItem('welcome_step') || '1', 10);
-    return (s >= 1 && s <= 4) ? s : 1;
+    return (s >= 1 && s <= 5) ? s : 1;
   } catch (e) {
     return 1;
   }
@@ -56,8 +56,8 @@ function updateWelcomeStepUI() {
   });
 
   // Toggle step panes
-  for (let i = 1; i <= 4; i++) {
-    const pane = $('welcomeStep' + i);
+  for (let i = 1; i <= 5; i++) {
+    const pane = (i === 4 ? ($('welcomeStepHow') || $('welcomeStep4')) : $('welcomeStep' + i));
     if (pane) pane.hidden = (i !== welcomeCurrentStep);
   }
 
@@ -67,11 +67,11 @@ function updateWelcomeStepUI() {
   const finishBtn = $('welcomeFinishBtn');
 
   if (backBtn) backBtn.hidden = (welcomeCurrentStep === 1);
-  if (nextBtn) nextBtn.hidden = (welcomeCurrentStep === 4);
-  if (finishBtn) finishBtn.hidden = (welcomeCurrentStep !== 4);
+  if (nextBtn) nextBtn.hidden = (welcomeCurrentStep === 5);
+  if (finishBtn) finishBtn.hidden = (welcomeCurrentStep !== 5);
 
-  // Update summary card on step 4
-  if (welcomeCurrentStep === 4) {
+  // Update summary card on step 5
+  if (welcomeCurrentStep === 5) {
     const sumLang = $('welcomeSummaryLang');
     const sumEng = $('welcomeSummaryEngine');
     const sumPriv = $('welcomeSummaryPrivacy');
@@ -207,7 +207,7 @@ function updateWelcomeModelStatus() {
 }
 
 let welcomeOllamaReachable = false;
-let welcomeOllamaChecking = false;
+let welcomeOllamaAbortCtrl = null;
 
 function isWelcomeNllbReady() {
   if (typeof MC === 'undefined' || !MC.models) return false;
@@ -221,20 +221,31 @@ async function checkWelcomeOllama() {
     updateWelcomePrivacyNotice();
     return;
   }
-  if (welcomeOllamaChecking) return;
-  welcomeOllamaChecking = true;
+  if (welcomeOllamaAbortCtrl) {
+    try { welcomeOllamaAbortCtrl.abort(); } catch (e) {}
+    welcomeOllamaAbortCtrl = null;
+  }
+  const ctrl = new AbortController();
+  welcomeOllamaAbortCtrl = ctrl;
+  const to = setTimeout(() => {
+    try { ctrl.abort(); } catch (e) {}
+  }, 1200);
   try {
     const host = (typeof getOllamaHost === 'function') ? getOllamaHost() : 'http://localhost:11434';
-    const ctrl = new AbortController();
-    const to = setTimeout(() => ctrl.abort(), 1200);
     const res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
     clearTimeout(to);
-    welcomeOllamaReachable = !!(res && res.ok);
+    if (welcomeOllamaAbortCtrl === ctrl) {
+      welcomeOllamaReachable = !!(res && res.ok);
+    }
   } catch (e) {
-    welcomeOllamaReachable = false;
+    if (welcomeOllamaAbortCtrl === ctrl) {
+      welcomeOllamaReachable = false;
+    }
   } finally {
-    welcomeOllamaChecking = false;
-    updateWelcomePrivacyNotice();
+    if (welcomeOllamaAbortCtrl === ctrl) {
+      welcomeOllamaAbortCtrl = null;
+      updateWelcomePrivacyNotice();
+    }
   }
 }
 
@@ -263,7 +274,7 @@ function getWelcomePrivacyDisclosure() {
     if (hasKey) {
       return {
         isLocal: false,
-        text: isEn ? 'Text is sent to the chosen AI provider' : 'متن به ارائه‌دهنده انتخابی هوش مصنوعی ارسال می‌شود'
+        text: isEn ? 'Text is sent only to the selected provider' : 'متن فقط به ارائه‌دهنده انتخابی ارسال می‌شود'
       };
     }
     return {
@@ -273,7 +284,7 @@ function getWelcomePrivacyDisclosure() {
   }
   return {
     isLocal: false,
-    text: isEn ? 'Text is sent to the chosen provider' : 'متن به ارائه‌دهنده انتخابی ارسال می‌شود'
+    text: isEn ? 'Text is sent only to the selected provider' : 'متن فقط به ارائه‌دهنده انتخابی ارسال می‌شود'
   };
 }
 
@@ -350,7 +361,7 @@ function openWelcomeWizard(step = 1) {
     if (l4) l4.textContent = ex.length > 4 ? `…${ex.slice(-4)}` : '';
   }
   setTimeout(() => {
-    const pane = $('welcomeStep' + welcomeCurrentStep);
+    const pane = (welcomeCurrentStep === 4 ? ($('welcomeStepHow') || $('welcomeStep4')) : $('welcomeStep' + welcomeCurrentStep));
     const target = pane?.querySelector('input:checked, button:not([hidden]), [tabindex="0"]') || $('welcomeNextBtn') || $('welcomeSkipBtn');
     if (target && typeof target.focus === 'function') target.focus();
   }, 30);
@@ -551,7 +562,7 @@ function initWelcomeWizard() {
 
   // Next button
   $('welcomeNextBtn')?.addEventListener('click', () => {
-    if (welcomeCurrentStep < 4) {
+    if (welcomeCurrentStep < 5) {
       welcomeCurrentStep++;
       saveWelcomeStep(welcomeCurrentStep);
       updateWelcomeStepUI();
