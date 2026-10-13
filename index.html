@@ -1585,7 +1585,7 @@
         <span class="step-dot" data-step="4"></span>
       </div>
       <span class="sp"></span>
-      <button class="btn ghost welcome-skip-btn" id="welcomeSkipBtn" type="button" data-t="wizardSkip">بعداً <bdi>(Skip)</bdi></button>
+      <button class="btn ghost welcome-skip-btn" id="welcomeSkipBtn" type="button" data-t="wizardSkip">بعداً</button>
     </div>
 
     <!-- Wizard Steps Container -->
@@ -1593,22 +1593,22 @@
       <!-- Step 1: Language -->
       <div class="welcome-step-pane" id="welcomeStep1">
         <div class="welcome-step-icon">🌐</div>
-        <h2 class="welcome-step-title" id="welcomeTitle" data-t="wizardStep1Title">Choose your language</h2>
-        <p class="welcome-step-sub" data-t="wizardStep1Sub">Select the primary language for the interface and default translations.</p>
+        <h2 class="welcome-step-title" id="welcomeTitle" data-t="wizardStep1Title">زبان خود را انتخاب کنید</h2>
+        <p class="welcome-step-sub" data-t="wizardStep1Sub">زبان اصلی برای رابط کاربری و ترجمه‌های پیش‌فرض را مشخص کنید.</p>
         <div class="welcome-cards-grid">
           <label class="welcome-choice-card active" data-choice-lang="fa">
             <input type="radio" name="welcomeLang" value="fa" checked>
             <div class="choice-card-content">
-              <strong>فارسی (Persian)</strong>
-              <span>رابط کاربری فارسی و راست‌به‌چپ</span>
+              <strong>فارسی <bdi>(Persian)</bdi></strong>
+              <span data-t="wizardLangFaDesc">رابط کاربری فارسی و راست‌به‌چپ</span>
             </div>
-            <span class="choice-badge">پیشنهادی</span>
+            <span class="choice-badge" data-t="wizardBadgeRec">پیشنهادی</span>
           </label>
           <label class="welcome-choice-card" data-choice-lang="en">
             <input type="radio" name="welcomeLang" value="en">
             <div class="choice-card-content">
-              <strong>English</strong>
-              <span>English user interface</span>
+              <strong>English <bdi>(انگلیسی)</bdi></strong>
+              <span data-t="wizardLangEnDesc">English user interface</span>
             </div>
           </label>
         </div>
@@ -1617,7 +1617,7 @@
       <!-- Step 2: Translation Engine -->
       <div class="welcome-step-pane" id="welcomeStep2" hidden>
         <div class="welcome-step-icon">⚡</div>
-        <h2 class="welcome-step-title" data-t="wizardStep2Title">روش ترجمه: سریع، هوشمند یا آفلاین <bdi>(How to translate)</bdi></h2>
+        <h2 class="welcome-step-title" data-t="wizardStep2Title">روش ترجمه: سریع، هوشمند یا آفلاین</h2>
         <p class="welcome-step-sub" data-t="wizardStep2Sub">روش پردازش ترجمه‌ها را با شفافیت کامل درباره حریم خصوصی و خروج داده انتخاب کنید.</p>
         <div class="welcome-cards-grid">
           <label class="welcome-choice-card" data-choice-engine="online">
@@ -1653,10 +1653,10 @@
         <!-- Optional AI Key Section (Step 2) -->
         <div class="welcome-key-section" id="welcomeKeySection" style="margin-top:16px;padding:14px;background:#0E1726;border:1px solid rgba(28,64,118,0.5);border-radius:12px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
-            <strong style="font-size:13.5px;color:var(--text,#fff)">کلید هوش مصنوعی (اختیاری) <bdi>(Optional AI key)</bdi></strong>
-            <span style="font-size:11.5px;color:var(--text-dim,#B5C2D4)">Gemini, Groq, OpenRouter</span>
+            <strong style="font-size:13.5px;color:var(--text,#fff)" data-t="wizardKeySectionTitle">کلید هوش مصنوعی (اختیاری)</strong>
+            <span style="font-size:11.5px;color:var(--text-dim,#B5C2D4)"><bdi>Gemini</bdi>, <bdi>Groq</bdi>, <bdi>OpenRouter</bdi></span>
           </div>
-          <p style="margin:0 0 10px 0;font-size:12px;color:var(--text-dim,#B5C2D4);line-height:1.4">
+          <p style="margin:0 0 10px 0;font-size:12px;color:var(--text-dim,#B5C2D4);line-height:1.4" data-t="wizardKeySectionDesc">
             برای ترجمه هوشمند یا سریع‌تر می‌توانید یک کلید رایگان اضافه کنید. کلید تنها در همین مرورگر ذخیره شده و به هیچ سرور دیگری ارسال نمی‌شود.
           </p>
           <div style="display:flex;gap:8px;flex-wrap:wrap">
@@ -1666,13 +1666,13 @@
               <option value="openrouter">OpenRouter</option>
             </select>
             <div class="welcome-key-wrap" style="position:relative;flex:1;min-width:180px;display:flex;align-items:center">
-              <input type="password" id="welcomeApiKeyInput" placeholder="کلید API را اینجا وارد کنید (اختیاری)" autocomplete="off" spellcheck="false" style="width:100%;background:#060B14;border:1px solid rgba(28,64,118,0.5);color:var(--text,#fff);border-radius:8px;padding:7px 40px 7px 10px;font-size:13px;box-sizing:border-box">
+              <input type="password" id="welcomeApiKeyInput" placeholder="کلید API را اینجا وارد کنید (اختیاری)" data-tp="wizardKeyInputPh" autocomplete="off" spellcheck="false" style="width:100%;background:#060B14;border:1px solid rgba(28,64,118,0.5);color:var(--text,#fff);border-radius:8px;padding:7px 40px 7px 10px;font-size:13px;box-sizing:border-box">
               <span class="welcome-key-last4" id="welcomeKeyLast4" style="position:absolute;inset-inline-end:34px;font-family:var(--mono,monospace);font-size:11px;color:var(--accent,#08A8FF);pointer-events:none"></span>
               <button type="button" class="btn icon-only" id="welcomeKeyToggleBtn" style="position:absolute;inset-inline-end:4px;width:26px;height:26px;padding:0;min-height:0;background:none;border:none;color:var(--muted,#B5C2D4);cursor:pointer" title="نمایش/پنهان‌سازی کلید" aria-label="Toggle key visibility">👁</button>
             </div>
           </div>
-          <div class="welcome-key-saved" id="welcomeKeySavedHint" style="font-size:11.5px;color:#3FB950;margin-top:6px;display:none">
-            ✓ خودکار ذخیره شد <bdi>(Auto-saved)</bdi>
+          <div class="welcome-key-saved" id="welcomeKeySavedHint" style="font-size:11.5px;color:#3FB950;margin-top:6px;display:none" data-t="wizardKeySaved">
+            ✓ ذخیره شد
           </div>
         </div>
       </div>
@@ -1680,21 +1680,21 @@
       <!-- Step 3: Optional Model Download -->
       <div class="welcome-step-pane" id="welcomeStep3" hidden>
         <div class="welcome-step-icon">📦</div>
-        <h2 class="welcome-step-title" data-t="wizardStep3Title">دانلود مدل‌های آفلاین (اختیاری) <bdi>(Download offline models)</bdi></h2>
+        <h2 class="welcome-step-title" data-t="wizardStep3Title">دانلود مدل‌های آفلاین (اختیاری)</h2>
         <p class="welcome-step-sub" data-t="wizardStep3Sub">دریافت مدل‌های ترجمه و گفتار برای استفاده کاملاً آفلاین اکنون، یا بعداً از مرکز مدل‌ها.</p>
         <div class="welcome-cards-grid">
           <label class="welcome-choice-card active" data-choice-package="none">
             <input type="radio" name="welcomePackage" value="none" checked>
             <div class="choice-card-content">
-              <strong>فعلاً بدون دانلود <bdi>(Skip download)</bdi></strong>
+              <strong data-t="wizardPkgSkipTitle">فعلاً بدون دانلود</strong>
               <span data-t="wizardPkgSkipDesc">راه‌اندازی فوری بدون دانلود؛ مدل‌های آفلاین را هر زمان می‌توانید از بخش تنظیمات دریافت کنید.</span>
             </div>
-            <span class="choice-badge">فوری <bdi>(Instant)</bdi></span>
+            <span class="choice-badge" data-t="wizardPkgSkipBadge">فوری</span>
           </label>
           <label class="welcome-choice-card" data-choice-package="light">
             <input type="radio" name="welcomePackage" value="light">
             <div class="choice-card-content">
-              <strong>مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi></strong>
+              <strong data-t="wizardPkgLightTitle">مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi></strong>
               <span data-t="wizardPkgLightDesc">مدل ترجمه NLLB-200 برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.</span>
             </div>
             <span class="choice-badge" id="welcomeNllbBadge">۸۷۰ مگابایت</span>
@@ -1702,8 +1702,8 @@
           <label class="welcome-choice-card" data-choice-package="full">
             <input type="radio" name="welcomePackage" value="full">
             <div class="choice-card-content">
-              <strong>بسته کامل: ترجمه و گفتار <bdi>(NLLB + Whisper)</bdi></strong>
-              <span data-t="wizardPkgFullDesc">ترجمه NLLB (حدود ۸۷۰ مگابایت) + تشخیص گفتار Whisper Small (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).</span>
+              <strong data-t="wizardPkgFullTitle">بسته کامل: ترجمه و گفتار</strong>
+              <span data-t="wizardPkgFullDesc">ترجمه NLLB (حدود ۸۷۰ مگابایت) و تشخیص گفتار Whisper Small (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).</span>
             </div>
             <span class="choice-badge" id="welcomeFullBadge">۱٫۱ گیگابایت</span>
           </label>
@@ -1711,16 +1711,16 @@
 
         <!-- Real Voice & Desktop Screen status section -->
         <div class="welcome-status-section" id="welcomeStatusSection" style="margin-top:16px;padding:12px 14px;background:#0E1726;border:1px solid rgba(28,64,118,0.5);border-radius:12px">
-          <div style="font-size:12.5px;font-weight:700;color:var(--text,#fff);margin-bottom:8px">
-            وضعیت صدا و صفحه نمایش <bdi>(Voice &amp; Screen Status)</bdi>
+          <div style="font-size:12.5px;font-weight:700;color:var(--text,#fff);margin-bottom:8px" data-t="wizardStatusTitle">
+            وضعیت صدا و صفحه نمایش
           </div>
           <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
             <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="color:var(--text-dim,#B5C2D4)">صدا و گفتار <bdi>(Voice &amp; Speech)</bdi>:</span>
+              <span style="color:var(--text-dim,#B5C2D4)" data-t="wizardVoiceStatusLbl">صدا و گفتار:</span>
               <span id="welcomeVoiceStatusBadge" style="font-weight:600">در حال بررسی…</span>
             </div>
             <div style="display:flex;align-items:center;justify-content:space-between">
-              <span style="color:var(--text-dim,#B5C2D4)">مترجم صفحه نمایش <bdi>(Screen Translator)</bdi>:</span>
+              <span style="color:var(--text-dim,#B5C2D4)" data-t="wizardScreenStatusLbl">مترجم صفحه نمایش:</span>
               <span id="welcomeScreenStatusBadge" style="font-weight:600">در حال بررسی…</span>
             </div>
           </div>
