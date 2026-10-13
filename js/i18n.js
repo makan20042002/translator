@@ -307,14 +307,14 @@ const langName=c=>c==='auto'?'the detected language':c==='finglish'?'Persian (wr
 const langShort=c=>c==='finglish'?'Finglish':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ')[0];
 
 function getLangNames(code){
-  if(code==='auto')return {fa:'تشخیص خودکار',en:'Detect language'};
+  if(!code||code==='auto')return {fa:'تشخیص خودکار',en:'Detect language'};
   if(code==='finglish')return {fa:'فینگلیش',en:'Finglish'};
   const pair=LANGS.find(l=>l[0]===code);
   if(pair&&pair[1].includes(' · ')){
     const parts=pair[1].split(' · ');
     return {fa:parts[0],en:parts[1]};
   }
-  return {fa:code||'',en:code||''};
+  return {fa:code||'تشخیص خودکار',en:code||'Detect language'};
 }
 
 function formatLangDisplayHtml(code){
@@ -467,6 +467,7 @@ function setupUnifiedLanguagePicker(options){
     if(!display){
       display=document.createElement('div');
       display.className='lang-picker-display';
+      display.setAttribute('aria-hidden','true');
       display.innerHTML=`<span class="lang-display-inner"></span><span class="lang-picker-arrow">▾</span>`;
       parentBox.insertBefore(display,sel);
     }

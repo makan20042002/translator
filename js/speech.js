@@ -987,6 +987,10 @@ function fillLangs(){
     $('docSrc').onchange=()=>{if($('src')){$('src').value=$('docSrc').value;$('src').onchange?.();}};
     $('docTgt').onchange=()=>{if($('tgt')){$('tgt').value=$('docTgt').value;$('tgt').onchange?.();}};
   }
+
+  if(typeof initVoiceLangs==='function'){
+    initVoiceLangs();
+  }
 }
 function fillEngines(){
   const cur=store.get('engine','auto'),ok=cfg.order.filter(usable);

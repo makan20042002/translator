@@ -37,33 +37,33 @@ test.describe('Web app: Item 2 language pickers, detection, and RTL overflow', (
     await page.locator('#tabs button[data-tab="text"]').click();
     const textDisplay = page.locator('#tab-text [data-picker-role="src"] .lang-picker-display');
     await expect(textDisplay).toBeVisible();
-    await expect(textDisplay).not.toHaveAttribute('aria-hidden', 'true');
+    await expect(textDisplay).toHaveAttribute('aria-hidden', 'true');
 
     // Voice tab
     await page.locator('#tabs button[data-tab="voice"]').click();
     const voiceDisplay = page.locator('#vLangPair [data-picker-role="src"] .lang-picker-display');
     await expect(voiceDisplay).toBeVisible();
-    await expect(voiceDisplay).not.toHaveAttribute('aria-hidden', 'true');
+    await expect(voiceDisplay).toHaveAttribute('aria-hidden', 'true');
 
     // Subtitles tab
     await page.locator('#tabs button[data-tab="sub"]').click();
     await page.evaluate(() => { const el = document.getElementById('sWork'); if (el) el.hidden = false; });
     const subDisplay = page.locator('#tab-sub [data-picker-role="src"] .lang-picker-display');
     await expect(subDisplay).toBeVisible();
-    await expect(subDisplay).not.toHaveAttribute('aria-hidden', 'true');
+    await expect(subDisplay).toHaveAttribute('aria-hidden', 'true');
 
     // Documents tab
     await page.locator('#tabs button[data-tab="doc"]').click();
     await page.evaluate(() => { const el = document.getElementById('dWork'); if (el) el.hidden = false; });
     const docDisplay = page.locator('#tab-doc [data-picker-role="src"] .lang-picker-display');
     await expect(docDisplay).toBeVisible();
-    await expect(docDisplay).not.toHaveAttribute('aria-hidden', 'true');
+    await expect(docDisplay).toHaveAttribute('aria-hidden', 'true');
 
     // Screen tab
     await page.locator('#tabs button[data-tab="screen"]').click();
     const screenDisplay = page.locator('#tab-screen [data-picker-role="src"] .lang-picker-display');
     await expect(screenDisplay).toBeVisible();
-    await expect(screenDisplay).not.toHaveAttribute('aria-hidden', 'true');
+    await expect(screenDisplay).toHaveAttribute('aria-hidden', 'true');
   });
 
   test('detectRealLanguage correctly detects 6+ word English sentences and rejects numbers, symbols, Finglish, and ambiguous text', async ({ app }) => {

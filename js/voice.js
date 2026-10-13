@@ -73,8 +73,8 @@ function initVoiceLangs() {
   vSrc.innerHTML = `<option value="auto">${esc(L('detect'))}</option>` +
     LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   vTgt.innerHTML = LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
-  vSrc.value = $('src')?.value || 'auto';
-  vTgt.value = $('tgt')?.value || 'fa';
+  vSrc.value = $('src')?.value || store.get('src', 'auto') || 'auto';
+  vTgt.value = $('tgt')?.value || store.get('tgt', 'fa') || 'fa';
   if (typeof setupUnifiedLanguagePicker === 'function') {
     setupUnifiedLanguagePicker({ srcSelect: 'vSrc', tgtSelect: 'vTgt', swapBtn: 'vSwap', idPrefix: 'voice' });
   }
@@ -86,6 +86,7 @@ function initVoiceLangs() {
     if ($('tgt')) { $('tgt').value = vTgt.value; $('tgt').onchange?.(); }
     updateVoiceLangPills();
   };
+  updateVoiceLangPills();
 }
 
 function getVoiceTabReadiness() {
@@ -318,13 +319,17 @@ function updateVoiceStatusStrip(readiness) {
 }
 
 function updateVoiceLangPills() {
-  const s = $('src').value, t = $('tgt').value;
+  const s = $('src')?.value || store.get('src', 'auto') || 'auto';
+  const t = $('tgt')?.value || store.get('tgt', 'fa') || 'fa';
   const aText = s === 'auto' ? L('detect') : langName(s);
   const bText = langName(t);
   if ($('vLangA')) $('vLangA').textContent = aText;
   if ($('vLangB')) $('vLangB').textContent = bText;
   if ($('vSrc') && $('vSrc').value !== s) $('vSrc').value = s;
   if ($('vTgt') && $('vTgt').value !== t) $('vTgt').value = t;
+  if (window.MakanLangPickers?.voice?.updateDisplays) {
+    window.MakanLangPickers.voice.updateDisplays();
+  }
   updateLiveSpeakerLabels();
   updateVoiceReadiness();
 }
