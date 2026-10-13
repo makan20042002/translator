@@ -4968,5 +4968,190 @@ html[dir="rtl"] .bub-orig-text {
   }
 }
 
+/* ==========================================================================
+   Unified Language Picker Component (Item 2)
+   ========================================================================== */
+
+.unified-lang-picker {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 120px;
+  max-width: 220px;
+  flex: 1 1 auto;
+  position: relative;
+  box-sizing: border-box;
+}
+
+.unified-lang-picker .lang-picker-topline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 6px;
+  font-size: 11px;
+  line-height: 1.2;
+  color: var(--muted, #8ea3bf);
+  padding: 0 2px;
+  min-height: 16px;
+}
+
+.unified-lang-picker .lang-picker-lbl {
+  font-family: inherit;
+  font-size: 11px;
+  font-weight: 600;
+  color: var(--muted, #8ea3bf);
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.unified-lang-picker .lang-picker-lbl bdi {
+  color: var(--faint, #5e6b7e);
+  font-size: 10px;
+  font-weight: 500;
+}
+
+.unified-lang-picker .lang-detected-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10.5px;
+  color: var(--accent, #08A8FF);
+  background: rgba(8, 168, 255, 0.12);
+  border: 1px solid rgba(8, 168, 255, 0.35);
+  border-radius: 4px;
+  padding: 1px 6px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.unified-lang-picker .lang-detected-badge[hidden] {
+  display: none !important;
+}
+
+.unified-lang-box {
+  position: relative;
+  width: 100%;
+  height: 38px;
+  display: flex;
+  align-items: center;
+  border-radius: 10px;
+  background: var(--surface2, #0e1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  box-sizing: border-box;
+  overflow: hidden;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.unified-lang-box:hover,
+.unified-lang-box:focus-within {
+  border-color: var(--accent, #08A8FF);
+  box-shadow: 0 0 0 1px rgba(8, 168, 255, 0.25);
+}
+
+.unified-lang-box .lang-picker-display {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 12px;
+  pointer-events: none;
+  z-index: 1;
+  color: var(--text, #fff);
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.unified-lang-box .lang-display-inner {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.unified-lang-box .lang-fa {
+  font-family: 'Vazirmatn', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--text, #fff);
+  font-weight: 600;
+}
+
+.unified-lang-box .lang-en {
+  font-family: 'Manrope', -apple-system, BlinkMacSystemFont, sans-serif;
+  color: var(--muted, #93a1b5);
+  font-weight: 500;
+  font-size: 11.5px;
+}
+
+.unified-lang-box .lang-picker-arrow {
+  color: var(--muted, #8ea3bf);
+  font-size: 11px;
+  flex-shrink: 0;
+  margin-inline-start: 6px;
+}
+
+.unified-lang-box select.unified-select {
+  position: relative;
+  z-index: 2;
+  width: 100% !important;
+  height: 100% !important;
+  margin: 0 !important;
+  padding: 0 10px !important;
+  opacity: 1 !important;
+  color: transparent !important;
+  background: transparent !important;
+  border: none !important;
+  cursor: pointer !important;
+  -webkit-appearance: none;
+  appearance: none;
+  box-sizing: border-box;
+}
+
+.unified-lang-box select.unified-select option {
+  color: #fff;
+  background: #0e1e38;
+}
+
+.trans-lang-grp,
+.voice-lang-grp,
+.sub-lang-grp,
+.doc-lang-grp,
+.screen-lang-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 480px) {
+  .unified-lang-picker {
+    min-width: 100px;
+  }
+  .unified-lang-box {
+    height: 36px;
+  }
+  .unified-lang-box .lang-picker-display {
+    padding: 0 8px;
+    font-size: 12px;
+  }
+  .unified-lang-box .lang-en {
+    font-size: 10.5px;
+  }
+  .trans-lang-grp,
+  .voice-lang-grp,
+  .sub-lang-grp,
+  .doc-lang-grp,
+  .screen-lang-row {
+    gap: 4px;
+  }
+}
+
+
 
 

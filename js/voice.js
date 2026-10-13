@@ -74,12 +74,15 @@ function initVoiceLangs() {
   vTgt.innerHTML = LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   vSrc.value = $('src')?.value || 'auto';
   vTgt.value = $('tgt')?.value || 'fa';
+  if (typeof setupUnifiedLanguagePicker === 'function') {
+    setupUnifiedLanguagePicker({ srcSelect: 'vSrc', tgtSelect: 'vTgt', swapBtn: 'vSwap', idPrefix: 'voice' });
+  }
   vSrc.onchange = () => {
-    if ($('src')) { $('src').value = vSrc.value; $('src').onchange(); }
+    if ($('src')) { $('src').value = vSrc.value; $('src').onchange?.(); }
     updateVoiceLangPills();
   };
   vTgt.onchange = () => {
-    if ($('tgt')) { $('tgt').value = vTgt.value; $('tgt').onchange(); }
+    if ($('tgt')) { $('tgt').value = vTgt.value; $('tgt').onchange?.(); }
     updateVoiceLangPills();
   };
 }
@@ -341,6 +344,9 @@ function fillAskLangs() {
     LANGS.map(l => `<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   $('vAskLang').value = cur;
   if ($('vAskLang').selectedIndex < 0) $('vAskLang').value = $('tgt').value;
+  if (typeof setupUnifiedLanguagePicker === 'function') {
+    setupUnifiedLanguagePicker({ srcSelect: 'vAskLang', idPrefix: 'ask', label: L('vAskLang') || 'Answer language' });
+  }
   $('vAskLang').onchange = () => { if (typeof updateCompactVoiceButtons === 'function') updateCompactVoiceButtons(); };
 }
 

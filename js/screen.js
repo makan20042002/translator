@@ -13,7 +13,7 @@ function initScreenWebUI() {
   const srcSelect = $('screenSrcLang');
   const tgtSelect = $('screenTgtLang');
   if (srcSelect && typeof LANGS !== 'undefined') {
-    srcSelect.innerHTML = '<option value="auto">Auto-detect</option>';
+    srcSelect.innerHTML = `<option value="auto">${esc(L('detect'))}</option>`;
     LANGS.forEach(([code, name]) => {
       const opt = document.createElement('option');
       opt.value = code;
@@ -33,19 +33,15 @@ function initScreenWebUI() {
     });
   }
 
-  // Swap languages button
-  $('screenSwapBtn')?.addEventListener('click', () => {
-    if (!srcSelect || !tgtSelect) return;
-    const curSrc = srcSelect.value;
-    const curTgt = tgtSelect.value;
-    if (curSrc === 'auto') {
-      if (typeof toast === 'function') toast(L('sameLang'), 'warn');
-      return;
-    }
-    srcSelect.value = curTgt;
-    tgtSelect.value = curSrc;
-    updateScreenPrivacyNotice();
-  });
+  if (typeof setupUnifiedLanguagePicker === 'function') {
+    setupUnifiedLanguagePicker({
+      srcSelect: 'screenSrcLang',
+      tgtSelect: 'screenTgtLang',
+      swapBtn: 'screenSwapBtn',
+      idPrefix: 'screen',
+      onChanged: () => updateScreenPrivacyNotice()
+    });
+  }
 
   // Populate engines
   const engSelect = $('screenTransEngine');

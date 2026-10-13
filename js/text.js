@@ -178,6 +178,14 @@ async function doText(){
       $('tMeta').innerHTML=`<span class="pill-fast">${esc(L('fastLabel'))}</span> · ${esc(r.used)} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
       const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
       saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+      if($('src')?.value==='auto'){
+        const detected=r.detectedSrc||(typeof detectRealLanguage==='function'?detectRealLanguage(text):null);
+        if(detected){
+          window.MakanLangPickers?.text?.setDetected(detected);
+          window.MakanLangPickers?.subtitles?.setDetected(detected);
+          window.MakanLangPickers?.documents?.setDetected(detected);
+        }
+      }
     }else if(mode==='smart'){
       const smartChain=getSmartEngineChain();
       const r=await translateItems(lines,opts({chain:smartChain,signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));
@@ -185,6 +193,14 @@ async function doText(){
       $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
       const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
       saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:'smart',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+      if($('src')?.value==='auto'){
+        const detected=r.detectedSrc||(typeof detectRealLanguage==='function'?detectRealLanguage(text):null);
+        if(detected){
+          window.MakanLangPickers?.text?.setDetected(detected);
+          window.MakanLangPickers?.subtitles?.setDetected(detected);
+          window.MakanLangPickers?.documents?.setDetected(detected);
+        }
+      }
     }else{
       const nonAiEng=getFastChain()[0];
       const aiChain=getAiEngineChain();
@@ -261,8 +277,12 @@ async function doText(){
       if(!fastRes&&!smartRes){
         throw new Error(L(isOff()?'noOff':'noEngine'));
       }
-    }
   }catch(e){
+    if($('src')?.value==='auto'){
+      window.MakanLangPickers?.text?.clearDetected();
+      window.MakanLangPickers?.subtitles?.clearDetected();
+      window.MakanLangPickers?.documents?.clearDetected();
+    }
     if(isOff()){
       showOfflineGuidance(e.message,$('tMeta'));
     }else{

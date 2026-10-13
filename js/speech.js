@@ -959,6 +959,34 @@ function fillLangs(){
   $('src').innerHTML=`<option value="auto">${esc(L('detect'))}</option>`+LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('')+`<option value="finglish">${esc(L('fgOpt'))}</option>`;
   $('tgt').innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
   $('src').value=store.get('src','auto');$('tgt').value=store.get('tgt',(navigator.language||'').startsWith('fa')?'en':'fa');
+
+  if(typeof setupUnifiedLanguagePicker==='function'){
+    setupUnifiedLanguagePicker({srcSelect:'src',tgtSelect:'tgt',swapBtn:'swap',idPrefix:'text'});
+  }
+
+  if($('subSrc')&&$('subTgt')){
+    $('subSrc').innerHTML=`<option value="auto">${esc(L('detect'))}</option>`+LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    $('subTgt').innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    $('subSrc').value=$('src').value;
+    $('subTgt').value=$('tgt').value;
+    if(typeof setupUnifiedLanguagePicker==='function'){
+      setupUnifiedLanguagePicker({srcSelect:'subSrc',tgtSelect:'subTgt',swapBtn:'subSwap',idPrefix:'subtitles'});
+    }
+    $('subSrc').onchange=()=>{if($('src')){$('src').value=$('subSrc').value;$('src').onchange?.();}};
+    $('subTgt').onchange=()=>{if($('tgt')){$('tgt').value=$('subTgt').value;$('tgt').onchange?.();}};
+  }
+
+  if($('docSrc')&&$('docTgt')){
+    $('docSrc').innerHTML=`<option value="auto">${esc(L('detect'))}</option>`+LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    $('docTgt').innerHTML=LANGS.map(l=>`<option value="${l[0]}">${esc(l[1])}</option>`).join('');
+    $('docSrc').value=$('src').value;
+    $('docTgt').value=$('tgt').value;
+    if(typeof setupUnifiedLanguagePicker==='function'){
+      setupUnifiedLanguagePicker({srcSelect:'docSrc',tgtSelect:'docTgt',swapBtn:'docSwap',idPrefix:'documents'});
+    }
+    $('docSrc').onchange=()=>{if($('src')){$('src').value=$('docSrc').value;$('src').onchange?.();}};
+    $('docTgt').onchange=()=>{if($('tgt')){$('tgt').value=$('docTgt').value;$('tgt').onchange?.();}};
+  }
 }
 function fillEngines(){
   const cur=store.get('engine','auto'),ok=cfg.order.filter(usable);

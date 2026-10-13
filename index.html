@@ -326,7 +326,12 @@
                 <div class="sub-file-sub-row">
                   <span class="meta" id="sInfo"></span>
                   <span class="sub-meta-sep" aria-hidden="true">·</span>
-                  <span class="sub-lang-pill" id="sLangPair">English → Persian</span>
+                  <div class="grp sub-lang-grp" id="subLangPair" style="display:inline-flex;align-items:flex-end;gap:6px">
+                    <select id="subSrc" aria-label="Subtitle source language"></select>
+                    <button class="btn icon-only sub-swap-btn" id="subSwap" type="button" aria-label="Swap languages" title="Swap">⇄</button>
+                    <select id="subTgt" aria-label="Subtitle target language"></select>
+                  </div>
+                  <span class="sub-lang-pill" id="sLangPair" hidden>English → Persian</span>
                 </div>
               </div>
               <div class="sub-file-mgmt-btns">
@@ -441,6 +446,11 @@
           </div>
 
           <div class="doc-file-controls-group">
+            <div class="grp doc-lang-grp" id="docLangPair" style="display:inline-flex;align-items:flex-end;gap:6px">
+              <select id="docSrc" aria-label="Document source language"></select>
+              <button class="btn icon-only doc-swap-btn" id="docSwap" type="button" aria-label="Swap languages" title="Swap">⇄</button>
+              <select id="docTgt" aria-label="Document target language"></select>
+            </div>
             <div class="grp doc-fmt-grp">
               <label for="dOutFmt" data-t="outFormat">Output format</label>
               <select id="dOutFmt">

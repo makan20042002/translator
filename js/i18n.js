@@ -5,6 +5,7 @@ const I18N={en:{
  tabEnginesKeys:'Translation engines & keys',tabVoices:'Voices (reading aloud)',tabVoiceModels:'Voice models (speech recognition)',tabTrModels:'Translation models (offline)',tabOcr:'Screen reading (OCR)',
  tabIdiom:'Idioms',idPh:'Type an idiom or saying…',idFindH:'Find an idiom by its meaning',idFindHint:'Describe what you want to say, for example “someone who talks too much”. Needs an AI engine.',idDescPh:'Describe a meaning…',idFindBtn:'Find idioms',idStored:'Stored idiom',idAiH:'AI explanation',idMeaning:'Meaning',idLiteral:'Literal wording',idEquivalent:'Natural equivalent',idRegister:'Register',idExamples:'Examples',idNotIdiom:'The AI does not think this is an idiom.',idNoAiStored:'No AI engine is available, so only the stored entry is shown.',idNoAiNone:'This is not in the stored idioms, and no AI engine is available to explain it. Add a key in Engines & keys.',idFindNoAi:'Finding idioms by meaning is done by an AI engine, and none is available. Add a key in Engines & keys.',idSave:'Save idiom',idIdiomBadge:'idiom',idAsking:'Asking the AI…',idNoMatch:'No matching idioms found.',idMarkTitle:'Idiom: click for its meaning',tabDict:'Dictionary',dictPh:'Type a word…',dictSearch:'Search',dictVulgar:'Show vulgar words',dictAuto:'Auto (detect language)',dictHidden:'This word is marked as vulgar and hidden. Turn on “Show vulgar words” to see it.',dictHiddenSome:'Some entries are hidden (vulgar). Turn on “Show vulgar words” to see them.',dictGetPack:'Get the dictionary',dictNoPack:'The offline dictionary for this language is not downloaded yet.',dictNotFound:'No entry found for this word.',dictMyWords:'My words',dictExport:'Export CSV',dictClear:'Clear list',dictLocalOnly:'The word list is stored only in this browser.',dictSave:'Save word',dictSaved:'Saved ✓',dictExplain:'Explain with AI',dictExplaining:'Asking the AI…',dictNoAi:'No AI engine is available. Add a key in Engines & keys.',dictPhrases:'Idioms and phrases',dictForms:'Forms',dictAlso:'More meanings (from the other dictionary)',dictFormOf:'form of',dictPackEnFa:'Dictionary · English → Persian · about 1.1 MB',dictPackFaEn:'Dictionary · Persian → English · about 0.9 MB',dictRemove:'Remove',dictPackNote:'The dictionary works without internet once downloaded, also with Offline mode on. Data from Wiktionary (CC BY-SA); see About & credits.',creditsBtn:'About & credits',creditsText:'Offline dictionary: data from Wiktionary (CC BY-SA 4.0 / GFDL), extracted with Wiktextract and distributed by Kaikki.org; entries chosen with the wordfreq ranking by Robyn Speer (CC BY-SA 4.0). The dictionary is shared under the same CC BY-SA licence. Attribution does not imply endorsement. Offline voices: Piper voices from rhasspy/piper-voices (MIT) run with ONNX Runtime Web (MIT) and the eSpeak NG phonemizer (GPL-3.0-or-later; its files are in vendor/piper). The voices Amir, Ganji, LJ Speech, Cori and Kristin are CC0 / public domain; the voice Alba (University of Edinburgh) is CC BY 4.0. Offline translation and speech models come from Hugging Face; each model keeps its own licence (the NLLB-200 models are CC BY-NC 4.0).',dictDownloading:'Downloading…',dictAiAsk:'Explain the word or phrase below for a learner: its usage, its register (formal, neutral, informal or slang) and three short example sentences, each with a translation. Be concise.',tabText:'Text',tabSub:'Subtitle',tabDoc:'Document',tabVoice:'Voice',tabCmp:'Compare',tabGls:'Glossary',tabHist:'History',
   engine:'Engine',mode:'Mode',modeBoth:'Both (Fast → Smart)',modeFast:'Fast',modeSmart:'Smart',fastLabel:'Fast',fromMemory:'from memory',showImproved:'Show improved',aiUnavailable:'AI unavailable',waitingFor:'Waiting for',fastFailed:'Fast engines failed, showing Smart result',aiRateLimited:'AI rate-limited',tone:'Tone',toneN:'Neutral',toneF:'Formal',toneC:'Casual',toneT:'Technical',
+ from:'From',to:'To',detectedPrefix:'Detected:',swapHint:'Please select or detect a language first',
  source:'Source',translation:'Translation',original:'Original',mic:'Mic',paste:'Paste',clear:'Clear',stop:'Stop',translate:'Translate',speak:'Speak',copy:'Copy',
  phIn:'Type or paste text…',phCmp:'Text to compare across engines…',
  sDrop:'Drop a subtitle file here',sDrop2:'or click to choose. Timings are kept exactly.',bilingual:'Bilingual export',sRest:'Translate empty lines',sAll:'Translate all',
@@ -97,6 +98,7 @@ const I18N={en:{
  engines:'موتورها و کلیدها',eyebrow:'متن · زیرنویس · سند · صدا',h1a:'یک مترجم،',h1b:'همه‌ی موتورها.',
  tabIdiom:'اصطلاحات',idPh:'یک اصطلاح یا ضرب‌المثل بنویسید…',idFindH:'پیدا کردن اصطلاح از روی معنی',idFindHint:'آنچه می‌خواهید بگویید را توصیف کنید، مثلاً «کسی که زیاد حرف می‌زند». به موتور هوش مصنوعی نیاز دارد.',idDescPh:'یک معنی را توصیف کنید…',idFindBtn:'پیدا کردن اصطلاح',idStored:'اصطلاح ذخیره‌شده',idAiH:'توضیح هوش مصنوعی',idMeaning:'معنی',idLiteral:'معنی تحت‌اللفظی',idEquivalent:'معادل طبیعی',idRegister:'سطح زبان',idExamples:'مثال‌ها',idNotIdiom:'هوش مصنوعی این را اصطلاح نمی‌داند.',idNoAiStored:'موتور هوش مصنوعی در دسترس نیست؛ فقط مدخل ذخیره‌شده نمایش داده می‌شود.',idNoAiNone:'این اصطلاح در فهرست ذخیره‌شده نیست و موتور هوش مصنوعی هم برای توضیح در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idFindNoAi:'پیدا کردن اصطلاح از روی معنی با موتور هوش مصنوعی انجام می‌شود و هیچ موتوری در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',idSave:'ذخیره‌ی اصطلاح',idIdiomBadge:'اصطلاح',idAsking:'در حال پرسیدن از هوش مصنوعی…',idNoMatch:'اصطلاح مناسبی پیدا نشد.',idMarkTitle:'اصطلاح: برای دیدن معنی کلیک کنید',tabDict:'فرهنگ لغت',dictPh:'یک واژه بنویسید…',dictSearch:'جستجو',dictVulgar:'نمایش واژه‌های رکیک',dictAuto:'خودکار (تشخیص زبان)',dictHidden:'این واژه رکیک علامت خورده و پنهان است. برای دیدن آن «نمایش واژه‌های رکیک» را روشن کنید.',dictHiddenSome:'برخی مدخل‌ها (رکیک) پنهان هستند. برای دیدن آن‌ها «نمایش واژه‌های رکیک» را روشن کنید.',dictGetPack:'دریافت فرهنگ لغت',dictNoPack:'فرهنگ لغت آفلاین این زبان هنوز دانلود نشده است.',dictNotFound:'برای این واژه مدخلی پیدا نشد.',dictMyWords:'واژه‌های من',dictExport:'خروجی CSV',dictClear:'پاک کردن فهرست',dictLocalOnly:'فهرست واژه‌ها فقط در همین مرورگر ذخیره می‌شود.',dictSave:'ذخیره‌ی واژه',dictSaved:'ذخیره شد ✓',dictExplain:'توضیح با هوش مصنوعی',dictExplaining:'در حال پرسیدن از هوش مصنوعی…',dictNoAi:'موتور هوش مصنوعی در دسترس نیست. در «موتورها و کلیدها» کلید وارد کنید.',dictPhrases:'اصطلاحات و عبارت‌ها',dictForms:'شکل‌ها',dictAlso:'معنی‌های بیشتر (از فرهنگ لغت دیگر)',dictFormOf:'شکلی از',dictPackEnFa:'فرهنگ لغت · انگلیسی ← فارسی · حدود ۱٫۱ مگابایت',dictPackFaEn:'فرهنگ لغت · فارسی ← انگلیسی · حدود ۰٫۹ مگابایت',dictRemove:'حذف',dictPackNote:'فرهنگ لغت پس از دانلود بدون اینترنت کار می‌کند، حتی با حالت آفلاین. داده‌ها از ویکی‌واژه (CC BY-SA)؛ «درباره و منابع» را ببینید.',creditsBtn:'درباره و منابع',creditsText:'فرهنگ لغت آفلاین: داده‌ها از ویکی‌واژه (CC BY-SA 4.0 / GFDL) با Wiktextract و Kaikki.org؛ انتخاب مدخل‌ها با رتبه‌بندی wordfreq از Robyn Speer (CC BY-SA 4.0). این فرهنگ لغت با همان مجوز CC BY-SA منتشر می‌شود. ذکر منبع به معنای تأیید نیست. صداهای آفلاین: صداهای Piper از rhasspy/piper-voices (MIT) با ONNX Runtime Web (MIT) و واج‌نگار eSpeak NG (GPL-3.0-or-later؛ فایل‌هایش در vendor/piper است). صداهای امیر، گنجی، ال‌جی اسپیچ، کوری و کریستین با مجوز CC0 / مالکیت عمومی و صدای آلبا (دانشگاه ادینبرا) CC BY 4.0 است. مدل‌های ترجمه و گفتار آفلاین از Hugging Face می‌آیند و هر مدل مجوز خودش را دارد (مدل‌های NLLB-200 با مجوز CC BY-NC 4.0 هستند).',dictDownloading:'در حال دانلود…',dictAiAsk:'واژه یا عبارت زیر را برای زبان‌آموز توضیح بده: کاربرد، سطح رسمی بودن (رسمی، خنثی، محاوره‌ای یا عامیانه) و سه جمله‌ی مثال کوتاه همراه با ترجمه. مختصر باش.',tabText:'متن',tabSub:'زیرنویس',tabDoc:'سند',tabVoice:'صدا',tabCmp:'مقایسه',tabGls:'واژه‌نامه',tabHist:'تاریخچه',
  engine:'موتور',mode:'حالت',modeBoth:'هر دو (سریع ← هوشمند)',modeFast:'سریع',modeSmart:'هوشمند',fastLabel:'سریع',fromMemory:'از حافظه',showImproved:'نمایش نسخه بهتر',aiUnavailable:'هوش مصنوعی در دسترس نیست',waitingFor:'در انتظار',fastFailed:'موتورهای سریع ناموفق بودند؛ نتیجه هوشمند نمایش داده شد',aiRateLimited:'محدودیت هوش مصنوعی',tone:'لحن',toneN:'معمولی',toneF:'رسمی',toneC:'محاوره‌ای',toneT:'فنی',
+ from:'از <bdi>(From)</bdi>',to:'به <bdi>(To)</bdi>',detectedPrefix:'تشخیص داده شد:',swapHint:'لطفاً ابتدا زبان را انتخاب یا تشخیص دهید',
  source:'متن اصلی',translation:'ترجمه',original:'اصلی',mic:'میکروفون',paste:'چسباندن',clear:'پاک کردن',stop:'توقف',translate:'ترجمه',speak:'خواندن',copy:'کپی',
  phIn:'متن را بنویسید یا بچسبانید…',phCmp:'متنی برای مقایسه بین موتورها…',
  sDrop:'فایل زیرنویس را اینجا رها کنید',sDrop2:'یا برای انتخاب کلیک کنید. زمان‌بندی دقیقاً حفظ می‌شود.',bilingual:'خروجی دوزبانه',sRest:'ترجمه‌ی خط‌های خالی',sAll:'ترجمه‌ی همه',
@@ -284,9 +286,245 @@ function applyI18n(){
   if(typeof renderRecentTranslations==='function')renderRecentTranslations();
   if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();
   if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
+  if(typeof updateAllUnifiedPickers==='function')updateAllUnifiedPickers();
 }
 
 /* ---------- languages ---------- */
-const LANGS=[['en','English'],['fa','فارسی · Persian'],['ar','العربية · Arabic'],['tr','Türkçe · Turkish'],['de','Deutsch · German'],['fr','Français · French'],['es','Español · Spanish'],['it','Italiano · Italian'],['pt','Português · Portuguese'],['ru','Русский · Russian'],['zh-CN','简体中文 · Chinese (Simplified)'],['zh-TW','繁體中文 · Chinese (Traditional)'],['ja','日本語 · Japanese'],['ko','한국어 · Korean'],['hi','हिन्दी · Hindi'],['ur','اردو · Urdu'],['ku','Kurdî · Kurdish'],['az','Azərbaycanca · Azerbaijani'],['ps','پښتو · Pashto'],['tg','Тоҷикӣ · Tajik'],['hy','Հայերեն · Armenian'],['nl','Nederlands · Dutch'],['sv','Svenska · Swedish'],['no','Norsk · Norwegian'],['da','Dansk · Danish'],['fi','Suomi · Finnish'],['pl','Polski · Polish'],['uk','Українська · Ukrainian'],['cs','Čeština · Czech'],['ro','Română · Romanian'],['hu','Magyar · Hungarian'],['el','Ελληνικά · Greek'],['he','עברית · Hebrew'],['id','Indonesia · Indonesian'],['ms','Melayu · Malay'],['th','ไทย · Thai'],['vi','Tiếng Việt · Vietnamese'],['bn','বাংলা · Bengali']];
+const LANGS=[
+  ['en','انگلیسی · English'],['fa','فارسی · Persian'],['ar','العربية · Arabic'],['tr','Türkçe · Turkish'],
+  ['de','Deutsch · German'],['fr','Français · French'],['es','Español · Spanish'],['it','Italiano · Italian'],
+  ['pt','Português · Portuguese'],['ru','Русский · Russian'],['zh-CN','简体中文 · Chinese (Simplified)'],
+  ['zh-TW','繁體中文 · Chinese (Traditional)'],['ja','日本語 · Japanese'],['ko','한국어 · Korean'],
+  ['hi','हिन्दी · Hindi'],['ur','اردو · Urdu'],['ku','Kurdî · Kurdish'],['az','Azərbaycanca · Azerbaijani'],
+  ['ps','پښتو · Pashto'],['tg','Тоҷикӣ · Tajik'],['hy','Հայերեն · Armenian'],['nl','Nederlands · Dutch'],
+  ['sv','Svenska · Swedish'],['no','Norsk · Norwegian'],['da','Dansk · Danish'],['fi','Suomi · Finnish'],
+  ['pl','Polski · Polish'],['uk','Українська · Ukrainian'],['cs','Čeština · Czech'],['ro','Română · Romanian'],
+  ['hu','Magyar · Hungarian'],['el','Ελληνικά · Greek'],['he','עברית · Hebrew'],['id','Indonesia · Indonesian'],
+  ['ms','Melayu · Malay'],['th','ไทย · Thai'],['vi','Tiếng Việt · Vietnamese'],['bn','বাংলা · Bengali']
+];
 const langName=c=>c==='auto'?'the detected language':c==='finglish'?'Persian (written in Latin letters)':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ').pop();
 const langShort=c=>c==='finglish'?'Finglish':((LANGS.find(l=>l[0]===c)||[])[1]||c).split(' · ')[0];
+
+function getLangNames(code){
+  if(code==='auto')return {fa:'تشخیص خودکار',en:'Detect language'};
+  if(code==='finglish')return {fa:'فینگلیش',en:'Finglish'};
+  const pair=LANGS.find(l=>l[0]===code);
+  if(pair&&pair[1].includes(' · ')){
+    const parts=pair[1].split(' · ');
+    return {fa:parts[0],en:parts[1]};
+  }
+  return {fa:code||'',en:code||''};
+}
+
+function formatLangDisplayHtml(code){
+  const {fa,en}=getLangNames(code);
+  return `<span class="lang-fa">${esc(fa)}</span> <bdi class="lang-en">${esc(en)}</bdi>`;
+}
+
+function detectRealLanguage(text){
+  if(!text||typeof text!=='string')return null;
+  const trimmed=text.trim();
+  if(!trimmed)return null;
+  if(/[\u0600-\u06FF\u0750-\u077F\uFB50-\uFDFF\uFE70-\uFEFF]/.test(trimmed)){
+    if(/[\u067E\u0686\u0698\u06AF\u06A9\u06CC]/.test(trimmed))return 'fa';
+    if(/[\u0629\u0649\u064A]/.test(trimmed))return 'ar';
+    return 'fa';
+  }
+  if(/[\u0400-\u04FF]/.test(trimmed)){
+    if(/[\u0456\u0457\u0454]/.test(trimmed))return 'uk';
+    return 'ru';
+  }
+  if(/[\u3040-\u30FF]/.test(trimmed))return 'ja';
+  if(/[\uAC00-\uD7AF]/.test(trimmed))return 'ko';
+  if(/[\u4E00-\u9FFF]/.test(trimmed))return 'zh-CN';
+  if(/[\u0900-\u097F]/.test(trimmed))return 'hi';
+  if(/[\u0590-\u05FF]/.test(trimmed))return 'he';
+  if(/[\u0E00-\u0E7F]/.test(trimmed))return 'th';
+  if(/[\u0370-\u03FF]/.test(trimmed))return 'el';
+  if(/[\u0530-\u058F]/.test(trimmed))return 'hy';
+  if(/[\u0980-\u09FF]/.test(trimmed))return 'bn';
+  const lower=' '+trimmed.toLowerCase().replace(/[^a-zà-ÿ]/g,' ')+' ';
+  if(/\b(und|der|die|das|nicht|ist|ein|eine)\b/.test(lower)||/[äöüß]/.test(trimmed))return 'de';
+  if(/\b(le|la|les|des|est|une|dans|pour)\b/.test(lower)||/[éèêëàâôûùç]/.test(trimmed))return 'fr';
+  if(/\b(el|los|las|una|para|como|pero)\b/.test(lower)||/[ñáíóú¿¡]/.test(trimmed))return 'es';
+  if(/\b(bir|ve|bu|için|olan|ile)\b/.test(lower)||/[ğışİI]/.test(trimmed))return 'tr';
+  if(/\b(non|sono|della|delle|questo)\b/.test(lower)||/[àèéìíîòóùú]/.test(trimmed))return 'it';
+  return 'en';
+}
+
+window.MakanLangPickers=window.MakanLangPickers||{};
+
+function setupUnifiedLanguagePicker(options){
+  if(!options)return null;
+  const srcSelect=typeof options.srcSelect==='string'?document.getElementById(options.srcSelect):options.srcSelect;
+  const tgtSelect=typeof options.tgtSelect==='string'?document.getElementById(options.tgtSelect):options.tgtSelect;
+  const swapBtn=typeof options.swapBtn==='string'?document.getElementById(options.swapBtn):options.swapBtn;
+  if(!srcSelect&&!tgtSelect)return null;
+
+  const idPrefix=options.idPrefix||(srcSelect?srcSelect.id:(tgtSelect?tgtSelect.id:'picker'));
+
+  function wrapSelect(sel,role){
+    if(!sel)return null;
+    sel.classList.add('unified-select');
+    let parentBox=sel.closest('.unified-lang-box');
+    let pickerWrap=sel.closest('.unified-lang-picker');
+
+    if(!pickerWrap){
+      pickerWrap=document.createElement('div');
+      pickerWrap.className='unified-lang-picker';
+      pickerWrap.setAttribute('data-picker-role',role);
+      sel.parentNode.insertBefore(pickerWrap,sel);
+
+      const topLine=document.createElement('div');
+      topLine.className='lang-picker-topline';
+
+      const lbl=document.createElement('label');
+      lbl.className='lang-picker-lbl';
+      lbl.htmlFor=sel.id;
+      if(role==='src'){
+        lbl.setAttribute('data-t','from');
+        lbl.innerHTML=L('from');
+      }else if(role==='tgt'){
+        lbl.setAttribute('data-t','to');
+        lbl.innerHTML=L('to');
+      }else{
+        lbl.textContent=options.label||'';
+      }
+      topLine.appendChild(lbl);
+
+      if(role==='src'){
+        const badge=document.createElement('span');
+        badge.className='lang-detected-badge';
+        badge.id=`${sel.id}-detected-badge`;
+        badge.hidden=true;
+        badge.innerHTML=`<span class="detected-prefix" data-t="detectedPrefix">${L('detectedPrefix')}</span> <span class="detected-val"></span>`;
+        topLine.appendChild(badge);
+      }
+
+      pickerWrap.appendChild(topLine);
+
+      parentBox=document.createElement('div');
+      parentBox.className='unified-lang-box';
+      pickerWrap.appendChild(parentBox);
+      parentBox.appendChild(sel);
+    }
+
+    let display=parentBox.querySelector('.lang-picker-display');
+    if(!display){
+      display=document.createElement('div');
+      display.className='lang-picker-display';
+      display.setAttribute('aria-hidden','true');
+      display.innerHTML=`<span class="lang-display-inner"></span><span class="lang-picker-arrow">▾</span>`;
+      parentBox.insertBefore(display,sel);
+    }
+
+    function update(){
+      const inner=display.querySelector('.lang-display-inner');
+      if(inner){
+        inner.innerHTML=formatLangDisplayHtml(sel.value);
+      }
+      if(role==='src'&&sel.value!=='auto'){
+        const badge=pickerWrap.querySelector('.lang-detected-badge');
+        if(badge)badge.hidden=true;
+        pickerInstance.detectedLang=null;
+      }
+    }
+
+    sel.addEventListener('change',update);
+    update();
+    return {sel,pickerWrap,parentBox,display,update};
+  }
+
+  const srcWrapped=wrapSelect(srcSelect,'src');
+  const tgtWrapped=wrapSelect(tgtSelect,'tgt');
+
+  const pickerInstance={
+    srcSelect,
+    tgtSelect,
+    swapBtn,
+    detectedLang:null,
+
+    setDetected(langCode){
+      if(!srcSelect||srcSelect.value!=='auto'||!langCode){
+        this.clearDetected();
+        return;
+      }
+      this.detectedLang=langCode;
+      if(srcWrapped&&srcWrapped.pickerWrap){
+        const badge=srcWrapped.pickerWrap.querySelector('.lang-detected-badge');
+        if(badge){
+          const valEl=badge.querySelector('.detected-val');
+          if(valEl)valEl.innerHTML=formatLangDisplayHtml(langCode);
+          badge.hidden=false;
+        }
+      }
+    },
+
+    clearDetected(){
+      this.detectedLang=null;
+      if(srcWrapped&&srcWrapped.pickerWrap){
+        const badge=srcWrapped.pickerWrap.querySelector('.lang-detected-badge');
+        if(badge)badge.hidden=true;
+      }
+    },
+
+    updateDisplays(){
+      if(srcWrapped)srcWrapped.update();
+      if(tgtWrapped)tgtWrapped.update();
+      if(srcWrapped&&srcWrapped.pickerWrap){
+        const lbl=srcWrapped.pickerWrap.querySelector('.lang-picker-lbl');
+        if(lbl)lbl.innerHTML=L('from');
+        const badgePrefix=srcWrapped.pickerWrap.querySelector('.detected-prefix');
+        if(badgePrefix)badgePrefix.textContent=L('detectedPrefix');
+        if(this.detectedLang){
+          const valEl=srcWrapped.pickerWrap.querySelector('.detected-val');
+          if(valEl)valEl.innerHTML=formatLangDisplayHtml(this.detectedLang);
+        }
+      }
+      if(tgtWrapped&&tgtWrapped.pickerWrap){
+        const lbl=tgtWrapped.pickerWrap.querySelector('.lang-picker-lbl');
+        if(lbl)lbl.innerHTML=L('to');
+      }
+    }
+  };
+
+  if(swapBtn&&srcSelect&&tgtSelect){
+    swapBtn.addEventListener('click',e=>{
+      e.preventDefault();
+      const curSrc=srcSelect.value;
+      const curTgt=tgtSelect.value;
+
+      if(curSrc!=='auto'&&curSrc!=='finglish'){
+        srcSelect.value=curTgt;
+        tgtSelect.value=curSrc;
+        pickerInstance.clearDetected();
+        srcSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        tgtSelect.dispatchEvent(new Event('change',{bubbles:true}));
+        options.onChanged?.(srcSelect.value,tgtSelect.value);
+      }else{
+        if(pickerInstance.detectedLang){
+          srcSelect.value=curTgt;
+          tgtSelect.value=pickerInstance.detectedLang;
+          pickerInstance.clearDetected();
+          srcSelect.dispatchEvent(new Event('change',{bubbles:true}));
+          tgtSelect.dispatchEvent(new Event('change',{bubbles:true}));
+          options.onChanged?.(srcSelect.value,tgtSelect.value);
+        }else{
+          const msg=L('swapHint')||(ui==='fa'?'لطفاً ابتدا زبان را انتخاب یا تشخیص دهید':'Please select or detect a language first');
+          if(typeof toast==='function')toast(msg,'warn');
+        }
+      }
+    });
+  }
+
+  if(idPrefix){
+    window.MakanLangPickers[idPrefix]=pickerInstance;
+  }
+  return pickerInstance;
+}
+
+function updateAllUnifiedPickers(){
+  Object.values(window.MakanLangPickers||{}).forEach(p=>{
+    if(p&&typeof p.updateDisplays==='function')p.updateDisplays();
+  });
+}
