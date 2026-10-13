@@ -154,23 +154,57 @@ test.describe('Web app: Settings redesign tabs and dictionary', () => {
     }
   });
 
-  test('no horizontal scroll in Persian at 360 px', async ({ app }) => {
-    const { page } = app;
-    await page.setViewportSize({ width: 360, height: 740 });
+  for (const width of [360, 700, 1100, 1440]) {
+    test(`no horizontal scroll in Persian at ${width} px`, async ({ app }) => {
+      const { page } = app;
+      await page.setViewportSize({ width, height: 740 });
 
-    // Switch UI to Persian
-    await page.locator('#uiLang').click();
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+      // Switch UI to Persian
+      await page.locator('#uiLang').click();
+      await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
-    await openSettings(page);
-    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
+      await openSettings(page);
+      await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
 
-    const hasHorizontalOverflow = await page.evaluate(() => {
-      const docOverflow = document.documentElement.scrollWidth > document.documentElement.clientWidth;
-      const modal = document.querySelector('#ov .modal');
-      const modalOverflow = modal ? modal.scrollWidth > modal.clientWidth : false;
-      return docOverflow || modalOverflow;
+      const overflowResult = await page.evaluate(() => {
+        const doc = document.documentElement;
+        const modal = document.querySelector('#ov .modal');
+        const docOverflow = doc.scrollWidth > doc.clientWidth;
+        const modalOverflow = modal ? modal.scrollWidth > modal.clientWidth : false;
+
+        let overflowingElements = [];
+        if (docOverflow || modalOverflow) {
+          const allElements = document.querySelectorAll('*');
+          for (const el of allElements) {
+            if (el.scrollWidth > el.clientWidth && el.clientWidth > 0) {
+              const sel = el.id ? `#${el.id}` : (el.className ? `${el.tagName.toLowerCase()}.${String(el.className).trim().split(/\s+/).join('.')}` : el.tagName.toLowerCase());
+              overflowingElements.push({
+                selector: sel,
+                scrollWidth: el.scrollWidth,
+                clientWidth: el.clientWidth,
+                diff: el.scrollWidth - el.clientWidth
+              });
+            }
+          }
+        }
+        return {
+          docOverflow,
+          docScrollWidth: doc.scrollWidth,
+          docClientWidth: doc.clientWidth,
+          modalOverflow,
+          modalScrollWidth: modal ? modal.scrollWidth : 0,
+          modalClientWidth: modal ? modal.clientWidth : 0,
+          overflowingElements
+        };
+      });
+
+      expect(
+        overflowResult.docOverflow || overflowResult.modalOverflow,
+        `Horizontal overflow detected at ${width}px in Persian RTL: ` +
+        `doc(scroll=${overflowResult.docScrollWidth}, client=${overflowResult.docClientWidth}), ` +
+        `modal(scroll=${overflowResult.modalScrollWidth}, client=${overflowResult.modalClientWidth}). ` +
+        `Overflowing elements: ${JSON.stringify(overflowResult.overflowingElements)}`
+      ).toBe(false);
     });
-    expect(hasHorizontalOverflow, 'No horizontal scroll in Persian at 360px').toBe(false);
-  });
+  }
 });
