@@ -61,13 +61,15 @@ test.describe('Web app: Settings real tabs activation and isolation', () => {
     const nllb = cat.models.find(m => m.id === 'tr-nllb-600');
     const m2m = cat.models.find(m => m.id === 'tr-m2m100-418');
 
-    await page.evaluate(({ smallFiles, m2mFiles }) => {
+    await page.evaluate(({ smallFiles, nllbFiles, m2mFiles }) => {
       store.set('mdl', {
         'asr-small': { at: 1, files: smallFiles },
+        'tr-nllb-600': { at: 1, files: nllbFiles },
         'tr-m2m100-418': { at: 1, files: m2mFiles }
       });
     }, {
       smallFiles: small.files.map(f => f[0]).filter(f => f.endsWith('.onnx')),
+      nllbFiles: nllb.files.map(f => f[0]).filter(f => f.endsWith('.onnx')),
       m2mFiles: m2m.files.map(f => f[0]).filter(f => f.endsWith('.onnx'))
     });
 
