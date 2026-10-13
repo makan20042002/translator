@@ -277,6 +277,7 @@ async function doText(){
       if(!fastRes&&!smartRes){
         throw new Error(L(isOff()?'noOff':'noEngine'));
       }
+    }
   }catch(e){
     if($('src')?.value==='auto'){
       window.MakanLangPickers?.text?.clearDetected();
