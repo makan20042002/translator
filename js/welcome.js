@@ -261,6 +261,15 @@ function openWelcomeWizard(step = 1) {
   ov.hidden = false;
   ov.classList.add('on');
   updateWelcomeStepUI();
+  const pSel = $('welcomeKeyProvider');
+  const kInp = $('welcomeApiKeyInput');
+  if (pSel && kInp && typeof cfg !== 'undefined') {
+    const p = pSel.value || 'gemini';
+    const ex = cfg.eng?.[p]?.key || '';
+    kInp.value = ex;
+    const l4 = $('welcomeKeyLast4');
+    if (l4) l4.textContent = ex.length > 4 ? `…${ex.slice(-4)}` : '';
+  }
   setTimeout(() => {
     const pane = $('welcomeStep' + welcomeCurrentStep);
     const target = pane?.querySelector('input:checked, button:not([hidden]), [tabindex="0"]') || $('welcomeNextBtn') || $('welcomeSkipBtn');
@@ -357,14 +366,14 @@ function initWelcomeKeyHandling() {
     if (savedHint) savedHint.style.display = 'none';
   }
 
-  providerSel.addEventListener('change', syncKeyInput);
-
-  keyInp.addEventListener('input', () => {
+  function saveCurrentKey() {
     const p = providerSel.value || 'gemini';
     const val = keyInp.value.trim();
     if (typeof cfg !== 'undefined' && cfg.eng && cfg.eng[p]) {
       cfg.eng[p].key = val;
       if (typeof saveCfg === 'function') saveCfg();
+      if (typeof fillEngines === 'function') fillEngines();
+      if (typeof renderEngines === 'function') renderEngines();
     }
     if (last4) {
       last4.textContent = val.length > 4 ? `…${val.slice(-4)}` : '';
@@ -372,7 +381,12 @@ function initWelcomeKeyHandling() {
     if (savedHint) {
       savedHint.style.display = val ? 'block' : 'none';
     }
-  });
+  }
+
+  providerSel.addEventListener('change', syncKeyInput);
+  keyInp.addEventListener('input', saveCurrentKey);
+  keyInp.addEventListener('change', saveCurrentKey);
+  keyInp.addEventListener('blur', saveCurrentKey);
 
   toggleBtn?.addEventListener('click', (e) => {
     e.preventDefault();

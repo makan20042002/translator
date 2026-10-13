@@ -99,7 +99,10 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
   });
 
   test('Gap 3: optional AI key input is masked with eye toggle button and auto-saves to cfg', async ({ app }) => {
-    const { page } = app;
+    const { page, errors } = app;
+    const consoleLogs = [];
+    page.on('console', msg => consoleLogs.push(msg.text()));
+
     await page.evaluate(() => window.openWelcomeWizard(2));
 
     const keyInp = page.locator('#welcomeApiKeyInput');
@@ -120,13 +123,45 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
     await expect(toggleBtn).toHaveText('👁');
 
     // 3. Typing key auto-saves to cfg without Save button
-    await keyInp.fill('AIzaSyTestSecretKey9988');
+    const testSecret = 'AIzaSyTestSecretKey9988';
+    await keyInp.fill(testSecret);
     await expect(last4).toHaveText('…9988');
+    await expect(keyInp).toHaveAttribute('type', 'password');
 
     const savedKey = await page.evaluate(() => {
-      return window.cfg?.eng?.gemini?.key;
+      return cfg?.eng?.gemini?.key;
     });
     expect(savedKey).toBe('AIzaSyTestSecretKey9988');
+
+    // Verify key is persisted in localStorage under mkt_cfg
+    const storedCfg = await page.evaluate(() => {
+      const raw = localStorage.getItem('mkt_cfg');
+      return raw ? JSON.parse(raw) : null;
+    });
+    expect(storedCfg?.eng?.gemini?.key).toBe('AIzaSyTestSecretKey9988');
+
+    // Security assertions: key never appears in URL, page text, or console logs
+    expect(page.url()).not.toContain(testSecret);
+    const bodyText = await page.evaluate(() => document.body.innerText);
+    expect(bodyText).not.toContain(testSecret);
+    expect(consoleLogs.some(log => log.includes(testSecret))).toBe(false);
+    expect(errors.some(err => err.includes(testSecret))).toBe(false);
+
+    // Confirm Settings shows the saved key masked after opening Settings > Engines and keys
+    await mouseClick(page, page.locator('#welcomeSkipBtn'));
+    await expect(page.locator('#welcomeOverlay')).toBeHidden();
+
+    await openSettingsModal(page);
+    await mouseClick(page, page.locator('#setTabBtnEngines'));
+
+    const settingsGeminiKey = page.locator('#engList .eng[data-id="gemini"] input[data-f="key"]');
+    await expect(settingsGeminiKey).toBeVisible();
+    await expect(settingsGeminiKey).toHaveAttribute('type', 'password');
+    await expect(settingsGeminiKey).toHaveValue(testSecret);
+
+    const settingsGeminiLast4 = page.locator('#engList .eng[data-id="gemini"] .eng-key-last4');
+    await expect(settingsGeminiLast4).toBeVisible();
+    await expect(settingsGeminiLast4).toHaveText('…9988');
   });
 
   test('Gap 4: offline models display real names, accurate sizes, and honest status from catalogue', async ({ app }) => {
