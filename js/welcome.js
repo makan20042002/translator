@@ -90,13 +90,9 @@ function updateWelcomeStepUI() {
     if (sumEng) sumEng.textContent = engNames[welcomeSelectedEngine] || welcomeSelectedEngine;
 
     if (sumPriv) {
-      if (welcomeSelectedEngine === 'offline' || welcomeSelectedEngine === 'ollama') {
-        sumPriv.textContent = L('screenPrivacyLocal') || 'Everything stays on this device';
-        sumPriv.style.color = '#3FB950';
-      } else {
-        sumPriv.textContent = L('screenPrivacyCloud') || 'Online engine (selected provider)';
-        sumPriv.style.color = 'var(--text-dim, #B5C2D4)';
-      }
+      const disc = getWelcomePrivacyDisclosure();
+      sumPriv.textContent = disc.text;
+      sumPriv.style.color = disc.isLocal ? '#3FB950' : 'var(--text-dim, #B5C2D4)';
     }
 
     // AI Key row
@@ -199,19 +195,90 @@ function updateWelcomeModelStatus() {
   }
 }
 
+let welcomeOllamaReachable = false;
+let welcomeOllamaChecking = false;
+
+function isWelcomeNllbReady() {
+  if (typeof MC === 'undefined' || !MC.models) return false;
+  const nllb = MC.models.find(m => m.id === 'tr-nllb-600');
+  return (typeof mcReady === 'function' && nllb) ? mcReady(nllb) : false;
+}
+
+async function checkWelcomeOllama() {
+  if (typeof engineConnStatus !== 'undefined' && engineConnStatus?.ollama?.code === 'works') {
+    welcomeOllamaReachable = true;
+    updateWelcomePrivacyNotice();
+    return;
+  }
+  if (welcomeOllamaChecking) return;
+  welcomeOllamaChecking = true;
+  try {
+    const host = (typeof getOllamaHost === 'function') ? getOllamaHost() : 'http://localhost:11434';
+    const ctrl = new AbortController();
+    const to = setTimeout(() => ctrl.abort(), 1200);
+    const res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
+    clearTimeout(to);
+    welcomeOllamaReachable = !!(res && res.ok);
+  } catch (e) {
+    welcomeOllamaReachable = false;
+  } finally {
+    welcomeOllamaChecking = false;
+    updateWelcomePrivacyNotice();
+  }
+}
+
+function getWelcomePrivacyDisclosure() {
+  const isEn = (typeof ui !== 'undefined' && ui === 'en');
+  if (welcomeSelectedEngine === 'offline') {
+    if (isWelcomeNllbReady()) {
+      return {
+        isLocal: true,
+        text: isEn ? 'Processing stays on this PC' : 'پردازش در همین رایانه انجام می‌شود'
+      };
+    }
+    return {
+      isLocal: false,
+      text: isEn ? 'Needs the offline model (not downloaded yet)' : 'نیاز به دانلود مدل آفلاین دارد (هنوز دانلود نشده است)'
+    };
+  }
+  if (welcomeSelectedEngine === 'ollama') {
+    if (welcomeOllamaReachable) {
+      return {
+        isLocal: true,
+        text: isEn ? 'Processing stays on this PC' : 'پردازش در همین رایانه انجام می‌شود'
+      };
+    }
+    const hasKey = (typeof cfg !== 'undefined' && cfg.eng) ? (cfg.eng.gemini?.key || cfg.eng.groq?.key || cfg.eng.openrouter?.key) : '';
+    if (hasKey) {
+      return {
+        isLocal: false,
+        text: isEn ? 'Text is sent to the chosen AI provider' : 'متن به ارائه‌دهنده انتخابی هوش مصنوعی ارسال می‌شود'
+      };
+    }
+    return {
+      isLocal: false,
+      text: isEn ? 'Needs Ollama running' : 'نیاز به اجرای برنامه Ollama دارد'
+    };
+  }
+  return {
+    isLocal: false,
+    text: isEn ? 'Text is sent to the chosen provider' : 'متن به ارائه‌دهنده انتخابی ارسال می‌شود'
+  };
+}
+
 function updateWelcomePrivacyNotice() {
   const notice = $('welcomePrivacyNotice');
   const txt = $('welcomePrivacyText');
   if (!notice || !txt) return;
 
-  if (welcomeSelectedEngine === 'offline' || welcomeSelectedEngine === 'ollama') {
-    txt.textContent = L('screenPrivacyLocal') || 'Everything stays on this device';
+  const disc = getWelcomePrivacyDisclosure();
+  txt.textContent = disc.text;
+  if (disc.isLocal) {
     notice.classList.add('local');
     notice.style.borderColor = 'rgba(63, 185, 80, 0.35)';
     notice.style.background = 'rgba(63, 185, 80, 0.08)';
     txt.style.color = '#3FB950';
   } else {
-    txt.textContent = L('screenPrivacyCloud') || 'Online engine: text is sent only to the selected provider';
     notice.classList.remove('local');
     notice.style.borderColor = 'rgba(8, 168, 255, 0.3)';
     notice.style.background = 'rgba(8, 168, 255, 0.06)';
@@ -260,6 +327,7 @@ function openWelcomeWizard(step = 1) {
   welcomeCurrentStep = step;
   ov.hidden = false;
   ov.classList.add('on');
+  checkWelcomeOllama();
   updateWelcomeStepUI();
   const pSel = $('welcomeKeyProvider');
   const kInp = $('welcomeApiKeyInput');
@@ -432,6 +500,7 @@ function initWelcomeWizard() {
       const radio = card.querySelector('input[type="radio"]');
       if (radio) radio.checked = true;
       welcomeSelectedEngine = card.dataset.choiceEngine || 'offline';
+      if (welcomeSelectedEngine === 'ollama') checkWelcomeOllama();
       updateWelcomePrivacyNotice();
     });
   });
