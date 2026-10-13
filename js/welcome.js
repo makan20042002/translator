@@ -98,6 +98,45 @@ function updateWelcomeStepUI() {
 
   // Update conditional privacy notice in Step 2
   updateWelcomePrivacyNotice();
+
+  // Update model catalogue sizes & status in Step 3
+  if (welcomeCurrentStep === 3) {
+    updateWelcomeModelStatus();
+  }
+}
+
+function updateWelcomeModelStatus() {
+  if (typeof MC === 'undefined' || !MC.models) return;
+  const nllb = MC.models.find(m => m.id === 'tr-nllb-600');
+  const whisper = MC.models.find(m => m.id === 'asr-small');
+
+  const nllbReady = (typeof mcReady === 'function' && nllb) ? mcReady(nllb) : false;
+  const whisperReady = (typeof mcReady === 'function' && whisper) ? mcReady(whisper) : false;
+
+  const nllbBadge = $('welcomeNllbBadge');
+  if (nllbBadge) {
+    if (nllbReady) {
+      nllbBadge.textContent = 'آماده است ✓';
+      nllbBadge.classList.add('ok');
+    } else {
+      const sz = (typeof mcSize === 'function' && nllb) ? mcSize(nllb.bytes) : '870 MB';
+      nllbBadge.textContent = sz;
+      nllbBadge.classList.remove('ok');
+    }
+  }
+
+  const fullBadge = $('welcomeFullBadge');
+  if (fullBadge) {
+    if (nllbReady && whisperReady) {
+      fullBadge.textContent = 'آماده است ✓';
+      fullBadge.classList.add('ok');
+    } else {
+      const totBytes = (nllb ? nllb.bytes : 0) + (whisper ? whisper.bytes : 0);
+      const sz = (typeof mcSize === 'function' && totBytes) ? mcSize(totBytes) : '1.1 GB';
+      fullBadge.textContent = sz;
+      fullBadge.classList.remove('ok');
+    }
+  }
 }
 
 function updateWelcomePrivacyNotice() {

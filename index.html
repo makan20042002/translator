@@ -1680,32 +1680,32 @@
       <!-- Step 3: Optional Model Download -->
       <div class="welcome-step-pane" id="welcomeStep3" hidden>
         <div class="welcome-step-icon">📦</div>
-        <h2 class="welcome-step-title" data-t="wizardStep3Title">Download offline models (optional)</h2>
-        <p class="welcome-step-sub" data-t="wizardStep3Sub">Download translation and speech recognition models for full offline use now, or do it later.</p>
+        <h2 class="welcome-step-title" data-t="wizardStep3Title">دانلود مدل‌های آفلاین (اختیاری) <bdi>(Download offline models)</bdi></h2>
+        <p class="welcome-step-sub" data-t="wizardStep3Sub">دریافت مدل‌های ترجمه و گفتار برای استفاده کاملاً آفلاین اکنون، یا بعداً از مرکز مدل‌ها.</p>
         <div class="welcome-cards-grid">
           <label class="welcome-choice-card active" data-choice-package="none">
             <input type="radio" name="welcomePackage" value="none" checked>
             <div class="choice-card-content">
-              <strong>Skip download for now</strong>
-              <span data-t="wizardPkgSkipDesc">Keep setup fast. Download offline models anytime from the Model Hub.</span>
+              <strong>فعلاً بدون دانلود <bdi>(Skip download)</bdi></strong>
+              <span data-t="wizardPkgSkipDesc">راه‌اندازی فوری بدون دانلود؛ مدل‌های آفلاین را هر زمان می‌توانید از بخش تنظیمات دریافت کنید.</span>
             </div>
-            <span class="choice-badge">Instant</span>
+            <span class="choice-badge">فوری <bdi>(Instant)</bdi></span>
           </label>
           <label class="welcome-choice-card" data-choice-package="light">
             <input type="radio" name="welcomePackage" value="light">
             <div class="choice-card-content">
-              <strong>Light Offline Package</strong>
-              <span data-t="wizardPkgLightDesc"><bdi>NLLB</bdi> offline translation model (~600 MB).</span>
+              <strong>مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi></strong>
+              <span data-t="wizardPkgLightDesc">مدل ترجمه NLLB-200 برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.</span>
             </div>
-            <span class="choice-badge">~600 MB</span>
+            <span class="choice-badge" id="welcomeNllbBadge">۸۷۰ مگابایت</span>
           </label>
           <label class="welcome-choice-card" data-choice-package="full">
             <input type="radio" name="welcomePackage" value="full">
             <div class="choice-card-content">
-              <strong>Recommended Complete Package</strong>
-              <span data-t="wizardPkgFullDesc">Translation (<bdi>NLLB</bdi>) + Speech recognition (<bdi>Whisper</bdi>) (~850 MB).</span>
+              <strong>بسته کامل: ترجمه و گفتار <bdi>(NLLB + Whisper)</bdi></strong>
+              <span data-t="wizardPkgFullDesc">ترجمه NLLB (حدود ۸۷۰ مگابایت) + تشخیص گفتار Whisper Small (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).</span>
             </div>
-            <span class="choice-badge">~850 MB</span>
+            <span class="choice-badge" id="welcomeFullBadge">۱٫۱ گیگابایت</span>
           </label>
         </div>
       </div>

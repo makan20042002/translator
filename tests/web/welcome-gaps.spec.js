@@ -128,4 +128,30 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
     });
     expect(savedKey).toBe('AIzaSyTestSecretKey9988');
   });
+
+  test('Gap 4: offline models display real names, accurate sizes, and honest status from catalogue', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => window.openWelcomeWizard(3));
+
+    const step3 = page.locator('#welcomeStep3');
+    await expect(step3).toBeVisible();
+
+    const lightCard = page.locator('#welcomeStep3 [data-choice-package="light"]');
+    const fullCard = page.locator('#welcomeStep3 [data-choice-package="full"]');
+    const nllbBadge = page.locator('#welcomeNllbBadge');
+    const fullBadge = page.locator('#welcomeFullBadge');
+
+    // Model names and accurate catalogue sizes (not fake 600 or 850 MB)
+    await expect(lightCard).toContainText(/NLLB-200/i);
+    await expect(lightCard).toContainText(/870\s*(MB|مگابایت)/i);
+    await expect(lightCard).not.toContainText(/600\s*(MB|مگابایت)/i);
+
+    await expect(fullCard).toContainText(/Whisper/i);
+    await expect(fullCard).toContainText(/1(\.|\/)1\s*(GB|گیگابایت)/i);
+    await expect(fullCard).not.toContainText(/850\s*(MB|مگابایت)/i);
+
+    // Badges reflect real size / status
+    await expect(nllbBadge).toBeVisible();
+    await expect(fullBadge).toBeVisible();
+  });
 });
