@@ -1708,27 +1708,57 @@
             <span class="choice-badge" id="welcomeFullBadge">۱٫۱ گیگابایت</span>
           </label>
         </div>
+
+        <!-- Real Voice & Desktop Screen status section -->
+        <div class="welcome-status-section" id="welcomeStatusSection" style="margin-top:16px;padding:12px 14px;background:#0E1726;border:1px solid rgba(28,64,118,0.5);border-radius:12px">
+          <div style="font-size:12.5px;font-weight:700;color:var(--text,#fff);margin-bottom:8px">
+            وضعیت صدا و صفحه نمایش <bdi>(Voice &amp; Screen Status)</bdi>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;font-size:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="color:var(--text-dim,#B5C2D4)">صدا و گفتار <bdi>(Voice &amp; Speech)</bdi>:</span>
+              <span id="welcomeVoiceStatusBadge" style="font-weight:600">در حال بررسی…</span>
+            </div>
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <span style="color:var(--text-dim,#B5C2D4)">مترجم صفحه نمایش <bdi>(Screen Translator)</bdi>:</span>
+              <span id="welcomeScreenStatusBadge" style="font-weight:600">در حال بررسی…</span>
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Step 4: Finish -->
       <div class="welcome-step-pane" id="welcomeStep4" hidden>
         <div class="welcome-step-icon">🎉</div>
-        <h2 class="welcome-step-title" data-t="wizardStep4Title">You’re all set!</h2>
-        <p class="welcome-step-sub" data-t="wizardStep4Sub">MAKAN Translate is configured and ready to use.</p>
+        <h2 class="welcome-step-title" data-t="wizardStep4Title">همه‌چیز آماده است! <bdi>(You’re all set!)</bdi></h2>
+        <p class="welcome-step-sub" data-t="wizardStep4Sub">مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.</p>
         <div class="welcome-summary-card">
           <div class="summary-item">
-            <span class="summary-lbl">Interface Language:</span>
+            <span class="summary-lbl">زبان رابط کاربری:</span>
             <strong class="summary-val" id="welcomeSummaryLang">فارسی</strong>
           </div>
           <div class="summary-item">
-            <span class="summary-lbl">Primary Engine:</span>
-            <strong class="summary-val" id="welcomeSummaryEngine">Offline (NLLB)</strong>
+            <span class="summary-lbl">روش ترجمه:</span>
+            <strong class="summary-val" id="welcomeSummaryEngine">آفلاین (NLLB)</strong>
           </div>
           <div class="summary-item">
-            <span class="summary-lbl">Privacy Mode:</span>
-            <strong class="summary-val" id="welcomeSummaryPrivacy">Local &amp; Private</strong>
+            <span class="summary-lbl">حریم خصوصی:</span>
+            <strong class="summary-val" id="welcomeSummaryPrivacy">—</strong>
+          </div>
+          <div class="summary-item" id="welcomeSummaryKeyRow" hidden>
+            <span class="summary-lbl">کلید هوش مصنوعی:</span>
+            <strong class="summary-val" id="welcomeSummaryKey">—</strong>
+          </div>
+          <div class="summary-item" id="welcomeSummaryPkgRow">
+            <span class="summary-lbl">بسته آفلاین:</span>
+            <strong class="summary-val" id="welcomeSummaryPkg">بدون دانلود</strong>
+          </div>
+          <div class="summary-item">
+            <span class="summary-lbl">صدا و صفحه:</span>
+            <strong class="summary-val" id="welcomeSummaryStatus">—</strong>
           </div>
         </div>
+        <button class="btn cta" id="welcomeGoTextBtn" type="button" style="margin-top:16px;width:100%;justify-content:center;font-weight:700;padding:10px 16px;border-radius:10px;font-size:14px">ورود به بخش ترجمه متن <bdi>(Go to Text tab)</bdi> →</button>
       </div>
     </div>
 

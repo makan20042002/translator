@@ -5048,15 +5048,34 @@ html[dir="rtl"] .bub-orig-text {
 }
 
 @media (max-width: 600px) {
+  .welcome-ov {
+    padding: 10px;
+    overflow-x: hidden;
+  }
   .welcome-modal {
-    padding: 18px 16px;
+    padding: 16px 14px;
     max-height: 94vh;
+    overflow-x: hidden;
+    border-radius: 14px;
   }
   .welcome-cards-grid {
     grid-template-columns: 1fr;
   }
   .welcome-step-title {
-    font-size: 18px;
+    font-size: 17px;
+  }
+  .welcome-header {
+    gap: 8px;
+    margin-bottom: 14px;
+    padding-bottom: 10px;
+  }
+  .welcome-step-indicator {
+    gap: 6px;
+  }
+  .welcome-step-indicator .step-dot {
+    width: 24px;
+    height: 24px;
+    font-size: 11px;
   }
   .welcome-footer {
     padding-top: 14px;

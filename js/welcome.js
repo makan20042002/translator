@@ -75,13 +75,17 @@ function updateWelcomeStepUI() {
     const sumLang = $('welcomeSummaryLang');
     const sumEng = $('welcomeSummaryEngine');
     const sumPriv = $('welcomeSummaryPrivacy');
+    const sumKeyRow = $('welcomeSummaryKeyRow');
+    const sumKey = $('welcomeSummaryKey');
+    const sumPkg = $('welcomeSummaryPkg');
+    const sumStatus = $('welcomeSummaryStatus');
 
     if (sumLang) sumLang.textContent = welcomeSelectedLang === 'fa' ? 'فارسی (Persian)' : 'English';
 
     const engNames = {
-      offline: 'Offline (NLLB)',
-      ollama: 'Ollama (Local AI)',
-      online: 'Online (Cloud Engines)'
+      offline: 'آفلاین (NLLB)',
+      ollama: 'هوشمند (Ollama)',
+      online: 'سریع (Google / MyMemory)'
     };
     if (sumEng) sumEng.textContent = engNames[welcomeSelectedEngine] || welcomeSelectedEngine;
 
@@ -94,6 +98,34 @@ function updateWelcomeStepUI() {
         sumPriv.style.color = 'var(--text-dim, #B5C2D4)';
       }
     }
+
+    // AI Key row
+    const configuredKey = (typeof cfg !== 'undefined' && cfg.eng) ? (cfg.eng.gemini?.key || cfg.eng.groq?.key || cfg.eng.openrouter?.key || '') : '';
+    if (sumKeyRow && sumKey) {
+      if (configuredKey) {
+        sumKeyRow.hidden = false;
+        sumKey.textContent = `تنظیم شد (…${configuredKey.slice(-4)})`;
+      } else {
+        sumKeyRow.hidden = true;
+      }
+    }
+
+    // Offline package row
+    if (sumPkg) {
+      const pkgNames = {
+        none: 'بدون دانلود (فوری)',
+        light: 'NLLB-200 600M (۸۷۰ مگابایت)',
+        full: 'NLLB + Whisper (۱٫۱ گیگابایت)'
+      };
+      sumPkg.textContent = pkgNames[welcomeSelectedPackage] || welcomeSelectedPackage;
+    }
+
+    // Voice & screen status
+    if (sumStatus) {
+      const vR = (typeof getVoiceTabReadiness === 'function') ? getVoiceTabReadiness() : { ready: true };
+      const isDesktop = !!(window.makanDesktop?.isDesktop);
+      sumStatus.textContent = `${vR.ready ? 'صدا آماده' : 'صدا محدود'} · ${isDesktop ? 'دسکتاپ متصل' : 'محیط وب'}`;
+    }
   }
 
   // Update conditional privacy notice in Step 2
@@ -102,6 +134,34 @@ function updateWelcomeStepUI() {
   // Update model catalogue sizes & status in Step 3
   if (welcomeCurrentStep === 3) {
     updateWelcomeModelStatus();
+    updateWelcomeVoiceScreenStatus();
+  }
+}
+
+function updateWelcomeVoiceScreenStatus() {
+  const vBadge = $('welcomeVoiceStatusBadge');
+  const sBadge = $('welcomeScreenStatusBadge');
+
+  if (vBadge) {
+    const vR = (typeof getVoiceTabReadiness === 'function') ? getVoiceTabReadiness() : { ready: true };
+    if (vR.ready) {
+      vBadge.textContent = 'آماده ✓ (Ready)';
+      vBadge.style.color = '#3FB950';
+    } else {
+      vBadge.textContent = vR.reason ? `${vR.reason} (محدود)` : 'آماده نیست (Not ready)';
+      vBadge.style.color = 'var(--text-dim, #B5C2D4)';
+    }
+  }
+
+  if (sBadge) {
+    const isDesktop = !!(window.makanDesktop?.isDesktop);
+    if (isDesktop) {
+      sBadge.textContent = 'متصل به دسکتاپ ✓ (Connected)';
+      sBadge.style.color = '#3FB950';
+    } else {
+      sBadge.textContent = 'محیط مرورگر وب (Web browser)';
+      sBadge.style.color = 'var(--text-dim, #B5C2D4)';
+    }
   }
 }
 
@@ -274,6 +334,8 @@ function finishWelcomeWizard() {
 
   setWelcomeDone();
   closeWelcomeWizard();
+  const textTabBtn = document.querySelector('#tabs button[data-tab="text"]');
+  if (textTabBtn) textTabBtn.click();
 }
 
 function initWelcomeKeyHandling() {
@@ -400,6 +462,11 @@ function initWelcomeWizard() {
 
   // Finish button
   $('welcomeFinishBtn')?.addEventListener('click', () => {
+    finishWelcomeWizard();
+  });
+
+  // Dedicated button to Text tab
+  $('welcomeGoTextBtn')?.addEventListener('click', () => {
     finishWelcomeWizard();
   });
 

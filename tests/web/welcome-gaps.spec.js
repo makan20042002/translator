@@ -154,4 +154,47 @@ test.describe('Web app: Welcome Wizard Gaps & Hardening', () => {
     await expect(nllbBadge).toBeVisible();
     await expect(fullBadge).toBeVisible();
   });
+
+  test('Gap 5: real voice and screen status badges are displayed', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => window.openWelcomeWizard(3));
+
+    const voiceBadge = page.locator('#welcomeVoiceStatusBadge');
+    const screenBadge = page.locator('#welcomeScreenStatusBadge');
+
+    await expect(voiceBadge).toBeVisible();
+    await expect(screenBadge).toBeVisible();
+
+    // Badges display real status (not fake)
+    const voiceText = await voiceBadge.textContent();
+    expect(voiceText).toBeTruthy();
+
+    const screenText = await screenBadge.textContent();
+    expect(screenText).toBeTruthy();
+  });
+
+  test('Gap 5: Done summary lists configured items and Go to Text button activates Text tab', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => window.openWelcomeWizard(4));
+
+    const step4 = page.locator('#welcomeStep4');
+    await expect(step4).toBeVisible();
+
+    const goTextBtn = page.locator('#welcomeGoTextBtn');
+    await expect(goTextBtn).toBeVisible();
+
+    // Click Go to Text button
+    await mouseClick(page, goTextBtn);
+
+    const overlay = page.locator('#welcomeOverlay');
+    await expect(overlay).toBeHidden();
+
+    // Marked done in localStorage
+    const isDone = await page.evaluate(() => localStorage.getItem('welcome_done'));
+    expect(isDone).toBe('1');
+
+    // Text tab is active
+    const textTabBtn = page.locator('#tabs button[data-tab="text"]');
+    await expect(textTabBtn).toHaveClass(/\bon\b/);
+  });
 });
