@@ -48,13 +48,13 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
     const { page } = app;
     await page.locator('#tabs button[data-tab="voice"]').click();
 
-    const fromLbl = page.locator('#tab-voice [data-picker-role="src"] .lang-picker-lbl');
-    const toLbl = page.locator('#tab-voice [data-picker-role="tgt"] .lang-picker-lbl');
+    const fromLbl = page.locator('#vLangPair [data-picker-role="src"] .lang-picker-lbl');
+    const toLbl = page.locator('#vLangPair [data-picker-role="tgt"] .lang-picker-lbl');
     await expect(fromLbl).toBeVisible();
     await expect(toLbl).toBeVisible();
 
-    const srcDisplay = page.locator('#tab-voice [data-picker-role="src"] .lang-picker-display');
-    const tgtDisplay = page.locator('#tab-voice [data-picker-role="tgt"] .lang-picker-display');
+    const srcDisplay = page.locator('#vLangPair [data-picker-role="src"] .lang-picker-display');
+    const tgtDisplay = page.locator('#vLangPair [data-picker-role="tgt"] .lang-picker-display');
     await expect(srcDisplay).toBeVisible();
     await expect(tgtDisplay).toBeVisible();
     await expect(srcDisplay.locator('bdi')).toBeVisible();
@@ -82,16 +82,18 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
     await expect(screenSrcDisplay.locator('bdi')).toBeVisible();
     await expect(screenTgtDisplay.locator('bdi')).toBeVisible();
 
-    // Subtitles tab
+    // Subtitles tab (unhide file workspace to test picker rendering)
     await page.locator('#tabs button[data-tab="sub"]').click();
+    await page.evaluate(() => { const el = document.getElementById('sWork'); if (el) el.hidden = false; });
     const subSrcDisplay = page.locator('#tab-sub [data-picker-role="src"] .lang-picker-display');
     const subTgtDisplay = page.locator('#tab-sub [data-picker-role="tgt"] .lang-picker-display');
     await expect(subSrcDisplay).toBeVisible();
     await expect(subTgtDisplay).toBeVisible();
     await expect(subSrcDisplay.locator('bdi')).toBeVisible();
 
-    // Documents tab
+    // Documents tab (unhide file workspace to test picker rendering)
     await page.locator('#tabs button[data-tab="doc"]').click();
+    await page.evaluate(() => { const el = document.getElementById('dWork'); if (el) el.hidden = false; });
     const docSrcDisplay = page.locator('#tab-doc [data-picker-role="src"] .lang-picker-display');
     const docTgtDisplay = page.locator('#tab-doc [data-picker-role="tgt"] .lang-picker-display');
     await expect(docSrcDisplay).toBeVisible();
@@ -101,7 +103,10 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
     // Ask AI (under Voice tab)
     await page.locator('#tabs button[data-tab="voice"]').click();
     await page.locator('#vTabAsk').click();
-    const askDisplay = page.locator('#vAskView .lang-picker-display');
+    const askLbl = page.locator('#vViewAsk [data-picker-role="ask"] .lang-picker-lbl');
+    await expect(askLbl).toBeVisible();
+    await expect(askLbl).toHaveText(/Answer language|زبان پاسخ/);
+    const askDisplay = page.locator('#vViewAsk [data-picker-role="ask"] .lang-picker-display');
     await expect(askDisplay).toBeVisible();
     await expect(askDisplay.locator('bdi')).toBeVisible();
   });
