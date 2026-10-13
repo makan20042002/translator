@@ -5,7 +5,7 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
 
   test('Text page: labels exist, selected value is visible with Persian + <bdi> English, detected appears only on real detection', async ({ app }) => {
     const { page } = app;
-    await page.goto('/#text');
+    await page.locator('#tabs button[data-tab="text"]').click();
 
     // 1. Labels exist for From and To
     const fromLbl = page.locator('#tab-text [data-picker-role="src"] .lang-picker-lbl');
@@ -46,7 +46,6 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
 
   test('Voice page: unified language picker renders labels and visible Persian + <bdi> English', async ({ app }) => {
     const { page } = app;
-    await page.goto('/#voice');
     await page.locator('#tabs button[data-tab="voice"]').click();
 
     const fromLbl = page.locator('#tab-voice [data-picker-role="src"] .lang-picker-lbl');
@@ -73,7 +72,6 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
 
   test('Screen, Subtitles, Documents, and Ask AI pages have unified language pickers with labels and <bdi>', async ({ app }) => {
     const { page } = app;
-    await page.goto('/');
 
     // Screen tab
     await page.locator('#tabs button[data-tab="screen"]').click();
@@ -111,7 +109,7 @@ test.describe('Item 2: Unified Language Pickers Everywhere', () => {
   test('No horizontal scroll at 360 px width', async ({ app }) => {
     const { page } = app;
     await page.setViewportSize({ width: 360, height: 740 });
-    await page.goto('/#text');
+    await page.locator('#tabs button[data-tab="text"]').click();
 
     const hasHorizontalOverflow = await page.evaluate(() => {
       return document.documentElement.scrollWidth > document.documentElement.clientWidth;

@@ -446,10 +446,10 @@ const saveAllInputs=()=>{
   if(cfg.eng.gemini.key) sessionBlocked.delete('gemini');
   if(cfg.eng.groq.key) sessionBlocked.delete('groq');
   saveCfg();
-  fillEngines();
-  if(!store.get('tMode')&&$('tMode'))$('tMode').value=getDefaultTransMode();
-  fillVoiceTransEngines();
-  voiceLabels();
+  if(typeof fillEngines==='function') fillEngines();
+  if(typeof getDefaultTransMode==='function'&&!store.get('tMode')&&$('tMode')) $('tMode').value=getDefaultTransMode();
+  if(typeof fillVoiceTransEngines==='function') fillVoiceTransEngines();
+  if(typeof voiceLabels==='function') voiceLabels();
 };
 let tmPersistAsked=false;
 async function checkStoragePersist(){
@@ -539,7 +539,7 @@ if($('tmClearBtn'))$('tmClearBtn').onclick=async()=>{
   toast(L('tmCleared'),'ok');
 };
 let lastActiveTabBeforeSettings = null;
-const SETTINGS_TAB_KEY = 'mkt_active_settings_tab';
+const SETTINGS_TAB_KEY = 'active_settings_tab';
 
 async function renderDictSettingsTab() {
   const box = $('setDictPacksList');
@@ -658,7 +658,7 @@ function maskAllKeys() {
 
 function closeSettings() {
   maskAllKeys();
-  saveAllInputs();
+  try { saveAllInputs(); } catch (e) {}
   $('ov').classList.remove('on');
   if (lastActiveTabBeforeSettings && typeof lastActiveTabBeforeSettings.focus === 'function') {
     try { lastActiveTabBeforeSettings.focus(); } catch {}
