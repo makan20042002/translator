@@ -38,6 +38,7 @@ test.describe('Welcome Wizard: Privacy claims, 5-step flow, and responsiveness',
     // Clear downloaded models in store
     await page.evaluate(() => {
       store.set('mdl', {});
+      store.set('nllb', false);
       window.openWelcomeWizard(2);
     });
 
@@ -71,19 +72,29 @@ test.describe('Welcome Wizard: Privacy claims, 5-step flow, and responsiveness',
     // Seed NLLB model as downloaded
     const cat = await page.evaluate(() => MODEL_CATALOG);
     const nllb = cat.models.find(m => m.id === 'tr-nllb-600');
-    await page.evaluate(({ nllbFiles }) => {
+    await page.evaluate(async ({ repo, files, fNames }) => {
       store.set('mdl', {
-        'tr-nllb-600': { at: 1, files: nllbFiles }
+        'tr-nllb-600': { at: Date.now(), files: fNames }
       });
+      store.set('nllb', true);
+      if ('caches' in self) {
+        const c = await caches.open('transformers-cache');
+        for (const [name, size] of files) {
+          await c.put(`https://huggingface.co/${repo}/resolve/main/${name}`, new Response(new Uint8Array(8), { headers: { 'content-length': String(size) } }));
+        }
+      }
+      if (typeof mcScan === 'function') await mcScan();
     }, {
-      nllbFiles: nllb.files.map(f => f[0]).filter(f => f.endsWith('.onnx'))
+      repo: nllb.repo,
+      files: nllb.files,
+      fNames: nllb.files.map(f => f[0]).filter(f => f.endsWith('.onnx') || f.endsWith('.onnx_data') || f.endsWith('.txt'))
     });
 
     // Stub Ollama reachable endpoint
-    await page.route('http://localhost:11434/api/tags', route => route.fulfill({
+    await page.route('http://localhost:11434/**', route => route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ models: [{ name: 'translategemma:4b' }] })
+      body: JSON.stringify({ models: [{ name: 'translategemma:4b' }], data: [{ id: 'translategemma:4b' }] })
     }));
 
     await page.evaluate(() => window.openWelcomeWizard(2));

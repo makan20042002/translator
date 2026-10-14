@@ -212,7 +212,12 @@ let welcomeOllamaAbortCtrl = null;
 function isWelcomeNllbReady() {
   if (typeof MC === 'undefined' || !MC.models) return false;
   const nllb = MC.models.find(m => m.id === 'tr-nllb-600');
-  return (typeof mcReady === 'function' && nllb) ? mcReady(nllb) : false;
+  if (typeof mcReady === 'function' && nllb && mcReady(nllb)) return true;
+  if (typeof trAnyReady === 'function' && trAnyReady()) return true;
+  const mdl = (typeof store !== 'undefined' && typeof store.get === 'function') ? store.get('mdl', {}) : {};
+  if (mdl && mdl['tr-nllb-600'] && (mdl['tr-nllb-600'].at || mdl['tr-nllb-600'].files)) return true;
+  if (typeof store !== 'undefined' && typeof store.get === 'function' && store.get('nllb', false)) return true;
+  return false;
 }
 
 async function checkWelcomeOllama() {
@@ -232,7 +237,10 @@ async function checkWelcomeOllama() {
   }, 1200);
   try {
     const host = (typeof getOllamaHost === 'function') ? getOllamaHost() : 'http://localhost:11434';
-    const res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
+    let res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
+    if (!res || !res.ok) {
+      res = await fetch(host + '/v1/models', { signal: ctrl.signal }).catch(() => null);
+    }
     clearTimeout(to);
     if (welcomeOllamaAbortCtrl === ctrl) {
       welcomeOllamaReachable = !!(res && res.ok);
@@ -350,6 +358,9 @@ function openWelcomeWizard(step = 1) {
   ov.hidden = false;
   ov.classList.add('on');
   checkWelcomeOllama();
+  if (typeof mcScan === 'function') {
+    mcScan().then(() => updateWelcomePrivacyNotice()).catch(() => {});
+  }
   updateWelcomeStepUI();
   const pSel = $('welcomeKeyProvider');
   const kInp = $('welcomeApiKeyInput');
@@ -545,6 +556,9 @@ function initWelcomeWizard() {
       if (radio) radio.checked = true;
       welcomeSelectedEngine = card.dataset.choiceEngine || 'offline';
       if (welcomeSelectedEngine === 'ollama') checkWelcomeOllama();
+      if (welcomeSelectedEngine === 'offline' && typeof mcScan === 'function') {
+        mcScan().then(() => updateWelcomePrivacyNotice()).catch(() => {});
+      }
       updateWelcomePrivacyNotice();
     });
   });
