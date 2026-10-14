@@ -100,6 +100,7 @@ function boot(){
   if($('subStyle'))$('subStyle').value=store.get('subStyle','film');
   if($('subFamily'))$('subFamily').checked=store.get('subFamily',false);
   updateSubEngineNotice();
+  if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
   const rawParams = (location.hash && location.hash.length > 1)
     ? location.hash.slice(1)
     : ((location.search && location.search.length > 1) ? location.search.slice(1) : '');

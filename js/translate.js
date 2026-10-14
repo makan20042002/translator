@@ -67,16 +67,19 @@ cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',k
 cfg.tts.rate=+cfg.tts.rate||1.0;
 const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u||'');
 const isOff=()=>cfg.offline||!navigator.onLine;
-const offCapable=id=>!!ENG[id].off||(id==='custom'&&isLocalUrl(cfg.eng[id].base));
+const offCapable=id=>!!ENG[id]?.off||(id==='custom'&&isLocalUrl(cfg.eng?.[id]?.base));
 let glossary=store.get('gls',[]);
 const lim=id=>ENG[id].ai?{items:50,chars:5000}:{items:ENG[id].items,chars:ENG[id].chars};
-function why(id){const e=cfg.eng[id];
+function why(id){
+  if(!id||!ENG[id]||!cfg.eng?.[id])return 'unknown';
+  const e=cfg.eng[id];
   if(ENG[id].key&&!e.key)return L('needKey');
   if(id==='custom'&&!e.base)return L('needUrl');
   if(ENG[id].ai&&!e.model)return L('needModel');
   if(id==='chrome'&&!('Translator' in self))return L('notHere');
   if(id==='nllb'&&!trAnyReady())return L('needDl');
-  return '';}
+  return '';
+}
 const sessionBlocked=new Set();
 function isBlockError(err){
   const m=String(err?.message||err||'').toLowerCase();
@@ -88,7 +91,7 @@ function markBlocked(id){
   fillEngines();
   voiceLabels();
 }
-const usable=id=>!sessionBlocked.has(id)&&cfg.eng[id].on&&!why(id)&&(!isOff()||offCapable(id));
+const usable=id=>Boolean(id&&ENG[id]&&cfg.eng?.[id]?.on&&!sessionBlocked.has(id)&&!why(id)&&(!isOff()||offCapable(id)));
 
 function isLocalAddress(url){
   if(!url)return false;
@@ -291,7 +294,7 @@ async function fx(url,opt,tries=2){
   }
 
   if((r.status===429||r.status===503)&&tries>1&&!/generativelanguage\.googleapis\.com/.test(url)){
-    const w=Math.min(+r.headers.get('retry-after')||2,10);
+    const w=r.headers?.get ? Math.min(+r.headers.get('retry-after')||2,10) : 2;
     await sleepAbortable(w*1000, extSignal);
     return fx(url,opt,tries-1);
   }
@@ -331,38 +334,10 @@ async function eGoogle(items,src,tgt,signal){
     return out;
   }catch(e){
     if(e.name==='AbortError')throw e;
-    const chunks=[];
-    let curChunk=[], curLen=0;
-    for(const s of items){
-      if(curChunk.length && (curLen + s.length > 1200 || curChunk.length >= 25)){
-        chunks.push(curChunk);
-        curChunk=[];
-        curLen=0;
-      }
-      curChunk.push(s);
-      curLen += s.length;
-    }
-    if(curChunk.length) chunks.push(curChunk);
-
     const out=[];
-    for(const chunk of chunks){
-      if(chunk.length===1){
-        const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(chunk[0])}`,{signal},1);
-        out.push((j[0]||[]).map(x=>x[0]).join(''));
-      }else{
-        const joined=chunk.join('\n');
-        const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(joined)}`,{signal},1);
-        const translatedJoined=(j[0]||[]).map(x=>x[0]).join('');
-        const lines=translatedJoined.split('\n');
-        if(lines.length===chunk.length){
-          out.push(...lines);
-        }else{
-          for(const s of chunk){
-            const j2=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,{signal},1);
-            out.push((j2[0]||[]).map(x=>x[0]).join(''));
-          }
-        }
-      }
+    for(const s of items){
+      const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,{signal},1);
+      out.push((j[0]||[]).map(x=>x[0]).join(''));
     }
     return out;
   }

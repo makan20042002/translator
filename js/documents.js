@@ -548,7 +548,7 @@ function getDocTerms(){
 
 function getDocEngineChain(){
   const cur=$('engine')?.value||'auto';
-  if(cur!=='auto'&&usable(cur)) return [cur];
+  if(cur&&cur!=='auto'&&usable(cur)) return [cur];
   if(isOff()){
     const offList=['nllb','chrome','ollama'].filter(usable);
     if(offList.length) return offList;
@@ -723,10 +723,10 @@ function updateDocStatus(status, text){
   }
 }
 
-function updateDocProgCounts(done, total, usePieces=false){
+function updateDocProgCounts(done, total){
   const el=$('dProgCounts');
   if(!el) return;
-  const word = usePieces ? (ui==='fa'?'بخش':'pieces') : (ui==='fa'?'بخش':'segments');
+  const word = ui==='fa'?'بخش':'segments';
   if(total==null||total===0){
     el.textContent=`0 ${word}`;
   }else if(done==null){
@@ -949,13 +949,14 @@ $('dGo').onclick=async()=>{
 
   const totalPieces=uniquePieces.length;
   const initialDonePieces=totalPieces-neededPieces.length;
-  updateDocProgCounts(initialDonePieces, totalPieces, true);
+  const initialDoneSegments=doc.items.length - missIndices.length;
+  updateDocProgCounts(initialDoneSegments, doc.items.length);
 
   // Update initial memory state if there were hits
   if(memHits>0){
     const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
     $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(initialDonePieces, totalPieces, true);
+    updateDocProgCounts(initialDoneSegments, doc.items.length);
     $('dBar').style.width=totalPieces?Math.min(99, Math.round((initialDonePieces/totalPieces)*100))+'%':'0%';
   }
 
@@ -969,7 +970,7 @@ $('dGo').onclick=async()=>{
     $('dBar').style.width='100%';
     const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
     $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(totalPieces, totalPieces, true);
+    updateDocProgCounts(doc.items.length, doc.items.length);
     updateDocStatus('ok');
     $('dProgText').textContent=`${L('done')} · ${memMsg}`;
     renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
@@ -988,7 +989,8 @@ $('dGo').onclick=async()=>{
         const done=initialDonePieces+pos;
         const pct=Math.min(99, Math.round((done/totalPieces)*100));
         $('dBar').style.width=pct+'%';
-        updateDocProgCounts(done, totalPieces, true);
+        const doneSegments=partialOut.filter(x=>x!==undefined).length;
+        updateDocProgCounts(doneSegments, doc.items.length);
         const engName=ENG[engId]?.name||engId;
         const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
         if(memHits>0){
@@ -1071,7 +1073,7 @@ $('dGo').onclick=async()=>{
     }else{
       updateDocStatus('ok');
       $('dBar').style.width='100%';
-      updateDocProgCounts(totalPieces, totalPieces, true);
+      updateDocProgCounts(doc.items.length, doc.items.length);
       if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
       $('dProgText').textContent=`${L('done')} · ${usedStr}`;
       toast(`${L('done')} · ${usedStr}`,'ok');
@@ -1380,6 +1382,7 @@ function updateDocEngineInfo(){
   const line=$('docEngineLine');
   const txtEl=$('docEngineText');
   if(!line||!txtEl) return;
+  if(typeof cfg==='undefined'||!cfg?.eng||!cfg?.order) return;
 
   const curEng=$('engine')?.value||'auto';
   const modeVal=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
@@ -1424,5 +1427,7 @@ if($('engine')) $('engine').addEventListener('change', updateDocEngineInfo);
 if($('tMode')) $('tMode').addEventListener('change', updateDocEngineInfo);
 if($('offline')) $('offline').addEventListener('change', updateDocEngineInfo);
 document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', updateDocEngineInfo));
-updateDocEngineInfo();
+if(document.readyState!=='loading'){
+  updateDocEngineInfo();
+}
 

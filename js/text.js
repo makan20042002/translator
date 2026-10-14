@@ -46,16 +46,16 @@ function getFastChain(){
   return chain.length?chain:['google','mymemory'];
 }
 function getSmartEngineChain(){
-  const cur=$('engine').value;
-  if(cur!=='auto'&&usable(cur))return [cur];
+  const cur=$('engine')?.value||'auto';
+  if(cur&&cur!=='auto'&&usable(cur))return [cur];
   const chain=cfg.order.filter(usable);
   if(chain.length)return chain;
   if(isOff())return usable('nllb')?['nllb']:usable('ollama')?['ollama']:['nllb'];
   return ['google'];
 }
 function getAiEngineChain(){
-  const cur=$('engine').value;
-  if(cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
+  const cur=$('engine')?.value||'auto';
+  if(cur&&cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
   const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
   if(aiList.length)return aiList;
   if(isOff())return ['ollama'];
