@@ -74,6 +74,18 @@ test.describe('Web app: Document batching and deduplication', () => {
       await page.evaluate(() => {
         window.__translationRequests = 0;
         window.__progressTexts = [];
+
+        // Observe every live change to #dProgText using MutationObserver installed before #dGo
+        const progEl = document.getElementById('dProgText');
+        if (progEl) {
+          if (progEl.textContent) window.__progressTexts.push(progEl.textContent);
+          const obs = new MutationObserver(() => {
+            const txt = progEl.textContent;
+            if (txt) window.__progressTexts.push(txt);
+          });
+          obs.observe(progEl, { childList: true, characterData: true, subtree: true });
+        }
+
         const origFetch = window.fetch;
         window.fetch = async function(url, opt) {
           const strUrl = String(url);
@@ -84,8 +96,6 @@ test.describe('Web app: Document batching and deduplication', () => {
               }), { status: 200, headers: { 'Content-Type': 'application/json' } });
             }
             window.__translationRequests++;
-            const prog = document.getElementById('dProgText')?.textContent;
-            if (prog) window.__progressTexts.push(prog);
 
             let bodyObj = null;
             try { bodyObj = JSON.parse(opt?.body); } catch {}

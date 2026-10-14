@@ -759,10 +759,15 @@ async function runBatch(id,arr,o){
       } else {
         out.push((await callEngine(id,[str],o))[0]);
       }
+      o.onSubProgress?.(1,id);
     }
     return out;
   }
-  try{return await callEngine(id,arr.map(getStr),o)}
+  try{
+    const res=await callEngine(id,arr.map(getStr),o);
+    o.onSubProgress?.(res.length,id);
+    return res;
+  }
   catch(e){
     if(e.name==='AbortError'||o.signal?.aborted) throw e;
     if((e.mismatch || (ENG[id]?.ai && !isBlockError(e) && e.status !== 429 && !/429|resource_exhausted|rate limit/i.test(e.message||''))) && arr.length > 1){
@@ -785,9 +790,16 @@ async function translateItems(items,o){
     if(o.signal?.aborted)throw new DOMException('Aborted','AbortError');
     const id=chain[ci],lm=lim(id),b=[];let chars=0;
     while(pos+b.length<todo.length&&b.length<lm.items){const s=items[todo[pos+b.length]];if(b.length&&chars+s.length>lm.chars)break;b.push(todo[pos+b.length]);chars+=s.length}
+    let batchDone=0;
+    const subOpts=Object.assign({},o,{
+      onSubProgress:(count,engId)=>{
+        batchDone+=count;
+        o.onProgress?.(pos+batchDone,todo.length,engId);
+      }
+    });
     try{
       o.onStatus?.(ui==='fa'?`در حال ترجمه با ${ENG[id].name}…`:`Translating with ${ENG[id].name}…`);
-      const res=await runBatch(id,b.map(i=>items[i]),o);
+      const res=await runBatch(id,b.map(i=>items[i]),subOpts);
       b.forEach((i,k)=>{
         const resItem=res[k];
         if(resItem&&typeof resItem==='object'&&('text' in resItem||'t' in resItem)){

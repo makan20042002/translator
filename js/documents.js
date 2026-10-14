@@ -981,17 +981,29 @@ $('dGo').onclick=async()=>{
     // 2. Translate only missing unique pieces
     try{
       const neededTexts=neededPieces.map(p=>p.text);
+      const chain=getDocEngineChain();
+      const initialEngName=ENG[chain[0]]?.name||chain[0];
+      const initialMemNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
+      if($('dProgText')){
+        $('dProgText').textContent=ui==='fa'
+          ? `در حال ترجمه ${initialDonePieces} از ${totalPieces} بخش · ${initialEngName}${initialMemNote}`
+          : `Translating ${initialDonePieces} of ${totalPieces} pieces · ${initialEngName}${initialMemNote}`;
+      }
       const r=await translateItems(neededTexts,opts(Object.assign({
-        chain:getDocEngineChain(),
+        chain,
         signal:dCtl.signal,
-        onStatus:(msg)=>{ if($('dProgText')) $('dProgText').textContent=msg; },
+        onStatus:(msg)=>{
+          if(msg&&!/Translating with|در حال ترجمه با/i.test(msg)){
+            if($('dProgText')) $('dProgText').textContent=msg;
+          }
+        },
         onProgress:(pos,tot,engId)=>{
           const done=initialDonePieces+pos;
           const pct=Math.min(99, Math.round((done/totalPieces)*100));
           $('dBar').style.width=pct+'%';
           const doneSegments=partialOut.filter(x=>x!==undefined).length;
           updateDocProgCounts(doneSegments, doc.items.length);
-          const engName=ENG[engId]?.name||engId;
+          const engName=ENG[engId]?.name||engId||initialEngName;
           const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
           if(memHits>0){
             $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
