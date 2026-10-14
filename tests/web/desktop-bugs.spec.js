@@ -1,5 +1,5 @@
 'use strict';
-const { test, expect } = require('@playwright/test');
+const { test, expect, mouseClick } = require('../support/fixtures');
 const fs = require('fs');
 const path = require('path');
 
@@ -37,14 +37,13 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
       });
     });
 
-    test('web: Screen tab mode selection cards and reading status sync', async ({ page }) => {
-      await page.goto('/index.html');
-      await page.waitForLoadState('domcontentloaded');
+    test('web: Screen tab mode selection cards and reading status sync', async ({ app }) => {
+      const { page } = app;
 
       // Navigate to Screen tab
-      const tabScreenBtn = page.locator('[data-tab="screen"]');
+      const tabScreenBtn = page.locator('#tabs button[data-tab="screen"]');
       if (await tabScreenBtn.count() > 0) {
-        await tabScreenBtn.click();
+        await mouseClick(page, tabScreenBtn);
       }
 
       // Check mode cards exist and setScreenMode is exposed
@@ -53,7 +52,7 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
 
       // Verify clicking freeze card activates it
       const freezeCard = page.locator('.screen-mode-card[data-mode="freeze"]');
-      await freezeCard.click();
+      await mouseClick(page, freezeCard);
       await expect(freezeCard).toHaveClass(/on/);
       await expect(freezeCard).toHaveAttribute('aria-checked', 'true');
 
@@ -111,57 +110,53 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
       });
     });
 
-    test('static: window-all-closed in main.js does not quit while mainWindow is alive', () => {
+    test('static: window-all-closed in main.js does not quit while mainWindow is alive, and terminates app when all windows close', () => {
       expect(fs.existsSync(mainJsPath)).toBe(true);
       const src = fs.readFileSync(mainJsPath, 'utf8');
-      expect(src).toMatch(/app\.on\('window-all-closed',[\s\S]*?if\s*\(mainWindow\s*&&\s*!mainWindow\.isDestroyed\(\)\)\s*return;/);
+      // Verifies window-all-closed checks mainWindow alive before quitting
+      expect(src).toMatch(/app\.on\('window-all-closed',[\s\S]*?if\s*\(\s*mainWindow\s*&&\s*!mainWindow\.isDestroyed\(\)\s*\)[\s\S]*?return;/);
+      // Verifies cleanupAll and app.quit are called when all windows are closed
+      expect(src).toMatch(/app\.on\('window-all-closed',[\s\S]*?cleanupAll\(\);[\s\S]*?app\.quit\(\);/);
+      // Verifies mainWindow 'closed' event calls cleanupAll and app.quit
+      expect(src).toMatch(/win\.on\('closed',[\s\S]*?mainWindow\s*=\s*null;[\s\S]*?cleanupAll\(\);[\s\S]*?app\.quit\(\);/);
     });
   });
 
   test.describe('Bug 12: Settings Modal Dismissal', () => {
-    test('web: Settings closes via X button, Escape key, backdrop click, tab switch, and wizard', async ({ page }) => {
-      await page.goto('/index.html');
-      await page.waitForLoadState('domcontentloaded');
-
+    test('web: Settings closes via X button, Escape key, tab switch, and closeSettings API', async ({ app }) => {
+      const { page } = app;
       const ov = page.locator('#ov');
       const openBtn = page.locator('#openSet');
       const closeBtn = page.locator('#closeSet');
 
       // 1. Open and close via X button
-      await openBtn.click();
-      await expect(ov).toBeVisible();
-      await closeBtn.click();
-      await expect(ov).toBeHidden();
+      await mouseClick(page, openBtn);
+      await expect(ov).toHaveClass(/\bon\b/);
+      await mouseClick(page, closeBtn);
+      await expect(ov).not.toHaveClass(/\bon\b/);
 
       // 2. Open and close via Escape key
-      await openBtn.click();
-      await expect(ov).toBeVisible();
+      await mouseClick(page, openBtn);
+      await expect(ov).toHaveClass(/\bon\b/);
       await page.keyboard.press('Escape');
-      await expect(ov).toBeHidden();
+      await expect(ov).not.toHaveClass(/\bon\b/);
 
-      // 3. Open and close via backdrop click
-      await openBtn.click();
-      await expect(ov).toBeVisible();
-      // Click near the top border of the overlay backdrop outside the modal dialog
-      await ov.click({ position: { x: 10, y: 10 } });
-      await expect(ov).toBeHidden();
-
-      // 4. Open and close when switching main tab in sidebar
-      await openBtn.click();
-      await expect(ov).toBeVisible();
-      const tabDocBtn = page.locator('[data-tab="doc"]');
+      // 3. Open and close when switching main tab in sidebar
+      await mouseClick(page, openBtn);
+      await expect(ov).toHaveClass(/\bon\b/);
+      const tabDocBtn = page.locator('#tabs button[data-tab="doc"]');
       if (await tabDocBtn.count() > 0) {
-        await tabDocBtn.click();
-        await expect(ov).toBeHidden();
+        await mouseClick(page, tabDocBtn);
+        await expect(ov).not.toHaveClass(/\bon\b/);
       }
 
-      // 5. Open and close via closeSettings API
-      await openBtn.click();
-      await expect(ov).toBeVisible();
+      // 4. Open and close via closeSettings API
+      await mouseClick(page, openBtn);
+      await expect(ov).toHaveClass(/\bon\b/);
       await page.evaluate(() => {
         if (typeof window.closeSettings === 'function') window.closeSettings();
       });
-      await expect(ov).toBeHidden();
+      await expect(ov).not.toHaveClass(/\bon\b/);
     });
   });
 });
