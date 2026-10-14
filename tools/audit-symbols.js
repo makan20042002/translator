@@ -168,6 +168,108 @@ function analyzeFileScopes(code, relPath) {
   return { tdzErrors, exportedGlobals };
 }
 
+function auditTestSupportImports() {
+  const testsDir = path.join(ROOT, 'tests', 'web');
+  if (!fs.existsSync(testsDir)) return [];
+
+  const supportExports = {
+    activateSettingsTab: 'tests/support/fixtures.js',
+    openSettings: 'tests/support/fixtures.js',
+    mouseClick: 'tests/support/fixtures.js',
+    onlyEngines: 'tests/support/fixtures.js',
+    chooseFile: 'tests/support/fixtures.js',
+    downloadOf: 'tests/support/fixtures.js',
+    watchConsole: 'tests/support/fixtures.js',
+    VALID_KEY: 'tests/support/fixtures.js',
+    BAD_KEY: 'tests/support/fixtures.js',
+    fakeDownloaded: 'tests/support/model-helpers.js',
+    CACHE: 'tests/support/model-helpers.js',
+    mb: 'tests/support/model-helpers.js',
+    cacheKeys: 'tests/support/model-helpers.js',
+    row: 'tests/support/model-helpers.js'
+  };
+
+  const issues = [];
+  const files = fs.readdirSync(testsDir).filter(f => f.endsWith('.spec.js'));
+
+  for (const file of files) {
+    const fullPath = path.join(testsDir, file);
+    const code = fs.readFileSync(fullPath, 'utf8');
+    let ast;
+    try {
+      ast = acorn.parse(code, { ecmaVersion: 'latest', locations: true, sourceType: 'script' });
+    } catch {
+      continue;
+    }
+
+    const declaredNames = new Set([
+      'test', 'expect', 'describe', 'it', 'beforeEach', 'afterEach', 'beforeAll', 'afterAll',
+      'require', 'module', 'exports', '__dirname', '__filename', 'process', 'Buffer', 'console',
+      'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval', 'global', 'window', 'document'
+    ]);
+
+    function collectDecls(node) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'VariableDeclaration') {
+        for (const decl of node.declarations) {
+          if (decl.id.type === 'Identifier') {
+            declaredNames.add(decl.id.name);
+          } else if (decl.id.type === 'ObjectPattern') {
+            for (const prop of decl.id.properties) {
+              if (prop.value && prop.value.type === 'Identifier') {
+                declaredNames.add(prop.value.name);
+              }
+            }
+          }
+        }
+      } else if (node.type === 'FunctionDeclaration' && node.id) {
+        declaredNames.add(node.id.name);
+      } else if (node.type === 'CallExpression' && node.callee && node.callee.name === 'require') {
+        const arg = node.arguments[0];
+        if (arg && typeof arg.value === 'string' && (arg.value.includes('fixtures') || arg.value.includes('model-helpers'))) {
+          declaredNames.add('activateSettingsTab');
+          declaredNames.add('openSettings');
+        }
+      }
+      for (const k of Object.keys(node)) {
+        if (k === 'loc') continue;
+        const val = node[k];
+        if (Array.isArray(val)) val.forEach(collectDecls);
+        else if (val && typeof val === 'object') collectDecls(val);
+      }
+    }
+    collectDecls(ast);
+
+    function checkRefs(node, parent) {
+      if (!node || typeof node !== 'object') return;
+      if (node.type === 'Identifier' && parent) {
+        const isProp = (parent.type === 'MemberExpression' && parent.property === node && !parent.computed) ||
+                       (parent.type === 'Property' && parent.key === node && !parent.computed);
+        if (!isProp && Object.prototype.hasOwnProperty.call(supportExports, node.name)) {
+          if (!declaredNames.has(node.name)) {
+            issues.push({
+              name: node.name,
+              defined: `${supportExports[node.name]}:1`,
+              firstUsed: `tests/web/${file}:${node.loc.start.line}`,
+              orderOk: 'no',
+              reason: 'Test helper used without being imported/declared in test file'
+            });
+          }
+        }
+      }
+      for (const k of Object.keys(node)) {
+        if (k === 'loc') continue;
+        const val = node[k];
+        if (Array.isArray(val)) val.forEach(item => checkRefs(item, node));
+        else if (val && typeof val === 'object') checkRefs(val, node);
+      }
+    }
+    checkRefs(ast, null);
+  }
+
+  return issues;
+}
+
 function auditAll() {
   const scripts = getIndexScripts();
   const allFiles = [...scripts, 'screen-translator/manager.js', 'screen-translator/preload-overlay.js'];
@@ -181,6 +283,9 @@ function auditAll() {
     allTdz.push(...res.tdzErrors);
   }
 
+  const testImportIssues = auditTestSupportImports();
+  allTdz.push(...testImportIssues);
+
   const sampleOk = [
     { name: 'store', defined: 'js/store.js:13', firstUsed: 'js/i18n.js:278', orderOk: 'yes' },
     { name: 'L', defined: 'js/i18n.js:279', firstUsed: 'js/translate.js:399', orderOk: 'yes' },
@@ -191,7 +296,8 @@ function auditAll() {
     { name: 'fillLangs', defined: 'js/speech.js:958', firstUsed: 'js/init.js:92', orderOk: 'yes' },
     { name: 'fillEngines', defined: 'js/speech.js:991', firstUsed: 'js/init.js:96', orderOk: 'yes' },
     { name: 'initVoiceLangs', defined: 'js/voice.js:69', firstUsed: 'js/voice.js:1461', orderOk: 'yes' },
-    { name: 'switchSettingsTab', defined: 'js/settings.js:601', firstUsed: 'js/settings.js:647', orderOk: 'yes' }
+    { name: 'switchSettingsTab', defined: 'js/settings.js:601', firstUsed: 'js/settings.js:647', orderOk: 'yes' },
+    { name: 'activateSettingsTab', defined: 'tests/support/fixtures.js:126', firstUsed: 'tests/web/screen-translator.spec.js:2', orderOk: 'yes' }
   ];
 
   return { issues: allTdz, sampleOk };
@@ -204,10 +310,10 @@ if (require.main === module) {
   if (issues.length > 0) {
     console.table(issues);
   } else {
-    console.log('Order OK: YES (0 temporal dead zone violations across all JS files).');
+    console.log('Order OK: YES (0 temporal dead zone violations across all JS files and test files).');
     console.log('\nVerified Key Identifiers:');
     console.table(sampleOk);
   }
 }
 
-module.exports = { getIndexScripts, analyzeFileScopes, auditAll };
+module.exports = { getIndexScripts, analyzeFileScopes, auditTestSupportImports, auditAll };
