@@ -95,6 +95,7 @@ const DEFAULT_CFG = {
   ui: 'en',
   glossary: [],
   webAppUrl: 'http://localhost:8080',
+  appUrl: 'http://127.0.0.1:50505',
   tts: {
     rate: 1.0,
     preferGemini: false,
@@ -109,10 +110,114 @@ const DEFAULT_CFG = {
 // valid value, or by the default. Used when settings are loaded and when a settings file is imported.
 const LANG_CODE_RE = /^(auto|finglish|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
 const isStr = v => typeof v === 'string';
+
+// Strict local allow-list for app addresses (127.0.0.1 / localhost with fixed ports)
+const ALLOWED_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
+const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080', '8888', '3000', '8000', '5173']);
+
+function isAllowListedLocalAddress(u) {
+  if (!u || typeof u !== 'string') return false;
+  try {
+    const x = new URL(String(u).trim());
+    if (x.protocol !== 'http:' && x.protocol !== 'https:') return false;
+    const host = x.hostname.toLowerCase();
+    if (!ALLOWED_LOCAL_HOSTS.has(host)) return false;
+    const port = x.port || (x.protocol === 'http:' ? '80' : '443');
+    return ALLOWED_LOCAL_PORTS.has(port);
+  } catch {
+    return false;
+  }
+}
+
 function safeHttpUrl(u, fallback) {
   try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return String(u).trim(); } catch {}
   return fallback;
 }
+
+function safeAppUrl(u, fallback = 'http://127.0.0.1:50505') {
+  if (isAllowListedLocalAddress(u)) {
+    try { return new URL(String(u).trim()).origin; } catch {}
+  }
+  return fallback;
+}
+
+async function checkAddressReachable(url, timeoutMs = 400, fetchFn = (typeof fetch !== 'undefined' ? fetch : null)) {
+  if (!isAllowListedLocalAddress(url)) return false;
+  if (!fetchFn) return false;
+  try {
+    const origin = new URL(url).origin;
+    const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+    const timer = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
+    try {
+      await fetchFn(origin + '/', {
+        method: 'HEAD',
+        mode: 'no-cors',
+        cache: 'no-store',
+        credentials: 'omit',
+        signal: controller?.signal
+      });
+      return true;
+    } catch (e) {
+      if (controller?.signal?.aborted) return false;
+      try {
+        await fetchFn(origin + '/', {
+          method: 'GET',
+          mode: 'no-cors',
+          cache: 'no-store',
+          credentials: 'omit',
+          signal: controller?.signal
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    } finally {
+      if (timer) clearTimeout(timer);
+    }
+  } catch {
+    return false;
+  }
+}
+
+async function chooseAppAddress(options = {}) {
+  const appUrl = options.appUrl || DEFAULT_CFG.appUrl || 'http://127.0.0.1:50505';
+  const webAppUrl = options.webAppUrl || DEFAULT_CFG.webAppUrl || 'http://localhost:8080';
+  const timeoutMs = options.timeoutMs || 400;
+  const checkFn = options.checkFn || checkAddressReachable;
+
+  // Never accept an address from page content; strictly validate against allow-list
+  const candidates = [];
+  if (isAllowListedLocalAddress(appUrl)) candidates.push(new URL(appUrl).origin);
+  if (isAllowListedLocalAddress(webAppUrl)) {
+    const webOrigin = new URL(webAppUrl).origin;
+    if (!candidates.includes(webOrigin)) candidates.push(webOrigin);
+  }
+
+  // Probe Windows app address first, then fallback to configured web address
+  for (const candidate of candidates) {
+    const reachable = await checkFn(candidate, timeoutMs);
+    if (reachable) {
+      return { ok: true, url: candidate, chosen: candidate };
+    }
+  }
+
+  return {
+    ok: false,
+    url: null,
+    error: 'Start MAKAN Translate first'
+  };
+}
+
+function buildAppTargetUrl(baseUrl, { text = '', src = 'auto', tgt = 'fa' } = {}) {
+  const origin = new URL(baseUrl).origin;
+  const p = new URLSearchParams();
+  if (text) p.set('text', String(text).slice(0, 2000));
+  if (src) p.set('src', src);
+  if (tgt) p.set('tgt', tgt);
+  const hash = p.toString();
+  return hash ? `${origin}/#${hash}` : `${origin}/`;
+}
+
 function sanitizeConfig(raw, previous) {
   const prev = previous || DEFAULT_CFG;
   const src = raw && typeof raw === 'object' ? raw : {};
@@ -125,6 +230,7 @@ function sanitizeConfig(raw, previous) {
   cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
   cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
+  cfg.appUrl = safeAppUrl(src.appUrl, safeAppUrl(prev.appUrl, DEFAULT_CFG.appUrl));
   cfg.edgeHintOff = src.edgeHintOff === true;
   cfg.showVulgar = src.showVulgar === true;
   cfg.subject = isStr(src.subject) ? src.subject : '';
@@ -1514,6 +1620,13 @@ if (root) {
   root.failureNeedsOptions = failureNeedsOptions;
   root.askBackground = askBackground;
   root.lastEngineErrors = lastEngineErrors;
+  root.ALLOWED_LOCAL_HOSTS = ALLOWED_LOCAL_HOSTS;
+  root.ALLOWED_LOCAL_PORTS = ALLOWED_LOCAL_PORTS;
+  root.isAllowListedLocalAddress = isAllowListedLocalAddress;
+  root.safeAppUrl = safeAppUrl;
+  root.checkAddressReachable = checkAddressReachable;
+  root.chooseAppAddress = chooseAppAddress;
+  root.buildAppTargetUrl = buildAppTargetUrl;
   if (typeof module !== 'undefined' && module.exports) module.exports = root;
 }
 

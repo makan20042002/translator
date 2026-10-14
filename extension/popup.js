@@ -242,6 +242,36 @@ document.addEventListener('DOMContentLoaded', async () => {
   pSrcLang.addEventListener('change', () => updateOpenWebAppHref());
   pTgtLang.addEventListener('change', () => updateOpenWebAppHref());
 
+  pOpenWebApp.addEventListener('click', async (e) => {
+    e.preventDefault();
+    const t = (pInputText.value || '').trim();
+    try {
+      const resp = await chrome.runtime.sendMessage({
+        action: 'open-in-app',
+        text: t.slice(0, 2000),
+        src: pSrcLang.value || 'auto',
+        tgt: pTgtLang.value || 'fa'
+      });
+      if (resp && !resp.ok) {
+        const msg = document.getElementById('pOpenAppMsg');
+        if (msg) {
+          msg.textContent = resp.error || 'Start MAKAN Translate first';
+          msg.style.display = 'block';
+          clearTimeout(msg._timer);
+          msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 4000);
+        }
+      }
+    } catch {
+      const msg = document.getElementById('pOpenAppMsg');
+      if (msg) {
+        msg.textContent = 'Start MAKAN Translate first';
+        msg.style.display = 'block';
+        clearTimeout(msg._timer);
+        msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 4000);
+      }
+    }
+  });
+
   // Toggle UI language
   pLangToggle.onclick = async () => {
     const next = currentUi === 'en' ? 'fa' : 'en';

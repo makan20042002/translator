@@ -29,6 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       triggerNever: 'Never show button (Use right-click context menu only)',
       lblDefaultTgt: 'Default Target Language:',
       lblDefaultTone: 'Default Translation Tone:',
+      lblAppUrl: 'App address:',
       lblWebAppUrl: 'Web App URL:',
       lblDictLookup: 'Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)',
       secEngines: 'Translation Engines & Keys',
@@ -78,6 +79,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       triggerNever: 'هرگز دکمه نمایش داده نشود (فقط از منوی کلیک راست استفاده شود)',
       lblDefaultTgt: 'زبان مقصد پیش‌فرض:',
       lblDefaultTone: 'لحن پیش‌فرض ترجمه:',
+      lblAppUrl: 'آدرس برنامه ویندوز (App address):',
       lblWebAppUrl: 'آدرس وب‌اپلیکیشن:',
       lblDictLookup: 'فعال‌سازی حالت دیکشنری با دوبار کلیک روی کلمه (تلفظ، معانی و مثال با هوش مصنوعی)',
       secEngines: 'موتورهای ترجمه و کلیدها',
@@ -132,6 +134,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   const selDefaultTgt = document.getElementById('selDefaultTgt');
   const lblDefaultTone = document.getElementById('lblDefaultTone');
   const selDefaultTone = document.getElementById('selDefaultTone');
+  const lblAppUrl = document.getElementById('lblAppUrl');
+  const txtAppUrl = document.getElementById('txtAppUrl');
   const lblWebAppUrl = document.getElementById('lblWebAppUrl');
   const txtWebAppUrl = document.getElementById('txtWebAppUrl');
   const chkDictLookup = document.getElementById('chkDictLookup');
@@ -294,6 +298,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     selTrigger.options[2].text = I18N[lang].triggerNever;
     lblDefaultTgt.textContent = I18N[lang].lblDefaultTgt;
     lblDefaultTone.textContent = I18N[lang].lblDefaultTone;
+    if (lblAppUrl) lblAppUrl.textContent = I18N[lang].lblAppUrl;
     lblWebAppUrl.textContent = I18N[lang].lblWebAppUrl;
     lblDictLookup.textContent = I18N[lang].lblDictLookup;
     secEngines.textContent = I18N[lang].secEngines;
@@ -327,6 +332,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   selTrigger.value = cfg.trigger || 'auto';
   selDefaultTgt.value = cfg.tgt || 'fa';
   selDefaultTone.value = cfg.tone || 'neutral';
+  if (txtAppUrl) txtAppUrl.value = cfg.appUrl || 'http://127.0.0.1:50505';
   txtWebAppUrl.value = cfg.webAppUrl || 'http://localhost:8080';
   chkDictLookup.checked = cfg.dictLookup !== false;
   chkShowVulgar.checked = cfg.showVulgar === true;
@@ -479,6 +485,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     toast(I18N[currentUi].saved);
   };
 
+  if (txtAppUrl) {
+    txtAppUrl.onchange = () => {
+      const typed = txtAppUrl.value.trim() || 'http://127.0.0.1:50505';
+      if (!isAllowListedLocalAddress(typed)) {
+        txtAppUrl.value = cfg.appUrl || 'http://127.0.0.1:50505';
+        toast('App address must be an allow-listed local address (127.0.0.1 / localhost with fixed ports)', 'warn');
+        return;
+      }
+      cfg.appUrl = new URL(typed).origin;
+      saveAndNotify();
+      toast(I18N[currentUi].saved);
+    };
+  }
+
   txtWebAppUrl.onchange = () => {
     const typed = txtWebAppUrl.value.trim() || 'http://localhost:8080';
     const checked = safeHttpUrl(typed, null);
@@ -491,6 +511,20 @@ document.addEventListener('DOMContentLoaded', async () => {
     optOpenApp.href = cfg.webAppUrl;
     saveAndNotify();
     toast(I18N[currentUi].saved);
+  };
+
+  optOpenApp.onclick = async (e) => {
+    e.preventDefault();
+    const res = await chooseAppAddress({
+      appUrl: cfg.appUrl || 'http://127.0.0.1:50505',
+      webAppUrl: cfg.webAppUrl || 'http://localhost:8080',
+      timeoutMs: 400
+    });
+    if (res.ok && res.url) {
+      window.open(res.url, '_blank');
+    } else {
+      toast(res.error || 'Start MAKAN Translate first', 'warn');
+    }
   };
 
   chkShowVulgar.onchange = () => {

@@ -390,7 +390,7 @@ const isExtensionPage = sender => !!sender && (sender.id === chrome.runtime.id |
 const isContentScript = sender => !!sender && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish', 'open-in-app']);
 
 // The dictionary packs ship inside the extension (the list of packs is dict/packs.json); load one into IndexedDB the
 // first time it is needed (no network).
@@ -433,6 +433,12 @@ function safeWebAppUrl(u) {
   try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return x.href.replace(/\/+$/, ''); } catch {}
   return 'http://localhost:8080';
 }
+function safeAppUrl(u) {
+  if (typeof isAllowListedLocalAddress === 'function' && isAllowListedLocalAddress(u)) {
+    try { return new URL(String(u).trim()).origin; } catch {}
+  }
+  return 'http://127.0.0.1:50505';
+}
 function publicConfig(cfg) {
   const tts = cfg.tts || {};
   const hasAi = (cfg.order || []).some(id => ENG[id]?.ai && isEngineUsable(id, cfg) && (ENG[id].key ? Boolean(cfg.eng?.[id]?.key) : (id === 'custom' ? Boolean(cfg.eng?.[id]?.base) : false)));
@@ -440,6 +446,7 @@ function publicConfig(cfg) {
     src: cfg.src, tgt: cfg.tgt, tone: cfg.tone, subject: cfg.subject,
     trigger: cfg.trigger, dictLookup: cfg.dictLookup, disabledSites: cfg.disabledSites || [], ui: cfg.ui,
     webAppUrl: safeWebAppUrl(cfg.webAppUrl),
+    appUrl: safeAppUrl(cfg.appUrl),
     transMode: cfg.transMode,
     edgeHintOff: !!cfg.edgeHintOff,
     hasAi,
@@ -452,6 +459,9 @@ const LANG_RE = /^(auto|finglish|[a-z]{2,3}(-[A-Za-z0-9]{2,8})?)$/;
 function requestProblem(req) {
   if (req.action === 'translate-text') {
     if (req.items !== undefined && (!Array.isArray(req.items) || req.items.length > 200 || req.items.some(x => typeof x !== 'string' || x.length > 20000))) return 'Bad items';
+    if (req.text !== undefined && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
+  }
+  if (req.action === 'open-in-app') {
     if (req.text !== undefined && (typeof req.text !== 'string' || req.text.length > 20000)) return 'Bad text';
   }
   if (req.action === 'translate-dict' && (typeof req.word !== 'string' || req.word.length > 200)) return 'Bad word';
@@ -511,6 +521,24 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'open-in-app') {
+      const choice = await chooseAppAddress({
+        appUrl: cfg.appUrl || 'http://127.0.0.1:50505',
+        webAppUrl: cfg.webAppUrl || 'http://localhost:8080',
+        timeoutMs: 400
+      });
+      if (choice.ok && choice.url) {
+        const fullUrl = buildAppTargetUrl(choice.url, {
+          text: req.text || '',
+          src: req.src || 'auto',
+          tgt: req.tgt || 'fa'
+        });
+        await chrome.tabs.create({ url: fullUrl });
+        return { ok: true, url: fullUrl };
+      }
+      return { ok: false, error: 'Start MAKAN Translate first' };
     }
 
     if (req.action === 'dict-lookup') {

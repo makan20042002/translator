@@ -572,7 +572,23 @@
     const openAppBtn = card.querySelector('#makanOpenApp');
     openAppBtn.addEventListener('pointerdown', e => e.stopPropagation());
     openAppBtn.addEventListener('mousedown', e => e.stopPropagation());
-    openAppBtn.addEventListener('click', e => { e.stopPropagation(); if (!e.isTrusted) e.preventDefault(); });
+    openAppBtn.addEventListener('click', async e => {
+      e.stopPropagation();
+      e.preventDefault();
+      try {
+        const resp = await chrome.runtime.sendMessage({
+          action: 'open-in-app',
+          text: (text || '').slice(0, 2000),
+          src: curSrc,
+          tgt: curTgt
+        });
+        if (resp && !resp.ok) {
+          showToastNotice(resp.error || 'Start MAKAN Translate first');
+        }
+      } catch {
+        showToastNotice('Start MAKAN Translate first');
+      }
+    });
 
     function updateAppUrl(sourceText, sLang, tLang) {
       const appBase = cfg?.webAppUrl || 'http://localhost:8080';
