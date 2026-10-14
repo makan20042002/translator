@@ -10,26 +10,24 @@ const { openOffice, count } = require('../support/office');
 
 async function createDocxWith20Tables(filePath) {
   const tables = [];
-  // 20 tables, each with 1 header row (4 cells) and 4 data rows (4 cells each) = 20 cells per table = 400 snippets total.
+  let expectedSegments = 0;
+  // In MAKAN Translate, a segment is any paragraph with at least 2 consecutive letters (hasWords: /\p{L}{2,}/u).
+  // Non-letter or single-letter cells (such as numeric sets, reps, and durations) are intentionally preserved as-is.
+  const hasWords = s => /\p{L}{2,}/u.test(s);
+
   for (let t = 0; t < 20; t++) {
+    const headerTexts = ['Exercise', 'Sets', 'Reps', 'Rest'];
+    headerTexts.forEach(txt => { if (hasWords(txt)) expectedSegments++; });
     const rows = [
       new d.TableRow({
-        children: [
-          new d.TableCell({ children: [new d.Paragraph('Exercise')] }),
-          new d.TableCell({ children: [new d.Paragraph('Sets')] }),
-          new d.TableCell({ children: [new d.Paragraph('Reps')] }),
-          new d.TableCell({ children: [new d.Paragraph('Rest')] })
-        ]
+        children: headerTexts.map(txt => new d.TableCell({ children: [new d.Paragraph(txt)] }))
       })
     ];
     for (let r = 0; r < 4; r++) {
+      const rowTexts = [`Movement ${r + 1}`, `${r + 3}`, '10-12', '60s'];
+      rowTexts.forEach(txt => { if (hasWords(txt)) expectedSegments++; });
       rows.push(new d.TableRow({
-        children: [
-          new d.TableCell({ children: [new d.Paragraph(`Movement ${r + 1}`)] }),
-          new d.TableCell({ children: [new d.Paragraph(`${r + 3}`)] }),
-          new d.TableCell({ children: [new d.Paragraph('10-12')] }),
-          new d.TableCell({ children: [new d.Paragraph('60s')] })
-        ]
+        children: rowTexts.map(txt => new d.TableCell({ children: [new d.Paragraph(txt)] }))
       }));
     }
     tables.push(new d.Table({ rows }));
@@ -38,6 +36,7 @@ async function createDocxWith20Tables(filePath) {
   const doc = new d.Document({ sections: [{ children: tables }] });
   const buffer = await d.Packer.toBuffer(doc);
   fs.writeFileSync(filePath, buffer);
+  return { totalCells: 400, expectedSegments };
 }
 
 test.describe('Web app: Document batching and deduplication', () => {
@@ -47,7 +46,7 @@ test.describe('Web app: Document batching and deduplication', () => {
     test.setTimeout(60000);
     const { page } = app;
     const tempFile = path.join(os.tmpdir(), `test-20-tables-${Date.now()}.docx`);
-    await createDocxWith20Tables(tempFile);
+    const { expectedSegments } = await createDocxWith20Tables(tempFile);
 
     try {
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
@@ -77,7 +76,7 @@ test.describe('Web app: Document batching and deduplication', () => {
 
       await chooseFile(page, page.locator('#dDrop'), tempFile);
       await expect(page.locator('#dWork')).toBeVisible();
-      await expect(page.locator('#dInfo')).toHaveText('400 segments');
+      await expect(page.locator('#dInfo')).toHaveText(`${expectedSegments} segments`);
 
       // Click Translate file
       await mouseClick(page, page.locator('#dGo'));
@@ -263,6 +262,97 @@ test.describe('Web app: Document batching and deduplication', () => {
 
     const docxDl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
     expect(docxDl.bytes.length).toBeGreaterThan(0);
+  });
+
+  test('docx with tables, merged cells and nested paragraphs counts all text segments and translates them', async ({ app }) => {
+    test.setTimeout(60000);
+    const { page } = app;
+    const tempFile = path.join(os.tmpdir(), `test-merged-nested-${Date.now()}.docx`);
+
+    const hasWords = s => /\p{L}{2,}/u.test(s);
+    let expectedSegments = 0;
+    const snippets = [
+      'Document Overview and Introduction',
+      'Header Title In Merged Cell',
+      'Nested Description In Same Cell',
+      '12345',
+      'First Column Detail Item',
+      'Second Column Detail Item',
+      'Final Summary Paragraph'
+    ];
+    snippets.forEach(s => { if (hasWords(s)) expectedSegments++; });
+
+    const doc = new d.Document({
+      sections: [{
+        children: [
+          new d.Paragraph(snippets[0]),
+          new d.Table({
+            rows: [
+              new d.TableRow({
+                children: [
+                  new d.TableCell({
+                    columnSpan: 2,
+                    children: [
+                      new d.Paragraph(snippets[1]),
+                      new d.Paragraph(snippets[2])
+                    ]
+                  })
+                ]
+              }),
+              new d.TableRow({
+                children: [
+                  new d.TableCell({
+                    children: [
+                      new d.Paragraph(snippets[3]),
+                      new d.Paragraph(snippets[4])
+                    ]
+                  }),
+                  new d.TableCell({
+                    children: [
+                      new d.Paragraph(snippets[5])
+                    ]
+                  })
+                ]
+              })
+            ]
+          }),
+          new d.Paragraph(snippets[6])
+        ]
+      }]
+    });
+
+    const buffer = await d.Packer.toBuffer(doc);
+    fs.writeFileSync(tempFile, buffer);
+
+    try {
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+      await chooseFile(page, page.locator('#dDrop'), tempFile);
+      await expect(page.locator('#dWork')).toBeVisible();
+
+      // Ensure segment count matches only text snippets with words (pure numeric "12345" excluded)
+      await expect(page.locator('#dInfo')).toHaveText(`${expectedSegments} segments`);
+
+      await mouseClick(page, page.locator('#dGo'));
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 45000 });
+      await expect(page.locator('#dProgText')).toContainText(/Done|انجام شد/);
+
+      const dl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+      const office = await openOffice(dl.bytes);
+      expect(office.problems, 'translated docx should have no XML schema problems').toEqual([]);
+
+      const xml = office.parts['word/document.xml'];
+      // Every text snippet with words must have been translated and written back in place
+      expect(xml).toContain('[fa] Document Overview and Introduction');
+      expect(xml).toContain('[fa] Header Title In Merged Cell');
+      expect(xml).toContain('[fa] Nested Description In Same Cell');
+      expect(xml).toContain('[fa] First Column Detail Item');
+      expect(xml).toContain('[fa] Second Column Detail Item');
+      expect(xml).toContain('[fa] Final Summary Paragraph');
+      // The non-translatable numeric snippet must be kept intact in the document XML
+      expect(xml).toContain('12345');
+    } finally {
+      if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
+    }
   });
 });
 
