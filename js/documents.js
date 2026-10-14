@@ -44,7 +44,7 @@ async function prepDocx(name,buffer){
   const zip=await JSZip.loadAsync(buffer);
   const parser=new DOMParser(), serializer=new XMLSerializer();
   const parsed={};
-  const xmlFiles=Object.keys(zip.files).filter(f=>/^word\/(document|header\d+|footer\d+|footnotes)\.xml$/i.test(f));
+  const xmlFiles=Object.keys(zip.files).filter(f=>/^word\/(document|header\d+|footer\d+|footnotes|comments\d*)\.xml$/i.test(f));
   const segs=[];
 
   for(const xf of xmlFiles){
@@ -723,16 +723,16 @@ function updateDocStatus(status, text){
   }
 }
 
-function updateDocProgCounts(done, total){
+function updateDocProgCounts(done, total, usePieces=false){
   const el=$('dProgCounts');
   if(!el) return;
-  const segWord=ui==='fa'?'بخش':'segments';
+  const word = usePieces ? (ui==='fa'?'بخش':'pieces') : (ui==='fa'?'بخش':'segments');
   if(total==null||total===0){
-    el.textContent=`0 ${segWord}`;
+    el.textContent=`0 ${word}`;
   }else if(done==null){
-    el.textContent=`${total} ${segWord}`;
+    el.textContent=`${total} ${word}`;
   }else{
-    el.textContent=ui==='fa'?`${done} از ${total} ${segWord}`:`${done} / ${total} ${segWord}`;
+    el.textContent=ui==='fa'?`${done} از ${total} ${word}`:`${done} / ${total} ${word}`;
   }
 }
 
@@ -894,16 +894,36 @@ $('dGo').onclick=async()=>{
 
   const partialOut=new Array(doc.items.length);
   const partialNotes=new Array(doc.items.length);
-  const missIndices=[];
-  const missItems=[];
-  let memHits=0;
+  const uniqueMap=new Map();
+  const uniquePieces=[];
 
-  // 1. Look up memory before calling engine
+  for(let i=0;i<doc.items.length;i++){
+    const raw=doc.items[i];
+    const trimmed=(raw||'').trim();
+    // Skip empty and numbers/punctuation/symbols-only snippets
+    if(!trimmed||!/\p{L}/u.test(trimmed)){
+      partialOut[i]=raw;
+      partialNotes[i]=null;
+      continue;
+    }
+    let entry=uniqueMap.get(trimmed);
+    if(!entry){
+      entry={id:uniquePieces.length,text:trimmed,indices:[i],out:null,note:null};
+      uniqueMap.set(trimmed,entry);
+      uniquePieces.push(entry);
+    }else{
+      entry.indices.push(i);
+    }
+  }
+
+  // 1. Look up memory for unique pieces
+  const neededPieces=[];
+  let memHits=0;
   if(cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
-    for(let i=0;i<doc.items.length;i++){
+    for(const piece of uniquePieces){
       try{
         const hit=await TranslationMemory.get({
-          text:doc.items[i],
+          text:piece.text,
           src:srcLang,
           tgt:tgtLang,
           modeClass:docMemMode,
@@ -911,32 +931,36 @@ $('dGo').onclick=async()=>{
           subject
         });
         if(hit&&hit.translatedText){
-          partialOut[i]=hit.translatedText;
-          partialNotes[i]=null;
-          memHits++;
+          piece.out=hit.translatedText;
+          piece.note=null;
+          for(const idx of piece.indices){
+            partialOut[idx]=hit.translatedText;
+            partialNotes[idx]=null;
+          }
+          memHits+=piece.indices.length;
           continue;
         }
       }catch(_){}
-      missIndices.push(i);
-      missItems.push(doc.items[i]);
+      neededPieces.push(piece);
     }
   }else{
-    for(let i=0;i<doc.items.length;i++){
-      missIndices.push(i);
-      missItems.push(doc.items[i]);
-    }
+    neededPieces.push(...uniquePieces);
   }
+
+  const totalPieces=uniquePieces.length;
+  const initialDonePieces=totalPieces-neededPieces.length;
+  updateDocProgCounts(initialDonePieces, totalPieces, true);
 
   // Update initial memory state if there were hits
   if(memHits>0){
     const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
     $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(memHits, doc.items.length);
-    $('dBar').style.width=Math.min(99, Math.round((memHits/doc.items.length)*100))+'%';
+    updateDocProgCounts(initialDonePieces, totalPieces, true);
+    $('dBar').style.width=totalPieces?Math.min(99, Math.round((initialDonePieces/totalPieces)*100))+'%':'0%';
   }
 
-  // If all segments hit memory, no engine call needed
-  if(missItems.length===0){
+  // If all segments hit memory or were skipped numbers/empty, no engine call needed
+  if(neededPieces.length===0){
     busy([$('dGo')],$('dStop'),false);
     dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
     dOutItems=partialOut.slice();
@@ -945,7 +969,7 @@ $('dGo').onclick=async()=>{
     $('dBar').style.width='100%';
     const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
     $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(doc.items.length, doc.items.length);
+    updateDocProgCounts(totalPieces, totalPieces, true);
     updateDocStatus('ok');
     $('dProgText').textContent=`${L('done')} · ${memMsg}`;
     renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
@@ -953,33 +977,27 @@ $('dGo').onclick=async()=>{
     return;
   }
 
-  // 2. Translate only missing segments
+  // 2. Translate only missing unique pieces
   try{
-    const r=await translateItems(missItems,opts(Object.assign({
+    const neededTexts=neededPieces.map(p=>p.text);
+    const r=await translateItems(neededTexts,opts(Object.assign({
       chain:getDocEngineChain(),
       signal:dCtl.signal,
       onStatus:(msg)=>{ if($('dProgText')) $('dProgText').textContent=msg; },
       onProgress:(pos,tot,engId)=>{
-        const done=memHits+pos;
-        const total=doc.items.length;
-        const pct=Math.min(99, Math.round((done/total)*100));
+        const done=initialDonePieces+pos;
+        const pct=Math.min(99, Math.round((done/totalPieces)*100));
         $('dBar').style.width=pct+'%';
-        updateDocProgCounts(done, total);
+        updateDocProgCounts(done, totalPieces, true);
         const engName=ENG[engId]?.name||engId;
         const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
         if(memHits>0){
           $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
         }
-        if(doc.ext==='pptx'&&doc.meta?.slides){
-          const curSlide=Math.min(doc.meta.slides,Math.max(1,Math.ceil((done/total)*doc.meta.slides)));
-          $('dProgText').textContent=`Slide ${curSlide} of ${doc.meta.slides} (${pct}%) · ${engName}${memNote}`;
-        }else if(doc.meta?.estPages){
-          const curPage=Math.min(doc.meta.estPages,Math.max(1,Math.ceil((done/total)*doc.meta.estPages)));
-          $('dProgText').textContent=`Page ${curPage} of ${doc.meta.estPages} (${pct}%) · ${engName}${memNote}`;
+        if(ui==='fa'){
+          $('dProgText').textContent=`در حال ترجمه ${done} از ${totalPieces} بخش · ${engName}${memNote}`;
         }else{
-          $('dProgText').textContent=ui==='fa'
-            ? `${done} از ${total} (${pct}%) · ${engName}${memNote}`
-            : `${done} / ${total} (${pct}%) · ${engName}${memNote}`;
+          $('dProgText').textContent=`Translating ${done} of ${totalPieces} pieces · ${engName}${memNote}`;
         }
       },
       onBatch:(batchIndices,res,currentOut,currentNotes)=>{
@@ -991,15 +1009,21 @@ $('dGo').onclick=async()=>{
         });
 
         batchIndices.forEach((kMiss,k)=>{
-          const realIdx=missIndices[kMiss];
-          partialOut[realIdx]=currentOut[kMiss];
-          partialNotes[realIdx]=currentNotes[kMiss];
+          const piece=neededPieces[kMiss];
+          const trans=currentOut[kMiss];
+          const note=currentNotes[kMiss];
+          piece.out=trans;
+          piece.note=note;
+          for(const realIdx of piece.indices){
+            partialOut[realIdx]=trans;
+            partialNotes[realIdx]=note;
+          }
 
           if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
-            const outText=typeof currentOut[kMiss]==='string'?currentOut[kMiss]:String(currentOut[kMiss]||'');
+            const outText=typeof trans==='string'?trans:String(trans||'');
             if(outText.trim()){
               TranslationMemory.put({
-                sourceText:doc.items[realIdx],
+                sourceText:piece.text,
                 translatedText:outText,
                 src:srcLang,
                 tgt:tgtLang,
@@ -1047,7 +1071,7 @@ $('dGo').onclick=async()=>{
     }else{
       updateDocStatus('ok');
       $('dBar').style.width='100%';
-      updateDocProgCounts(doc.items.length, doc.items.length);
+      updateDocProgCounts(totalPieces, totalPieces, true);
       if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
       $('dProgText').textContent=`${L('done')} · ${usedStr}`;
       toast(`${L('done')} · ${usedStr}`,'ok');

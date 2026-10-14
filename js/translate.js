@@ -331,10 +331,38 @@ async function eGoogle(items,src,tgt,signal){
     return out;
   }catch(e){
     if(e.name==='AbortError')throw e;
-    const out=[];
+    const chunks=[];
+    let curChunk=[], curLen=0;
     for(const s of items){
-      const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,{signal},1);
-      out.push((j[0]||[]).map(x=>x[0]).join(''));
+      if(curChunk.length && (curLen + s.length > 1200 || curChunk.length >= 25)){
+        chunks.push(curChunk);
+        curChunk=[];
+        curLen=0;
+      }
+      curChunk.push(s);
+      curLen += s.length;
+    }
+    if(curChunk.length) chunks.push(curChunk);
+
+    const out=[];
+    for(const chunk of chunks){
+      if(chunk.length===1){
+        const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(chunk[0])}`,{signal},1);
+        out.push((j[0]||[]).map(x=>x[0]).join(''));
+      }else{
+        const joined=chunk.join('\n');
+        const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(joined)}`,{signal},1);
+        const translatedJoined=(j[0]||[]).map(x=>x[0]).join('');
+        const lines=translatedJoined.split('\n');
+        if(lines.length===chunk.length){
+          out.push(...lines);
+        }else{
+          for(const s of chunk){
+            const j2=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,{signal},1);
+            out.push((j2[0]||[]).map(x=>x[0]).join(''));
+          }
+        }
+      }
     }
     return out;
   }
