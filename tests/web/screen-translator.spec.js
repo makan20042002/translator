@@ -1,5 +1,5 @@
 'use strict';
-const { test, expect, mouseClick } = require('../support/fixtures');
+const { test, expect, mouseClick, activateSettingsTab } = require('../support/fixtures');
 const path = require('path');
 
 test.describe('Screen Translator Desktop Web Integration', () => {

@@ -1,5 +1,5 @@
 'use strict';
-const { test, expect, mouseClick, VALID_KEY } = require('../support/fixtures');
+const { test, expect, mouseClick, VALID_KEY, activateSettingsTab } = require('../support/fixtures');
 
 async function openSettings(page) {
   await mouseClick(page, page.locator('#openSet'));

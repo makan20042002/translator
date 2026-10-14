@@ -130,4 +130,9 @@ async function openSettings(page, tab) {
   return require('./model-helpers').openSettings(page, tab);
 }
 
+if (typeof global !== 'undefined') {
+  global.activateSettingsTab = activateSettingsTab;
+  global.openSettings = openSettings;
+}
+
 module.exports = { test, expect, onlyEngines, mouseClick, chooseFile, downloadOf, watchConsole, VALID_KEY, BAD_KEY, activateSettingsTab, openSettings };
