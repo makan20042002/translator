@@ -318,6 +318,53 @@ function preGloss(s){ // for non-AI engines: put the wanted term straight into t
   return s;
 }
 
+function withTimeout(promise, ms, signal, errorMsg = 'request timed out') {
+  return new Promise((resolve, reject) => {
+    let timer = null;
+    let onAbort = null;
+    let done = false;
+
+    const cleanup = () => {
+      done = true;
+      if (timer) { clearTimeout(timer); timer = null; }
+      if (signal && onAbort) {
+        signal.removeEventListener('abort', onAbort);
+        onAbort = null;
+      }
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        return reject(new DOMException('Aborted', 'AbortError'));
+      }
+      onAbort = () => {
+        cleanup();
+        reject(new DOMException('Aborted', 'AbortError'));
+      };
+      signal.addEventListener('abort', onAbort, { once: true });
+    }
+
+    if (typeof ms === 'number' && ms > 0 && ms !== Infinity) {
+      timer = setTimeout(() => {
+        cleanup();
+        const err = new Error(errorMsg);
+        err.name = 'TimeoutError';
+        err.isTimeout = true;
+        reject(err);
+      }, ms);
+    }
+
+    Promise.resolve(promise).then(
+      val => {
+        if (!done) { cleanup(); resolve(val); }
+      },
+      err => {
+        if (!done) { cleanup(); reject(err); }
+      }
+    );
+  });
+}
+
 /* basic engines */
 // Google web translation:
 // 1. Primary endpoint: clients5.google.com (/translate_a/t?client=dict-chrome-ex), batch POST with URLSearchParams.
@@ -325,10 +372,12 @@ function preGloss(s){ // for non-AI engines: put the wanted term straight into t
 //    Rethrows immediately on AbortError.
 // 2. Secondary endpoint: translate.googleapis.com (/translate_a/single?client=gtx), sequential GET per line.
 //    If secondary also fails, error bubbles up to translateItems and caller (e.g. Subtitles tab marks Error).
-async function eGoogle(items,src,tgt,signal){
+async function eGoogle(items,src,tgt,signal,opt){
   try{
     const body=new URLSearchParams();items.forEach(s=>body.append('q',s));
-    const j=await fx(`https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${src}&tl=${tgt}`,{method:'POST',body,signal},1);
+    const fxOpt={method:'POST',body,signal};
+    if(opt?.timeout) fxOpt.timeout=opt.timeout;
+    const j=await fx(`https://clients5.google.com/translate_a/t?client=dict-chrome-ex&sl=${src}&tl=${tgt}`,fxOpt,1);
     const out=j.map(x=>Array.isArray(x)?x[0]:x);
     if(out.length!==items.length||out.some(x=>typeof x!=='string'))throw new Error('bad response');
     return out;
@@ -336,33 +385,123 @@ async function eGoogle(items,src,tgt,signal){
     if(e.name==='AbortError')throw e;
     const out=[];
     for(const s of items){
-      const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,{signal},1);
+      const fxOpt={signal};
+      if(opt?.timeout) fxOpt.timeout=opt.timeout;
+      const j=await fx(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=${src}&tl=${tgt}&dt=t&q=${encodeURIComponent(s)}`,fxOpt,1);
       out.push((j[0]||[]).map(x=>x[0]).join(''));
     }
     return out;
   }
 }
-async function eMyMemory(items,src,tgt,signal){
+async function eMyMemory(items,src,tgt,signal,opt){
   const out=[];
   for(const s of items){
     const u=`https://api.mymemory.translated.net/get?q=${encodeURIComponent(s)}&langpair=${src==='auto'?'Autodetect':src}|${tgt}`+(cfg.mmEmail?`&de=${encodeURIComponent(cfg.mmEmail)}`:'');
-    const j=await fx(u,{signal},1);const tx=j.responseData?.translatedText||'';
+    const fxOpt={signal};
+    if(opt?.timeout) fxOpt.timeout=opt.timeout;
+    const j=await fx(u,fxOpt,1);const tx=j.responseData?.translatedText||'';
     if(+j.responseStatus!==200||j.quotaFinished||/MYMEMORY WARNING/i.test(tx))throw new Error(j.quotaFinished||/WARNING/i.test(tx)?'daily limit reached':(j.responseDetails||'error'));
     out.push(tx);
   }
   return out;
 }
 const chromeCode=c=>({'zh-CN':'zh','zh-TW':'zh-Hant'}[c]||c);
-async function eChrome(items,src,tgt){
-  if(src==='auto'){
-    if(!('LanguageDetector' in self))throw new Error(L('sameLang'));
-    const d=await LanguageDetector.create();const r=await d.detect(items.join(' ').slice(0,600));
-    src=r[0]?.detectedLanguage;if(!src||src==='und')throw new Error('could not detect language');
+async function eChrome(items,src,tgt,signal,opts={}){
+  if(signal?.aborted) throw new DOMException('Aborted','AbortError');
+  const isDoc = !!opts.forDocument;
+  const reqTimeout = opts.timeout ?? (typeof window !== 'undefined' && window.__docTimeoutMs ? window.__docTimeoutMs : 20000);
+  const availTimeout = opts.chromeAvailTimeoutMs ?? (typeof window !== 'undefined' && window.__chromeAvailTimeoutMs ? window.__chromeAvailTimeoutMs : 2000);
+
+  if(isDoc){
+    if(!('Translator' in self) || typeof self.Translator?.availability !== 'function'){
+      const err = new Error('on-device translator is not available');
+      err.silent = true;
+      err.isChromeSkip = true;
+      throw err;
+    }
   }
-  src=chromeCode(src);tgt=chromeCode(tgt);if(src===tgt)return items.slice();
+
+  if(src==='auto'){
+    if(!('LanguageDetector' in self)){
+      if(isDoc){
+        const err = new Error('language detector not available');
+        err.silent = true;
+        err.isChromeSkip = true;
+        throw err;
+      }
+      throw new Error(L('sameLang'));
+    }
+    const d = isDoc
+      ? await withTimeout(LanguageDetector.create(), reqTimeout, signal, 'LanguageDetector create timed out')
+      : await LanguageDetector.create();
+    const r = isDoc
+      ? await withTimeout(d.detect(items.join(' ').slice(0,600)), reqTimeout, signal, 'LanguageDetector detect timed out')
+      : await d.detect(items.join(' ').slice(0,600));
+    src = r[0]?.detectedLanguage;
+    if(!src || src === 'und'){
+      if(isDoc){
+        const err = new Error('could not detect language');
+        err.silent = true;
+        err.isChromeSkip = true;
+        throw err;
+      }
+      throw new Error('could not detect language');
+    }
+  }
+
+  src = chromeCode(src);
+  tgt = chromeCode(tgt);
+  if(src === tgt) return items.slice();
+
+  if(isDoc){
+    let avail;
+    try {
+      avail = await withTimeout(
+        Translator.availability({sourceLanguage:src, targetLanguage:tgt}),
+        availTimeout,
+        signal,
+        'on-device availability check timed out'
+      );
+    } catch(e) {
+      if(e.name === 'AbortError' || signal?.aborted) throw e;
+      const err = new Error('language pair not ready on-device');
+      err.silent = true;
+      err.isChromeSkip = true;
+      throw err;
+    }
+    if(avail !== 'available' && avail !== 'readily'){
+      const err = new Error('language pair not ready on-device (' + avail + ')');
+      err.silent = true;
+      err.isChromeSkip = true;
+      throw err;
+    }
+    const tr = await withTimeout(
+      Translator.create({sourceLanguage:src, targetLanguage:tgt}),
+      reqTimeout,
+      signal,
+      `${ENG.chrome.name} did not answer`
+    );
+    const out = [];
+    for(const s of items){
+      if(signal?.aborted) throw new DOMException('Aborted','AbortError');
+      out.push(await withTimeout(
+        tr.translate(s),
+        reqTimeout,
+        signal,
+        `${ENG.chrome.name} did not answer`
+      ));
+    }
+    return out;
+  }
+
   if(await Translator.availability({sourceLanguage:src,targetLanguage:tgt})==='unavailable')throw new Error('language pair not available on-device');
-  const tr=await Translator.create({sourceLanguage:src,targetLanguage:tgt});
-  const out=[];for(const s of items)out.push(await tr.translate(s));return out;
+  const tr = await Translator.create({sourceLanguage:src,targetLanguage:tgt});
+  const out = [];
+  for(const s of items){
+    if(signal?.aborted) throw new DOMException('Aborted','AbortError');
+    out.push(await tr.translate(s));
+  }
+  return out;
 }
 
 /* offline in-browser models (run in ai-worker.js) */
@@ -735,10 +874,10 @@ function callEngine(id,items,o){
   if(ENG[id].ai)return eAI(id,items,o);
   const arr=items.map(preGloss);
   let p;
-  if(id==='google')p=eGoogle(arr,o.src,o.tgt,o.signal);
-  else if(id==='mymemory')p=eMyMemory(arr,o.src,o.tgt,o.signal);
+  if(id==='google')p=eGoogle(arr,o.src,o.tgt,o.signal,o);
+  else if(id==='mymemory')p=eMyMemory(arr,o.src,o.tgt,o.signal,o);
   else if(id==='nllb')p=eNllb(arr,o.src,o.tgt,o.signal,o.onStatus);
-  else p=eChrome(arr,o.src,o.tgt);
+  else p=eChrome(arr,o.src,o.tgt,o.signal,o);
   if(o.includeNotes)return p.then(res=>res.map(x=>({text:x,note:null})));
   return p;
 }
@@ -799,7 +938,11 @@ async function translateItems(items,o){
     });
     try{
       o.onStatus?.(ui==='fa'?`در حال ترجمه با ${ENG[id].name}…`:`Translating with ${ENG[id].name}…`);
-      const res=await runBatch(id,b.map(i=>items[i]),subOpts);
+      const reqTimeout = o.timeout ?? (typeof window !== 'undefined' && window.__docTimeoutMs ? window.__docTimeoutMs : 20000);
+      const batchPromise = runBatch(id,b.map(i=>items[i]),subOpts);
+      const res = o.forDocument
+        ? await withTimeout(batchPromise, reqTimeout, o.signal, `${ENG[id].name} did not answer`)
+        : await batchPromise;
       b.forEach((i,k)=>{
         const resItem=res[k];
         if(resItem&&typeof resItem==='object'&&('text' in resItem||'t' in resItem)){
@@ -814,6 +957,33 @@ async function translateItems(items,o){
       o.onBatch?.(b,res,out,notes);o.onProgress?.(pos,todo.length,id);
     }catch(e){
       if(e.name==='AbortError'||o.signal?.aborted)throw new DOMException('Aborted','AbortError');
+      if(e.silent||e.isChromeSkip){
+        if(ci+1<chain.length){
+          ci++;
+          o.onEngineChange?.(chain[ci]);
+          continue;
+        }else{
+          throw new Error(ENG[id].name+': '+(ui==='fa'?'مدل ترجمه روی دستگاه در دسترس نیست':'on-device translator is not available'));
+        }
+      }
+      const isTimeout=e.isTimeout||e.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(e.message||'');
+      if(isTimeout){
+        if(ci+1<chain.length){
+          const nextName=ENG[chain[ci+1]].name;
+          const msg=ui==='fa'
+            ?`${ENG[id].name} پاسخی نداد، تلاش با ${nextName}…`
+            :`${ENG[id].name} did not answer, trying ${nextName}…`;
+          o.onStatus?.(msg);
+          ci++;
+          o.onEngineChange?.(chain[ci]);
+          continue;
+        }else{
+          const msg=ui==='fa'
+            ?`${ENG[id].name} پاسخی نداد`
+            :`${ENG[id].name} did not answer`;
+          throw new Error(msg);
+        }
+      }
       const is429=e.status===429||/429|resource_exhausted|rate limit|quota/i.test(e.message||'');
       if(is429){
         let waitSec=4;
@@ -823,6 +993,7 @@ async function translateItems(items,o){
           o.onStatus?.(ui==='fa'?`محدودیت نرخ ${ENG[id].name} — تغییر به ${ENG[chain[ci+1]].name}…`:`Rate limit on ${ENG[id].name} — switching to ${ENG[chain[ci+1]].name}…`);
           toast(`${ENG[id].name} (429 Rate Limit) — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn',6000);
           ci++;
+          o.onEngineChange?.(chain[ci]);
           continue;
         }else{
           // Last engine left: wait and try again, but only a few times; then say so instead of waiting forever.
@@ -842,6 +1013,7 @@ async function translateItems(items,o){
         o.onStatus?.(ui==='fa'?`${ENG[id].name} ناموفق بود — تغییر به ${ENG[chain[ci+1]].name}…`:`${ENG[id].name} failed — switching to ${ENG[chain[ci+1]].name}…`);
         if(!isBlockError(e)) toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn');
         ci++;
+        o.onEngineChange?.(chain[ci]);
       }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):plainWithDetail(e)}`);
     }
   }

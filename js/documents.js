@@ -978,6 +978,7 @@ $('dGo').onclick=async()=>{
       return;
     }
 
+    $('dSave').disabled=true;
     // 2. Translate only missing unique pieces
     try{
       const neededTexts=neededPieces.map(p=>p.text);
@@ -992,12 +993,27 @@ $('dGo').onclick=async()=>{
       const r=await translateItems(neededTexts,opts(Object.assign({
         chain,
         signal:dCtl.signal,
+        forDocument:true,
+        timeout:(typeof window!=='undefined'&&window.__docTimeoutMs)?window.__docTimeoutMs:20000,
+        chromeAvailTimeoutMs:(typeof window!=='undefined'&&window.__chromeAvailTimeoutMs)?window.__chromeAvailTimeoutMs:2000,
+        onEngineChange:(engId)=>{
+          if(dCtl?.signal?.aborted)return;
+          const engName=ENG[engId]?.name||engId;
+          const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
+          if($('dProgText')){
+            $('dProgText').textContent=ui==='fa'
+              ? `در حال ترجمه ${initialDonePieces} از ${totalPieces} بخش · ${engName}${memNote}`
+              : `Translating ${initialDonePieces} of ${totalPieces} pieces · ${engName}${memNote}`;
+          }
+        },
         onStatus:(msg)=>{
+          if(dCtl?.signal?.aborted)return;
           if(msg&&!/Translating with|در حال ترجمه با/i.test(msg)){
             if($('dProgText')) $('dProgText').textContent=msg;
           }
         },
         onProgress:(pos,tot,engId)=>{
+          if(dCtl?.signal?.aborted)return;
           const done=initialDonePieces+pos;
           const pct=Math.min(99, Math.round((done/totalPieces)*100));
           $('dBar').style.width=pct+'%';
@@ -1015,6 +1031,7 @@ $('dGo').onclick=async()=>{
           }
         },
         onBatch:(batchIndices,res,currentOut,currentNotes)=>{
+          if(dCtl?.signal?.aborted)return;
           const errRe=/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
           const batchOk=Array.isArray(res)&&batchIndices.length===res.length&&batchIndices.every((_,k)=>{
             const item=res[k];
@@ -1128,7 +1145,10 @@ $('dGo').onclick=async()=>{
         }
       }
 
-      if(validCount>0){
+      const translatedPiecesCount=uniquePieces.filter(p=>p.out!=null&&!isDocErr(p.out)).length;
+      const hasAnyTranslation=translatedPiecesCount>0||memHits>0;
+
+      if(hasAnyTranslation&&validCount>0){
         renderDocSummary(validCount, doc.items.length, failedCount, memHits, '');
       }else{
         if($('docSummaryCard')) $('docSummaryCard').hidden=true;
@@ -1136,31 +1156,35 @@ $('dGo').onclick=async()=>{
 
       if(e.name==='AbortError'||dCtl?.signal?.aborted){
         try{
-          dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
-          dOutItems=partialOut.slice();
-          $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-          $('dSave').disabled=(validCount===0);
+          if(hasAnyTranslation){
+            dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+            dOutItems=partialOut.slice();
+            $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+            $('dSave').disabled=false;
+          }else{
+            $('dSave').disabled=true;
+          }
           updateDocStatus('warn', ui==='fa'?'متوقف شد':'Stopped');
-          const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+          const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;
           $('dBar').style.width=pct+'%';
-          updateDocProgCounts(validCount, doc.items.length);
-          $('dProgText').textContent=validCount>0
+          updateDocProgCounts(hasAnyTranslation?validCount:0, doc.items.length);
+          $('dProgText').textContent=hasAnyTranslation
             ?(ui==='fa'?`ترجمه متوقف شد (${validCount} بخش ذخیره شد)`:'Stopped (partial translation saved)')
             :(ui==='fa'?'ترجمه متوقف شد':'Stopped');
-          toast(L('stopped')+(validCount>0?' — partial file saved':''),'warn');
+          toast(L('stopped')+(hasAnyTranslation?' — partial file saved':''),'warn');
         }catch(be){
           fail(e);
         }
       }else{
         updateDocStatus('error', ui==='fa'?'خطا':'Error');
-        const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+        const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;
         $('dBar').style.width=pct+'%';
-        updateDocProgCounts(validCount, doc.items.length);
+        updateDocProgCounts(hasAnyTranslation?validCount:0, doc.items.length);
         const reason=toPlainReason(e)||e.message||'failed';
         $('dProgText').textContent=ui==='fa'
           ? `خطا در ترجمه: ${reason}`
           : `Translation failed: ${reason}`;
-        if(validCount>0){
+        if(hasAnyTranslation){
           try{
             dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
             dOutItems=partialOut.slice();
