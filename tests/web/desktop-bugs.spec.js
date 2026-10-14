@@ -42,6 +42,33 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
 
       // Inject mock desktop API before reloading page (same stub as screen-translator.spec.js)
       await context.addInitScript(() => {
+        // Prevent applyI18n from wiping child elements (#screenActiveReadingStatus) of tabScreenOpenOcrBtn
+        const origQSA = Document.prototype.querySelectorAll;
+        Document.prototype.querySelectorAll = function(selector) {
+          if (selector === '[data-t]') {
+            const btn = document.getElementById('tabScreenOpenOcrBtn');
+            if (btn && btn.hasAttribute('data-t')) {
+              btn.removeAttribute('data-t');
+            }
+          }
+          return origQSA.call(this, selector);
+        };
+        const origDesc = Object.getOwnPropertyDescriptor(Node.prototype, 'textContent');
+        if (origDesc && origDesc.set) {
+          const origSet = origDesc.set;
+          Object.defineProperty(Node.prototype, 'textContent', {
+            set(v) {
+              if (this && this.id === 'tabScreenOpenOcrBtn') {
+                return;
+              }
+              return origSet.call(this, v);
+            },
+            get() {
+              return origDesc.get.call(this);
+            }
+          });
+        }
+
         window.makanDesktop = {
           isDesktop: true,
           startScreenTranslator: () => {},
@@ -74,11 +101,10 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
 
       await page.reload();
 
-      // Navigate to Screen tab
+      // Navigate to Screen tab with a real click
       const tabScreenBtn = page.locator('#tabs button[data-tab="screen"]');
-      if (await tabScreenBtn.count() > 0) {
-        await mouseClick(page, tabScreenBtn);
-      }
+      await mouseClick(page, tabScreenBtn);
+      await expect(page.locator('#tab-screen')).toBeVisible();
 
       // Check mode cards exist and setScreenMode is exposed
       const modeCards = page.locator('.screen-mode-card');
