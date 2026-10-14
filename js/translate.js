@@ -598,6 +598,23 @@ function parseArr(txt,n,includeNotes=false){
   const s=String(txt).replace(/```(?:json)?/g,'').trim();
   let v;try{const a=s.indexOf('['),b=s.lastIndexOf(']');v=JSON.parse(a>=0&&b>a?s.slice(a,b+1):s)}catch{v=null}
   if(v&&!Array.isArray(v)&&typeof v==='object')v=Object.values(v).find(Array.isArray);
+  if(n===1){
+    if(includeNotes){
+      if(Array.isArray(v)&&v.length>0){
+        const x=v[0];
+        if(x&&typeof x==='object'&&('text' in x||'t' in x)) return [{text:String(x.text??x.t??''),note:x.note?String(x.note).trim():null}];
+        return [{text:typeof x==='string'?x:String(x??''),note:null}];
+      }
+      if(s) return [{text:s.replace(/^"|"$/g,''),note:null}];
+    }else{
+      if(Array.isArray(v)&&v.length>0){
+        const x=v[0];
+        if(x&&typeof x==='object'&&('text' in x||'t' in x)) return [String(x.text??x.t??'')];
+        return [typeof x==='string'?x:String(x??'')];
+      }
+      if(s) return [s.replace(/^"|"$/g,'')];
+    }
+  }
   if(includeNotes){
     if(Array.isArray(v)&&v.length===n){
       return v.map(x=>{
@@ -607,7 +624,6 @@ function parseArr(txt,n,includeNotes=false){
         return {text:typeof x==='string'?x:String(x??''),note:null};
       });
     }
-    if(n===1&&!Array.isArray(v)&&s)return [{text:s.replace(/^"|"$/g,''),note:null}];
     const e=new Error('reply did not match the input lines');e.mismatch=true;throw e;
   }
   if(Array.isArray(v)&&v.length===n){
@@ -616,7 +632,6 @@ function parseArr(txt,n,includeNotes=false){
       return typeof x==='string'?x:String(x??'');
     });
   }
-  if(n===1&&!Array.isArray(v)&&s)return [s.replace(/^"|"$/g,'')];
   const e=new Error('reply did not match the input lines');e.mismatch=true;throw e;
 }
 async function eAI(id,items,o){
@@ -749,7 +764,11 @@ async function runBatch(id,arr,o){
   }
   try{return await callEngine(id,arr.map(getStr),o)}
   catch(e){
-    if(e.mismatch&&arr.length>1){const h=arr.length>>1;return [...await runBatch(id,arr.slice(0,h),o),...await runBatch(id,arr.slice(h),o)]}
+    if(e.name==='AbortError'||o.signal?.aborted) throw e;
+    if((e.mismatch || (ENG[id]?.ai && !isBlockError(e) && e.status !== 429 && !/429|resource_exhausted|rate limit/i.test(e.message||''))) && arr.length > 1){
+      const h=arr.length>>1;
+      return [...await runBatch(id,arr.slice(0,h),o), ...await runBatch(id,arr.slice(h),o)];
+    }
     throw e;
   }
 }

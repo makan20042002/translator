@@ -871,274 +871,299 @@ $('dGo').onclick=async()=>{
   if(!doc)return;
   dCtl=new AbortController();
   busy([$('dGo')],$('dStop'),true);
-  updateDocStatus('active');
-  $('dProgText').textContent=ui==='fa'?'در حال ترجمه…':'Translating…';
-  $('dEngineUsed').textContent='';
-  updateDocProgCounts(0, doc.items.length);
-  $('dBar').style.width='0%';
-
-  const extraOpts={
-    subject:$('docSubjectField').value.trim(),
-    register:$('docRegister').value,
-    terms:getDocTerms(),
-    includeNotes:$('docNotes').checked
-  };
-
-  const curEngine=$('engine')?.value||'auto';
-  const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
-  const docMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
-  const srcLang=$('src').value==='finglish'?'auto':$('src').value;
-  const tgtLang=$('tgt').value;
-  const tone=$('tone')?.value||'';
-  const subject=extraOpts.subject||$('tSubject')?.value?.trim()||'';
-
-  const partialOut=new Array(doc.items.length);
-  const partialNotes=new Array(doc.items.length);
-  const uniqueMap=new Map();
-  const uniquePieces=[];
-
-  for(let i=0;i<doc.items.length;i++){
-    const raw=doc.items[i];
-    const trimmed=(raw||'').trim();
-    // Skip empty and numbers/punctuation/symbols-only snippets
-    if(!trimmed||!/\p{L}/u.test(trimmed)){
-      partialOut[i]=raw;
-      partialNotes[i]=null;
-      continue;
-    }
-    let entry=uniqueMap.get(trimmed);
-    if(!entry){
-      entry={id:uniquePieces.length,text:trimmed,indices:[i],out:null,note:null};
-      uniqueMap.set(trimmed,entry);
-      uniquePieces.push(entry);
-    }else{
-      entry.indices.push(i);
-    }
-  }
-
-  // 1. Look up memory for unique pieces
-  const neededPieces=[];
-  let memHits=0;
-  if(cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
-    for(const piece of uniquePieces){
-      try{
-        const hit=await TranslationMemory.get({
-          text:piece.text,
-          src:srcLang,
-          tgt:tgtLang,
-          modeClass:docMemMode,
-          tone,
-          subject
-        });
-        if(hit&&hit.translatedText){
-          piece.out=hit.translatedText;
-          piece.note=null;
-          for(const idx of piece.indices){
-            partialOut[idx]=hit.translatedText;
-            partialNotes[idx]=null;
-          }
-          memHits+=piece.indices.length;
-          continue;
-        }
-      }catch(_){}
-      neededPieces.push(piece);
-    }
-  }else{
-    neededPieces.push(...uniquePieces);
-  }
-
-  const totalPieces=uniquePieces.length;
-  const initialDonePieces=totalPieces-neededPieces.length;
-  const initialDoneSegments=doc.items.length - missIndices.length;
-  updateDocProgCounts(initialDoneSegments, doc.items.length);
-
-  // Update initial memory state if there were hits
-  if(memHits>0){
-    const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
-    $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(initialDoneSegments, doc.items.length);
-    $('dBar').style.width=totalPieces?Math.min(99, Math.round((initialDonePieces/totalPieces)*100))+'%':'0%';
-  }
-
-  // If all segments hit memory or were skipped numbers/empty, no engine call needed
-  if(neededPieces.length===0){
-    busy([$('dGo')],$('dStop'),false);
-    dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
-    dOutItems=partialOut.slice();
-    $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-    $('dSave').disabled=false;
-    $('dBar').style.width='100%';
-    const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
-    $('dEngineUsed').textContent=memMsg;
-    updateDocProgCounts(doc.items.length, doc.items.length);
-    updateDocStatus('ok');
-    $('dProgText').textContent=`${L('done')} · ${memMsg}`;
-    renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
-    toast(`${L('done')} · ${memMsg}`,'ok');
-    return;
-  }
-
-  // 2. Translate only missing unique pieces
   try{
-    const neededTexts=neededPieces.map(p=>p.text);
-    const r=await translateItems(neededTexts,opts(Object.assign({
-      chain:getDocEngineChain(),
-      signal:dCtl.signal,
-      onStatus:(msg)=>{ if($('dProgText')) $('dProgText').textContent=msg; },
-      onProgress:(pos,tot,engId)=>{
-        const done=initialDonePieces+pos;
-        const pct=Math.min(99, Math.round((done/totalPieces)*100));
-        $('dBar').style.width=pct+'%';
-        const doneSegments=partialOut.filter(x=>x!==undefined).length;
-        updateDocProgCounts(doneSegments, doc.items.length);
-        const engName=ENG[engId]?.name||engId;
-        const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
-        if(memHits>0){
-          $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
-        }
-        if(ui==='fa'){
-          $('dProgText').textContent=`در حال ترجمه ${done} از ${totalPieces} بخش · ${engName}${memNote}`;
-        }else{
-          $('dProgText').textContent=`Translating ${done} of ${totalPieces} pieces · ${engName}${memNote}`;
-        }
-      },
-      onBatch:(batchIndices,res,currentOut,currentNotes)=>{
-        const errRe=/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
-        const batchOk=Array.isArray(res)&&batchIndices.length===res.length&&batchIndices.every((_,k)=>{
-          const item=res[k];
-          const txt=typeof item==='string'?item:(item?.text||'');
-          return typeof txt==='string'&&txt.trim()&&!errRe.test(txt.trim());
-        });
+    updateDocStatus('active');
+    $('dProgText').textContent=ui==='fa'?'در حال ترجمه…':'Translating…';
+    $('dEngineUsed').textContent='';
+    updateDocProgCounts(0, doc.items.length);
+    $('dBar').style.width='0%';
 
-        batchIndices.forEach((kMiss,k)=>{
-          const piece=neededPieces[kMiss];
-          const trans=currentOut[kMiss];
-          const note=currentNotes[kMiss];
-          piece.out=trans;
-          piece.note=note;
-          for(const realIdx of piece.indices){
+    const extraOpts={
+      subject:$('docSubjectField')?.value?.trim()||'',
+      register:$('docRegister')?.value||'',
+      terms:getDocTerms(),
+      includeNotes:!!$('docNotes')?.checked
+    };
+
+    const curEngine=$('engine')?.value||'auto';
+    const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
+    const docMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
+    const srcLang=$('src').value==='finglish'?'auto':$('src').value;
+    const tgtLang=$('tgt').value;
+    const tone=$('tone')?.value||'';
+    const subject=extraOpts.subject||$('tSubject')?.value?.trim()||'';
+
+    const partialOut=new Array(doc.items.length);
+    const partialNotes=new Array(doc.items.length);
+    const uniqueMap=new Map();
+    const uniquePieces=[];
+
+    for(let i=0;i<doc.items.length;i++){
+      const raw=doc.items[i];
+      const trimmed=(raw||'').trim();
+      // Skip empty and numbers/punctuation/symbols-only snippets
+      if(!trimmed||!/\p{L}/u.test(trimmed)){
+        partialOut[i]=raw;
+        partialNotes[i]=null;
+        continue;
+      }
+      let entry=uniqueMap.get(trimmed);
+      if(!entry){
+        entry={id:uniquePieces.length,text:trimmed,indices:[i],out:null,note:null};
+        uniqueMap.set(trimmed,entry);
+        uniquePieces.push(entry);
+      }else{
+        entry.indices.push(i);
+      }
+    }
+
+    // 1. Look up memory for unique pieces
+    const neededPieces=[];
+    let memHits=0;
+    if(cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
+      for(const piece of uniquePieces){
+        try{
+          const hit=await TranslationMemory.get({
+            text:piece.text,
+            src:srcLang,
+            tgt:tgtLang,
+            modeClass:docMemMode,
+            tone,
+            subject
+          });
+          if(hit&&hit.translatedText){
+            piece.out=hit.translatedText;
+            piece.note=null;
+            for(const idx of piece.indices){
+              partialOut[idx]=hit.translatedText;
+              partialNotes[idx]=null;
+            }
+            memHits+=piece.indices.length;
+            continue;
+          }
+        }catch(_){}
+        neededPieces.push(piece);
+      }
+    }else{
+      neededPieces.push(...uniquePieces);
+    }
+
+    const totalPieces=uniquePieces.length;
+    const initialDonePieces=totalPieces-neededPieces.length;
+    const initialDoneSegments=partialOut.filter(x=>x!==undefined).length;
+    updateDocProgCounts(initialDoneSegments, doc.items.length);
+
+    // Update initial memory state if there were hits
+    if(memHits>0){
+      const memMsg=`${memHits} ${L('fromMemory')||'from memory'}`;
+      $('dEngineUsed').textContent=memMsg;
+      updateDocProgCounts(initialDoneSegments, doc.items.length);
+      $('dBar').style.width=totalPieces?Math.min(99, Math.round((initialDonePieces/totalPieces)*100))+'%':'0%';
+    }
+
+    // If all segments hit memory or were skipped numbers/empty, no engine call needed
+    if(neededPieces.length===0){
+      dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+      dOutItems=partialOut.slice();
+      $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+      $('dSave').disabled=false;
+      $('dBar').style.width='100%';
+      const memMsg=memHits?`${memHits} ${L('fromMemory')||'from memory'}`:'';
+      if(memMsg) $('dEngineUsed').textContent=memMsg;
+      updateDocProgCounts(doc.items.length, doc.items.length);
+      updateDocStatus('ok');
+      $('dProgText').textContent=memMsg?`${L('done')} · ${memMsg}`:L('done');
+      renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
+      toast(memMsg?`${L('done')} · ${memMsg}`:L('done'),'ok');
+      return;
+    }
+
+    // 2. Translate only missing unique pieces
+    try{
+      const neededTexts=neededPieces.map(p=>p.text);
+      const r=await translateItems(neededTexts,opts(Object.assign({
+        chain:getDocEngineChain(),
+        signal:dCtl.signal,
+        onStatus:(msg)=>{ if($('dProgText')) $('dProgText').textContent=msg; },
+        onProgress:(pos,tot,engId)=>{
+          const done=initialDonePieces+pos;
+          const pct=Math.min(99, Math.round((done/totalPieces)*100));
+          $('dBar').style.width=pct+'%';
+          const doneSegments=partialOut.filter(x=>x!==undefined).length;
+          updateDocProgCounts(doneSegments, doc.items.length);
+          const engName=ENG[engId]?.name||engId;
+          const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
+          if(memHits>0){
+            $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
+          }
+          if(ui==='fa'){
+            $('dProgText').textContent=`در حال ترجمه ${done} از ${totalPieces} بخش · ${engName}${memNote}`;
+          }else{
+            $('dProgText').textContent=`Translating ${done} of ${totalPieces} pieces · ${engName}${memNote}`;
+          }
+        },
+        onBatch:(batchIndices,res,currentOut,currentNotes)=>{
+          const errRe=/^(error|failed|http\s*\d+|429|503|rate limit|quota|timeout|timed?\s*out|unavailable|resource_exhausted)/i;
+          const batchOk=Array.isArray(res)&&batchIndices.length===res.length&&batchIndices.every((_,k)=>{
+            const item=res[k];
+            const txt=typeof item==='string'?item:(item?.text||'');
+            return typeof txt==='string'&&txt.trim()&&!errRe.test(txt.trim());
+          });
+
+          batchIndices.forEach((kMiss,k)=>{
+            const piece=neededPieces[kMiss];
+            if(!piece) return;
+            const trans=currentOut[kMiss];
+            const note=currentNotes[kMiss];
+            piece.out=trans;
+            piece.note=note;
+            for(const realIdx of piece.indices){
+              partialOut[realIdx]=trans;
+              partialNotes[realIdx]=note;
+            }
+
+            if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
+              const outText=typeof trans==='string'?trans:String(trans||'');
+              if(outText.trim()){
+                TranslationMemory.put({
+                  sourceText:piece.text,
+                  translatedText:outText,
+                  src:srcLang,
+                  tgt:tgtLang,
+                  modeClass:docMemMode,
+                  tone,
+                  subject
+                }).catch(()=>{});
+              }
+            }
+          });
+        }
+      },extraOpts)));
+
+      // Ensure all needed pieces are mapped back to partialOut even if onBatch was missed
+      neededPieces.forEach((piece,k)=>{
+        const trans=r.out?.[k]??piece.out;
+        const note=r.notes?.[k]??piece.note;
+        piece.out=trans;
+        piece.note=note;
+        for(const realIdx of piece.indices){
+          if(partialOut[realIdx]===undefined||partialOut[realIdx]===null){
             partialOut[realIdx]=trans;
             partialNotes[realIdx]=note;
           }
+        }
+      });
 
-          if(batchOk&&cfg.tm!==false&&typeof TranslationMemory!=='undefined'){
-            const outText=typeof trans==='string'?trans:String(trans||'');
-            if(outText.trim()){
-              TranslationMemory.put({
-                sourceText:piece.text,
-                translatedText:outText,
-                src:srcLang,
-                tgt:tgtLang,
-                modeClass:docMemMode,
-                tone,
-                subject
-              }).catch(()=>{});
-            }
-          }
-        });
+      // Verify results segment by segment
+      let validCount=0;
+      let failedCount=0;
+      for(let i=0;i<doc.items.length;i++){
+        const raw=doc.items[i];
+        const val=partialOut[i];
+        const txt=typeof val==='string'?val:(val?.text||'');
+        if(!raw||!raw.trim()){
+          validCount++;
+          if(partialOut[i]==null) partialOut[i]=raw;
+        }else if(txt&&txt.trim()&&!isDocErr(txt)){
+          validCount++;
+        }else{
+          failedCount++;
+          if(partialOut[i]==null) partialOut[i]=doc.items[i];
+        }
       }
-    },extraOpts)));
 
-    // Verify results segment by segment
-    let validCount=0;
-    let failedCount=0;
-    for(let i=0;i<doc.items.length;i++){
-      const val=partialOut[i];
-      const txt=typeof val==='string'?val:(val?.text||'');
-      if(txt&&txt.trim()&&!isDocErr(txt)){
-        validCount++;
-      }else{
-        failedCount++;
-        if(partialOut[i]==null) partialOut[i]=doc.items[i];
-      }
-    }
+      dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+      dOutItems=partialOut.slice();
+      $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+      $('dSave').disabled=(validCount===0);
 
-    dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
-    dOutItems=partialOut.slice();
-    $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-    $('dSave').disabled=(validCount===0);
+      const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
+      renderDocSummary(validCount, doc.items.length, failedCount, memHits, r.used);
 
-    const usedStr=memHits?`${r.used} (+${memHits} ${L('fromMemory')||'from memory'})`:r.used;
-    renderDocSummary(validCount, doc.items.length, failedCount, memHits, r.used);
-
-    if(failedCount>0){
-      updateDocStatus('warn', ui==='fa'?'ناقص':'Partial');
-      const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
-      $('dBar').style.width=pct+'%';
-      updateDocProgCounts(validCount, doc.items.length);
-      $('dProgText').textContent=ui==='fa'
-        ? `${validCount} از ${doc.items.length} ترجمه شد · ${failedCount} ناموفق`
-        : `${validCount} of ${doc.items.length} translated · ${failedCount} failed`;
-      toast(ui==='fa'?`ترجمه با ${failedCount} خط ناموفق انجام شد`:`Done with ${failedCount} failed segments`,'warn');
-    }else{
-      updateDocStatus('ok');
-      $('dBar').style.width='100%';
-      updateDocProgCounts(doc.items.length, doc.items.length);
-      if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
-      $('dProgText').textContent=`${L('done')} · ${usedStr}`;
-      toast(`${L('done')} · ${usedStr}`,'ok');
-    }
-    updateTmCount();
-  }catch(e){
-    let validCount=0;
-    let failedCount=0;
-    for(let i=0;i<doc.items.length;i++){
-      const val=partialOut[i];
-      const txt=typeof val==='string'?val:(val?.text||'');
-      if(txt&&txt.trim()&&!isDocErr(txt)){
-        validCount++;
-      }else{
-        failedCount++;
-        if(partialOut[i]==null) partialOut[i]=doc.items[i];
-      }
-    }
-
-    if(validCount>0){
-      renderDocSummary(validCount, doc.items.length, failedCount, memHits, '');
-    }else{
-      if($('docSummaryCard')) $('docSummaryCard').hidden=true;
-    }
-
-    if(e.name==='AbortError'||dCtl?.signal?.aborted){
-      try{
-        dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
-        dOutItems=partialOut.slice();
-        $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-        $('dSave').disabled=(validCount===0);
-        updateDocStatus('warn', ui==='fa'?'متوقف شد':'Stopped');
+      if(failedCount>0){
+        updateDocStatus('warn', ui==='fa'?'ناقص':'Partial');
         const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
         $('dBar').style.width=pct+'%';
         updateDocProgCounts(validCount, doc.items.length);
-        $('dProgText').textContent=validCount>0
-          ?(ui==='fa'?`ترجمه متوقف شد (${validCount} بخش ذخیره شد)`:'Stopped (partial translation saved)')
-          :(ui==='fa'?'ترجمه متوقف شد':'Stopped');
-        toast(L('stopped')+(validCount>0?' — partial file saved':''),'warn');
-      }catch(be){
-        fail(e);
+        $('dProgText').textContent=ui==='fa'
+          ? `${validCount} از ${doc.items.length} ترجمه شد · ${failedCount} ناموفق`
+          : `${validCount} of ${doc.items.length} translated · ${failedCount} failed`;
+        toast(ui==='fa'?`ترجمه با ${failedCount} خط ناموفق انجام شد`:`Done with ${failedCount} failed segments`,'warn');
+      }else{
+        updateDocStatus('ok');
+        $('dBar').style.width='100%';
+        updateDocProgCounts(doc.items.length, doc.items.length);
+        if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
+        $('dProgText').textContent=`${L('done')} · ${usedStr}`;
+        toast(`${L('done')} · ${usedStr}`,'ok');
       }
-    }else{
-      updateDocStatus('error', ui==='fa'?'خطا':'Error');
-      const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
-      $('dBar').style.width=pct+'%';
-      updateDocProgCounts(validCount, doc.items.length);
-      const reason=toPlainReason(e)||e.message||'failed';
-      $('dProgText').textContent=ui==='fa'
-        ? `خطا در ترجمه: ${reason}`
-        : `Translation failed: ${reason}`;
+      updateTmCount();
+    }catch(e){
+      let validCount=0;
+      let failedCount=0;
+      for(let i=0;i<doc.items.length;i++){
+        const raw=doc.items[i];
+        const val=partialOut[i];
+        const txt=typeof val==='string'?val:(val?.text||'');
+        if(!raw||!raw.trim()){
+          validCount++;
+          if(partialOut[i]==null) partialOut[i]=raw;
+        }else if(txt&&txt.trim()&&!isDocErr(txt)){
+          validCount++;
+        }else{
+          failedCount++;
+          if(partialOut[i]==null) partialOut[i]=doc.items[i];
+        }
+      }
+
       if(validCount>0){
+        renderDocSummary(validCount, doc.items.length, failedCount, memHits, '');
+      }else{
+        if($('docSummaryCard')) $('docSummaryCard').hidden=true;
+      }
+
+      if(e.name==='AbortError'||dCtl?.signal?.aborted){
         try{
           dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
           dOutItems=partialOut.slice();
           $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
-          $('dSave').disabled=false;
-        }catch(_){}
+          $('dSave').disabled=(validCount===0);
+          updateDocStatus('warn', ui==='fa'?'متوقف شد':'Stopped');
+          const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+          $('dBar').style.width=pct+'%';
+          updateDocProgCounts(validCount, doc.items.length);
+          $('dProgText').textContent=validCount>0
+            ?(ui==='fa'?`ترجمه متوقف شد (${validCount} بخش ذخیره شد)`:'Stopped (partial translation saved)')
+            :(ui==='fa'?'ترجمه متوقف شد':'Stopped');
+          toast(L('stopped')+(validCount>0?' — partial file saved':''),'warn');
+        }catch(be){
+          fail(e);
+        }
       }else{
-        $('dSave').disabled=true;
+        updateDocStatus('error', ui==='fa'?'خطا':'Error');
+        const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
+        $('dBar').style.width=pct+'%';
+        updateDocProgCounts(validCount, doc.items.length);
+        const reason=toPlainReason(e)||e.message||'failed';
+        $('dProgText').textContent=ui==='fa'
+          ? `خطا در ترجمه: ${reason}`
+          : `Translation failed: ${reason}`;
+        if(validCount>0){
+          try{
+            dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
+            dOutItems=partialOut.slice();
+            $('dOut').value=partialOut.slice(0,25).join('\n\n').slice(0,50000);
+            $('dSave').disabled=false;
+          }catch(_){}
+        }else{
+          $('dSave').disabled=true;
+        }
+        fail(e);
       }
-      fail(e);
     }
+  }finally{
+    busy([$('dGo')],$('dStop'),false);
   }
-  busy([$('dGo')],$('dStop'),false);
 };
 
 $('dStop').onclick=()=>dCtl?.abort();
