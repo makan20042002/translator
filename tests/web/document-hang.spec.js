@@ -74,16 +74,32 @@ test.describe('Web app: Document tab hang & timeout recovery', () => {
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await expect(page.locator('#dWork')).toBeVisible();
 
-    await mouseClick(page, page.locator('#dGo'));
+    // Record every #dProgText text with a MutationObserver installed before clicking #dGo
+    await page.evaluate(() => {
+      window.__progressTexts = [];
+      const progEl = document.getElementById('dProgText');
+      if (progEl) {
+        if (progEl.textContent) window.__progressTexts.push(progEl.textContent);
+        const obs = new MutationObserver(() => {
+          const txt = progEl.textContent;
+          if (txt) window.__progressTexts.push(txt);
+        });
+        obs.observe(progEl, { childList: true, characterData: true, subtree: true });
+      }
+    });
 
-    // Wait for the timeout line to appear
-    const progText = page.locator('#dProgText');
-    await expect(progText).toContainText(/Chrome on-device (did not answer|پاسخی نداد)/, { timeout: 5000 });
+    await mouseClick(page, page.locator('#dGo'));
 
     // Translation should continue with Google and finish with Download enabled
     const saveBtn = page.locator('#dSave');
     await expect(saveBtn).toBeEnabled({ timeout: 10_000 });
+    const progText = page.locator('#dProgText');
     await expect(progText).toContainText(/Done|انجام شد/);
+
+    // Assert that the timeout line appeared at least once
+    const progressList = await page.evaluate(() => window.__progressTexts);
+    const timeoutSeen = progressList.some(txt => /Chrome on-device (did not answer|پاسخی نداد)/.test(txt));
+    expect(timeoutSeen, `timeout line must appear in progress text, recorded list: ${JSON.stringify(progressList)}`).toBe(true);
   });
 
   test('Stop clicked while an engine call hangs becomes Stopped within 2 seconds, re-enables Translate, and Download stays disabled', async ({ app, files }) => {
