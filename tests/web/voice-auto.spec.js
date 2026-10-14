@@ -1,7 +1,7 @@
 'use strict';
 // Automatic voice choice in the web app: a language with no device voice (Persian on Windows Chrome) is spoken by
 // Gemini without the user changing any setting; the voice in use is shown; failures say why and offer Retry.
-const { test, expect, onlyEngines, mouseClick, VALID_KEY } = require('../support/fixtures');
+const { test, expect, onlyEngines, mouseClick, VALID_KEY, activateSettingsTab } = require('../support/fixtures');
 
 const GEMINI = 'generativelanguage.googleapis.com';
 const streamCalls = stub => stub.calls(GEMINI).filter(c => /:streamGenerateContent$/.test(c.path) || (/:generateContent$/.test(c.path) && c.body.includes('AUDIO')));

@@ -1,6 +1,6 @@
 'use strict';
 // "Engines & keys" window: entering keys, Check connections, and where keys go.
-const { test, expect, onlyEngines, mouseClick, VALID_KEY, BAD_KEY } = require('../support/fixtures');
+const { test, expect, onlyEngines, mouseClick, VALID_KEY, BAD_KEY, activateSettingsTab } = require('../support/fixtures');
 
 async function openSettings(page) {
   await mouseClick(page, page.locator('#openSet'));

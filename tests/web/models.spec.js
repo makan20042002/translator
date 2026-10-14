@@ -6,7 +6,7 @@
 // tools/model-check (see docs/MODELS.md).
 const { test, expect, onlyEngines, mouseClick } = require('../support/fixtures');
 
-const { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, row } = require('../support/model-helpers');
+const { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row } = require('../support/model-helpers');
 
 test.describe('Web app: offline model catalogue', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });

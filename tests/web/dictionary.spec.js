@@ -1,6 +1,6 @@
 'use strict';
 // Offline dictionary in the web app: packs, lookup in both directions, forms, reverse meanings, word list, AI after, credits, Persian UI.
-const { test, expect, onlyEngines, mouseClick, downloadOf, VALID_KEY } = require('../support/fixtures');
+const { test, expect, onlyEngines, mouseClick, downloadOf, VALID_KEY, activateSettingsTab } = require('../support/fixtures');
 
 const installPacks = page => page.evaluate(async () => { await dictReady; for (const p of DICT_PAIRS) await MakanDict.install(p, { getBytes: dictBytes(p) }); return true; });
 

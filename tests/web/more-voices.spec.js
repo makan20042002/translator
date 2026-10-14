@@ -4,7 +4,7 @@
 // with correct language and gender labels, that unknown gender shows "unknown" (Ganji),
 // and that they download through the existing download code with stubbed network/cache.
 const { test, expect, onlyEngines, mouseClick } = require('../support/fixtures');
-const { fakeDownloaded, openSettings, row } = require('../support/model-helpers');
+const { fakeDownloaded, openSettings, activateSettingsTab, row } = require('../support/model-helpers');
 
 test.describe('Web app: offline Piper voice catalogue and confirmed gender labels', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['google']), src: 'en', tgt: 'fa' } } });

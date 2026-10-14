@@ -5,7 +5,7 @@ const os = require('os');
 const path = require('path');
 const zlib = require('zlib');
 const { buildList } = require('../../build-dict-list');
-const { test, expect, onlyEngines, mouseClick } = require('../support/fixtures');
+const { test, expect, onlyEngines, mouseClick, activateSettingsTab } = require('../support/fixtures');
 
 const installPacks = page => page.evaluate(async () => { await dictReady; for (const p of DICT_PAIRS) await MakanDict.install(p, { getBytes: dictBytes(p) }); return true; });
 
