@@ -990,6 +990,7 @@ $('dGo').onclick=async()=>{
           ? `در حال ترجمه ${initialDonePieces} از ${totalPieces} بخش · ${initialEngName}${initialMemNote}`
           : `Translating ${initialDonePieces} of ${totalPieces} pieces · ${initialEngName}${initialMemNote}`;
       }
+      let hasTimeoutNotice=false;
       const r=await translateItems(neededTexts,opts(Object.assign({
         chain,
         signal:dCtl.signal,
@@ -997,7 +998,7 @@ $('dGo').onclick=async()=>{
         timeout:(typeof window!=='undefined'&&window.__docTimeoutMs)?window.__docTimeoutMs:20000,
         chromeAvailTimeoutMs:(typeof window!=='undefined'&&window.__chromeAvailTimeoutMs)?window.__chromeAvailTimeoutMs:2000,
         onEngineChange:(engId)=>{
-          if(dCtl?.signal?.aborted)return;
+          if(dCtl?.signal?.aborted||hasTimeoutNotice)return;
           const engName=ENG[engId]?.name||engId;
           const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
           if($('dProgText')){
@@ -1009,11 +1010,13 @@ $('dGo').onclick=async()=>{
         onStatus:(msg)=>{
           if(dCtl?.signal?.aborted)return;
           if(msg&&!/Translating with|در حال ترجمه با/i.test(msg)){
+            if(/did not answer|پاسخی نداد/i.test(msg)) hasTimeoutNotice=true;
             if($('dProgText')) $('dProgText').textContent=msg;
           }
         },
         onProgress:(pos,tot,engId)=>{
           if(dCtl?.signal?.aborted)return;
+          hasTimeoutNotice=false;
           const done=initialDonePieces+pos;
           const pct=Math.min(99, Math.round((done/totalPieces)*100));
           $('dBar').style.width=pct+'%';

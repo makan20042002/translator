@@ -975,7 +975,6 @@ async function translateItems(items,o){
             :`${ENG[id].name} did not answer, trying ${nextName}…`;
           o.onStatus?.(msg);
           ci++;
-          o.onEngineChange?.(chain[ci]);
           continue;
         }else{
           const msg=ui==='fa'
