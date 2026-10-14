@@ -999,6 +999,7 @@ function fillEngines(){
   $('engine').value=ok.includes(cur)?cur:'auto';
   $('cEng').innerHTML=ok.map((id,i)=>`<label class="chk"><input type="checkbox" value="${id}" ${i<3?'checked':''}>${esc(ENG[id].name)}</label>`).join('');
   if(typeof fillVoiceTransEngines==='function') fillVoiceTransEngines();
+  if(typeof updateDocEngineInfo==='function') updateDocEngineInfo();
 }
 
 function getVoiceAutoEngines() {

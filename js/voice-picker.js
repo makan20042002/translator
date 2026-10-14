@@ -698,6 +698,6 @@ const TTS_PRE={
 };
 $('ttsPre').onchange=()=>{const p=TTS_PRE[$('ttsPre').value];if(p){cfg.tts.key='';Object.assign(cfg.tts,p);saveCfg();renderVoice()}};
 $('ttsTest').onclick=()=>{const t=$('tgt').value,smp={fa:'سلام، این یک آزمایش صدا برای مترجم ماکان است.',ar:'مرحبا، هذا اختبار للصوت.',tr:'Merhaba, bu bir ses testidir.',de:'Hallo, dies ist ein Stimmtest.',fr:'Bonjour, ceci est un test de voix.',es:'Hola, esta es una prueba de voz.'};speak.last='';speak(smp[t]||'Hello, this is a voice test for MAKAN Translate.',smp[t]?t:'en')};
-$('offBtn').onclick=()=>{cfg.offline=!cfg.offline;saveCfg();fillEngines();offStatus();voiceLabels();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip()};
-addEventListener('online',()=>{fillEngines();offStatus();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip()});addEventListener('offline',()=>{fillEngines();offStatus();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip()});
+$('offBtn').onclick=()=>{cfg.offline=!cfg.offline;saveCfg();fillEngines();offStatus();voiceLabels();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();if(typeof updateDocEngineInfo==='function')updateDocEngineInfo()};
+addEventListener('online',()=>{fillEngines();offStatus();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();if(typeof updateDocEngineInfo==='function')updateDocEngineInfo()});addEventListener('offline',()=>{fillEngines();offStatus();if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();if(typeof updateDocEngineInfo==='function')updateDocEngineInfo()});
 if('serviceWorker' in navigator&&location.protocol.startsWith('http'))navigator.serviceWorker.register('sw.js').catch(()=>{});

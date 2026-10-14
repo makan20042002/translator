@@ -1462,8 +1462,9 @@ if($('docOpenEngineSettings')){
 
 if($('engine')) $('engine').addEventListener('change', updateDocEngineInfo);
 if($('tMode')) $('tMode').addEventListener('change', updateDocEngineInfo);
-if($('offline')) $('offline').addEventListener('change', updateDocEngineInfo);
 if($('offBtn')) $('offBtn').addEventListener('click', () => setTimeout(updateDocEngineInfo, 10));
+window.addEventListener('online', updateDocEngineInfo);
+window.addEventListener('offline', updateDocEngineInfo);
 document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', updateDocEngineInfo));
 if(document.readyState!=='loading'){
   updateDocEngineInfo();

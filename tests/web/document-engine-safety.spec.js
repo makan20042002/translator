@@ -29,15 +29,22 @@ test.describe('Web app: Document tab engine line and safety', () => {
     });
     await expect(engineText).toContainText('Smart');
 
-    // Toggle offline mode
-    await page.evaluate(() => {
-      const offChk = document.getElementById('offline');
-      if (offChk) {
-        offChk.checked = true;
-        offChk.dispatchEvent(new Event('change'));
-      }
-    });
+    // Toggle offline mode with a real mouse click on the real control (#offBtn)
+    const offBtn = page.locator('#offBtn');
+    await mouseClick(page, offBtn);
     await expect(engineText).toContainText('Offline');
+
+    // Switch to Persian and verify the Persian offline status
+    await mouseClick(page, page.locator('#uiLang'));
+    await expect(engineText).toContainText('آفلاین');
+
+    // Switch back to English
+    await mouseClick(page, page.locator('#uiLang'));
+    await expect(engineText).toContainText('Offline');
+
+    // Toggle offline mode back off with a real mouse click
+    await mouseClick(page, offBtn);
+    await expect(engineText).toContainText('Online');
 
     // Open Settings from the button
     const openBtn = page.locator('#docOpenEngineSettings');
