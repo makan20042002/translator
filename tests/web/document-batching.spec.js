@@ -151,4 +151,118 @@ test.describe('Web app: Document batching and deduplication', () => {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
   });
+
+  test('fake AI engine returning wrong number of parts falls back to 1-by-1 and translates every piece', async ({ app }) => {
+    test.setTimeout(60000);
+    const { page } = app;
+
+    const tempTxt = path.join(os.tmpdir(), `test-ai-fallback-${Date.now()}.txt`);
+    fs.writeFileSync(tempTxt, 'First sentence.\nSecond sentence.\nThird sentence.\nFourth sentence.\n');
+
+    try {
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      await page.evaluate(() => {
+        const curCfg = JSON.parse(localStorage.getItem('mkt_cfg') || '{}');
+        curCfg.order = ['gemini', 'google'];
+        curCfg.eng = curCfg.eng || {};
+        curCfg.eng.gemini = { on: true, key: 'fake-test-key', model: 'gemini-2.5-flash' };
+        localStorage.setItem('mkt_cfg', JSON.stringify(curCfg));
+        if (typeof cfg !== 'undefined') {
+          cfg.order = curCfg.order;
+          cfg.eng = curCfg.eng;
+        }
+      });
+
+      await page.evaluate(() => {
+        window.__batchAttempts = 0;
+        window.__singleAttempts = 0;
+        const origFetch = window.fetch;
+        window.fetch = async function(url, opt) {
+          const strUrl = String(url);
+          if (/generativelanguage\.googleapis\.com/i.test(strUrl)) {
+            let bodyObj = null;
+            try { bodyObj = JSON.parse(opt?.body); } catch {}
+            const userContent = bodyObj?.contents?.[0]?.parts?.[0]?.text;
+            let items = [];
+            try { items = JSON.parse(userContent); } catch {}
+
+            if (items.length > 1) {
+              window.__batchAttempts++;
+              const mismatched = items.slice(0, Math.max(1, items.length - 2)).map(s => `[fa] ${s}`);
+              const reply = {
+                candidates: [{
+                  content: {
+                    parts: [{ text: JSON.stringify(mismatched) }]
+                  }
+                }]
+              };
+              return new Response(JSON.stringify(reply), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            } else if (items.length === 1) {
+              window.__singleAttempts++;
+              const reply = {
+                candidates: [{
+                  content: {
+                    parts: [{ text: JSON.stringify([`[fa] ${items[0]}`]) }]
+                  }
+                }]
+              };
+              return new Response(JSON.stringify(reply), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
+          }
+          return origFetch.apply(this, arguments);
+        };
+      });
+
+      await chooseFile(page, page.locator('#dDrop'), tempTxt);
+      await expect(page.locator('#dWork')).toBeVisible();
+
+      await mouseClick(page, page.locator('#dGo'));
+
+      await expect(page.locator('#dSave')).toBeEnabled({ timeout: 45000 });
+      await expect(page.locator('#dProgText')).toContainText(/Done|انجام شد/);
+      await expect(page.locator('#dStatusChip')).toHaveClass(/ok/);
+
+      const batchAttempts = await page.evaluate(() => window.__batchAttempts);
+      const singleAttempts = await page.evaluate(() => window.__singleAttempts);
+      expect(batchAttempts, 'grouped batch must be attempted first').toBeGreaterThan(0);
+      expect(singleAttempts, 'single items must be attempted after mismatch fallback').toBeGreaterThan(0);
+
+      const dl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+      const content = dl.bytes.toString('utf8');
+      expect(content).toContain('[fa] First sentence.');
+      expect(content).toContain('[fa] Second sentence.');
+      expect(content).toContain('[fa] Third sentence.');
+      expect(content).toContain('[fa] Fourth sentence.');
+    } finally {
+      if (fs.existsSync(tempTxt)) fs.unlinkSync(tempTxt);
+    }
+  });
+
+  test('TXT file and DOCX file complete translation with Download enabled', async ({ app, files }) => {
+    test.setTimeout(60000);
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+    // Test TXT file
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+    await expect(page.locator('#dWork')).toBeVisible();
+    await mouseClick(page, page.locator('#dGo'));
+    await expect(page.locator('#dSave')).toBeEnabled({ timeout: 30000 });
+    await expect(page.locator('#dProgText')).toContainText(/Done|انجام شد/);
+
+    const txtDl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+    expect(txtDl.bytes.length).toBeGreaterThan(0);
+
+    // Test DOCX file
+    await chooseFile(page, page.locator('#dDrop'), files.docx);
+    await expect(page.locator('#dWork')).toBeVisible();
+    await mouseClick(page, page.locator('#dGo'));
+    await expect(page.locator('#dSave')).toBeEnabled({ timeout: 30000 });
+    await expect(page.locator('#dProgText')).toContainText(/Done|انجام شد/);
+
+    const docxDl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
+    expect(docxDl.bytes.length).toBeGreaterThan(0);
+  });
 });
+
