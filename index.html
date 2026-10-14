@@ -480,9 +480,17 @@
           </label>
         </div>
 
+        <div class="doc-engine-line" id="docEngineLine">
+          <span class="doc-engine-icon" aria-hidden="true">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 18v4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M18 12h4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
+          </span>
+          <span class="doc-engine-text" id="docEngineText">Engine: Auto · Mode: Fast · Status: Online</span>
+          <button class="btn ghost doc-engine-btn" id="docOpenEngineSettings" type="button" data-t="docChangeEngine">Change in Settings</button>
+        </div>
+
         <div id="docEngineNotice" class="doc-notice" hidden>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
-          <span data-t="docEngineNoticeText">Subject analysis &amp; translator notes require an AI engine. With non-AI engines, standard translation and Glossary are used.</span>
+          <span data-t="docEngineNoticeText">Subject analysis &amp; translator notes require an AI engine. Full document translation, file structure, formatting, tables, and Glossary work completely with non-AI engines (such as Google Translate, MyMemory, and offline NLLB).</span>
         </div>
 
         <!-- Subject & Terminology Card (AI Engines) -->

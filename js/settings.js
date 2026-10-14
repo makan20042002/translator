@@ -683,6 +683,7 @@ function closeSettings() {
   maskAllKeys();
   try { saveAllInputs(); } catch (e) {}
   if ($('ov')) $('ov').classList.remove('on');
+  if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
   if (lastActiveTabBeforeSettings && typeof lastActiveTabBeforeSettings.focus === 'function') {
     try { lastActiveTabBeforeSettings.focus(); } catch {}
   }

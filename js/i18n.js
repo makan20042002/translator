@@ -69,7 +69,9 @@ const I18N={en:{
  docKeepLayout:'Keep page layout',
  docNotes:'Translator notes',docNotesDesc:'Attach footnotes or slide notes for ambiguous terms & context',docEstSize:'Estimated size',
  docSegments:'segments',docWords:'words',docPagesEst:'pages',docSlidesEst:'slides',docRowsEst:'rows',
- docEngineNoticeText:'Subject analysis & translator notes require an AI engine. With non-AI engines, standard translation and Glossary are used.',
+ docEngineNoticeText:'Subject analysis & translator notes require an AI engine. Full document translation, file structure, formatting, tables, and Glossary work completely with non-AI engines (such as Google Translate, MyMemory, and offline NLLB).',
+ docChangeEngine:'Change in Settings',
+ loadingOfflineModel:'Loading offline model…',
  docFormattingNote:'Formatting note: Paragraphs, tables, images, slides and formulas are preserved byte-for-byte; complex inline run styling within single sentences is merged.',
  tSubject:'Subject',tSubjectPh:'Subject (e.g. Computer Science, Law, Medicine…)',subColSlide:'Slide',subColPage:'Page',
  pages:'pages',words:'words',slides:'slides',sheets:'sheets',rows:'rows',docAddedToGlossary:'terms added to Glossary',noTermsToReview:'No key terms to review',vAskLangAuto:'Auto (detect from question)',connFailed:'connection failed',
@@ -163,7 +165,9 @@ const I18N={en:{
  docKeepLayout:'حفظ چینش صفحات',
  docNotes:'یادداشت‌های مترجم',docNotesDesc:'افزودن پانویس یا یادداشت اسلاید برای اصطلاحات تخصصی و نکات فرهنگی',docEstSize:'حجم تخمینی',
  docSegments:'بخش',docWords:'کلمه',docPagesEst:'صفحه',docSlidesEst:'اسلاید',docRowsEst:'سطر',
- docEngineNoticeText:'تحلیل خودکار موضوع و یادداشت‌های مترجم نیازمند موتور هوش مصنوعی است. با موتورهای معمولی، ترجمه استاندارد و واژه‌نامه اعمال می‌شود.',
+ docEngineNoticeText:'تحلیل موضوع و یادداشت‌های مترجم به موتور هوش مصنوعی نیاز دارند. ترجمه کامل متن سند، ساختار فایل، قالب‌بندی، جدول‌ها و واژه‌نامه با تمام موتورهای غیر هوش مصنوعی (مانند <bdi>Google Translate</bdi>، <bdi>MyMemory</bdi> و مدل آفلاین <bdi>NLLB</bdi>) کاملاً فعال است.',
+ docChangeEngine:'تغییر در تنظیمات',
+ loadingOfflineModel:'در حال بارگذاری مدل آفلاین…',
  docFormattingNote:'نکته قالب‌بندی: پاراگراف‌ها، جدول‌ها، تصاویر، اسلایدها و فرمول‌ها عینا حفظ می‌شوند؛ قالب‌بندی‌های تکه‌تکه درون جملات برای یکپارچگی ترکیب می‌شوند.',
  tSubject:'موضوع',tSubjectPh:'موضوع (مثلاً کامپیوتر، حقوق، پزشکی…)',subColSlide:'اسلاید',subColPage:'صفحه',
  pages:'صفحه',words:'کلمه',slides:'اسلاید',sheets:'برگه',rows:'سطر',docAddedToGlossary:'به واژه‌نامه اضافه شد',noTermsToReview:'واژه‌ای برای بررسی وجود ندارد',vAskLangAuto:'خودکار (تشخیص از روی پرسش)',connFailed:'خطا در اتصال',
@@ -288,6 +292,7 @@ function applyI18n(){
   if(typeof renderTextStatusStrip==='function')renderTextStatusStrip();
   if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
   if(typeof updateAllUnifiedPickers==='function')updateAllUnifiedPickers();
+  if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
 }
 
 /* ---------- languages ---------- */

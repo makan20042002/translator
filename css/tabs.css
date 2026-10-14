@@ -9,6 +9,16 @@
 .doc-badge.excel{color:#10B981;border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08)}
 .doc-badge.txt{color:var(--cyan);border-color:rgba(19,200,245,.35);background:rgba(19,200,245,.08)}
 .doc-size-pill{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--surface2);padding:3px 10px;border-radius:999px;border:1px solid var(--border)}
+/* Document Engine Status Line */
+.doc-engine-line{font-size:12.5px;color:var(--text);background:var(--surface2);border:1px solid var(--border2);padding:7px 12px;border-radius:8px;display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap}
+.doc-engine-icon{display:inline-flex;align-items:center;color:var(--accent);flex-shrink:0}
+.doc-engine-text{display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;flex:1;min-width:0}
+.doc-engine-name{font-weight:600;color:var(--text)}
+.doc-engine-mode-pill{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px;background:rgba(59,107,255,.12);color:var(--pri,#3b6bff);border:1px solid rgba(59,107,255,.25)}
+.doc-engine-net-pill{font-family:var(--mono);font-size:11px;font-weight:600;padding:2px 7px;border-radius:4px}
+.doc-engine-net-pill.online{background:rgba(16,185,129,.12);color:#10b981;border:1px solid rgba(16,185,129,.3)}
+.doc-engine-net-pill.offline{background:rgba(245,158,11,.12);color:#f59e0b;border:1px solid rgba(245,158,11,.3)}
+.doc-engine-btn{padding:3px 10px;font-size:11.5px;height:28px;white-space:nowrap}
 .doc-notice{font-size:12.5px;color:var(--warn);background:rgba(255,180,74,.08);border:1px solid rgba(255,180,74,.25);padding:8px 12px;border-radius:8px;display:flex;align-items:center;gap:8px}
 
 /* Subject & Terminology Card */

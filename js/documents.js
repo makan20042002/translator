@@ -1334,3 +1334,71 @@ $('dSave').onclick=async()=>{
   }catch(e){fail(e)}
   $('dSave').disabled=false;
 };
+
+function openDocEngineSettings(){
+  if(typeof renderEngines==='function') renderEngines();
+  let ok=0,total=cfg.order.length;
+  cfg.order.forEach(id=>{if(engineConnStatus[id]?.code==='works')ok++});
+  if(Object.keys(engineConnStatus).length&&$('checkConnSummary'))$('checkConnSummary').textContent=`${ok}/${total} ${L('connWorks')}`;
+  $('ov').classList.add('on');
+  const targetTab = isOff() ? 'secTrModels' : 'secEngines';
+  if(typeof switchSettingsTab==='function') switchSettingsTab(targetTab);
+  setTimeout(()=>{
+    const sec = $(targetTab);
+    if(sec){
+      const first = sec.querySelector('button, select, input');
+      if(first) first.focus();
+    }
+  }, 100);
+}
+
+function updateDocEngineInfo(){
+  const line=$('docEngineLine');
+  const txtEl=$('docEngineText');
+  if(!line||!txtEl) return;
+
+  const curEng=$('engine')?.value||'auto';
+  const modeVal=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
+  const off=isOff();
+  const chain=getDocEngineChain();
+  const primaryId=chain[0]||'google';
+  const engName=ENG[primaryId]?.name||primaryId;
+
+  let modeLabel='';
+  if(off){
+    modeLabel=ui==='fa'?'آفلاین':'Offline';
+  }else if(modeVal==='fast'){
+    modeLabel=ui==='fa'?'سریع (Fast)':'Fast';
+  }else if(modeVal==='smart'){
+    modeLabel=ui==='fa'?'هوشمند (Smart)':'Smart';
+  }else if(modeVal==='both'){
+    modeLabel=ui==='fa'?'ترکیبی (Both)':'Both';
+  }else{
+    modeLabel=modeVal;
+  }
+
+  const netLabel=off?(ui==='fa'?'آفلاین':'Offline'):(ui==='fa'?'آنلاین':'Online');
+  const netClass=off?'offline':'online';
+  const autoTag=curEng==='auto'?(ui==='fa'?' (خودکار)':' (Auto)'):'';
+
+  const engineHtml=`<bdi class="doc-engine-name">${esc(engName)}${autoTag}</bdi>`;
+  const modeHtml=`<span class="doc-engine-mode-pill">${esc(modeLabel)}</span>`;
+  const netHtml=`<span class="doc-engine-net-pill ${netClass}">${esc(netLabel)}</span>`;
+
+  if(ui==='fa'){
+    txtEl.innerHTML=`موتور: ${engineHtml} · حالت: ${modeHtml} · وضعیت: ${netHtml}`;
+  }else{
+    txtEl.innerHTML=`Engine: ${engineHtml} · Mode: ${modeHtml} · Status: ${netHtml}`;
+  }
+}
+
+if($('docOpenEngineSettings')){
+  $('docOpenEngineSettings').onclick=openDocEngineSettings;
+}
+
+if($('engine')) $('engine').addEventListener('change', updateDocEngineInfo);
+if($('tMode')) $('tMode').addEventListener('change', updateDocEngineInfo);
+if($('offline')) $('offline').addEventListener('change', updateDocEngineInfo);
+document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', updateDocEngineInfo));
+updateDocEngineInfo();
+
