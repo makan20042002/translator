@@ -51,24 +51,70 @@ test.describe('Web app: Document batching and deduplication', () => {
     try {
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-      // Set up request counter and progress capture on page
+      // Configure fake AI engine (Gemini)
+      await page.evaluate(() => {
+        const curCfg = JSON.parse(localStorage.getItem('mkt_cfg') || '{}');
+        curCfg.order = ['gemini', 'google'];
+        curCfg.eng = curCfg.eng || {};
+        curCfg.eng.gemini = { on: true, key: 'fake-test-key', model: 'gemini-2.5-flash' };
+        localStorage.setItem('mkt_cfg', JSON.stringify(curCfg));
+        if (typeof cfg !== 'undefined') {
+          cfg.order = curCfg.order;
+          cfg.eng = curCfg.eng;
+        }
+        if (typeof fillEngines === 'function') fillEngines();
+        const engSel = document.getElementById('engine');
+        if (engSel) engSel.value = 'gemini';
+        const tMode = document.getElementById('tMode');
+        if (tMode) tMode.value = 'smart';
+        if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
+      });
+
+      // Set up request counter and progress capture on page for AI engine
       await page.evaluate(() => {
         window.__translationRequests = 0;
         window.__progressTexts = [];
         const origFetch = window.fetch;
         window.fetch = async function(url, opt) {
           const strUrl = String(url);
-          if (/clients5\.google|translate\.googleapis/i.test(strUrl)) {
+          if (/generativelanguage\.googleapis\.com/i.test(strUrl)) {
+            if (/models\?pageSize=/i.test(strUrl)) {
+              return new Response(JSON.stringify({
+                models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }]
+              }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
             window.__translationRequests++;
             const prog = document.getElementById('dProgText')?.textContent;
             if (prog) window.__progressTexts.push(prog);
-            // Return fake translated responses matching input items count
-            if (opt?.method === 'POST' && opt?.body instanceof URLSearchParams) {
-              const qCount = opt.body.getAll('q').length;
-              const result = Array.from({ length: qCount }, (_, i) => `ترجمه ${i + 1}`);
-              return new Response(JSON.stringify(result), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+            let bodyObj = null;
+            try { bodyObj = JSON.parse(opt?.body); } catch {}
+            const userContent = bodyObj?.contents?.[0]?.parts?.[0]?.text;
+            let items = [];
+            try { items = JSON.parse(userContent); } catch {}
+
+            const sysInst = bodyObj?.systemInstruction?.parts?.[0]?.text || '';
+            if (/expert translation and domain analysis assistant/i.test(sysInst)) {
+              const analysis = {
+                subject: 'Fitness & Health',
+                register: 'Technical / Specialized',
+                terms: [{ s: 'Exercise', t: 'تمرین' }]
+              };
+              return new Response(JSON.stringify({
+                candidates: [{ content: { parts: [{ text: JSON.stringify(analysis) }] } }]
+              }), { status: 200, headers: { 'Content-Type': 'application/json' } });
             }
-            return new Response(JSON.stringify([[["ترجمه شده", "original"]]]), { status: 200, headers: { 'Content-Type': 'application/json' } });
+
+            // Return translated items preserving exact array indexing and order
+            const translated = items.map(s => `[ترجمه] ${s}`);
+            const reply = {
+              candidates: [{
+                content: {
+                  parts: [{ text: JSON.stringify(translated) }]
+                }
+              }]
+            };
+            return new Response(JSON.stringify(reply), { status: 200, headers: { 'Content-Type': 'application/json' } });
           }
           return origFetch.apply(this, arguments);
         };
@@ -85,22 +131,41 @@ test.describe('Web app: Document batching and deduplication', () => {
       await expect(page.locator('#dSave')).toBeEnabled({ timeout: 45000 });
       await expect(page.locator('#dProgText')).toContainText(/Done|انجام شد/);
 
-      // Verify request count is far lower than 400
+      // Verify request count is far lower than snippet count (for 160 segments, batch size is up to 50)
       const requestsCount = await page.evaluate(() => window.__translationRequests);
-      expect(requestsCount, 'translation requests should be far lower than 400').toBeLessThanOrEqual(25);
+      expect(requestsCount, 'AI translation requests should be far lower than number of snippets').toBeLessThanOrEqual(10);
 
       // Verify progress text changed and referenced pieces
       const progressList = await page.evaluate(() => window.__progressTexts);
       const pieceProg = progressList.some(txt => /pieces|بخش/.test(txt));
       expect(pieceProg, 'progress text must update with pieces').toBe(true);
 
-      // Download translated docx and check that all 20 tables are preserved
+      // Download translated docx and check that all 20 tables and translated order are preserved
       const dl = await downloadOf(page, () => mouseClick(page, page.locator('#dSave')));
       const office = await openOffice(dl.bytes);
       expect(office.problems, 'translated docx should have no XML schema problems').toEqual([]);
 
       const tableCount = count(office.parts['word/document.xml'], 'w:tbl');
       expect(tableCount, 'translated document must keep exactly 20 tables').toBe(20);
+
+      const xml = office.parts['word/document.xml'];
+      expect(xml).toContain('[ترجمه] Exercise');
+      expect(xml).toContain('[ترجمه] Sets');
+      expect(xml).toContain('[ترجمه] Reps');
+      expect(xml).toContain('[ترجمه] Rest');
+      expect(xml).toContain('[ترجمه] Movement 1');
+      expect(xml).toContain('[ترجمه] Movement 4');
+
+      // Verify ordering within the document: Movement 1 precedes Movement 2, etc.
+      const idx1 = xml.indexOf('[ترجمه] Movement 1');
+      const idx2 = xml.indexOf('[ترجمه] Movement 2');
+      const idx3 = xml.indexOf('[ترجمه] Movement 3');
+      const idx4 = xml.indexOf('[ترجمه] Movement 4');
+      expect(idx1 < idx2 && idx2 < idx3 && idx3 < idx4, 'translated movement items must preserve sequential order').toBe(true);
+
+      // Verify numeric formatting tokens are preserved
+      expect(xml).toContain('10-12');
+      expect(xml).toContain('60s');
     } finally {
       if (fs.existsSync(tempFile)) fs.unlinkSync(tempFile);
     }
@@ -171,6 +236,12 @@ test.describe('Web app: Document batching and deduplication', () => {
           cfg.order = curCfg.order;
           cfg.eng = curCfg.eng;
         }
+        if (typeof fillEngines === 'function') fillEngines();
+        const engSel = document.getElementById('engine');
+        if (engSel) engSel.value = 'gemini';
+        const tMode = document.getElementById('tMode');
+        if (tMode) tMode.value = 'smart';
+        if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
       });
 
       await page.evaluate(() => {
@@ -180,11 +251,24 @@ test.describe('Web app: Document batching and deduplication', () => {
         window.fetch = async function(url, opt) {
           const strUrl = String(url);
           if (/generativelanguage\.googleapis\.com/i.test(strUrl)) {
+            if (/models\?pageSize=/i.test(strUrl)) {
+              return new Response(JSON.stringify({
+                models: [{ name: 'models/gemini-2.5-flash', supportedGenerationMethods: ['generateContent'] }]
+              }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
             let bodyObj = null;
             try { bodyObj = JSON.parse(opt?.body); } catch {}
             const userContent = bodyObj?.contents?.[0]?.parts?.[0]?.text;
             let items = [];
             try { items = JSON.parse(userContent); } catch {}
+
+            const sysInst = bodyObj?.systemInstruction?.parts?.[0]?.text || '';
+            if (/expert translation and domain analysis assistant/i.test(sysInst)) {
+              const analysis = { subject: 'General', register: 'Neutral / Standard', terms: [] };
+              return new Response(JSON.stringify({
+                candidates: [{ content: { parts: [{ text: JSON.stringify(analysis) }] } }]
+              }), { status: 200, headers: { 'Content-Type': 'application/json' } });
+            }
 
             if (items.length > 1) {
               window.__batchAttempts++;
