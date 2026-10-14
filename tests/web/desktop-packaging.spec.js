@@ -115,4 +115,145 @@ test.describe('Desktop Packaging and Server Configuration (Item 2)', () => {
     // 3. Verify getWebRoot checks for index.html at that location
     expect(mainSrc).toMatch(/fs\.existsSync\(path\.join\([^)]*index\.html[^)]*\)\)/);
   });
+
+  test('static test: all files loaded by relative path with no folder prefix in index.html, js/*.js, sw.js are matched by extraResources filter and server types', () => {
+    const minimatchModule = require('minimatch');
+    const minimatch = typeof minimatchModule === 'function' ? minimatchModule : minimatchModule.minimatch;
+
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const resourceEntry = pkg.build.extraResources.find(r => r.to === 'app' || r.to === 'app-web');
+    expect(resourceEntry, 'extraResources app entry must exist').toBeDefined();
+    const filters = resourceEntry.filter || [];
+
+    // Helper: matches any filter pattern using minimatch
+    const isPackaged = (relFile) => filters.some(pattern => minimatch(relFile, pattern, { dot: true }));
+
+    const discoveredRootFiles = new Set(['index.html']);
+
+    // 1. Scan index.html for root-level files (no slash or backslash in path)
+    const indexHtml = fs.readFileSync(path.join(rootDir, 'index.html'), 'utf8');
+    const attrRegex = /\b(?:src|href)=["']([^"':]+)["']/gi;
+    let m;
+    while ((m = attrRegex.exec(indexHtml)) !== null) {
+      const val = m[1].trim();
+      if (!val || val.startsWith('#') || val.startsWith('data:') || val.includes('/') || val.includes('\\')) continue;
+      discoveredRootFiles.add(val);
+    }
+
+    // 2. Scan js/*.js for root-level file references (workers, dynamic script loads, serviceWorker, etc.)
+    const jsDir = path.join(rootDir, 'js');
+    const jsFiles = fs.readdirSync(jsDir).filter(f => f.endsWith('.js'));
+    for (const jsFile of jsFiles) {
+      const content = fs.readFileSync(path.join(jsDir, jsFile), 'utf8');
+
+      // new Worker('file.js')
+      const workerMatches = content.matchAll(/new\s+Worker\s*\(\s*['"]([^'"]+)['"]/g);
+      for (const wm of workerMatches) {
+        const target = wm[1].replace(/^\.\//, '');
+        if (!target.includes('/') && !target.includes('\\')) discoveredRootFiles.add(target);
+      }
+
+      // script.src = 'file.js'
+      const srcMatches = content.matchAll(/\.src\s*=\s*['"]([^'"]+)['"]/g);
+      for (const sm of srcMatches) {
+        const target = sm[1].replace(/^\.\//, '');
+        if (!target.includes('/') && !target.includes('\\') && !target.startsWith('http')) discoveredRootFiles.add(target);
+      }
+
+      // serviceWorker.register('file.js')
+      const swMatches = content.matchAll(/serviceWorker\.register\s*\(\s*['"]([^'"]+)['"]/g);
+      for (const swm of swMatches) {
+        const target = swm[1].replace(/^\.\//, '');
+        if (!target.includes('/') && !target.includes('\\')) discoveredRootFiles.add(target);
+      }
+    }
+
+    // 3. Scan sw.js SHELL precache array
+    const swPath = path.join(rootDir, 'sw.js');
+    if (fs.existsSync(swPath)) {
+      discoveredRootFiles.add('sw.js');
+      const swContent = fs.readFileSync(swPath, 'utf8');
+      const shellMatch = swContent.match(/const\s+SHELL\s*=\s*\[([\s\S]*?)\];/);
+      if (shellMatch) {
+        const items = shellMatch[1].split(',').map(s => s.trim().replace(/^['"]|['"]$/g, '')).filter(Boolean);
+        for (const item of items) {
+          const stripped = item.replace(/^\.\//, '');
+          if (stripped && !stripped.includes('/') && !stripped.includes('\\')) {
+            discoveredRootFiles.add(stripped);
+          }
+        }
+      }
+    }
+
+    // 4. Scan ai-worker.js for local root imports (e.g. asr-guard.js)
+    const aiWorkerPath = path.join(rootDir, 'ai-worker.js');
+    if (fs.existsSync(aiWorkerPath)) {
+      const aiContent = fs.readFileSync(aiWorkerPath, 'utf8');
+      const importMatches = aiContent.matchAll(/from\s+['"]\.\/([^'"]+)['"]/g);
+      for (const im of importMatches) {
+        const target = im[1];
+        if (!target.includes('/') && !target.includes('\\')) discoveredRootFiles.add(target);
+      }
+    }
+
+    // 5. Scan manifest.webmanifest for icons
+    const manifestPath = path.join(rootDir, 'manifest.webmanifest');
+    if (fs.existsSync(manifestPath)) {
+      discoveredRootFiles.add('manifest.webmanifest');
+      try {
+        const manifestObj = JSON.parse(fs.readFileSync(manifestPath, 'utf8'));
+        if (Array.isArray(manifestObj.icons)) {
+          for (const icon of manifestObj.icons) {
+            const src = (icon.src || '').replace(/^\.\//, '');
+            if (src && !src.includes('/') && !src.includes('\\')) discoveredRootFiles.add(src);
+          }
+        }
+      } catch (e) {}
+    }
+
+    // Mandatory known root files that must be present
+    const mandatoryFiles = [
+      'jszip.min.js',
+      'models-catalog.js',
+      'translation-memory.js',
+      'ai-worker.js',
+      'asr-guard.js',
+      'piper-worker.js',
+      'sw.js',
+      'manifest.webmanifest',
+      'icon-192.png',
+      'icon-512.png',
+      'index.html'
+    ];
+    for (const mf of mandatoryFiles) {
+      discoveredRootFiles.add(mf);
+    }
+
+    // Verify every discovered file exists on disk in translator root and is matched by extraResources filter
+    for (const relFile of discoveredRootFiles) {
+      const filePath = path.join(rootDir, relFile);
+      expect(fs.existsSync(filePath), `Root file "${relFile}" must exist in web root`).toBe(true);
+
+      const matched = isPackaged(relFile);
+      expect(matched, `Root file "${relFile}" must be matched by extraResources filter in exe translator/package.json`).toBe(true);
+    }
+
+    // 6. Verify main.js server types dictionary handles all packaged file extensions
+    const mainSrc = fs.readFileSync(mainJsPath, 'utf8');
+    expect(mainSrc).toMatch(/const\s+types\s*=\s*\{/);
+    expect(mainSrc).toMatch(/['"]\.js['"]\s*:\s*['"]text\/javascript['"]/);
+    expect(mainSrc).toMatch(/['"]\.html['"]\s*:\s*['"]text\/html/);
+    expect(mainSrc).toMatch(/['"]\.css['"]\s*:\s*['"]text\/css['"]/);
+    expect(mainSrc).toMatch(/['"]\.webmanifest['"]\s*:/);
+    expect(mainSrc).toMatch(/path\.extname\(file\)\.toLowerCase\(\)/);
+
+    // 7. If unpacked build exists (dist/win-unpacked/resources/app), verify jszip.min.js is present
+    const unpackedAppDir = path.join(exeTranslatorDir, 'dist', 'win-unpacked', 'resources', 'app');
+    if (fs.existsSync(unpackedAppDir)) {
+      expect(
+        fs.existsSync(path.join(unpackedAppDir, 'jszip.min.js')),
+        'jszip.min.js must be present in dist/win-unpacked/resources/app'
+      ).toBe(true);
+    }
+  });
 });

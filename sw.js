@@ -1,5 +1,5 @@
 // MAKAN Translate — lets the app open with no internet.
-const CACHE = 'makan-translate-v18';
+const CACHE = 'makan-translate-v19';
 const SHELL = [
   './',
   './fonts/Vazirmatn.woff2',
@@ -33,6 +33,7 @@ const SHELL = [
   './models-catalog.js',
   './piper-worker.js',
   './translation-memory.js',
+  './jszip.min.js',
   './manifest.webmanifest',
   './extension/engine.js',
   './extension/dictionary.js',
