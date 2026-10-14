@@ -2245,6 +2245,20 @@ html[lang="fa"] .cue-tm-badge {
   flex-direction: column;
   gap: 4px;
 }
+.doc-header-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  flex-wrap: wrap;
+  width: 100%;
+}
+.doc-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
 .doc-page-title {
   margin: 0;
   font-family: var(--display, 'Plus Jakarta Sans', system-ui);
