@@ -695,9 +695,7 @@ $('btnSaveDone').onclick = () => {
   toast(L('savedNotice') || 'Settings saved', 'ok');
 };
 $('ov').addEventListener('click', e => {
-  if (e.target === $('ov')) {
-    closeSettings();
-  }
+  if (e.target === $('ov')) maskAllKeys();
 });
 
 window.addEventListener('keydown', e => {
