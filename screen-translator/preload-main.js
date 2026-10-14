@@ -2,7 +2,7 @@ const { contextBridge, ipcRenderer } = require('electron');
 
 contextBridge.exposeInMainWorld('makanDesktop', {
   isDesktop: true,
-  startScreenTranslator: () => ipcRenderer.send('screen-trans:start'),
+  startScreenTranslator: (opts) => ipcRenderer.send('screen-trans:start', opts),
   getOcrLanguages: () => ipcRenderer.invoke('screen-trans:get-languages'),
   getOcrEngines: () => ipcRenderer.invoke('screen-trans:get-engines'),
   getScreenTransConfig: () => ipcRenderer.invoke('screen-trans:get-config'),

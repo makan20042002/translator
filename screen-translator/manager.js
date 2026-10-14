@@ -161,8 +161,9 @@ class ScreenTranslatorManager {
       }
     });
 
-    ipcMain.on('screen-trans:start', () => {
-      this.startCapture();
+    ipcMain.on('screen-trans:start', (event, opts) => {
+      console.log('[ScreenTranslator] Received screen-trans:start IPC with options:', opts ? JSON.stringify(opts) : 'none');
+      this.startCapture(opts);
     });
 
     ipcMain.on('screen-trans:capture-complete', async (event, rect) => {
@@ -346,12 +347,33 @@ class ScreenTranslatorManager {
     this.closeOverlayWindow();
   }
 
+  restoreMainWindowIfNeeded(reason = 'operation completed') {
+    if (this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
+      console.log(`[ScreenTranslator] Restoring mainWindow (${reason})`);
+      this.mainWindow.show();
+      if (this.mainWindow.isMinimized()) this.mainWindow.restore();
+      this.mainWindow.focus();
+      this._wasMainWindowVisible = false;
+    }
+  }
+
   /**
    * Start region selection overlay across all monitors.
    */
-  async startCapture() {
-    if (this.isCapturing) return;
+  async startCapture(opts = {}) {
+    console.log('[ScreenTranslator] startCapture invoked');
+    if (this.isCapturing) {
+      console.log('[ScreenTranslator] Already capturing, ignoring');
+      return;
+    }
     this.isCapturing = true;
+
+    if (opts && typeof opts === 'object') {
+      if (opts.targetLang) this.config.targetLang = opts.targetLang;
+      if (opts.ocrLang) this.config.ocrLang = opts.ocrLang;
+      if (opts.engine) this.config.engine = opts.engine;
+      if (opts.freezeFrame !== undefined) this.config.freezeFrame = Boolean(opts.freezeFrame);
+    }
 
     // Hide main app window (and settings modal inside it) before capturing screen
     this._wasMainWindowVisible = false;
@@ -359,9 +381,12 @@ class ScreenTranslatorManager {
       const isVis = typeof this.mainWindow.isVisible === 'function' ? this.mainWindow.isVisible() : true;
       if (isVis) {
         this._wasMainWindowVisible = true;
+        console.log('[ScreenTranslator] Hiding mainWindow for screen capture');
         this.mainWindow.hide();
         // Give window manager a moment to clear the window from the display buffer
         await new Promise(r => setTimeout(r, 150));
+      } else {
+        console.log('[ScreenTranslator] mainWindow was already hidden');
       }
     }
 
@@ -451,10 +476,8 @@ class ScreenTranslatorManager {
     this.captureWindow = null;
     this.isCapturing = false;
     this._frozenSnapshot = null;
-    if (!keepMainWindowHidden && this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
-      console.log('[ScreenTranslator] Restoring mainWindow after capture window closed');
-      this.mainWindow.show();
-      this._wasMainWindowVisible = false;
+    if (!keepMainWindowHidden) {
+      this.restoreMainWindowIfNeeded('capture cancelled or closed');
     }
   }
 
@@ -462,17 +485,13 @@ class ScreenTranslatorManager {
    * Handles user completed selection rectangle.
    */
   async onCaptureComplete(rect) {
-    console.log('[ScreenTranslator] onCaptureComplete rect:', rect);
     const frozen = this._frozenSnapshot;
     const hasValidRect = Boolean(rect && rect.width >= 8 && rect.height >= 8);
+    console.log('[ScreenTranslator] onCaptureComplete, validRect:', hasValidRect, 'dimensions:', rect ? `${rect.width}x${rect.height}` : 'null');
     this.closeCaptureWindow(hasValidRect);
 
     if (!hasValidRect) {
-      if (this._wasMainWindowVisible && this.mainWindow && !this.mainWindow.isDestroyed()) {
-        console.log('[ScreenTranslator] Restoring mainWindow after invalid/cancelled capture');
-        this.mainWindow.show();
-        this._wasMainWindowVisible = false;
-      }
+      this.restoreMainWindowIfNeeded('invalid selection rect');
       return;
     }
 
@@ -510,18 +529,17 @@ class ScreenTranslatorManager {
     }
 
     if (!imageBuffer) {
+      console.log('[ScreenTranslator] Error: could not capture screen region buffer');
       this.showOverlayNear(rect);
       this.sendToOverlay('ocr-result', { ok: false, error: 'Could not capture screen region.' });
+      this.restoreMainWindowIfNeeded('capture buffer error');
       return;
     }
 
     await this.processImageBuffer(imageBuffer, rect);
 
-    // After capture, result is shown in the overlay.
-    // The main window must NOT jump back on top by itself unless returnToAppAfterCapture is enabled
-    if (this.config.returnToAppAfterCapture && this.mainWindow && !this.mainWindow.isDestroyed()) {
-      this.mainWindow.show();
-    }
+    // Make sure main window always comes back after result is ready
+    this.restoreMainWindowIfNeeded('capture result ready');
   }
 
   /**
@@ -640,11 +658,7 @@ class ScreenTranslatorManager {
       this.overlayWindow.on('closed', () => {
         console.log('[ScreenTranslator] overlayWindow on(closed) event fired');
         this.overlayWindow = null;
-        if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-          console.log('[ScreenTranslator] Ensuring mainWindow is visible after overlay window closed');
-          this.mainWindow.show();
-        }
-        this._wasMainWindowVisible = false;
+        this.restoreMainWindowIfNeeded('overlay closed');
       });
     } else {
       this.overlayWindow.setPosition(Math.round(posX), Math.round(posY));
@@ -661,12 +675,7 @@ class ScreenTranslatorManager {
       this.overlayWindow.close();
     }
     this.overlayWindow = null;
-    if (this.mainWindow && !this.mainWindow.isDestroyed()) {
-      console.log('[ScreenTranslator] Restoring mainWindow after overlay close');
-      this.mainWindow.show();
-      this.mainWindow.focus();
-    }
-    this._wasMainWindowVisible = false;
+    this.restoreMainWindowIfNeeded('overlay closed');
   }
 
   sendToOverlay(channel, data) {
@@ -706,6 +715,8 @@ class ScreenTranslatorManager {
       setTimeout(() => {
         if (this._pendingTranslations.has(transId)) {
           this._pendingTranslations.delete(transId);
+          console.log('[ScreenTranslator] Translation timed out after 15s');
+          this.restoreMainWindowIfNeeded('translation timeout');
           resolve({ ok: false, error: 'Translation timed out. Please retry or click Open in App.' });
         }
       }, 15000);

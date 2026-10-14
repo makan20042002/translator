@@ -351,6 +351,7 @@ function trapWelcomeFocus(e) {
 }
 
 function openWelcomeWizard(step = 1) {
+  if (typeof closeSettings === 'function') closeSettings();
   const ov = $('welcomeOverlay');
   if (!ov) return;
   welcomeLastFocusedElement = document.activeElement;
@@ -379,6 +380,7 @@ function openWelcomeWizard(step = 1) {
 }
 
 function closeWelcomeWizard() {
+  if (typeof closeSettings === 'function') closeSettings();
   const ov = $('welcomeOverlay');
   if (!ov) return;
   ov.classList.remove('on');

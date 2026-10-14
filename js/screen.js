@@ -76,17 +76,28 @@ function initScreenWebUI() {
 
   // Mode Selection Cards
   const modeCards = tabScreen.querySelectorAll('.screen-mode-card');
+  window.setScreenMode = function(chosenMode) {
+    modeCards.forEach(c => {
+      const isMatch = (c.dataset.mode === chosenMode);
+      c.classList.toggle('on', isMatch);
+      c.setAttribute('aria-checked', isMatch ? 'true' : 'false');
+    });
+    if ($('stFreezeFrame')) {
+      $('stFreezeFrame').value = (chosenMode === 'freeze' || chosenMode === 'region') ? '1' : '0';
+    }
+    if ($('stClipboardWatcher')) {
+      $('stClipboardWatcher').value = (chosenMode === 'clip') ? '1' : '0';
+    }
+    if (typeof window._persistStConfig === 'function') {
+      window._persistStConfig();
+    }
+  };
+
   modeCards.forEach(card => {
     card.addEventListener('click', () => {
-      modeCards.forEach(c => {
-        c.classList.remove('on');
-        c.setAttribute('aria-checked', 'false');
-      });
-      card.classList.add('on');
-      card.setAttribute('aria-checked', 'true');
-      const chosenMode = card.dataset.mode;
-      if (chosenMode === 'freeze' && $('stFreezeFrame')) $('stFreezeFrame').value = '1';
-      if (chosenMode === 'clip' && $('stClipboardWatcher')) $('stClipboardWatcher').value = '1';
+      if (typeof window.setScreenMode === 'function') {
+        window.setScreenMode(card.dataset.mode);
+      }
     });
   });
 
@@ -221,8 +232,13 @@ function initScreenWebUI() {
 
   // Primary capture button handler for browser / desktop
   $('tabScreenLaunchBtn')?.addEventListener('click', async () => {
+    if (typeof window.closeSettings === 'function') window.closeSettings();
     if (window.makanDesktop?.startScreenTranslator) {
-      window.makanDesktop.startScreenTranslator();
+      window.makanDesktop.startScreenTranslator({
+        targetLang: tgtSelect?.value || $('stTgtLang')?.value || 'fa',
+        ocrLang: srcSelect?.value || $('stOcrLang')?.value || 'auto',
+        engine: engSelect?.value || 'auto'
+      });
       return;
     }
     if (typeof toast === 'function') {
@@ -267,20 +283,43 @@ if (document.readyState === 'loading') {
   if (stSettingsBlock) stSettingsBlock.hidden = false;
 
   btnScreen?.addEventListener('click', () => {
-    window.makanDesktop.startScreenTranslator();
+    if (typeof window.closeSettings === 'function') window.closeSettings();
+    window.makanDesktop.startScreenTranslator({
+      targetLang: $('screenTgtLang')?.value || $('stTgtLang')?.value || 'fa',
+      ocrLang: $('screenSrcLang')?.value || $('stOcrLang')?.value || 'auto',
+      engine: $('screenTransEngine')?.value || 'auto'
+    });
   });
 
   // Also support Ctrl+Shift+S keyboard shortcut inside the browser window
   window.addEventListener('keydown', (e) => {
     if ((e.ctrlKey || e.metaKey) && e.shiftKey && (e.key === 'S' || e.key === 's')) {
       e.preventDefault();
-      window.makanDesktop.startScreenTranslator();
+      if (typeof window.closeSettings === 'function') window.closeSettings();
+      window.makanDesktop.startScreenTranslator({
+        targetLang: $('screenTgtLang')?.value || $('stTgtLang')?.value || 'fa',
+        ocrLang: $('screenSrcLang')?.value || $('stOcrLang')?.value || 'auto',
+        engine: $('screenTransEngine')?.value || 'auto'
+      });
     }
   });
 
-  // Populate installed OCR languages in settings
+  // Populate installed OCR languages and target languages in settings
   const stOcrLang = $('stOcrLang');
+  const stTgtLang = $('stTgtLang');
   const stOcrHint = $('stOcrStatusHint');
+
+  if (stTgtLang && typeof LANGS !== 'undefined' && stTgtLang.options.length <= 2) {
+    const curVal = stTgtLang.value || 'fa';
+    stTgtLang.innerHTML = '';
+    LANGS.forEach(([code, name]) => {
+      const opt = document.createElement('option');
+      opt.value = code;
+      opt.textContent = `${name} (${code})`;
+      if (code === curVal) opt.selected = true;
+      stTgtLang.appendChild(opt);
+    });
+  }
 
   try {
     const ocrLangs = await window.makanDesktop.getOcrLanguages();
@@ -411,6 +450,10 @@ if (document.readyState === 'loading') {
     if (statusEl) {
       statusEl.textContent = `${engName} · ${lName}${modelSuffix}`;
     }
+    const screenStatusEl = $('screenActiveReadingStatus');
+    if (screenStatusEl) {
+      screenStatusEl.innerHTML = `Active reading: <bdi>${typeof esc === 'function' ? esc(engName) : engName}</bdi> · ${typeof esc === 'function' ? esc(lName) : lName}${modelSuffix}`;
+    }
 
     const warnEl = $('stPersianWarningLine');
     const warnTxt = $('stPersianWarningText');
@@ -472,6 +515,17 @@ if (document.readyState === 'loading') {
       if ($('stAutoCopy')) $('stAutoCopy').value = cfgST.autoCopy ? '1' : '0';
       if ($('stSaveHist')) $('stSaveHist').value = cfgST.saveHistory ? '1' : '0';
       if ($('stReturnToApp')) $('stReturnToApp').value = cfgST.returnToAppAfterCapture ? '1' : '0';
+      if ($('screenTgtLang') && cfgST.targetLang) $('screenTgtLang').value = cfgST.targetLang;
+      if ($('screenSrcLang') && cfgST.ocrLang) $('screenSrcLang').value = cfgST.ocrLang;
+      if (typeof window.setScreenMode === 'function') {
+        if (cfgST.clipboardWatcher) {
+          window.setScreenMode('clip');
+        } else if (cfgST.freezeFrame) {
+          window.setScreenMode('freeze');
+        } else {
+          window.setScreenMode('region');
+        }
+      }
       renderOcrModels(cfgST.ocrModel || 'ocr-rapid-arabic');
     } else {
       renderOcrModels('ocr-rapid-arabic');
@@ -502,6 +556,7 @@ if (document.readyState === 'loading') {
       console.warn('[ScreenTranslator] Error saving config:', e);
     }
   }
+  window._persistStConfig = persistStConfig;
 
   $('stEnable')?.addEventListener('change', persistStConfig);
   $('stOcrEngine')?.addEventListener('change', persistStConfig);

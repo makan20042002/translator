@@ -682,11 +682,12 @@ function maskAllKeys() {
 function closeSettings() {
   maskAllKeys();
   try { saveAllInputs(); } catch (e) {}
-  $('ov').classList.remove('on');
+  if ($('ov')) $('ov').classList.remove('on');
   if (lastActiveTabBeforeSettings && typeof lastActiveTabBeforeSettings.focus === 'function') {
     try { lastActiveTabBeforeSettings.focus(); } catch {}
   }
 }
+window.closeSettings = closeSettings;
 
 $('closeSet').onclick = closeSettings;
 $('btnSaveDone').onclick = () => {
@@ -694,7 +695,9 @@ $('btnSaveDone').onclick = () => {
   toast(L('savedNotice') || 'Settings saved', 'ok');
 };
 $('ov').addEventListener('click', e => {
-  if (e.target === $('ov')) maskAllKeys();
+  if (e.target === $('ov')) {
+    closeSettings();
+  }
 });
 
 window.addEventListener('keydown', e => {
