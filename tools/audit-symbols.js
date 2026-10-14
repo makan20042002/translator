@@ -224,12 +224,6 @@ function auditTestSupportImports() {
         }
       } else if (node.type === 'FunctionDeclaration' && node.id) {
         declaredNames.add(node.id.name);
-      } else if (node.type === 'CallExpression' && node.callee && node.callee.name === 'require') {
-        const arg = node.arguments[0];
-        if (arg && typeof arg.value === 'string' && (arg.value.includes('fixtures') || arg.value.includes('model-helpers'))) {
-          declaredNames.add('activateSettingsTab');
-          declaredNames.add('openSettings');
-        }
       }
       for (const k of Object.keys(node)) {
         if (k === 'loc') continue;
