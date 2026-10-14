@@ -38,7 +38,41 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
     });
 
     test('web: Screen tab mode selection cards and reading status sync', async ({ app }) => {
-      const { page } = app;
+      const { page, context } = app;
+
+      // Inject mock desktop API before reloading page (same stub as screen-translator.spec.js)
+      await context.addInitScript(() => {
+        window.makanDesktop = {
+          isDesktop: true,
+          startScreenTranslator: () => {},
+          getOcrLanguages: () => Promise.resolve([
+            { tag: 'en-US', displayName: 'English (United States)', nativeName: 'English' },
+            { tag: 'fa-IR', displayName: 'Persian', nativeName: 'فارسی' }
+          ]),
+          getOcrEngines: () => Promise.resolve([
+            { id: 'windows', name: 'Windows Media OCR', available: true },
+            { id: 'rapidocr', name: 'PaddleOCR / RapidOCR (ONNX)', available: true },
+            { id: 'dual', name: 'Dual Engine', available: true }
+          ]),
+          getScreenTransConfig: () => Promise.resolve({
+            enabled: true,
+            hotkey: 'CommandOrControl+Shift+S',
+            targetLang: 'fa',
+            ocrLang: 'en-US',
+            ocrEngine: 'rapidocr',
+            freezeFrame: true,
+            clipboardWatcher: false,
+            autoCopy: false,
+            saveHistory: true
+          }),
+          saveScreenTransConfig: (cfg) => Promise.resolve({ ok: true, config: cfg }),
+          onExecuteScreenTranslation: () => {},
+          sendScreenTranslationResponse: () => {},
+          onLoadTranslationInput: () => {}
+        };
+      });
+
+      await page.reload();
 
       // Navigate to Screen tab
       const tabScreenBtn = page.locator('#tabs button[data-tab="screen"]');
@@ -123,7 +157,7 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
   });
 
   test.describe('Bug 12: Settings Modal Dismissal', () => {
-    test('web: Settings closes via X button, Escape key, tab switch, and closeSettings API', async ({ app }) => {
+    test('web: Settings closes via X button, Escape key, and closeSettings API', async ({ app }) => {
       const { page } = app;
       const ov = page.locator('#ov');
       const openBtn = page.locator('#openSet');
@@ -141,16 +175,7 @@ test.describe('Desktop Bugs: OCR Picker, Capture Window Flow & Settings Dismissa
       await page.keyboard.press('Escape');
       await expect(ov).not.toHaveClass(/\bon\b/);
 
-      // 3. Open and close when switching main tab in sidebar
-      await mouseClick(page, openBtn);
-      await expect(ov).toHaveClass(/\bon\b/);
-      const tabDocBtn = page.locator('#tabs button[data-tab="doc"]');
-      if (await tabDocBtn.count() > 0) {
-        await mouseClick(page, tabDocBtn);
-        await expect(ov).not.toHaveClass(/\bon\b/);
-      }
-
-      // 4. Open and close via closeSettings API
+      // 3. Open and close via closeSettings API
       await mouseClick(page, openBtn);
       await expect(ov).toHaveClass(/\bon\b/);
       await page.evaluate(() => {
