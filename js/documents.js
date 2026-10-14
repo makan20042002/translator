@@ -546,6 +546,21 @@ function getDocTerms(){
   return (docTerms||[]).filter(x=>x.s&&x.t);
 }
 
+function getDocEngineChain(){
+  const cur=$('engine')?.value||'auto';
+  if(cur!=='auto'&&usable(cur)) return [cur];
+  if(isOff()){
+    const offList=['nllb','chrome','ollama'].filter(usable);
+    if(offList.length) return offList;
+    return ['nllb'];
+  }
+  const mode=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
+  if(mode==='fast'){
+    return typeof getFastChain==='function'?getFastChain():['google','mymemory'];
+  }
+  return typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order.filter(usable);
+}
+
 async function detectSubjectAndTerms(d){
   const engId=$('engine').value;
   const isAi=ENG[engId]?.ai||(engId==='auto'&&usableAiEngine());
@@ -579,8 +594,10 @@ Reply ONLY with a JSON object in this exact schema:
 Document sample:
 ${sampleText}`;
 
+  const ctl = new AbortController();
+  const tm = setTimeout(() => ctl.abort(), 20000);
   try{
-    const res=await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto'});
+    const res=await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto',signal:ctl.signal});
     let clean=res.text.replace(/```(?:json)?/g,'').trim();
     const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
     if(a>=0&&b>a) clean=clean.slice(a,b+1);
@@ -591,6 +608,7 @@ ${sampleText}`;
   }catch(e){
     console.warn('Subject detection skipped:', scrubKeys(e.message));
   }finally{
+    clearTimeout(tm);
     $('docSubjAnalyzing').hidden=true;
   }
 }
@@ -654,7 +672,14 @@ Return a JSON array of objects with the verified or corrected target translation
 [{"s": "source term", "t": "verified or corrected target translation", "corrected": true/false, "note": "brief reason if changed"}]
 Return ONLY the raw JSON array.`;
 
-    const res=await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto'});
+    const ctl = new AbortController();
+    const tm = setTimeout(() => ctl.abort(), 25000);
+    let res;
+    try {
+      res = await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto',signal:ctl.signal});
+    } finally {
+      clearTimeout(tm);
+    }
     let clean=res.text.replace(/```(?:json)?/g,'').trim();
     const a=clean.indexOf('['), b=clean.lastIndexOf(']');
     if(a>=0&&b>a) clean=clean.slice(a,b+1);
@@ -931,7 +956,9 @@ $('dGo').onclick=async()=>{
   // 2. Translate only missing segments
   try{
     const r=await translateItems(missItems,opts(Object.assign({
+      chain:getDocEngineChain(),
       signal:dCtl.signal,
+      onStatus:(msg)=>{ if($('dProgText')) $('dProgText').textContent=msg; },
       onProgress:(pos,tot,engId)=>{
         const done=memHits+pos;
         const total=doc.items.length;
@@ -1056,8 +1083,10 @@ $('dGo').onclick=async()=>{
         const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
         $('dBar').style.width=pct+'%';
         updateDocProgCounts(validCount, doc.items.length);
-        $('dProgText').textContent='Stopped (partial translation saved)';
-        toast(L('stopped')+' — partial file saved','warn');
+        $('dProgText').textContent=validCount>0
+          ?(ui==='fa'?`ترجمه متوقف شد (${validCount} بخش ذخیره شد)`:'Stopped (partial translation saved)')
+          :(ui==='fa'?'ترجمه متوقف شد':'Stopped');
+        toast(L('stopped')+(validCount>0?' — partial file saved':''),'warn');
       }catch(be){
         fail(e);
       }
@@ -1066,9 +1095,10 @@ $('dGo').onclick=async()=>{
       const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
       $('dBar').style.width=pct+'%';
       updateDocProgCounts(validCount, doc.items.length);
+      const reason=toPlainReason(e)||e.message||'failed';
       $('dProgText').textContent=ui==='fa'
-        ? `${validCount} از ${doc.items.length} ترجمه شد`
-        : `${validCount} of ${doc.items.length} translated`;
+        ? `خطا در ترجمه: ${reason}`
+        : `Translation failed: ${reason}`;
       if(validCount>0){
         try{
           dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);

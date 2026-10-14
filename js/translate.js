@@ -255,8 +255,46 @@ function scrubKeys(s){
 }
 async function fx(url,opt,tries=2){
   let r;
-  try{r=await fetch(url,opt)}catch(e){if(e.name==='AbortError')throw e;throw new Error('network / blocked')}
-  if((r.status===429||r.status===503)&&tries>1&&!/generativelanguage\.googleapis\.com/.test(url)){const w=Math.min(+r.headers.get('retry-after')||2,10);await sleep(w*1000);return fx(url,opt,tries-1)}
+  const timeoutMs = opt?.timeout || (isLocalUrl(url) ? 60000 : (/clients5\.google|translate\.googleapis|mymemory/i.test(url) ? 18000 : 35000));
+  const ctrl = new AbortController();
+  let timedOut = false;
+  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
+  const extSignal = opt?.signal;
+  let abortHandler = null;
+  if (extSignal) {
+    if (extSignal.aborted) {
+      clearTimeout(timer);
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    abortHandler = () => { ctrl.abort(); };
+    extSignal.addEventListener('abort', abortHandler, { once: true });
+  }
+
+  try {
+    const fetchOpt = Object.assign({}, opt, { signal: ctrl.signal });
+    delete fetchOpt.timeout;
+    r = await fetch(url, fetchOpt);
+  } catch(e) {
+    if (extSignal?.aborted || (e.name === 'AbortError' && !timedOut)) {
+      throw new DOMException('Aborted', 'AbortError');
+    }
+    if (timedOut) {
+      const te = new Error('request timed out');
+      te.name = 'TimeoutError';
+      te.status = 408;
+      throw te;
+    }
+    throw new Error('network / blocked');
+  } finally {
+    clearTimeout(timer);
+    if (extSignal && abortHandler) extSignal.removeEventListener('abort', abortHandler);
+  }
+
+  if((r.status===429||r.status===503)&&tries>1&&!/generativelanguage\.googleapis\.com/.test(url)){
+    const w=Math.min(+r.headers.get('retry-after')||2,10);
+    await sleepAbortable(w*1000, extSignal);
+    return fx(url,opt,tries-1);
+  }
   let j=null;const txt=await r.text();try{j=JSON.parse(txt)}catch{}
   if(!r.ok){const m=j&&(j.error?.message||j.error||j.message);{const er=new Error(scrubKeys(typeof m==='string'?m:'HTTP '+r.status).slice(0,160));er.status=r.status;throw er}}
   if(j==null)throw new Error('bad response');
@@ -350,7 +388,7 @@ async function withSpec(cmd,a){
   }
   return a;
 }
-const rpc=(cmd,a,tr)=>new Promise(async(res,rej)=>{
+const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
   let w;try{w=worker()}catch(e){return rej(new Error('offline engine needs the hosted app, not a local file'))}
   const id=++rid;
   try{a=await withSpec(cmd,a||{})}catch(e){return rej(e)}
@@ -361,7 +399,45 @@ const rpc=(cmd,a,tr)=>new Promise(async(res,rej)=>{
     armWorking(g?g.asrBudgetMs(sec,m?.speed,!inWorker.has(a.spec?.repo)):60000+sec*3000);
     end=()=>{if(asrJob?.id===id){asrJob=null;armWorking(20000)}};
   }
-  pend[id]={res:v=>{if(a.spec?.repo)inWorker.add(a.spec.repo);end();res(v)},rej:e=>{end();rej(e)}};
+  let timer=null;
+  if(cmd==='translate'){
+    timer=setTimeout(()=>{
+      if(pend[id]){
+        delete pend[id];
+        rej(new Error('offline translation model timed out'));
+      }
+    },90000);
+  }
+  let onAbort=null;
+  if(signal){
+    if(signal.aborted){
+      if(timer)clearTimeout(timer);
+      return rej(new DOMException('Aborted','AbortError'));
+    }
+    onAbort=()=>{
+      if(timer)clearTimeout(timer);
+      if(pend[id]){
+        delete pend[id];
+        rej(new DOMException('Aborted','AbortError'));
+      }
+    };
+    signal.addEventListener('abort',onAbort,{once:true});
+  }
+  pend[id]={
+    res:v=>{
+      if(timer)clearTimeout(timer);
+      if(signal&&onAbort)signal.removeEventListener('abort',onAbort);
+      if(a.spec?.repo)inWorker.add(a.spec.repo);
+      end();
+      res(v);
+    },
+    rej:e=>{
+      if(timer)clearTimeout(timer);
+      if(signal&&onAbort)signal.removeEventListener('abort',onAbort);
+      end();
+      rej(e);
+    }
+  };
   w.postMessage({id,cmd,a},tr||[]);
 });
 let asrJob=null;
@@ -390,7 +466,7 @@ function mcFileProgress(m,file,loaded,total){
 // The name shown for an engine; the offline engine also says which downloaded model did the work.
 let offlineUsed='';
 const engLabel=i=>i==='nllb'&&offlineUsed?`${ENG.nllb.name} — ${offlineUsed}`:ENG[i].name;
-async function eNllb(items,src,tgt){
+async function eNllb(items,src,tgt,signal,onStatus){
   if(src==='auto')src=guessLang(items.join(' '));
   if(NLLB[src]&&NLLB[src]===NLLB[tgt])return items.slice();
   const chosen=(cfg.trModel&&cfg.trModel!=='auto')?MC.models.find(x=>x.id===cfg.trModel):null;
@@ -407,8 +483,11 @@ async function eNllb(items,src,tgt){
   const m=pickTr(src,tgt);
   if(!m)throw new Error('language not in the offline model');
   offlineUsed=mcText(m.name);
+  if(!inWorker.has(m.repo)){
+    onStatus?.(L('loadingOfflineModel') || (ui==='fa'?'در حال بارگذاری مدل آفلاین…':'Loading offline model…'));
+  }
   const codes=m.kind==='opus'?null:trCodes(m.kind);
-  return rpc('translate',{items,src:codes?.[src],tgt:codes?.[tgt],spec:{repo:m.repo,kind:m.kind}});
+  return rpc('translate',{items,src:codes?.[src],tgt:codes?.[tgt],spec:{repo:m.repo,kind:m.kind}},undefined,signal);
 }
 
 /* offline voices (Piper): a separate worker, all of its code is in vendor/piper/ */
@@ -640,7 +719,7 @@ function callEngine(id,items,o){
   let p;
   if(id==='google')p=eGoogle(arr,o.src,o.tgt,o.signal);
   else if(id==='mymemory')p=eMyMemory(arr,o.src,o.tgt,o.signal);
-  else if(id==='nllb')p=eNllb(arr,o.src,o.tgt);
+  else if(id==='nllb')p=eNllb(arr,o.src,o.tgt,o.signal,o.onStatus);
   else p=eChrome(arr,o.src,o.tgt);
   if(o.includeNotes)return p.then(res=>res.map(x=>({text:x,note:null})));
   return p;
@@ -685,6 +764,7 @@ async function translateItems(items,o){
     const id=chain[ci],lm=lim(id),b=[];let chars=0;
     while(pos+b.length<todo.length&&b.length<lm.items){const s=items[todo[pos+b.length]];if(b.length&&chars+s.length>lm.chars)break;b.push(todo[pos+b.length]);chars+=s.length}
     try{
+      o.onStatus?.(ui==='fa'?`در حال ترجمه با ${ENG[id].name}…`:`Translating with ${ENG[id].name}…`);
       const res=await runBatch(id,b.map(i=>items[i]),o);
       b.forEach((i,k)=>{
         const resItem=res[k];
@@ -706,6 +786,7 @@ async function translateItems(items,o){
         const waitMatch=(e.message||'').match(/retry in (\d+(?:\.\d+)?)s/i) || (e.message||'').match(/retry after (\d+)/i);
         if(waitMatch) waitSec=Math.ceil(parseFloat(waitMatch[1]));
         if(ci+1<chain.length){
+          o.onStatus?.(ui==='fa'?`محدودیت نرخ ${ENG[id].name} — تغییر به ${ENG[chain[ci+1]].name}…`:`Rate limit on ${ENG[id].name} — switching to ${ENG[chain[ci+1]].name}…`);
           toast(`${ENG[id].name} (429 Rate Limit) — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn',6000);
           ci++;
           continue;
@@ -713,6 +794,7 @@ async function translateItems(items,o){
           // Last engine left: wait and try again, but only a few times; then say so instead of waiting forever.
           if(++rateWaits>3)throw new Error(`${ENG[id].name}: ${L('rateLimited')}`);
           waitSec=Math.min(waitSec,20);
+          o.onStatus?.(ui==='fa'?`در حال انتظار برای ${ENG[id].name} (محدودیت نرخ، ${waitSec} ثانیه)…`:`Waiting for ${ENG[id].name} (rate limit, ${waitSec}s)…`);
           toast(`${ENG[id].name} (429 Rate Limit) — waiting ${waitSec}s as requested by provider…`,'warn',4000);
           await sleepAbortable(waitSec*1000,o.signal);
           continue;
@@ -723,6 +805,7 @@ async function translateItems(items,o){
         toast(`${ENG[id].name}: ${L('regionBlocked')}`,'warn',8000);
       }
       if(ci+1<chain.length){
+        o.onStatus?.(ui==='fa'?`${ENG[id].name} ناموفق بود — تغییر به ${ENG[chain[ci+1]].name}…`:`${ENG[id].name} failed — switching to ${ENG[chain[ci+1]].name}…`);
         if(!isBlockError(e)) toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn');
         ci++;
       }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):plainWithDetail(e)}`);
