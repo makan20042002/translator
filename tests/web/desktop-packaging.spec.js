@@ -17,7 +17,7 @@ test.describe('Desktop Packaging and Server Configuration (Item 2)', () => {
     expect(pkg.build.extraResources).toBeDefined();
     expect(Array.isArray(pkg.build.extraResources)).toBe(true);
 
-    const resourceEntry = pkg.build.extraResources.find(r => r.to === 'app-web');
+    const resourceEntry = pkg.build.extraResources.find(r => r.to === 'app' || r.to === 'app-web');
     expect(resourceEntry).toBeDefined();
 
     const filters = resourceEntry.filter || [];
@@ -86,6 +86,33 @@ test.describe('Desktop Packaging and Server Configuration (Item 2)', () => {
     expect(mainSrc).toMatch(/process\.resourcesPath/);
     expect(mainSrc).toMatch(/app\.getAppPath/);
     expect(mainSrc).toContain('function getWebRoot');
-    expect(mainSrc).toContain('app-web');
+    expect(mainSrc).toMatch(/path\.join\(process\.resourcesPath,\s*['"]app['"]\)/);
+  });
+
+  test('static layout check: expected packaged layout computed from package.json matches getWebRoot resolution', () => {
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const mainSrc = fs.readFileSync(mainJsPath, 'utf8');
+
+    // 1. Compute expected packaged destination for web files from extraResources
+    const webResourceEntry = pkg.build.extraResources.find(r => 
+      r.filter && r.filter.some(f => f.includes('index.html') || f.includes('css'))
+    );
+    expect(webResourceEntry).toBeDefined();
+
+    const expectedSubDir = webResourceEntry.to || '';
+    const filters = webResourceEntry.filter;
+    expect(filters.some(f => f.includes('index.html'))).toBe(true);
+    expect(filters.some(f => f.includes('css'))).toBe(true);
+    expect(filters.some(f => f.includes('js'))).toBe(true);
+
+    // 2. Verify getWebRoot in main.js checks this exact computed destination
+    if (expectedSubDir && expectedSubDir !== '.') {
+      expect(mainSrc).toMatch(new RegExp(`path\\.join\\(\\s*process\\.resourcesPath\\s*,\\s*['"]${expectedSubDir}['"]\\s*\\)`));
+    } else {
+      expect(mainSrc).toContain('process.resourcesPath');
+    }
+
+    // 3. Verify getWebRoot checks for index.html at that location
+    expect(mainSrc).toMatch(/fs\.existsSync\(path\.join\([^)]*index\.html[^)]*\)\)/);
   });
 });
