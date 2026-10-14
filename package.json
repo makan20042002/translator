@@ -10,7 +10,10 @@
     "test:firefox": "node tests/run-all.js --only=firefox",
     "build": "node build-manifests.js",
     "start": "npm start --prefix \"../exe translator\"",
-    "app": "npm start --prefix \"../exe translator\""
+    "app": "npm start --prefix \"../exe translator\"",
+    "build:exe": "npm run build:win --prefix \"../exe translator\"",
+    "build:portable": "npm run build:portable --prefix \"../exe translator\"",
+    "build:installer": "npm run build:nsis --prefix \"../exe translator\""
   },
   "devDependencies": {
     "@playwright/test": "1.56.1",
