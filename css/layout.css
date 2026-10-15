@@ -8,7 +8,7 @@
 .lbl{font-family:var(--mono);font-size:10.5px;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
 .meta{font-family:var(--mono);font-size:11.5px;color:var(--faint)}
 textarea{width:100%;border:0;background:transparent;resize:vertical;padding:16px;min-height:280px;font-size:17px;line-height:1.7;outline:none;display:block}
-textarea[readonly]{color:#d7f3ff}
+textarea[readonly]{color:var(--text)}
 textarea::placeholder{color:var(--faint)}
 @media(max-width:780px){.panes{grid-template-columns:1fr}.seam{height:1px}textarea{min-height:170px}}
 
@@ -56,8 +56,8 @@ textarea::placeholder{color:var(--faint)}
   .cue-meta-row{display:flex;align-items:center;justify-content:space-between;width:100%}
   .cue .n{padding:0;color:var(--accent);font-weight:700}
   .cue .tm{padding:0;color:var(--cyan);text-align:start}
-  .cue .o{padding:9px 12px;background:rgba(255,255,255,.03);border:1px solid var(--border);border-radius:8px}
-  .cue .tr{padding:9px 12px;border-inline-start:0;background:rgba(88,166,255,.05);border:1px solid var(--accent-line);border-radius:8px;min-height:44px}
+  .cue .o{padding:9px 12px;background:var(--surface2);border:1px solid var(--border);border-radius:8px}
+  .cue .tr{padding:9px 12px;border-inline-start:0;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:8px;min-height:44px}
   .sub-bar-actions{width:100%}
   .sub-bar-actions .btn{flex:1;min-width:130px;justify-content:center}
 }
@@ -75,7 +75,7 @@ textarea::placeholder{color:var(--faint)}
 .gl{display:grid;grid-template-columns:1fr 1fr auto;gap:8px;margin-bottom:8px}
 .bubbles{display:flex;flex-direction:column;gap:10px;margin-top:16px}
 .bub{max-width:82%;padding:12px 14px;border-radius:14px;background:var(--surface2);border:1px solid var(--border)}
-.bub.b{align-self:flex-end;background:rgba(88,166,255,.10);border-color:var(--accent-line)}
+.bub.b{align-self:flex-end;background:var(--accent-dim);border-color:var(--accent-line)}
 .bub small{display:block;color:var(--muted);font-size:13px;margin-bottom:2px}
 .bub div{font-size:17px}
 .micbig{flex:1;min-height:64px;justify-content:center;font-size:15px}

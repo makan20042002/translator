@@ -21,6 +21,7 @@
   --display:'Space Grotesk','Vazirmatn','Segoe UI',system-ui,sans-serif;
   --body:'Manrope','Vazirmatn',-apple-system,'Segoe UI',sans-serif;
   --mono:'JetBrains Mono','Vazirmatn',Consolas,monospace;
+  --surface1:var(--surface); --border1:var(--border); --surface3:var(--selected);
   --r-s:10px; --r-m:16px; --r-l:24px; --ease:cubic-bezier(.22,.61,.36,1);
 }
 *,*::before,*::after{box-sizing:border-box}
@@ -74,7 +75,7 @@ h1 em{font-style:normal;background:var(--grad);-webkit-background-clip:text;back
 .tabs button.on{color:var(--text)}
 .tabs button.on::after{content:"";position:absolute;inset-inline:10px;bottom:-1px;height:2px;background:var(--grad);border-radius:2px}
 .bar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;padding:16px 0;width:100%;max-width:100%;box-sizing:border-box;min-width:0}
-select,input[type=text],input[type=search],input[type=password],input[type=email]{color:var(--text);color-scheme:dark;height:38px;padding:0 12px;border-radius:var(--r-s);border:1px solid var(--border2);background:var(--surface);min-width:0;max-width:100%}
+select,input[type=text],input[type=search],input[type=password],input[type=email]{color:var(--text);color-scheme:inherit;height:38px;padding:0 12px;border-radius:var(--r-s);border:1px solid var(--border2);background:var(--surface);min-width:0;max-width:100%}
 select{cursor:pointer}
 select:hover,input:hover{border-color:var(--accent-line)}
 .bar .grp{display:flex;align-items:center;gap:8px;min-width:0;max-width:100%}

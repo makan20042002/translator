@@ -445,7 +445,7 @@ textarea:focus {
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  background: rgba(10, 21, 40, 0.9);
+  background: var(--surface2);
   border: 1px solid var(--border);
   border-radius: var(--r-full);
   padding-block: 5px;
@@ -458,9 +458,9 @@ textarea:focus {
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
 .status-pill.ready {
-  border-color: rgba(34, 229, 138, 0.35);
-  background: rgba(34, 229, 138, 0.08);
-  color: var(--text-bright);
+  border-color: var(--success);
+  background: var(--success-bg);
+  color: var(--text);
 }
 .status-pill .status-dot {
   width: 7px;
@@ -735,7 +735,7 @@ textarea:focus {
   padding-block: 14px;
   padding-inline: 24px;
   border-bottom: 1px solid var(--border);
-  background: var(--glass);
+  background: var(--header-bg);
   backdrop-filter: blur(14px);
   position: sticky;
   top: 0;
@@ -761,6 +761,7 @@ textarea:focus {
   line-height: 1.2;
   word-break: break-word;
   overflow-wrap: break-word;
+  color: var(--text);
 }
 .topbar-title em {
   font-style: normal;
@@ -792,7 +793,7 @@ textarea:focus {
 .topbar-search-icon {
   position: absolute;
   inset-inline-start: 12px;
-  color: var(--faint);
+  color: var(--muted);
   pointer-events: none;
 }
 .topbar-search-input {
@@ -806,15 +807,17 @@ textarea:focus {
   color: var(--text);
   font-size: 13px;
   cursor: not-allowed;
-  opacity: 0.75;
+}
+.topbar-search-input::placeholder {
+  color: var(--muted);
 }
 .topbar-kbd {
   position: absolute;
   inset-inline-end: 10px;
   font-family: var(--mono);
   font-size: 10px;
-  color: var(--faint);
-  background: rgba(255, 255, 255, 0.05);
+  color: var(--muted);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: 4px;
   padding: 2px 6px;
@@ -826,6 +829,11 @@ textarea:focus {
   align-items: center;
   gap: 8px;
   max-width: 100%;
+}
+#btnScreenTrans {
+  background: linear-gradient(135deg, color-mix(in srgb, var(--success) 15%, var(--header-bg)), color-mix(in srgb, var(--accent) 15%, var(--header-bg)));
+  border-color: var(--accent-line);
+  color: var(--text);
 }
 .main-panels-wrap {
   padding-block: 20px 40px;
@@ -1330,8 +1338,8 @@ html[dir="rtl"] .switch-chk:checked + .switch-slider::before {
   box-shadow: 0 8px 30px rgba(8, 168, 255, 0.08);
 }
 .pane.trans-card-target {
-  background: linear-gradient(180deg, rgba(14, 30, 56, 0.4) 0%, rgba(9, 20, 40, 0.7) 100%);
-  border-color: rgba(8, 168, 255, 0.3);
+  background: linear-gradient(180deg, var(--panel2) 0%, var(--surface) 100%);
+  border-color: var(--accent-line, rgba(8, 168, 255, 0.3));
 }
 
 .trans-card-header {
@@ -2589,8 +2597,8 @@ html[lang="fa"] .doc-drop-text strong {
   display: flex;
   flex-direction: column;
   gap: 10px;
-  background: var(--surface1, #0a1324);
-  border: 1px solid var(--border1, rgba(28, 64, 118, 0.35));
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--rad-lg, 12px);
   padding: 12px 18px;
   margin-top: 10px;
@@ -2721,8 +2729,8 @@ html[lang="fa"] .doc-drop-text strong {
 }
 
 .doc-pane {
-  background: var(--surface1, #0a1324);
-  border: 1px solid var(--border1, rgba(28, 64, 118, 0.35));
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--rad-lg, 12px);
   overflow: hidden;
   box-shadow: 0 4px 16px rgba(0, 0, 0, 0.18);
@@ -2749,8 +2757,8 @@ html[lang="fa"] .doc-drop-text strong {
 
 .doc-summary-card {
   margin-top: 14px;
-  background: var(--surface1, #0a1324);
-  border: 1px solid var(--border1, rgba(28, 64, 118, 0.35));
+  background: var(--surface);
+  border: 1px solid var(--border);
   border-radius: var(--rad-lg, 12px);
   padding: 16px 20px;
   display: flex;
@@ -4885,10 +4893,10 @@ html[dir="rtl"] .bub-orig-text {
 
 .welcome-modal {
   position: relative;
-  background: #060B14;
-  border: 1px solid rgba(28, 64, 118, 0.55);
+  background: var(--panel);
+  border: 1px solid var(--border);
   border-radius: 20px;
-  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.7), 0 0 40px rgba(8, 168, 255, 0.12);
+  box-shadow: 0 16px 48px rgba(0, 0, 0, 0.4), 0 0 40px rgba(8, 168, 255, 0.12);
   width: 100%;
   max-width: 680px;
   max-height: 90vh;
@@ -4897,6 +4905,7 @@ html[dir="rtl"] .bub-orig-text {
   padding: 24px 28px;
   display: flex;
   flex-direction: column;
+  color: var(--text);
 }
 
 .welcome-header {
@@ -4905,7 +4914,7 @@ html[dir="rtl"] .bub-orig-text {
   justify-content: space-between;
   margin-bottom: 20px;
   padding-bottom: 14px;
-  border-bottom: 1px solid rgba(28, 64, 118, 0.35);
+  border-bottom: 1px solid var(--border);
   position: relative;
 }
 
@@ -4918,9 +4927,9 @@ html[dir="rtl"] .bub-orig-text {
   width: 28px;
   height: 28px;
   border-radius: 50%;
-  background: rgba(14, 23, 38, 0.9);
-  border: 1.5px solid rgba(28, 64, 118, 0.6);
-  color: var(--text-dim, #B5C2D4);
+  background: var(--surface2);
+  border: 1.5px solid var(--border);
+  color: var(--muted);
   font-size: 12px;
   font-weight: 700;
   display: inline-flex;
@@ -4991,7 +5000,7 @@ html[dir="rtl"] .bub-orig-text {
 .welcome-step-sub {
   margin: 0 0 20px 0;
   font-size: 13.5px;
-  color: var(--text-dim, #B5C2D4);
+  color: var(--muted);
   line-height: 1.5;
 }
 
@@ -5002,8 +5011,8 @@ html[dir="rtl"] .bub-orig-text {
 }
 
 .welcome-choice-card {
-  background: #0E1726;
-  border: 1.5px solid rgba(28, 64, 118, 0.5);
+  background: var(--surface);
+  border: 1.5px solid var(--border);
   border-radius: 12px;
   padding: 14px 16px;
   display: flex;
@@ -5020,13 +5029,13 @@ html[dir="rtl"] .bub-orig-text {
   pointer-events: none;
 }
 .welcome-choice-card:hover {
-  border-color: rgba(8, 168, 255, 0.6);
-  background: rgba(14, 23, 38, 0.95);
+  border-color: var(--accent);
+  background: var(--hover);
 }
 .welcome-choice-card.active {
-  border-color: #08A8FF;
-  background: rgba(8, 168, 255, 0.08);
-  box-shadow: 0 0 18px rgba(8, 168, 255, 0.2), inset 0 0 10px rgba(8, 168, 255, 0.08);
+  border-color: var(--accent);
+  background: var(--selected);
+  box-shadow: 0 0 18px rgba(8, 168, 255, 0.2);
 }
 
 .choice-card-content {
@@ -5036,11 +5045,11 @@ html[dir="rtl"] .bub-orig-text {
 }
 .choice-card-content strong {
   font-size: 14px;
-  color: var(--text, #fff);
+  color: var(--text);
 }
 .choice-card-content span {
   font-size: 12px;
-  color: var(--text-dim, #B5C2D4);
+  color: var(--muted);
   line-height: 1.4;
 }
 
