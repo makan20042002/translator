@@ -336,4 +336,45 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       expect(body.num_ctx).toBeUndefined();
     }
   });
+
+  test('h) never-answering fake Ollama with first 3 s and normal 1 s produces failure line no later than 7 s after click', async ({ app, files }) => {
+    const { page } = app;
+
+    await page.addInitScript(() => {
+      window.__docOllamaFirstTimeoutMs = 3000;
+      window.__docOllamaTimeoutMs = 1000;
+    });
+
+    await page.route('**/api/tags', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+      });
+    });
+
+    await page.route('**/v1/chat/completions', () => {
+      // Hang indefinitely
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    const picker = page.locator('#dEngineSel');
+    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+    await picker.selectOption('ollama:gemma4:12b');
+
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+
+    const startTime = Date.now();
+    await mouseClick(page, page.locator('#dGo'));
+
+    // first (3 s) + normal (1 s) + 3 s margin = 7 s (7000 ms) max
+    const progText = page.locator('#dProgText');
+    await expect(progText).toContainText('did not answer', { timeout: 7000 });
+    const elapsed = Date.now() - startTime;
+    expect(elapsed).toBeLessThanOrEqual(7000);
+
+    await expect(progText).toContainText('Ollama');
+    await expect(page.locator('#dGo')).toBeEnabled();
+    await expect(page.locator('#dSave')).toBeDisabled();
+  });
 });
