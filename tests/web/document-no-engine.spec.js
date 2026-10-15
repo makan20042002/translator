@@ -1,6 +1,11 @@
 'use strict';
 const { test, expect, onlyEngines, mouseClick, chooseFile } = require('../support/fixtures');
 
+// Chromium's own background traffic (sign-in check and device check-in) carries no app data.
+function appCalls(stub) {
+  return stub.calls().filter(c => c.host !== 'accounts.google.com' && c.host !== 'android.clients.google.com');
+}
+
 test.describe('Document tab with no usable engine in offline mode', () => {
   test.use({
     appOptions: {
@@ -30,7 +35,7 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await expect(page.locator('#dWork')).toBeVisible();
 
-    const before = stub.calls().length;
+    const before = appCalls(stub).length;
     console.log('calls before click (en):', before);
     await mouseClick(page, page.locator('#dGo'));
 
@@ -53,12 +58,12 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     }
 
     // Verify 0 online requests sent
-    expect(stub.calls().map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + before).toEqual([]);
+    expect(appCalls(stub).map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + before).toEqual([]);
 
     // 2. Persian UI
     await mouseClick(page, page.locator('#uiLang'));
 
-    const beforeFa = stub.calls().length;
+    const beforeFa = appCalls(stub).length;
     console.log('calls before click (fa):', beforeFa);
     await mouseClick(page, goBtn);
 
@@ -75,6 +80,6 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     }
 
     // Zero online requests sent throughout
-    expect(stub.calls().map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + beforeFa).toEqual([]);
+    expect(appCalls(stub).map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + beforeFa).toEqual([]);
   });
 });
