@@ -244,6 +244,12 @@
   min-height: 32px;
   font-weight: 500;
 }
+#offBtn {
+  color: var(--text);
+}
+[data-theme="makan-lab"] #offBtn {
+  color: var(--muted);
+}
 .btn.ghost:hover {
   color: var(--text-bright);
   background: var(--accent-dim);
@@ -546,11 +552,16 @@ textarea:focus {
   border-color: var(--border);
 }
 .sidebar-nav button.on {
+  background: var(--selected);
+  border-color: var(--accent);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow: 0 0 14px rgba(19, 102, 226, 0.25);
+}
+[data-theme="makan-lab"] .sidebar-nav button.on {
   background: rgba(19, 102, 226, 0.18);
   border-color: rgba(8, 168, 255, 0.45);
   color: #FFFFFF;
-  font-weight: 600;
-  box-shadow: 0 0 14px rgba(19, 102, 226, 0.25);
 }
 .sidebar-nav button.on::after {
   display: none !important;
@@ -4538,10 +4549,17 @@ html[dir="rtl"] .bub-orig-text {
 .set-tab-btn.active,
 .settings-nav-tab.active,
 .set-tab-extra.active {
+  background: var(--selected);
+  border-color: var(--accent);
+  color: var(--text);
+  box-shadow: 0 0 12px rgba(92, 194, 255, 0.15);
+}
+[data-theme="makan-lab"] .set-tab-btn.active,
+[data-theme="makan-lab"] .settings-nav-tab.active,
+[data-theme="makan-lab"] .set-tab-extra.active {
   background: var(--surface3);
   border-color: var(--accent);
   color: var(--accent);
-  box-shadow: 0 0 12px rgba(92, 194, 255, 0.15);
 }
 
 /* Tabbed single section display while preserving DOM visibility for testing */
