@@ -29,6 +29,9 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await expect(page.locator('#dWork')).toBeVisible();
+
+    const before = stub.calls().length;
+    console.log('calls before click (en):', before);
     await mouseClick(page, page.locator('#dGo'));
 
     const progText = page.locator('#dProgText');
@@ -50,10 +53,13 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     }
 
     // Verify 0 online requests sent
-    expect(stub.calls().length).toBe(0);
+    expect(stub.calls().map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + before).toEqual([]);
 
     // 2. Persian UI
     await mouseClick(page, page.locator('#uiLang'));
+
+    const beforeFa = stub.calls().length;
+    console.log('calls before click (fa):', beforeFa);
     await mouseClick(page, goBtn);
 
     // Poll several times across 3 seconds in Persian
@@ -69,6 +75,6 @@ test.describe('Document tab with no usable engine in offline mode', () => {
     }
 
     // Zero online requests sent throughout
-    expect(stub.calls().length).toBe(0);
+    expect(stub.calls().map(c => c.url || (c.host ? `${c.method} https://${c.host}${c.path}${c.query || ''}` : JSON.stringify(c))), 'calls before click: ' + beforeFa).toEqual([]);
   });
 });
