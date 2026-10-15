@@ -7,7 +7,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('a) fake Ollama answers after 2.5 s with Ollama timeout 8 s and web timeout 1 s: translates to end, shows Waiting for Ollama', async ({ app, files }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 8000;
       window.__docOllamaTimeoutMs = 8000;
       window.__docTimeoutMs = 1000;
@@ -56,7 +56,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('b) fake Ollama never answers: after timeout and retry, failure line names Ollama and "did not answer", no Google call', async ({ app, files, stub }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 2000;
       window.__docOllamaTimeoutMs = 1000;
     });
@@ -72,9 +72,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       });
     });
 
-    await page.route('**/v1/chat/completions', () => {
+    await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t });
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
       // Hang indefinitely
     });
 
@@ -91,12 +91,18 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     // first (2s) + normal (1s) + 3s margin = 6s
     const maxWait = 6000;
-    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText, info()).toContainText('did not answer', { timeout: maxWait });
-    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
+    try {
+      await expect(progText).toContainText('did not answer', { timeout: maxWait });
+      await expect(progText).toContainText('Ollama', { timeout: maxWait });
+    } catch (err) {
+      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
+      throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
+    }
 
     const elapsed = Date.now() - clickTime;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
     expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
 
@@ -112,7 +118,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('c) first request slower than normal timeout but within first-request allowance still succeeds', async ({ app, files }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 8000;
       window.__docOllamaTimeoutMs = 2000;
     });
@@ -156,7 +162,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('d) Stop pressed during a slow answer: fetch aborted, buttons re-enabled within 1 s, no failure toast', async ({ app, files }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 15000;
       window.__docOllamaTimeoutMs = 15000;
     });
@@ -218,7 +224,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     let inFlight = 0;
     let maxConcurrent = 0;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 8000;
       window.__docOllamaTimeoutMs = 8000;
     });
@@ -268,7 +274,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('f) Persian UI run of (b): failure line names Ollama and "پاسخی نداد", no Google request', async ({ app, files, stub }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 2000;
       window.__docOllamaTimeoutMs = 1000;
     });
@@ -284,9 +290,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       });
     });
 
-    await page.route('**/v1/chat/completions', () => {
+    await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t });
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
       // Hang indefinitely
     });
 
@@ -306,12 +312,18 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     // first (2s) + normal (1s) + 3s margin = 6s
     const maxWait = 6000;
-    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText, info()).toContainText('پاسخی نداد', { timeout: maxWait });
-    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
+    try {
+      await expect(progText).toContainText('پاسخی نداد', { timeout: maxWait });
+      await expect(progText).toContainText('Ollama', { timeout: maxWait });
+    } catch (err) {
+      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
+      throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
+    }
 
     const elapsed = Date.now() - clickTime;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
     expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
 
@@ -365,7 +377,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test('h) never-answering fake Ollama with first 3 s and normal 1 s produces failure line no later than 7 s after click', async ({ app, files }) => {
     const { page } = app;
 
-    await page.addInitScript(() => {
+    await page.evaluate(() => {
       window.__docOllamaFirstTimeoutMs = 3000;
       window.__docOllamaTimeoutMs = 1000;
     });
@@ -381,9 +393,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       });
     });
 
-    await page.route('**/v1/chat/completions', () => {
+    await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t });
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
       // Hang indefinitely
     });
 
@@ -399,16 +411,55 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     // first (3 s) + normal (1 s) + 3 s margin = 7 s (7000 ms) max
     const maxWait = 7000;
-    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText, info()).toContainText('did not answer', { timeout: maxWait });
-    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
+    try {
+      await expect(progText).toContainText('did not answer', { timeout: maxWait });
+      await expect(progText).toContainText('Ollama', { timeout: maxWait });
+    } catch (err) {
+      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
+      throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
+    }
 
     const elapsed = Date.now() - clickTime;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
     expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
 
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();
+  });
+
+  test('i) timeout overrides set via page.evaluate equal the expected values before clicking Translate', async ({ app, files }) => {
+    const { page } = app;
+
+    await page.evaluate(() => {
+      window.__docOllamaFirstTimeoutMs = 2500;
+      window.__docOllamaTimeoutMs = 1200;
+    });
+
+    await page.route('**/api/tags', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+      });
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    const picker = page.locator('#dEngineSel');
+    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+    await picker.selectOption('ollama:gemma4:12b');
+
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+
+    // Read window.__docOllamaFirstTimeoutMs and window.__docOllamaTimeoutMs back with page.evaluate at the moment before the click
+    const overrides = await page.evaluate(() => ({
+      first: window.__docOllamaFirstTimeoutMs,
+      normal: window.__docOllamaTimeoutMs
+    }));
+
+    expect(overrides.first).toBe(2500);
+    expect(overrides.normal).toBe(1200);
   });
 });
