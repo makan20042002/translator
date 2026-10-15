@@ -1349,6 +1349,7 @@ $('dChangeFile').onclick=()=>{
 };
 
 $('dGo').onclick=async()=>{
+  if(typeof window !== 'undefined') window.__docClickTime = Date.now();
   if(docAnalysisCtl){
     try{ docAnalysisCtl.abort(); }catch{}
     docAnalysisCtl = null;
@@ -1763,6 +1764,15 @@ $('dGo').onclick=async()=>{
           fail(e);
         }
       }else{
+        const failSnippet = String(e?.message || e || '').slice(0, 80);
+        if (typeof window !== 'undefined' && typeof window.__docDebugLogPush === 'function') {
+          window.__docDebugLogPush('final failure', { msg: failSnippet });
+        } else if (typeof window !== 'undefined') {
+          if (!window.__docDebugLog) window.__docDebugLog = [];
+          const origin = window.__docClickTime || Date.now();
+          window.__docDebugLog.push({ t: Date.now() - origin, ev: 'final failure', msg: failSnippet });
+          if (window.__docDebugLog.length > 200) window.__docDebugLog.shift();
+        }
         docUiState = 'error';
         updateDocStatus('error', ui==='fa'?'خطا':'Error');
         const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;

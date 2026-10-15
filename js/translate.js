@@ -256,12 +256,43 @@ function scrubKeys(s){
   for(const k of ks)s=s.split(k).join('[key hidden]');
   return s;
 }
+
+if (typeof window !== 'undefined' && !window.__docDebugLog) {
+  window.__docDebugLog = [];
+}
+let docLogStart = 0;
+function docDebugLog(ev, data = {}) {
+  if (typeof window === 'undefined') return;
+  if (!window.__docDebugLog) window.__docDebugLog = [];
+  const origin = window.__docClickTime || docLogStart || Date.now();
+  const entry = Object.assign({ t: Date.now() - origin, ev }, data);
+  window.__docDebugLog.push(entry);
+  if (window.__docDebugLog.length > 200) window.__docDebugLog.shift();
+}
+if (typeof window !== 'undefined') {
+  window.__docDebugLogPush = docDebugLog;
+}
+
+function urlHostOnly(url) {
+  try {
+    return new URL(url.includes('://') ? url : 'http://' + url).host;
+  } catch {
+    return String(url || '').split('/')[2] || String(url || '').split('/')[0] || '';
+  }
+}
+
 async function fx(url,opt,tries=2){
   let r;
   const timeoutMs = opt?.timeout || (isLocalUrl(url) ? 60000 : (/clients5\.google|translate\.googleapis|mymemory/i.test(url) ? 18000 : 35000));
+  const host = urlHostOnly(url);
+  docDebugLog('fx start', { host, timeout: timeoutMs });
   const ctrl = new AbortController();
   let timedOut = false;
-  const timer = setTimeout(() => { timedOut = true; ctrl.abort(); }, timeoutMs);
+  const timer = setTimeout(() => {
+    timedOut = true;
+    docDebugLog('fx timer fired', { host, timeout: timeoutMs });
+    ctrl.abort();
+  }, timeoutMs);
   const extSignal = opt?.signal;
   let abortHandler = null;
   if (extSignal) {
@@ -347,6 +378,7 @@ function withTimeout(promise, ms, signal, errorMsg = 'request timed out') {
     if (typeof ms === 'number' && ms > 0 && ms !== Infinity) {
       timer = setTimeout(() => {
         cleanup();
+        docDebugLog('withTimeout fired', { timeout: ms, error: errorMsg });
         const err = new Error(errorMsg);
         err.name = 'TimeoutError';
         err.isTimeout = true;
@@ -925,6 +957,7 @@ async function runBatch(id,arr,o){
   catch(e){
     if(e.name==='AbortError'||o.signal?.aborted) throw e;
     const isTimeout=e.isTimeout||e.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(e.message||'');
+    docDebugLog('runBatch catch', { errName: e?.name || 'Error', isTimeout: Boolean(isTimeout) });
     if(isTimeout) throw e;
     if((e.mismatch || (ENG[id]?.ai && !isBlockError(e) && e.status !== 429 && !/429|resource_exhausted|rate limit/i.test(e.message||''))) && arr.length > 1){
       const h=arr.length>>1;
@@ -938,11 +971,26 @@ let tipShown=false;
 async function translateItems(items,o){
   const chain=o.chain||(o.engine==='auto'?cfg.order.filter(usable):[o.engine]);
   if(!chain.length)throw new Error(L(isOff()?'noOff':'noEngine'));
+  if (!docLogStart) docLogStart = Date.now();
   const out=new Array(items.length),notes=new Array(items.length),todo=[],used=new Set();
   items.forEach((s,i)=>{if(s&&s.trim())todo.push(i);else{out[i]=s||'';notes[i]=null}});
   if(todo.length>80&&!ENG[chain[0]].ai&&!tipShown){tipShown=true;toast(L('tipKey'),'warn',7000)}
   let pos=0,ci=0,rateWaits=0;
   let ollamaSuccessCount=0;
+  const firstId=chain[0],firstLm=lim(firstId);
+  const startReqTimeout=(firstId==='ollama')
+    ? ((typeof window!=='undefined'&&window.__docOllamaFirstTimeoutMs!==undefined) ? window.__docOllamaFirstTimeoutMs : 180000)
+    : (o.timeout ?? ((typeof window!=='undefined'&&window.__docTimeoutMs) ? window.__docTimeoutMs : 20000));
+  const startRetryTimeout=(typeof window!=='undefined'&&window.__docOllamaTimeoutMs!==undefined)
+    ? window.__docOllamaTimeoutMs
+    : 90000;
+  docDebugLog('translateItems start', {
+    chain: chain.slice(),
+    reqTimeout: startReqTimeout,
+    retryTimeout: startRetryTimeout,
+    segments: items.length,
+    batches: Math.max(1, Math.ceil(todo.length / (firstLm.items || 1)))
+  });
   while(pos<todo.length){
     if(o.signal?.aborted)throw new DOMException('Aborted','AbortError');
     const id=chain[ci],lm=lim(id);
@@ -972,11 +1020,13 @@ async function translateItems(items,o){
     });
 
     let ollamaTimer=null;
+    let ollamaTickerSec=0;
     const startOllamaProg=()=>{
       if(id!=='ollama') return;
       if(ollamaTimer){clearInterval(ollamaTimer);ollamaTimer=null;}
-      let sec=0;
+      ollamaTickerSec=0;
       const isFirst=(ollamaSuccessCount===0);
+      docDebugLog('ticker start', { isFirst });
       const getTxt=s=>{
         if(ui==='fa'){
           return isFirst
@@ -989,13 +1039,14 @@ async function translateItems(items,o){
       };
       o.onStatus?.(getTxt(0));
       ollamaTimer=setInterval(()=>{
-        sec++;
+        ollamaTickerSec++;
         if(o.signal?.aborted){clearInterval(ollamaTimer);ollamaTimer=null;return;}
-        o.onStatus?.(getTxt(sec));
+        o.onStatus?.(getTxt(ollamaTickerSec));
       },1000);
     };
     const stopOllamaProg=()=>{
       if(ollamaTimer){clearInterval(ollamaTimer);ollamaTimer=null;}
+      docDebugLog('ticker stop', { sec: ollamaTickerSec });
     };
 
     const makeOllamaTimeoutErr=(totalWaitMs)=>{
@@ -1010,8 +1061,11 @@ async function translateItems(items,o){
       return err;
     };
 
+    let attemptNum=0;
     const runBatchAttempt=async(indices, attemptTimeout)=>{
+      attemptNum++;
       const timeoutMs = attemptTimeout !== undefined ? attemptTimeout : reqTimeout;
+      docDebugLog('runBatchAttempt start', { attempt: attemptNum, timeout: timeoutMs, items: indices.length });
       const attemptCtl = new AbortController();
       const onParentAbort = () => attemptCtl.abort();
       if (o.signal) o.signal.addEventListener('abort', onParentAbort, { once: true });
@@ -1046,6 +1100,7 @@ async function translateItems(items,o){
             : 90000;
           const half=Math.max(1,Math.floor(b.length/2));
           const halfB=b.slice(0,half);
+          docDebugLog('retry start', { timeout: retryTimeout, items: halfB.length });
           try{
             res=await runBatchAttempt(halfB, retryTimeout);
             b=halfB;
