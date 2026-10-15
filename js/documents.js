@@ -560,6 +560,7 @@ let cachedOllamaModels = null;
 let ollamaFetchPending = false;
 let ollamaRefreshQueued = false;
 let lastPickerUiLang = null;
+let isRebuildingDocPicker = false;
 
 async function fetchOllamaModelsSafely(){
   if(typeof fetchOllamaModels === 'function'){
@@ -608,66 +609,71 @@ function getDocEngineStatus(id, isOllamaModel = false){
 function buildDocEngineOptions(){
   const sel = $('dEngineSel');
   if(!sel) return;
-  const saved = store.get('doc_engine', '');
-  const currentVal = (sel.options && sel.options.length > 0) ? sel.value : saved;
-  const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
+  isRebuildingDocPicker = true;
+  try{
+    const saved = store.get('doc_engine', '');
+    const currentVal = (sel.options && sel.options.length > 0) ? sel.value : saved;
+    const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
 
-  const items = [];
-  // 1. Same as Text tab (default)
-  items.push({
-    val: '',
-    text: L('docSameAsText') || (ui === 'fa' ? 'همانند برگه متن' : 'Same as Text tab')
-  });
+    const items = [];
+    // 1. Same as Text tab (default)
+    items.push({
+      val: '',
+      text: L('docSameAsText') || (ui === 'fa' ? 'همانند برگه متن' : 'Same as Text tab')
+    });
 
-  order.forEach(id => {
-    if(!ENG[id]) return;
-    const tag = getDocEngineTag(id);
-    if(id === 'ollama'){
-      if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0){
-        cachedOllamaModels.forEach(m => {
-          const st = getDocEngineStatus('ollama', true);
-          items.push({
-            val: `ollama:${m}`,
-            text: `Ollama (${m}) · [${tag}] · ${st}`
+    order.forEach(id => {
+      if(!ENG[id]) return;
+      const tag = getDocEngineTag(id);
+      if(id === 'ollama'){
+        if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0){
+          cachedOllamaModels.forEach(m => {
+            const st = getDocEngineStatus('ollama', true);
+            items.push({
+              val: `ollama:${m}`,
+              text: `Ollama (${m}) · [${tag}] · ${st}`
+            });
           });
-        });
+        } else {
+          const st = getDocEngineStatus('ollama', false);
+          const stSuffix = st ? ` · ${st}` : '';
+          items.push({
+            val: 'ollama',
+            text: `${ENG.ollama.name} · [${tag}]${stSuffix}`
+          });
+        }
       } else {
-        const st = getDocEngineStatus('ollama', false);
+        const st = getDocEngineStatus(id, false);
         const stSuffix = st ? ` · ${st}` : '';
         items.push({
-          val: 'ollama',
-          text: `${ENG.ollama.name} · [${tag}]${stSuffix}`
+          val: id,
+          text: `${ENG[id].name} · [${tag}]${stSuffix}`
         });
       }
-    } else {
-      const st = getDocEngineStatus(id, false);
-      const stSuffix = st ? ` · ${st}` : '';
+    });
+
+    // If chosen or saved engine is an ollama model not yet in items (before initial fetch completes):
+    if(currentVal && currentVal.startsWith('ollama:') && !items.some(it => it.val === currentVal)){
+      const m = currentVal.slice(7);
+      const tag = getDocEngineTag('ollama');
       items.push({
-        val: id,
-        text: `${ENG[id].name} · [${tag}]${stSuffix}`
+        val: currentVal,
+        text: `Ollama (${m}) · [${tag}]`
       });
     }
-  });
 
-  // If chosen or saved engine is an ollama model not yet in items (before initial fetch completes):
-  if(currentVal && currentVal.startsWith('ollama:') && !items.some(it => it.val === currentVal)){
-    const m = currentVal.slice(7);
-    const tag = getDocEngineTag('ollama');
-    items.push({
-      val: currentVal,
-      text: `Ollama (${m}) · [${tag}]`
-    });
-  }
+    sel.innerHTML = items.map(it => `<option value="${esc(it.val)}">${esc(it.text)}</option>`).join('');
 
-  sel.innerHTML = items.map(it => `<option value="${esc(it.val)}">${esc(it.text)}</option>`).join('');
-
-  if(items.some(it => it.val === currentVal)){
-    sel.value = currentVal;
-  } else if(items.some(it => it.val === saved)){
-    sel.value = saved;
-  } else {
-    sel.value = '';
-    store.set('doc_engine', '');
+    if(items.some(it => it.val === currentVal)){
+      sel.value = currentVal;
+    } else if(items.some(it => it.val === saved)){
+      sel.value = saved;
+    } else {
+      sel.value = '';
+      store.set('doc_engine', '');
+    }
+  }finally{
+    isRebuildingDocPicker = false;
   }
 }
 
@@ -695,6 +701,7 @@ function refreshOllamaModelsForDoc(){
 }
 
 function resetDocErrorStatus(){
+  if(isRebuildingDocPicker) return;
   const chip = $('dStatusChip');
   if(docUiState === 'error' || (chip && chip.classList.contains('error'))){
     docUiState = 'idle';
@@ -707,7 +714,8 @@ function initDocEnginePicker(){
   const sel = $('dEngineSel');
   if(!sel) return;
   buildDocEngineOptions();
-  sel.addEventListener('change', () => {
+  sel.addEventListener('change', (e) => {
+    if(isRebuildingDocPicker || (e && e.isTrusted === false)) return;
     store.set('doc_engine', sel.value);
     updateDocEngineInfo();
     resetDocErrorStatus();
@@ -763,30 +771,24 @@ async function checkDocEngineReady(docChosen){
     return {ready: false, msg, reason: L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active')};
   }
   if(engId === 'ollama'){
-    if(cachedOllamaModels === false){
+    if(cachedOllamaModels === false || cachedOllamaModels === null || isOff()){
       const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
       return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
     }
-    try{
-      const models = (Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0) ? cachedOllamaModels : await fetchOllamaModels();
-      cachedOllamaModels = models;
-      if(modelName && Array.isArray(models) && !models.includes(modelName)){
-        const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
-        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
-      }
-      if(!models || models.length === 0){
-        const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
-        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
-      }
-      if(!modelName && !cfg.eng?.ollama?.model){
-        const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
-        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
-      }
-    }catch(err){
-      cachedOllamaModels = false;
-      const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
-      return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
+    const models = Array.isArray(cachedOllamaModels) ? cachedOllamaModels : [];
+    if(modelName && !models.includes(modelName)){
+      const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
+      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
     }
+    if(!models || models.length === 0){
+      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
+      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
+    }
+    if(!modelName && !cfg.eng?.ollama?.model){
+      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
+      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
+    }
+    return {ready: true};
   }
   if(engId === 'nllb'){
     if(typeof trAnyReady === 'function' && !trAnyReady()){
@@ -2061,18 +2063,27 @@ function updateDocEngineInfo(){
   }else{
     txtEl.innerHTML=`Engine: ${engineHtml} · Mode: ${modeHtml} · Status: ${netHtml}`;
   }
-  if(doc && (docUiState === 'loading' || docUiState === 'idle')){
-    setDocProgIdle();
-  }
 }
 
 if($('docOpenEngineSettings')){
   $('docOpenEngineSettings').onclick=openDocEngineSettings;
 }
 
-if($('engine')) $('engine').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
-if($('tMode')) $('tMode').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
-if($('offBtn')) $('offBtn').addEventListener('click', () => { resetDocErrorStatus(); setTimeout(updateDocEngineInfo, 10); });
+if($('engine')) $('engine').addEventListener('change', (e) => {
+  if(!e || e.isTrusted === false) return;
+  updateDocEngineInfo();
+  resetDocErrorStatus();
+});
+if($('tMode')) $('tMode').addEventListener('change', (e) => {
+  if(!e || e.isTrusted === false) return;
+  updateDocEngineInfo();
+  resetDocErrorStatus();
+});
+if($('offBtn')) $('offBtn').addEventListener('click', (e) => {
+  if(!e || e.isTrusted === false) return;
+  resetDocErrorStatus();
+  setTimeout(updateDocEngineInfo, 10);
+});
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
 function onDocTabOpen(){
