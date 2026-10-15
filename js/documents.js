@@ -709,50 +709,56 @@ async function checkDocEngineReady(docChosen){
     modelName = docChosen.slice(7);
   }
   if(!ENG[engId]){
-    return {ready: false, msg: ui === 'fa' ? 'موتور نامعتبر است.' : 'Invalid engine.'};
+    return {ready: false, msg: ui === 'fa' ? 'موتور نامعتبر است.' : 'Invalid engine.', reason: ui === 'fa' ? 'موتور نامعتبر است' : 'invalid engine'};
   }
   if(cfg.eng?.[engId]?.on === false){
     const name = ENG[engId].name;
     const msg = (L('docTurnedOffPrompt') || '{engine} is turned off. Turn it on in Engines & keys.').replace('{engine}', name);
-    return {ready: false, msg};
+    return {ready: false, msg, reason: L('docTurnedOffInSettings') || (ui === 'fa' ? 'خاموش در موتورها و کلیدها' : 'turned off in Engines & keys')};
   }
   if(isOff() && !offCapable(engId)){
     const name = ENG[engId].name;
     const msg = (L('docInternetRequiredPrompt') || '{engine} requires an internet connection. Turn off Offline mode or connect to the internet.').replace('{engine}', name);
-    return {ready: false, msg};
+    return {ready: false, msg, reason: L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active')};
   }
   if(engId === 'ollama'){
+    if(cachedOllamaModels === false){
+      const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
+      return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
+    }
     try{
-      const models = await fetchOllamaModels();
+      const models = (Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0) ? cachedOllamaModels : await fetchOllamaModels();
+      cachedOllamaModels = models;
       if(modelName && Array.isArray(models) && !models.includes(modelName)){
         const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
-        return {ready: false, msg};
+        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
       }
     }catch(err){
+      cachedOllamaModels = false;
       const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
-      return {ready: false, msg};
+      return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
     }
   }
   if(engId === 'nllb'){
     if(typeof trAnyReady === 'function' && !trAnyReady()){
       const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
-      return {ready: false, msg};
+      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
     }
   }
   if(engId === 'chrome'){
     if(!('Translator' in self)){
       const msg = L('docChromeNotAvailablePrompt') || 'Chrome on-device translator is not available in this browser.';
-      return {ready: false, msg};
+      return {ready: false, msg, reason: L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here')};
     }
   }
   if(ENG[engId].key && !cfg.eng?.[engId]?.key){
     const name = ENG[engId].name;
     const msg = (L('docAddKeyPrompt') || 'Add a {engine} key in Engines & keys.').replace('{engine}', name);
-    return {ready: false, msg};
+    return {ready: false, msg, reason: L('docNeedsKey') || (ui === 'fa' ? 'نیاز به کلید' : 'needs key')};
   }
   if(engId === 'custom' && !cfg.eng?.[engId]?.base){
     const msg = L('docCustomUrlPrompt') || 'Add a server URL in Engines & keys.';
-    return {ready: false, msg};
+    return {ready: false, msg, reason: L('needUrl') || (ui === 'fa' ? 'نشانی لازم دارد' : 'needs a URL')};
   }
   return {ready: true};
 }
@@ -770,7 +776,7 @@ let docEngineFailStatus = {};
 let docHasAnyTimeout = false;
 let currentDocEngine = '';
 
-function buildHonestFailureMessage(chain, triedEngines, err){
+function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons = new Map()){
   const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   const attempted = [];
   const seenEngines = new Set();
@@ -803,18 +809,31 @@ function buildHonestFailureMessage(chain, triedEngines, err){
   if(docChosen){
     const engId = docChosen.startsWith('ollama:') ? 'ollama' : docChosen;
     const name = docChosen.startsWith('ollama:') ? `Ollama (${docChosen.slice(7)})` : getDocEngineDisplayName(engId);
-    const reason = plainEngineErr(err, engId);
+    const reason = preSkippedReasons.get(docChosen) || plainEngineErr(err, engId);
     attempted.push(`${name} (${reason})`);
   } else {
-    const listToRun = (triedEngines && triedEngines.size > 0) ? Array.from(triedEngines) : (chain || []);
-    listToRun.forEach(id => {
-      if(seenEngines.has(id)) return;
-      seenEngines.add(id);
-      const name = getDocEngineDisplayName(id);
-      const reason = plainEngineErr(err, id);
-      attempted.push(`${name} (${reason})`);
-    });
+    // 1. Any engines that were attempted:
+    if(triedEngines && triedEngines.size > 0){
+      triedEngines.forEach(id => {
+        if(seenEngines.has(id)) return;
+        seenEngines.add(id);
+        const name = getDocEngineDisplayName(id);
+        const reason = plainEngineErr(err, id);
+        attempted.push(`${name} (${reason})`);
+      });
+    }
 
+    // 2. Any engines pre-skipped with specific reasons:
+    if(preSkippedReasons && preSkippedReasons.size > 0){
+      preSkippedReasons.forEach((reason, id) => {
+        if(seenEngines.has(id)) return;
+        seenEngines.add(id);
+        const name = getDocEngineDisplayName(id);
+        attempted.push(`${name} (${reason})`);
+      });
+    }
+
+    // 3. Common engines not yet listed:
     const candidates = ['chrome', 'google', 'mymemory', 'nllb', 'ollama'];
     candidates.forEach(candId => {
       if(seenEngines.has(candId)) return;
@@ -823,6 +842,8 @@ function buildHonestFailureMessage(chain, triedEngines, err){
       let reason = '';
       if(cfg.eng?.[candId]?.on === false){
         reason = L('docTurnedOffInSettings') || (ui === 'fa' ? 'خاموش در موتورها و کلیدها' : 'turned off in Engines & keys');
+      } else if(isOff() && !offCapable(candId)){
+        reason = L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active');
       } else if(candId === 'nllb' && (typeof trAnyReady === 'function' && !trAnyReady())){
         reason = L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded');
       } else if(candId === 'ollama'){
@@ -830,9 +851,7 @@ function buildHonestFailureMessage(chain, triedEngines, err){
       } else if(candId === 'chrome' && !('Translator' in self)){
         reason = L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here');
       } else if(ENG[candId].key && !cfg.eng?.[candId]?.key){
-        reason = L('docNeedsKey') || (ui === 'fa' ? 'نیاز به کلید' : 'needs a key');
-      } else if(isOff() && !offCapable(candId)){
-        reason = L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active');
+        reason = L('docNeedsKey') || (ui === 'fa' ? 'نیاز به کلید' : 'needs key');
       }
       if(reason){
         seenEngines.add(candId);
@@ -855,17 +874,17 @@ function getDocEngineChain(){
     return [docChosen];
   }
   const cur=$('engine')?.value||'auto';
-  if(cur&&cur!=='auto'&&usable(cur)) return [cur];
+  if(cur&&cur!=='auto'){
+    return [cur];
+  }
   if(isOff()){
-    const offList=['nllb','chrome','ollama'].filter(usable);
-    if(offList.length) return offList;
-    return ['nllb'];
+    return ['nllb','chrome','ollama'];
   }
   const mode=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   if(mode==='fast'){
-    return typeof getFastChain==='function'?getFastChain():['google','mymemory'];
+    return ['chrome','google','mymemory','nllb'];
   }
-  return typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order.filter(usable);
+  return (typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order).slice();
 }
 
 async function detectSubjectAndTerms(d){
@@ -1195,6 +1214,39 @@ $('dGo').onclick=async()=>{
     }
   }
 
+  const candidateChain = getDocEngineChain();
+  const readyChain = [];
+  const preSkippedReasons = new Map();
+
+  for(const id of candidateChain){
+    const check = await checkDocEngineReady(id);
+    if(check.ready){
+      readyChain.push(id.startsWith('ollama:') ? 'ollama' : id);
+    }else{
+      preSkippedReasons.set(id, check.reason);
+    }
+  }
+
+  if(!docChosen && readyChain.length === 0){
+    updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
+    $('dBar').style.width = '0%';
+    updateDocProgCounts(0, doc.items.length);
+    $('dSave').disabled = true;
+    $('dGo').disabled = false;
+    const honestMsg = buildHonestFailureMessage(candidateChain, new Set(), null, preSkippedReasons);
+    const linkText = ui === 'fa' ? 'موتورها و کلیدها' : 'Engines & keys';
+    $('dProgText').innerHTML = `${esc(honestMsg)} <a href="#" id="docErrOpenSettings" style="color:var(--cyan);text-decoration:underline;margin-inline-start:6px">${esc(linkText)}</a>`;
+    const link = $('docErrOpenSettings');
+    if(link){
+      link.onclick = (ev) => {
+        ev.preventDefault();
+        openDocEngineSettings();
+      };
+    }
+    toast(honestMsg, 'warn', 7000);
+    return;
+  }
+
   let chosenOllamaModel = '';
   let prevOllamaModel = '';
   if(docChosen && docChosen.startsWith('ollama:')){
@@ -1337,7 +1389,7 @@ $('dGo').onclick=async()=>{
     const triedEngines=new Set();
     try{
       const neededTexts=neededPieces.map(p=>p.text);
-      chain=getDocEngineChain();
+      chain = docChosen ? [docChosen.startsWith('ollama:') ? 'ollama' : docChosen] : readyChain;
       if(chain.length){
         triedEngines.add(chain[0]);
         currentDocEngine = chain[0];
@@ -1549,7 +1601,7 @@ $('dGo').onclick=async()=>{
         $('dBar').style.width=pct+'%';
         updateDocProgCounts(hasAnyTranslation?validCount:0, doc.items.length);
         if(!hasAnyTranslation){
-          const honestMsg=buildHonestFailureMessage(chain, triedEngines, e);
+          const honestMsg=buildHonestFailureMessage(candidateChain, triedEngines, e, preSkippedReasons);
           const linkText=ui==='fa'?'موتورها و کلیدها':'Engines & keys';
           $('dProgText').innerHTML=`${esc(honestMsg)} <a href="#" id="docErrOpenSettings" style="color:var(--cyan);text-decoration:underline;margin-inline-start:6px">${esc(linkText)}</a>`;
           const link=$('docErrOpenSettings');

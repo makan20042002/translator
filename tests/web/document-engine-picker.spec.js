@@ -224,7 +224,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
 
     const progText = page.locator('#dProgText');
     await expect(progText).toContainText('Tried:');
-    await expect(progText).toContainText('Chrome on-device (not available here)');
+    await expect(progText).toContainText('Chrome on-device (turned off in Engines & keys)');
     await expect(progText).toContainText('Choose an engine under Translate with, or open Engines & keys.');
 
     // 2. Persian UI
@@ -232,7 +232,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
     await mouseClick(page, page.locator('#dGo'));
 
     await expect(progText).toContainText('موتورهای امتحان‌شده:');
-    await expect(progText).toContainText('در این مرورگر در دسترس نیست');
+    await expect(progText).toContainText('خاموش در موتورها و کلیدها');
     await expect(progText).toContainText('یک موتور در «ترجمه با» انتخاب کنید یا «موتورها و کلیدها» را باز کنید.');
   });
 
