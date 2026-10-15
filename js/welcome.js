@@ -103,7 +103,7 @@ function updateWelcomeStepUI() {
     if (sumPriv) {
       const disc = getWelcomePrivacyDisclosure();
       sumPriv.textContent = disc.text;
-      sumPriv.style.color = disc.isLocal ? '#3FB950' : 'var(--text-dim, #B5C2D4)';
+      sumPriv.style.color = disc.isLocal ? 'var(--success, #10B981)' : 'var(--muted, #8496B0)';
     }
 
     // AI Key row
@@ -153,10 +153,10 @@ function updateWelcomeVoiceScreenStatus() {
     const vR = (typeof getVoiceTabReadiness === 'function') ? getVoiceTabReadiness() : { ready: true };
     if (vR.ready) {
       vBadge.textContent = 'آماده ✓ (Ready)';
-      vBadge.style.color = '#3FB950';
+      vBadge.style.color = 'var(--success, #10B981)';
     } else {
       vBadge.textContent = vR.reason ? `${vR.reason} (محدود)` : 'آماده نیست (Not ready)';
-      vBadge.style.color = 'var(--text-dim, #B5C2D4)';
+      vBadge.style.color = 'var(--muted, #8496B0)';
     }
   }
 
@@ -164,10 +164,10 @@ function updateWelcomeVoiceScreenStatus() {
     const isDesktop = !!(window.makanDesktop?.isDesktop);
     if (isDesktop) {
       sBadge.textContent = 'متصل به دسکتاپ ✓ (Connected)';
-      sBadge.style.color = '#3FB950';
+      sBadge.style.color = 'var(--success, #10B981)';
     } else {
       sBadge.textContent = 'محیط مرورگر وب (Web browser)';
-      sBadge.style.color = 'var(--text-dim, #B5C2D4)';
+      sBadge.style.color = 'var(--muted, #8496B0)';
     }
   }
 }
@@ -305,14 +305,14 @@ function updateWelcomePrivacyNotice() {
   txt.textContent = disc.text;
   if (disc.isLocal) {
     notice.classList.add('local');
-    notice.style.borderColor = 'rgba(63, 185, 80, 0.35)';
-    notice.style.background = 'rgba(63, 185, 80, 0.08)';
-    txt.style.color = '#3FB950';
+    notice.style.borderColor = 'var(--success, rgba(16, 185, 129, 0.35))';
+    notice.style.background = 'var(--success-bg, rgba(16, 185, 129, 0.08))';
+    txt.style.color = 'var(--success, #10B981)';
   } else {
     notice.classList.remove('local');
-    notice.style.borderColor = 'rgba(8, 168, 255, 0.3)';
-    notice.style.background = 'rgba(8, 168, 255, 0.06)';
-    txt.style.color = 'var(--text-dim, #B5C2D4)';
+    notice.style.borderColor = 'var(--border, rgba(8, 168, 255, 0.3))';
+    notice.style.background = 'var(--hover, rgba(8, 168, 255, 0.06))';
+    txt.style.color = 'var(--muted, #8496B0)';
   }
 }
 

@@ -1,12 +1,23 @@
 :root{
-  --bg:#05070D; --bg2:#070B14; --surface:#0B111C; --surface2:#101826;
-  --glass:rgba(14,21,34,.72); --border:rgba(255,255,255,.07); --border2:rgba(255,255,255,.13);
-  --green:#22E58A; --cyan:#13C8F5; --blue:#3B6BFF;
+  --bg:#040914; --panel:#071022; --panel2:#050b18; --surface:#0a1528;
+  --border:rgba(255,255,255,.08); --text:#F1F5F9; --muted:#8496B0; --faint:#506482;
+  --topbar-text:#F1F5F9; --accent:#08A8FF; --accent-dark:#1366E2; --on-accent:#040914;
+  --hover:#0d1e3a; --selected:#102448; --success:#10B981; --danger:#EF4444;
+  --warning:#F59E0B; --success-bg:rgba(16,185,129,.15); --header-bg:#071022;
+  --track:#0e1e38; --input:#0a1528; --input-border:rgba(28,64,118,.45);
+  --popup:#0a1528; --icon-grey:#8496B0; --icon-purple:#A78BFA; --icon-teal:#08E7E5;
+  --icon-amber:#F59E0B; --scroll-thumb:rgba(28,64,118,.45); --scroll-thumb-hover:#08A8FF;
+  --disabled:#506482;
+
+  /* Legacy aliases */
+  --bg2:var(--panel); --bg-navy:var(--bg); --bg-sidebar:var(--panel2);
+  --surface2:var(--track); --surface-card:var(--surface); --surface-card-hover:var(--hover);
+  --surface-active:var(--selected); --border2:var(--input-border);
+  --green:var(--success); --cyan:var(--icon-teal); --blue:var(--accent-dark);
   --grad:linear-gradient(100deg,#22E58A 0%,#13C8F5 50%,#3B6BFF 100%);
-  --accent:#58A6FF; --accent-dim:rgba(88,166,255,.12); --accent-line:rgba(88,166,255,.32);
-  --cta:#FFB44A; --cta-ink:#16110A;
-  --text:#EAF1F7; --muted:#93A1B5; --faint:#5E6B7E;
-  --ok:#22E58A; --warn:#FFB44A; --err:#FF6B7A;
+  --accent-dim:rgba(8,168,255,.12); --accent-line:rgba(8,168,255,.32);
+  --cta:var(--accent-dark); --cta-ink:#FFFFFF;
+  --ok:var(--success); --warn:var(--warning); --err:var(--danger);
   --display:'Space Grotesk','Vazirmatn','Segoe UI',system-ui,sans-serif;
   --body:'Manrope','Vazirmatn',-apple-system,'Segoe UI',sans-serif;
   --mono:'JetBrains Mono','Vazirmatn',Consolas,monospace;
@@ -19,7 +30,7 @@ body{background:var(--bg);color:var(--text);font-family:var(--body);font-size:15
   background-image:radial-gradient(900px 420px at 85% -10%,rgba(59,107,255,.10),transparent 60%),radial-gradient(700px 380px at 5% 0%,rgba(34,229,138,.06),transparent 60%);background-attachment:fixed}
 button,input,select,textarea{font:inherit;color:inherit}
 :focus-visible{outline:2px solid var(--accent);outline-offset:2px;border-radius:6px}
-::selection{background:rgba(19,200,245,.35);color:#fff}
+::selection{background:var(--accent-dim);color:var(--text)}
 a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .wrap{width:100%;max-width:1240px;margin:0 auto;padding:0 24px;box-sizing:border-box;min-width:0}
 @media(max-width:640px){.wrap{padding:0 12px}}
@@ -36,17 +47,17 @@ a{color:var(--accent);text-decoration:none} a:hover{text-decoration:underline}
 .sp{flex:1}
 
 .btn{display:inline-flex;align-items:center;gap:8px;min-height:38px;padding:0 14px;border-radius:var(--r-s);border:1px solid var(--border2);background:var(--surface2);cursor:pointer;font-weight:600;font-size:13.5px;transition:border-color .18s var(--ease),background .18s var(--ease),transform .18s var(--ease);white-space:nowrap}
-.btn:hover{border-color:var(--accent-line);background:#142033}
+.btn:hover{border-color:var(--accent-line);background:var(--hover)}
 .btn:active{transform:translateY(1px)}
 .btn[disabled]{opacity:.45;cursor:not-allowed}
 .btn.cta{background:var(--cta);border-color:var(--cta);color:var(--cta-ink)}
-.btn.cta:hover{background:#ffc470}
+.btn.cta:hover{background:var(--accent)}
 .btn.ghost{background:transparent;border-color:transparent;color:var(--muted);padding:0 10px;min-height:32px;font-weight:500}
 .btn.ghost:hover{color:var(--text);background:var(--accent-dim)}
 .btn.rec{border-color:var(--err);color:var(--err);animation:pulse 1.1s infinite}
 .btn.danger:hover{border-color:var(--err);color:var(--err)}
-@keyframes pulse{50%{box-shadow:0 0 0 6px rgba(255,107,122,.14)}}
-kbd{font-family:var(--mono);font-size:10.5px;padding:2px 5px;border-radius:5px;background:rgba(0,0,0,.18);font-weight:500}
+@keyframes pulse{50%{box-shadow:0 0 0 6px var(--danger)}}
+kbd{font-family:var(--mono);font-size:10.5px;padding:2px 5px;border-radius:5px;background:var(--surface);font-weight:500}
 
 /* head */
 .head{padding:34px 0 18px}

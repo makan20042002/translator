@@ -11,60 +11,86 @@
 }
 
 :root,
-[data-theme="dark"] {
-  /* Surface & Background Navy Palette */
+[data-theme="dark"],
+[data-theme="makan-lab"] {
+  /* 30 Semantic Epsilon Theme Tokens (Default: Makan Lab) */
   --bg: #040914;
-  --bg-navy: #040914;
-  --bg2: #071022;
-  --bg-sidebar: #050b18;
+  --panel: #071022;
+  --panel2: #050b18;
   --surface: #0a1528;
-  --surface2: #0e1e38;
-  --surface-card: #091428;
-  --surface-card-hover: #0d1e3a;
-  --surface-active: #102448;
+  --border: rgba(255, 255, 255, 0.08);
+  --text: #F1F5F9;
+  --muted: #8496B0;
+  --faint: #506482;
+  --topbar-text: #F1F5F9;
+  --accent: #08A8FF;
+  --accent-dark: #1366E2;
+  --on-accent: #040914;
+  --hover: #0d1e3a;
+  --selected: #102448;
+  --success: #10B981;
+  --danger: #EF4444;
+  --warning: #F59E0B;
+  --success-bg: rgba(16, 185, 129, 0.15);
+  --header-bg: #071022;
+  --track: #0e1e38;
+  --input: #0a1528;
+  --input-border: rgba(28, 64, 118, 0.45);
+  --popup: #0a1528;
+  --icon-grey: #8496B0;
+  --icon-purple: #A78BFA;
+  --icon-teal: #08E7E5;
+  --icon-amber: #F59E0B;
+  --scroll-thumb: rgba(28, 64, 118, 0.45);
+  --scroll-thumb-hover: #08A8FF;
+  --disabled: #506482;
+
+  /* Surface & Background Navy Palette (Legacy Aliases) */
+  --bg-navy: var(--bg);
+  --bg2: var(--panel);
+  --bg-sidebar: var(--panel2);
+  --surface2: var(--track);
+  --surface-card: var(--surface);
+  --surface-card-hover: var(--hover);
+  --surface-active: var(--selected);
   --glass: rgba(5, 11, 24, 0.78);
 
-  /* Borders */
-  --border: rgba(255, 255, 255, 0.08);
-  --border2: rgba(28, 64, 118, 0.45);
+  /* Borders (Legacy Aliases) */
+  --border2: var(--input-border);
   --border-subtle: rgba(255, 255, 255, 0.05);
-  --border-focus: #08A8FF;
+  --border-focus: var(--accent);
   --border-glow: rgba(8, 168, 255, 0.4);
 
   /* Brand Mint-to-Blue Gradients (from MAKAN winged M logo) */
   --mint: #79F8C8;
-  --cyan: #08E7E5;
-  --electric-blue: #08A8FF;
+  --cyan: var(--icon-teal);
+  --electric-blue: var(--accent);
   --royal-blue: #2869F5;
   --grad: linear-gradient(135deg, #79F8C8 0%, #08E7E5 46%, #08A8FF 72%, #2869F5 100%);
   --grad-mint-blue: linear-gradient(135deg, #79F8C8 0%, #08E7E5 46%, #08A8FF 72%, #2869F5 100%);
-  --grad-blue: linear-gradient(135deg, #1366E2 0%, #2563EB 100%);
+  --grad-blue: linear-gradient(135deg, var(--accent-dark) 0%, #2563EB 100%);
   --grad-surface: linear-gradient(180deg, rgba(14, 30, 56, 0.5) 0%, rgba(9, 20, 40, 0.8) 100%);
 
-  /* Accent & Action Colors */
-  --pri: #1366E2;
+  /* Accent & Action Colors (Legacy Aliases) */
+  --pri: var(--accent-dark);
   --pri-hover: #1D75F8;
   --pri-active: #0F52B8;
-  --accent: #08A8FF;
   --accent-dim: rgba(8, 168, 255, 0.12);
   --accent-line: rgba(8, 168, 255, 0.32);
-  --cta: #1366E2;
+  --cta: var(--accent-dark);
   --cta-ink: #FFFFFF;
 
-  /* Status Colors */
-  --ok: #10B981;
-  --ok-dim: rgba(16, 185, 129, 0.15);
-  --green: #10B981;
-  --warn: #F59E0B;
+  /* Status Colors (Legacy Aliases) */
+  --ok: var(--success);
+  --ok-dim: var(--success-bg);
+  --green: var(--success);
+  --warn: var(--warning);
   --warn-dim: rgba(245, 158, 11, 0.15);
-  --err: #EF4444;
+  --err: var(--danger);
   --err-dim: rgba(239, 68, 68, 0.15);
 
-  /* Typography Colors */
-  --text: #F1F5F9;
-  --text-bright: #FFFFFF;
-  --muted: #8496B0;
-  --faint: #506482;
+  /* Typography Colors (Legacy Aliases) */
+  --text-bright: var(--text);
 
   /* Typography Families */
   --display: 'Segoe UI Variable Display', 'Segoe UI Variable', 'Vazirmatn', -apple-system, system-ui, sans-serif;
@@ -203,13 +229,13 @@ input[type="search"],
 input[type="password"],
 input[type="email"] {
   color: var(--text);
-  color-scheme: dark;
+  color-scheme: inherit;
   height: 38px;
   padding-block: 0;
   padding-inline: 12px;
   border-radius: var(--r-s);
-  border: 1px solid var(--border2);
-  background: var(--surface);
+  border: 1px solid var(--input-border);
+  background: var(--input);
   font-family: var(--body);
   font-size: 14px;
   min-width: 0;
@@ -337,8 +363,11 @@ textarea:focus {
   width: 4px;
 }
 .sidebar::-webkit-scrollbar-thumb {
-  background: var(--border2);
+  background: var(--scroll-thumb);
   border-radius: 4px;
+}
+.sidebar::-webkit-scrollbar-thumb:hover {
+  background: var(--scroll-thumb-hover);
 }
 
 /* Sidebar Brand Header */
@@ -2486,8 +2515,8 @@ html[lang="fa"] .doc-drop-text strong {
 }
 
 .doc-btn-go {
-  background: var(--grad, linear-gradient(135deg, #0284c7, #2563eb)) !important;
-  color: #fff !important;
+  background: var(--accent) !important;
+  color: var(--on-accent) !important;
   font-weight: 600;
   min-height: 38px;
   box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
@@ -2594,43 +2623,52 @@ html[lang="fa"] .doc-drop-text strong {
   border-radius: 999px;
   font-size: 12px;
   font-weight: 600;
-  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
-  background: var(--surface2, #0e1e38);
-  color: var(--muted, #94a3b8);
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--muted);
   transition: all 0.2s ease;
 }
 
 .doc-status-chip.idle {
-  background: var(--surface2, #0e1e38);
-  color: var(--muted, #94a3b8);
-  border-color: var(--border2, rgba(28, 64, 118, 0.45));
+  background: var(--surface2);
+  color: var(--muted);
+  border-color: var(--border);
 }
 
 .doc-status-chip.active,
-.doc-status-chip.translating {
-  background: rgba(56, 189, 248, 0.12);
-  color: #38bdf8;
-  border-color: rgba(56, 189, 248, 0.35);
+.doc-status-chip.translating,
+.doc-status-chip.working {
+  background: var(--accent-dim, rgba(56, 189, 248, 0.12));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+.doc-status-chip.waiting {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--icon-purple);
+  border-color: var(--icon-purple);
 }
 
 .doc-status-chip.ok,
 .doc-status-chip.done {
-  background: rgba(34, 197, 94, 0.12);
-  color: #4ade80;
-  border-color: rgba(34, 197, 94, 0.3);
+  background: var(--success-bg, rgba(34, 197, 94, 0.12));
+  color: var(--success);
+  border-color: var(--success);
 }
 
 .doc-status-chip.warn,
-.doc-status-chip.partial {
-  background: rgba(245, 158, 11, 0.12);
-  color: #fbbf24;
-  border-color: rgba(245, 158, 11, 0.3);
+.doc-status-chip.partial,
+.doc-status-chip.attention {
+  background: var(--warn-dim, rgba(245, 158, 11, 0.12));
+  color: var(--warning);
+  border-color: var(--warning);
 }
 
-.doc-status-chip.error {
-  background: rgba(239, 68, 68, 0.12);
-  color: #f87171;
-  border-color: rgba(239, 68, 68, 0.3);
+.doc-status-chip.error,
+.doc-status-chip.failed {
+  background: var(--err-dim, rgba(239, 68, 68, 0.12));
+  color: var(--danger);
+  border-color: var(--danger);
 }
 
 .doc-prog-bar-wrap {

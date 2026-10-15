@@ -484,18 +484,18 @@ if (document.readyState === 'loading') {
       const isWinFa = Array.from($('stOcrLang')?.options || []).some(o => o.value.toLowerCase().startsWith('fa') && o.value !== 'auto');
       if (isRapidReady) {
         badgeEl.textContent = 'Ready (RapidOCR)';
-        badgeEl.style.background = 'rgba(63, 185, 80, 0.15)';
-        badgeEl.style.color = '#3FB950';
+        badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
+        badgeEl.style.color = 'var(--success, #3FB950)';
         descEl.textContent = 'Persian deep learning recognition model (RapidOCR) is downloaded and ready.';
       } else if (isWinFa) {
         badgeEl.textContent = 'Ready (Windows OCR)';
-        badgeEl.style.background = 'rgba(63, 185, 80, 0.15)';
-        badgeEl.style.color = '#3FB950';
+        badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
+        badgeEl.style.color = 'var(--success, #3FB950)';
         descEl.textContent = 'Windows Persian OCR language pack is installed and ready.';
       } else {
         badgeEl.textContent = 'Not installed';
         badgeEl.style.background = 'rgba(255, 180, 74, 0.15)';
-        badgeEl.style.color = '#FFB44A';
+        badgeEl.style.color = 'var(--warning, #FFB44A)';
         descEl.textContent = 'Persian OCR model is not downloaded. RapidOCR can recognize Persian after downloading the 11.3 MB model below.';
       }
     }

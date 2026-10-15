@@ -584,14 +584,14 @@ async function renderDictSettingsTab() {
     card.style.cssText = 'display:flex;align-items:center;justify-content:space-between;padding:8px 12px;background:var(--surface);border:1px solid var(--border);border-radius:6px;gap:8px';
     card.innerHTML = `
       <div style="display:flex;align-items:center;gap:8px">
-        <span class="dot ${isReady ? 'ok' : ''}" style="width:8px;height:8px;border-radius:50%;background:${isReady ? 'var(--ok, #3fb950)' : 'var(--muted, #8b949e)'};display:inline-block"></span>
+        <span class="dot ${isReady ? 'ok' : ''}" style="width:8px;height:8px;border-radius:50%;background:${isReady ? 'var(--success, #10B981)' : 'var(--muted, #8496B0)'};display:inline-block"></span>
         <div>
           <strong style="font-size:12.5px">${esc(name)}</strong>
           <span style="font-size:11px;color:var(--muted);margin-inline-start:6px">~${mb} MB ${entries ? '· ' + esc(entries) : ''}</span>
         </div>
       </div>
       <div>
-        <span class="ocr-badge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:${isReady ? 'rgba(63,185,80,0.15)' : 'rgba(255,180,74,0.15)'};color:${isReady ? 'var(--ok,#3fb950)' : '#FFB44A'}">${isReady ? (L('ready') || 'Ready') : (L('notDl') || 'Not downloaded')}</span>
+        <span class="ocr-badge" style="font-size:11px;padding:2px 8px;border-radius:10px;background:${isReady ? 'var(--success-bg, rgba(16,185,129,0.15))' : 'rgba(245,158,11,0.15)'};color:${isReady ? 'var(--success, #10B981)' : 'var(--warning, #F59E0B)'}">${isReady ? (L('ready') || 'Ready') : (L('notDl') || 'Not downloaded')}</span>
       </div>
     `;
     box.appendChild(card);
