@@ -194,6 +194,17 @@ async function extractPdfParagraphs(arrayBuffer, options = {}) {
         throw abortErr;
       }
 
+      const delayMs = (typeof window !== 'undefined' && window.__pdfPageDelayMs) || 0;
+      if (delayMs > 0) {
+        await new Promise(r => setTimeout(r, delayMs));
+      }
+
+      if (signal && signal.aborted) {
+        const abortErr = new Error('Aborted');
+        abortErr.name = 'AbortError';
+        throw abortErr;
+      }
+
       if (typeof onProgress === 'function') {
         try {
           onProgress({ current: pageNum, total: pageCount });

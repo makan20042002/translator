@@ -250,11 +250,24 @@ test.describe('Web app: PDF Document input', () => {
     const progText = page.locator('#dProgText');
     const stopBtn = page.locator('#dStop');
 
+    // Set test-only delay hook BEFORE choosing file
+    await page.evaluate(() => {
+      window.__pdfPageDelayMs = 100;
+    });
+
     // Choose 120-page PDF
     await chooseFile(page, page.locator('#dDrop'), large120PagePdf);
 
     // Stop button should become visible while reading
     await expect(stopBtn).toBeVisible({ timeout: 5000 });
+
+    // Progress text "Reading PDF… page N of M" with N increasing
+    await expect(progText).toContainText('Reading PDF');
+    await expect.poll(async () => {
+      const text = await progText.textContent();
+      const m = text.match(/page\s+(\d+)\s+of/i);
+      return m ? parseInt(m[1], 10) : 0;
+    }, { timeout: 3000 }).toBeGreaterThan(1);
 
     // Click Stop to abort
     const t0 = Date.now();
@@ -263,7 +276,19 @@ test.describe('Web app: PDF Document input', () => {
     // Aborts and returns to idle within 2 s
     await expect(stopBtn).toBeHidden({ timeout: 2000 });
     const elapsed = Date.now() - t0;
-    expect(elapsed).toBeLessThan(2500);
+    expect(elapsed).toBeLessThan(2000);
+    await expect(page.locator('#dStatusChip')).toHaveClass(/idle/);
+    await expect(progText).toContainText(/Ready to translate|آماده ترجمه/);
+    await expect(page.locator('#dGo')).toBeDisabled();
+
+    // No error toast
+    const errorToast = page.locator('.toast.err');
+    await expect(errorToast).toHaveCount(0);
+
+    // Reset delay hook
+    await page.evaluate(() => {
+      window.__pdfPageDelayMs = 0;
+    });
 
     // Following small PDF works normally
     await chooseFile(page, page.locator('#dDrop'), sample3PagePdf);

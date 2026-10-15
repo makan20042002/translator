@@ -1292,6 +1292,7 @@ async function loadDoc(f){
 
       const pdfAbort = new AbortController();
       currentPdfAbort = pdfAbort;
+      $('dWork').hidden = false;
       $('dStop').hidden = false;
       $('dStop').onclick = () => {
         pdfAbort.abort();
@@ -1369,6 +1370,7 @@ async function loadDoc(f){
 
     if(ext === 'pdf'){
       if(e.name === 'AbortError' || e.message === 'Aborted'){
+        doc = null;
         docUiState = 'idle';
         updateDocStatus('idle');
         $('dProgText').textContent = ui === 'fa' ? 'آماده ترجمه' : 'Ready to translate';
