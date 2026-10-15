@@ -685,6 +685,16 @@ function refreshOllamaModelsForDoc(){
   });
 }
 
+function resetDocErrorStatus(){
+  const chip = $('dStatusChip');
+  if(chip && chip.classList.contains('error')){
+    updateDocStatus('idle');
+    if($('dProgText') && doc){
+      $('dProgText').textContent = ui === 'fa' ? 'آماده ترجمه' : 'Ready to translate';
+    }
+  }
+}
+
 function initDocEnginePicker(){
   const sel = $('dEngineSel');
   if(!sel) return;
@@ -692,6 +702,7 @@ function initDocEnginePicker(){
   sel.addEventListener('change', () => {
     store.set('doc_engine', sel.value);
     updateDocEngineInfo();
+    resetDocErrorStatus();
     if(doc) detectSubjectAndTerms(doc);
   });
   sel.addEventListener('focus', () => {
@@ -752,6 +763,14 @@ async function checkDocEngineReady(docChosen){
       cachedOllamaModels = models;
       if(modelName && Array.isArray(models) && !models.includes(modelName)){
         const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
+        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
+      }
+      if(!models || models.length === 0){
+        const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
+        return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
+      }
+      if(!modelName && !cfg.eng?.ollama?.model){
+        const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
         return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
       }
     }catch(err){
@@ -1154,6 +1173,8 @@ function renderDocSummary(validCount, totalCount, failedCount, memHits, engUsed)
   }
 }
 
+let docLoadingPromise = null;
+
 async function loadDoc(f){
   if(/\.pdf$/i.test(f.name)){
     toast(L('pdfNotSupported')||'PDF files are not supported yet.','warn',6000);
@@ -1161,31 +1182,39 @@ async function loadDoc(f){
   }
   if(/\.(srt|vtt)$/i.test(f.name)){document.querySelector('[data-tab=sub]').click();return loadSubs(f)}
 
+  let resolveDocLoad;
+  docLoadingPromise = new Promise(resolve => { resolveDocLoad = resolve; });
+
   const ext=(f.name.split('.').pop()||'txt').toLowerCase();
-  $('dWork').hidden=false;
   $('dSave').disabled=true;
   $('dBar').style.width='0';
   $('dFileName').textContent=f.name;
   $('dBadge').textContent=ext.toUpperCase();
 
+  let loadedDoc = null;
   try{
     if(ext==='docx'){
       const buf=await f.arrayBuffer();
-      doc=await prepDocx(f.name,buf);
+      loadedDoc=await prepDocx(f.name,buf);
     }else if(ext==='pptx'){
       const buf=await f.arrayBuffer();
-      doc=await prepPptx(f.name,buf);
+      loadedDoc=await prepPptx(f.name,buf);
     }else if(ext==='xlsx'){
       const buf=await f.arrayBuffer();
-      doc=await prepXlsx(f.name,buf);
+      loadedDoc=await prepXlsx(f.name,buf);
     }else{
       const text=await f.text();
-      doc=prepDoc(f.name,text);
+      loadedDoc=prepDoc(f.name,text);
     }
   }catch(e){
     toast('Could not read file: '+e.message,'err',8000);
+    docLoadingPromise = null;
+    resolveDocLoad(null);
     return;
   }
+
+  doc = loadedDoc;
+  $('dWork').hidden = false;
 
   dResult='';dOutItems=null;
   const sizeKb=Math.round(f.size/1024)||(f.size>0?1:0);
@@ -1217,19 +1246,28 @@ async function loadDoc(f){
   // Reset terms and detect subject
   renderDocTerms([]);
   detectSubjectAndTerms(doc);
+
+  docLoadingPromise = null;
+  resolveDocLoad(doc);
 }
 
 dropzone($('dDrop'),$('dFile'),loadDoc);
 $('dChangeFile').onclick=()=>$('dFile').click();
 
 $('dGo').onclick=async()=>{
+  if(docLoadingPromise){
+    await docLoadingPromise;
+  }
   if(!doc)return;
   const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   if(docChosen){
     const check = await checkDocEngineReady(docChosen);
     if(!check.ready){
-      updateDocStatus('warn');
-      $('dGo').disabled=false;
+      updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
+      $('dBar').style.width = '0%';
+      updateDocProgCounts(0, doc.items.length);
+      $('dSave').disabled = true;
+      $('dGo').disabled = false;
       showDocEngineNotReady(check.msg);
       return;
     }
@@ -1969,9 +2007,9 @@ if($('docOpenEngineSettings')){
   $('docOpenEngineSettings').onclick=openDocEngineSettings;
 }
 
-if($('engine')) $('engine').addEventListener('change', updateDocEngineInfo);
-if($('tMode')) $('tMode').addEventListener('change', updateDocEngineInfo);
-if($('offBtn')) $('offBtn').addEventListener('click', () => setTimeout(updateDocEngineInfo, 10));
+if($('engine')) $('engine').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
+if($('tMode')) $('tMode').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
+if($('offBtn')) $('offBtn').addEventListener('click', () => { setTimeout(updateDocEngineInfo, 10); resetDocErrorStatus(); });
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
 function onDocTabOpen(){
