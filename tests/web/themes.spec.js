@@ -167,7 +167,7 @@ test.describe('Theme System & Theme Picker', () => {
     const themeAtStart = await page.evaluate(() => document.documentElement.dataset.theme);
     expect(themeAtStart).toBe('dracula');
 
-    const storedTheme = await page.evaluate(() => window.store.get('theme'));
+    const storedTheme = await page.evaluate(() => store.get('theme'));
     expect(storedTheme).toBe('dracula');
   });
 
@@ -274,9 +274,10 @@ test.describe('Theme System & Theme Picker', () => {
 
     // Switch to Persian language
     await page.evaluate(() => {
-      window.store.set('lang', 'fa');
-      if (typeof window.applyI18n === 'function') window.applyI18n('fa');
-      if (typeof window.updateThemePickerLabels === 'function') window.updateThemePickerLabels();
+      store.set('ui', 'fa');
+      if (typeof ui !== 'undefined') ui = 'fa';
+      if (typeof applyI18n === 'function') applyI18n();
+      if (typeof updateThemePickerLabels === 'function') updateThemePickerLabels();
     });
 
     await openSettings(page);
@@ -307,7 +308,14 @@ test.describe('Theme System & Theme Picker', () => {
     const cssDir = path.resolve(__dirname, '../../css');
     const cssFiles = fs.readdirSync(cssDir).filter(f => f.endsWith('.css')).map(f => path.join(cssDir, f));
 
-    const allowedPatterns = allowListData.allowedPatterns.map(p => new RegExp(p, 'i'));
+    const allowedPatterns = allowListData.allowedPatterns.map(p => {
+      try {
+        return new RegExp(p, 'i');
+      } catch {
+        const escaped = p.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        return new RegExp(escaped, 'i');
+      }
+    });
     const hexRegex = /#(?:[0-9a-fA-F]{3,4}){1,2}\b/g;
     const rgbRegex = /rgba?\([^)]+\)/g;
 

@@ -6,8 +6,8 @@
     "--grad-blue",
     "--mint",
     "makanlab",
-    "url(",
-    "data:image/svg+xml"
+    "url\\(",
+    "data:image/svg\\+xml"
   ],
   "allowedKeywords": [
     "transparent",
