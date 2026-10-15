@@ -830,7 +830,8 @@ async function eAI(id,items,o){
     }
     const fxOpt={method:'POST',signal,headers:h,body:JSON.stringify(bodyObj)};
     if(o.timeout) fxOpt.timeout=o.timeout;
-    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',fxOpt);
+    const base=(e?.base||ENG[id]?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    const j=await fx(base+'/chat/completions',fxOpt);
     txt=j.choices?.[0]?.message?.content||'';
   }
   return parseArr(txt,items.length,!!o.includeNotes);
@@ -878,7 +879,8 @@ async function eAIChat(id,messages,o){
     }
     const fxOpt={method:'POST',signal,headers:h,body:JSON.stringify(bodyObj)};
     if(o.timeout) fxOpt.timeout=o.timeout;
-    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',fxOpt);
+    const base=(e?.base||ENG[id]?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    const j=await fx(base+'/chat/completions',fxOpt);
     txt=j.choices?.[0]?.message?.content||'';
   }
   return cleanSpokenText(txt);
