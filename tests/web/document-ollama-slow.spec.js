@@ -61,6 +61,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       window.__docOllamaTimeoutMs = 1000;
     });
 
+    let clickTime = 0;
+    const requests = [];
+
     await page.route('**/api/tags', route => {
       route.fulfill({
         status: 200,
@@ -70,6 +73,8 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await page.route('**/v1/chat/completions', () => {
+      const t = clickTime ? Date.now() - clickTime : 0;
+      requests.push({ count: requests.length + 1, timeMs: t });
       // Hang indefinitely
     });
 
@@ -80,13 +85,20 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
+
+    clickTime = Date.now();
     await mouseClick(page, page.locator('#dGo'));
 
-    // After timeout + retry, failure line names Ollama and "did not answer"
-    // timeout >= first (2s) + retry (1s) + 3s margin = 6s
+    // first (2s) + normal (1s) + 3s margin = 6s
+    const maxWait = 6000;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText).toContainText('did not answer', { timeout: 10000 });
-    await expect(progText).toContainText('Ollama', { timeout: 10000 });
+    await expect(progText, info()).toContainText('did not answer', { timeout: maxWait });
+    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
+
+    const elapsed = Date.now() - clickTime;
+    expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
+    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
 
     // Translate is enabled, Download disabled
     await expect(page.locator('#dGo')).toBeEnabled();
@@ -261,6 +273,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       window.__docOllamaTimeoutMs = 1000;
     });
 
+    let clickTime = 0;
+    const requests = [];
+
     await page.route('**/api/tags', route => {
       route.fulfill({
         status: 200,
@@ -270,6 +285,8 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await page.route('**/v1/chat/completions', () => {
+      const t = clickTime ? Date.now() - clickTime : 0;
+      requests.push({ count: requests.length + 1, timeMs: t });
       // Hang indefinitely
     });
 
@@ -283,12 +300,20 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
+
+    clickTime = Date.now();
     await mouseClick(page, page.locator('#dGo'));
 
-    // timeout >= first (2s) + retry (1s) + 3s margin = 6s
+    // first (2s) + normal (1s) + 3s margin = 6s
+    const maxWait = 6000;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText).toContainText('پاسخی نداد', { timeout: 10000 });
-    await expect(progText).toContainText('Ollama', { timeout: 10000 });
+    await expect(progText, info()).toContainText('پاسخی نداد', { timeout: maxWait });
+    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
+
+    const elapsed = Date.now() - clickTime;
+    expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
+    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
 
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();
@@ -345,6 +370,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       window.__docOllamaTimeoutMs = 1000;
     });
 
+    let clickTime = 0;
+    const requests = [];
+
     await page.route('**/api/tags', route => {
       route.fulfill({
         status: 200,
@@ -354,6 +382,8 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await page.route('**/v1/chat/completions', () => {
+      const t = clickTime ? Date.now() - clickTime : 0;
+      requests.push({ count: requests.length + 1, timeMs: t });
       // Hang indefinitely
     });
 
@@ -364,16 +394,20 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
 
-    const startTime = Date.now();
+    clickTime = Date.now();
     await mouseClick(page, page.locator('#dGo'));
 
     // first (3 s) + normal (1 s) + 3 s margin = 7 s (7000 ms) max
+    const maxWait = 7000;
+    const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     const progText = page.locator('#dProgText');
-    await expect(progText).toContainText('did not answer', { timeout: 7000 });
-    const elapsed = Date.now() - startTime;
-    expect(elapsed).toBeLessThanOrEqual(7000);
+    await expect(progText, info()).toContainText('did not answer', { timeout: maxWait });
+    await expect(progText, info()).toContainText('Ollama', { timeout: maxWait });
 
-    await expect(progText).toContainText('Ollama');
+    const elapsed = Date.now() - clickTime;
+    expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
+    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
+
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();
   });
