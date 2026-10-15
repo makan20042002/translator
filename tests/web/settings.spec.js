@@ -95,16 +95,16 @@ test.describe('Web app: Engines & keys', () => {
     });
   });
 
-  test('Engines & keys is organized into 5 navigable sections with all controls preserved', async ({ app }) => {
+  test('Engines & keys is organized into 6 navigable sections with all controls preserved', async ({ app }) => {
     const { page } = app;
     await openSettings(page);
 
-    // Verify 5 tab buttons exist
+    // Verify 6 tab buttons exist
     const tabs = page.locator('.set-tab-btn');
-    expect(await tabs.count()).toBe(5);
+    expect(await tabs.count()).toBe(6);
 
-    // Verify all 5 section containers exist
-    for (const secId of ['#secEngines', '#secVoices', '#secVoiceModels', '#secTrModels', '#secOcr']) {
+    // Verify all 6 section containers exist
+    for (const secId of ['#secEngines', '#secVoices', '#secVoiceModels', '#secTrModels', '#secOcr', '#secAppearance']) {
       await expect(page.locator(secId)).toBeAttached();
     }
 
