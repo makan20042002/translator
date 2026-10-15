@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>MAKAN Translate — free multi-engine translator for text, subtitles, documents and voice</title>
 <meta name="description" content="Translate text, subtitles (SRT/VTT), documents and voice with free engines or your own AI key. By MAKAN LAB.">
-<meta name="theme-color" content="#05070D">
+<meta name="theme-color" content="#040914" id="metaThemeColor">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/svg+xml" href="brand/makanlab-square-icon.svg">
 <link rel="alternate icon" href="icon-192.png">
@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/tabs.css">
 <link rel="stylesheet" href="css/theme.css">
+<script src="js/themes.js"></script>
 </head>
 <body>
 
@@ -1281,6 +1282,7 @@
     <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnTrModels" data-sec="secTrModels" role="tab" aria-selected="false" aria-controls="secTrModels" tabindex="-1"><span data-t="tabTrModels">Translation models (offline)</span></button>
     <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnOcr" data-sec="secOcr" role="tab" aria-selected="false" aria-controls="secOcr" tabindex="-1"><span data-t="tabOcr">Screen reading (OCR)</span></button>
     <button type="button" class="btn btn-sm set-tab-extra settings-nav-tab" id="setTabBtnDict" data-sec="secDict" role="tab" aria-selected="false" aria-controls="secDict" tabindex="-1"><span data-t="tabDict">فرهنگ لغت <bdi>(Dictionary)</bdi></span></button>
+    <button type="button" class="btn btn-sm set-tab-btn" id="setTabBtnAppearance" data-sec="secAppearance" role="tab" aria-selected="false" aria-controls="secAppearance" tabindex="-1"><span data-t="tabAppearance">Appearance</span></button>
   </div>
 
   <!-- Section 1: Translation engines and keys -->
@@ -1578,6 +1580,15 @@
     <div class="card" id="setDictLicenseCard" style="padding:10px 14px;background:rgba(92,194,255,0.06);border:1px solid rgba(92,194,255,0.2);border-radius:8px;font-size:12px;line-height:1.6">
       <strong>مجوز و اعتبار داده‌ها <bdi>(Data License &amp; Credits)</bdi>:</strong>
       داده‌های فرهنگ لغت از <bdi>Wiktionary</bdi> (ویکی‌واژه) و <bdi>Kaikki.org</bdi> استخراج شده و تحت مجوز رسمی <bdi>Creative Commons Attribution-ShareAlike 4.0 International (CC BY-SA 4.0)</bdi> ارائه می‌شوند.
+    </div>
+  </div>
+
+  <!-- Section 7: Appearance (Color Theme) -->
+  <div class="set-section" id="secAppearance" role="tabpanel" aria-labelledby="setTabBtnAppearance" style="margin-bottom:18px">
+    <div style="padding-top:4px">
+      <h3 style="display:flex;align-items:center;gap:8px;margin-top:0"><span data-t="themeH">Color Theme</span></h3>
+      <p class="note" data-t="themeNote">Choose from 7 crafted themes. Changes apply instantly across the whole app.</p>
+      <div class="theme-picker-grid" id="themePickerGrid" role="radiogroup" aria-label="Theme selection"></div>
     </div>
   </div>
 

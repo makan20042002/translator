@@ -5392,6 +5392,94 @@ body:has(#tab-voice.on) .speak-notice,
   bottom: 210px;
 }
 
+/* ==========================================================================
+   Theme Picker Component (Appearance Settings)
+   ========================================================================== */
+
+.theme-picker-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(210px, 1fr));
+  gap: 12px;
+  margin-top: 14px;
+}
+.theme-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: var(--r-s, 10px);
+  color: var(--text);
+  cursor: pointer;
+  text-align: start;
+  transition: border-color 0.18s ease, background 0.18s ease, box-shadow 0.18s ease;
+  position: relative;
+  user-select: none;
+}
+.theme-card:hover {
+  background: var(--hover);
+  border-color: var(--accent);
+}
+.theme-card:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.theme-card.active,
+.theme-card[aria-checked="true"] {
+  border-color: var(--accent);
+  background: var(--selected);
+  box-shadow: 0 0 0 1px var(--accent);
+}
+.theme-swatch {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 5px;
+  background: rgba(0, 0, 0, 0.2);
+  border-radius: 6px;
+  flex-shrink: 0;
+}
+.theme-dot {
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  display: inline-block;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  flex-shrink: 0;
+}
+.theme-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.theme-name {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  color: var(--text);
+}
+.theme-badge {
+  font-size: 11px;
+  color: var(--muted);
+}
+.theme-check {
+  font-size: 14px;
+  font-weight: bold;
+  color: var(--accent);
+  opacity: 0;
+  margin-inline-start: auto;
+  transition: opacity 0.15s ease;
+}
+.theme-card.active .theme-check,
+.theme-card[aria-checked="true"] .theme-check {
+  opacity: 1;
+}
+
 
 
 
