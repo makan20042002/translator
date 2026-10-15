@@ -45,6 +45,7 @@ function getContrast(hex1, hex2) {
 
 // Convert PascalCase token name to CSS variable name
 function tokenToVar(token) {
+  if (token === 'TopBarText') return '--topbar-text';
   return '--' + token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
 }
 
@@ -96,7 +97,7 @@ test.describe('Theme System & Theme Picker', () => {
       const style = getComputedStyle(document.documentElement);
       const res = {};
       tokens.forEach(t => {
-        const varName = '--' + t.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
+        const varName = t === 'TopBarText' ? '--topbar-text' : ('--' + t.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase());
         res[t] = style.getPropertyValue(varName).trim();
       });
       return res;
@@ -343,6 +344,117 @@ test.describe('Theme System & Theme Picker', () => {
     });
 
     expect(hardcodedCount, `Hardcoded color count (${hardcodedCount}) must not exceed allowed threshold (${allowListData.maxRemainingHardcodedCount})`).toBeLessThanOrEqual(allowListData.maxRemainingHardcodedCount);
+  });
+
+  test('(a) with makan-lab selected, the old light switch changes the computed body background and back', async ({ app }) => {
+    const { page } = app;
+
+    // Ensure makan-lab is active
+    await page.evaluate(() => {
+      if (typeof window.applyTheme === 'function') window.applyTheme('makan-lab');
+    });
+
+    const colors = await page.evaluate(() => {
+      const darkBg = getComputedStyle(document.body).backgroundColor;
+
+      // Old light switch: set data-theme="light" on <html>
+      document.documentElement.setAttribute('data-theme', 'light');
+      const lightBg = getComputedStyle(document.body).backgroundColor;
+
+      // Revert back
+      document.documentElement.removeAttribute('data-theme');
+      const revertedBg = getComputedStyle(document.body).backgroundColor;
+
+      return { darkBg, lightBg, revertedBg };
+    });
+
+    expect(colors.darkBg, 'dark background is defined').toBeTruthy();
+    expect(colors.lightBg, 'light background is defined and different').not.toBe(colors.darkBg);
+    expect(colors.revertedBg, 'reverted background returns to dark').toBe(colors.darkBg);
+  });
+
+  test('(b) with a non-default theme selected, pressing the old switch selects makan-lab light look and updates picker', async ({ app }) => {
+    const { page } = app;
+
+    await openSettings(page);
+    await mouseClick(page, page.locator('#setTabBtnAppearance'));
+
+    // Select dracula
+    const draculaCard = page.locator('.theme-card[data-theme-id="dracula"]');
+    await mouseClick(page, draculaCard);
+    await expect(page.locator('html')).toHaveAttribute('data-theme', 'dracula');
+
+    // Trigger old light switch: set data-theme="light"
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'light');
+    });
+
+    // Body background should now be light
+    await expect.poll(async () => {
+      return page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    }).not.toBe('rgb(30, 31, 41)'); // not dracula bg
+
+    // Picker's selected card must match real look (makan-lab selected)
+    const makanLabCard = page.locator('.theme-card[data-theme-id="makan-lab"]');
+    await expect(makanLabCard).toHaveAttribute('aria-checked', 'true');
+    await expect(draculaCard).toHaveAttribute('aria-checked', 'false');
+
+    // Color scheme must be light and meta theme-color updated
+    const scheme = await page.evaluate(() => document.documentElement.style.colorScheme);
+    expect(scheme).toBe('light');
+
+    const metaTheme = await page.evaluate(() => document.querySelector('meta[name="theme-color"]')?.content);
+    expect(metaTheme).toBe('#F8FAFC');
+  });
+
+  test('(c) old light switch choice survives a reload and restores light mode before first paint', async ({ app }) => {
+    const { page } = app;
+
+    // Set old light switch
+    await page.evaluate(() => {
+      document.documentElement.setAttribute('data-theme', 'light');
+    });
+
+    await page.reload();
+
+    // After reload, data-theme is light and body is light
+    const themeAtStart = await page.evaluate(() => document.documentElement.getAttribute('data-theme'));
+    expect(themeAtStart).toBe('light');
+
+    const bodyBg = await page.evaluate(() => getComputedStyle(document.body).backgroundColor);
+    expect(bodyBg).toBeTruthy();
+
+    const scheme = await page.evaluate(() => document.documentElement.style.colorScheme);
+    expect(scheme).toBe('light');
+  });
+
+  test('(d) the 6 non-default themes still set all 30 tokens and pass their value tests', async ({ app }) => {
+    const { page } = app;
+    const nonDefaultThemes = EXPECTED_THEME_IDS.filter(id => id !== 'makan-lab');
+
+    for (const themeId of nonDefaultThemes) {
+      await page.evaluate((id) => window.applyTheme(id), themeId);
+
+      const actualTheme = await page.evaluate(() => document.documentElement.dataset.theme);
+      expect(actualTheme).toBe(themeId);
+
+      // Verify all 30 tokens are written inline on document.documentElement
+      const inlineVars = await page.evaluate((tokens) => {
+        const res = {};
+        tokens.forEach(t => {
+          const varName = t === 'TopBarText' ? '--topbar-text' : ('--' + t.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase());
+          res[t] = document.documentElement.style.getPropertyValue(varName).trim();
+        });
+        return res;
+      }, designData.tokenOrder);
+
+      for (const token of designData.tokenOrder) {
+        let expectedVal = designData.themes[themeId].colors[token];
+        if (themeId === 'royal-amethyst' && token === 'OnAccent') expectedVal = '#180A2A';
+        if (themeId === 'rose-titanium' && token === 'OnAccent') expectedVal = '#260C18';
+        expect(inlineVars[token].toLowerCase(), `${themeId} token ${token} inline style must match expected`).toBe(expectedVal.toLowerCase());
+      }
+    }
   });
 
 });
