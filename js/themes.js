@@ -267,8 +267,19 @@
     }
   };
 
+  var ALL_TOKEN_VARS = [
+    '--bg', '--panel', '--panel2', '--surface', '--border', '--text',
+    '--muted', '--faint', '--topbar-text', '--top-bar-text', '--accent', '--accent-dark',
+    '--on-accent', '--hover', '--selected', '--success', '--danger',
+    '--warning', '--success-bg', '--header-bg', '--track', '--input',
+    '--input-border', '--popup', '--icon-grey', '--icon-purple',
+    '--icon-teal', '--icon-amber', '--scroll-thumb', '--scroll-thumb-hover',
+    '--disabled'
+  ];
+
   // Convert PascalCase token name (e.g. ScrollThumbHover) to CSS var (--scroll-thumb-hover)
   function tokenToVar(token) {
+    if (token === 'TopBarText') return '--topbar-text';
     return '--' + token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
   }
 
@@ -288,6 +299,47 @@
     }
   }
 
+  function getSavedThemeMode() {
+    try {
+      if (typeof store !== 'undefined' && typeof store.get === 'function') {
+        return store.get('theme_mode', null);
+      }
+    } catch (e) {}
+    try {
+      var raw = localStorage.getItem('mkt_theme_mode');
+      return raw ? JSON.parse(raw) : null;
+    } catch (e) {
+      return null;
+    }
+  }
+
+  function applyOldLightMode() {
+    var root = document.documentElement;
+    root.dataset.theme = 'light';
+    root.setAttribute('data-theme', 'light');
+    root.style.colorScheme = 'light';
+    for (var i = 0; i < ALL_TOKEN_VARS.length; i++) {
+      root.style.removeProperty(ALL_TOKEN_VARS[i]);
+    }
+    var metaTheme = document.querySelector('meta[name="theme-color"]');
+    if (metaTheme) {
+      metaTheme.setAttribute('content', '#F8FAFC');
+    }
+    updateThemePickerUI('makan-lab');
+    try {
+      if (typeof store !== 'undefined' && typeof store.set === 'function') {
+        store.set('theme', 'makan-lab');
+        store.set('theme_mode', 'light');
+      } else {
+        localStorage.setItem('mkt_theme', JSON.stringify('makan-lab'));
+        localStorage.setItem('mkt_theme_mode', JSON.stringify('light'));
+      }
+    } catch (e) {}
+    try {
+      window.dispatchEvent(new CustomEvent('themechange', { detail: { theme: 'makan-lab', mode: 'light' } }));
+    } catch (e) {}
+  }
+
   function applyTheme(id) {
     var themeId = (id && THEMES[id]) ? id : 'makan-lab';
     var theme = THEMES[themeId];
@@ -297,11 +349,22 @@
     root.setAttribute('data-theme', themeId);
     root.style.colorScheme = theme.mode === 'light' ? 'light' : 'dark';
 
-    // Apply the 30 tokens directly to CSS custom properties on :root
-    for (var token in theme.colors) {
-      if (Object.prototype.hasOwnProperty.call(theme.colors, token)) {
-        var cssVar = tokenToVar(token);
-        root.style.setProperty(cssVar, theme.colors[token]);
+    // Clear all previously set inline CSS variables for tokens
+    for (var i = 0; i < ALL_TOKEN_VARS.length; i++) {
+      root.style.removeProperty(ALL_TOKEN_VARS[i]);
+    }
+
+    // Only set inline CSS variables for the 6 non-default themes!
+    // For makan-lab, let :root and [data-theme="light"] rules in CSS govern!
+    if (themeId !== 'makan-lab') {
+      for (var token in theme.colors) {
+        if (Object.prototype.hasOwnProperty.call(theme.colors, token)) {
+          var cssVar = tokenToVar(token);
+          root.style.setProperty(cssVar, theme.colors[token]);
+          if (token === 'TopBarText') {
+            root.style.setProperty('--top-bar-text', theme.colors[token]);
+          }
+        }
       }
     }
 
@@ -320,8 +383,10 @@
     try {
       if (typeof store !== 'undefined' && typeof store.set === 'function') {
         store.set('theme', themeId);
+        store.set('theme_mode', theme.mode);
       } else {
         localStorage.setItem('mkt_theme', JSON.stringify(themeId));
+        localStorage.setItem('mkt_theme_mode', JSON.stringify(theme.mode));
       }
     } catch (e) {}
 
@@ -460,7 +525,29 @@
 
   // Apply saved theme immediately BEFORE first paint
   var initialId = getSavedThemeId();
-  applyTheme(initialId);
+  var initialMode = getSavedThemeMode();
+  if (initialId === 'makan-lab' && initialMode === 'light') {
+    applyOldLightMode();
+  } else {
+    applyTheme(initialId);
+  }
+
+  // Observe external modifications to data-theme on <html> (e.g. data-theme="light" switch in theme-scroll.spec.js)
+  if (typeof MutationObserver !== 'undefined' && typeof document !== 'undefined') {
+    var themeObserver = new MutationObserver(function (mutations) {
+      mutations.forEach(function (m) {
+        if (m.type === 'attributes' && m.attributeName === 'data-theme') {
+          var val = document.documentElement.getAttribute('data-theme');
+          if (val === 'light') {
+            applyOldLightMode();
+          } else if (val === 'dark') {
+            applyTheme('makan-lab');
+          }
+        }
+      });
+    });
+    themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+  }
 
   // Initialize UI once DOM is loaded
   if (document.readyState === 'loading') {

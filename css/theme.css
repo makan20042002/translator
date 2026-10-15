@@ -44,6 +44,7 @@
   --scroll-thumb: rgba(28, 64, 118, 0.45);
   --scroll-thumb-hover: #08A8FF;
   --disabled: #506482;
+  --top-bar-text: var(--topbar-text);
 
   /* Surface & Background Navy Palette (Legacy Aliases) */
   --bg-navy: var(--bg);
@@ -147,6 +148,32 @@
   --accent-line: rgba(2, 132, 199, 0.25);
   --cta: #1366E2;
   --cta-ink: #FFFFFF;
+
+  /* 30 Semantic Epsilon Tokens in Light Mode */
+  --panel: var(--bg2);
+  --panel2: var(--bg-sidebar);
+  --topbar-text: var(--text);
+  --top-bar-text: var(--text);
+  --accent-dark: var(--pri);
+  --on-accent: #FFFFFF;
+  --hover: var(--surface-card-hover);
+  --selected: var(--surface-active);
+  --header-bg: var(--bg2);
+  --track: var(--surface2);
+  --input: var(--surface);
+  --input-border: var(--border2);
+  --popup: var(--surface);
+  --icon-grey: var(--muted);
+  --icon-purple: #7047B8;
+  --icon-teal: var(--accent);
+  --icon-amber: #9A5700;
+  --scroll-thumb: var(--border2);
+  --scroll-thumb-hover: var(--accent);
+  --disabled: var(--faint);
+  --success: #197347;
+  --danger: #B4233E;
+  --warning: #9A5700;
+  --success-bg: #E1F3EA;
 
   --shadow-sm: 0 2px 6px rgba(0, 0, 0, 0.05);
   --shadow-md: 0 6px 18px rgba(0, 0, 0, 0.08);
