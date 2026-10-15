@@ -612,7 +612,8 @@ function buildDocEngineOptions(){
   isRebuildingDocPicker = true;
   try{
     const saved = store.get('doc_engine', '');
-    const currentVal = (sel.options && sel.options.length > 0) ? sel.value : saved;
+    const currentVal = (sel.value && sel.value !== '') ? sel.value : saved;
+    const targetVal = saved || currentVal;
     const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
 
     const items = [];
@@ -653,24 +654,31 @@ function buildDocEngineOptions(){
     });
 
     // If chosen or saved engine is an ollama model not yet in items (before initial fetch completes):
-    if(currentVal && currentVal.startsWith('ollama:') && !items.some(it => it.val === currentVal)){
-      const m = currentVal.slice(7);
+    if(targetVal && targetVal.startsWith('ollama:') && !items.some(it => it.val === targetVal)){
+      const m = targetVal.slice(7);
       const tag = getDocEngineTag('ollama');
       items.push({
-        val: currentVal,
+        val: targetVal,
         text: `Ollama (${m}) · [${tag}]`
+      });
+    } else if(targetVal && !items.some(it => it.val === targetVal)){
+      // A saved value that is not in the current option list may be shown as unavailable but must not be erased silently
+      const engName = ENG[targetVal]?.name || targetVal;
+      const tag = getDocEngineTag(targetVal);
+      items.push({
+        val: targetVal,
+        text: `${engName} · [${tag}] · ${L('docNotAvailableHere') || 'not available'}`
       });
     }
 
     sel.innerHTML = items.map(it => `<option value="${esc(it.val)}">${esc(it.text)}</option>`).join('');
 
-    if(items.some(it => it.val === currentVal)){
-      sel.value = currentVal;
-    } else if(items.some(it => it.val === saved)){
+    if(targetVal && items.some(it => it.val === targetVal)){
+      sel.value = targetVal;
+    } else if(saved && items.some(it => it.val === saved)){
       sel.value = saved;
     } else {
       sel.value = '';
-      store.set('doc_engine', '');
     }
   }finally{
     isRebuildingDocPicker = false;
@@ -714,8 +722,8 @@ function initDocEnginePicker(){
   const sel = $('dEngineSel');
   if(!sel) return;
   buildDocEngineOptions();
-  sel.addEventListener('change', (e) => {
-    if(isRebuildingDocPicker || (e && e.isTrusted === false)) return;
+  sel.addEventListener('change', () => {
+    if(isRebuildingDocPicker) return;
     store.set('doc_engine', sel.value);
     updateDocEngineInfo();
     resetDocErrorStatus();
@@ -2069,27 +2077,24 @@ if($('docOpenEngineSettings')){
   $('docOpenEngineSettings').onclick=openDocEngineSettings;
 }
 
-if($('engine')) $('engine').addEventListener('change', (e) => {
-  if(!e || e.isTrusted === false) return;
+if($('engine')) $('engine').addEventListener('change', () => {
   updateDocEngineInfo();
   resetDocErrorStatus();
 });
-if($('tMode')) $('tMode').addEventListener('change', (e) => {
-  if(!e || e.isTrusted === false) return;
+if($('tMode')) $('tMode').addEventListener('change', () => {
   updateDocEngineInfo();
   resetDocErrorStatus();
 });
-if($('offBtn')) $('offBtn').addEventListener('click', (e) => {
-  if(!e || e.isTrusted === false) return;
+if($('offBtn')) $('offBtn').addEventListener('click', () => {
   resetDocErrorStatus();
   setTimeout(updateDocEngineInfo, 10);
 });
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
 function onDocTabOpen(){
-  refreshOllamaModelsForDoc();
   buildDocEngineOptions();
   updateDocEngineInfo();
+  refreshOllamaModelsForDoc();
 }
 document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', onDocTabOpen));
 const docTabEl = $('tab-doc');
