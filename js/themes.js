@@ -273,10 +273,12 @@
   }
 
   function getSavedThemeId() {
-    if (typeof window !== 'undefined' && window.store && typeof window.store.get === 'function') {
-      var id = window.store.get('theme', 'makan-lab');
-      return (id && THEMES[id]) ? id : 'makan-lab';
-    }
+    try {
+      if (typeof store !== 'undefined' && typeof store.get === 'function') {
+        var id = store.get('theme', 'makan-lab');
+        if (id && THEMES[id]) return id;
+      }
+    } catch (e) {}
     try {
       var raw = localStorage.getItem('mkt_theme');
       var parsed = raw ? JSON.parse(raw) : 'makan-lab';
@@ -315,13 +317,13 @@
     }
 
     // Persist choice in store
-    if (typeof window !== 'undefined' && window.store && typeof window.store.set === 'function') {
-      window.store.set('theme', themeId);
-    } else {
-      try {
+    try {
+      if (typeof store !== 'undefined' && typeof store.set === 'function') {
+        store.set('theme', themeId);
+      } else {
         localStorage.setItem('mkt_theme', JSON.stringify(themeId));
-      } catch (e) {}
-    }
+      }
+    } catch (e) {}
 
     updateThemePickerUI(themeId);
 
@@ -415,9 +417,12 @@
 
   function updateThemePickerLabels() {
     var isFa = false;
-    if (typeof window !== 'undefined' && window.store && typeof window.store.get === 'function') {
-      isFa = window.store.get('lang') === 'fa';
-    } else {
+    try {
+      if (typeof store !== 'undefined' && typeof store.get === 'function') {
+        isFa = store.get('ui') === 'fa';
+      }
+    } catch (e) {}
+    if (!isFa) {
       isFa = (document.documentElement.lang === 'fa' || document.documentElement.dir === 'rtl');
     }
 
