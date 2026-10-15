@@ -57,8 +57,8 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const { page } = app;
 
     await page.addInitScript(() => {
-      window.__docOllamaFirstTimeoutMs = 3000;
-      window.__docOllamaTimeoutMs = 3000;
+      window.__docOllamaFirstTimeoutMs = 2000;
+      window.__docOllamaTimeoutMs = 1000;
     });
 
     await page.route('**/api/tags', route => {
@@ -83,9 +83,10 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     await mouseClick(page, page.locator('#dGo'));
 
     // After timeout + retry, failure line names Ollama and "did not answer"
+    // timeout >= first (2s) + retry (1s) + 3s margin = 6s
     const progText = page.locator('#dProgText');
-    await expect(progText).toContainText('Ollama', { timeout: 15000 });
-    await expect(progText).toContainText('did not answer');
+    await expect(progText).toContainText('did not answer', { timeout: 10000 });
+    await expect(progText).toContainText('Ollama', { timeout: 10000 });
 
     // Translate is enabled, Download disabled
     await expect(page.locator('#dGo')).toBeEnabled();
@@ -148,6 +149,13 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       window.__docOllamaTimeoutMs = 15000;
     });
 
+    let reqAborted = false;
+    page.on('requestfailed', req => {
+      if (req.url().includes('/v1/chat/completions')) {
+        reqAborted = true;
+      }
+    });
+
     await page.route('**/api/tags', route => {
       route.fulfill({
         status: 200,
@@ -156,8 +164,18 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       });
     });
 
-    await page.route('**/v1/chat/completions', () => {
+    await page.route('**/v1/chat/completions', async route => {
       // Hang so Stop can be pressed
+      await new Promise(r => setTimeout(r, 10000));
+      try {
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ choices: [{ message: { content: '[]' } }] })
+        });
+      } catch (_) {
+        reqAborted = true;
+      }
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
@@ -168,15 +186,18 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
 
-    await expect(page.locator('#dStop')).toBeEnabled({ timeout: 3000 });
+    await expect(page.locator('#dStop')).toBeVisible({ timeout: 3000 });
     await mouseClick(page, page.locator('#dStop'));
 
     // Buttons re-enabled within 1 s
     await expect(page.locator('#dGo')).toBeEnabled({ timeout: 1000 });
-    await expect(page.locator('#dStop')).toBeDisabled({ timeout: 1000 });
+    await expect(page.locator('#dStop')).toBeHidden({ timeout: 1000 });
 
     // No failure toast
     await expect(page.locator('.toast.err')).toHaveCount(0);
+
+    // Fake Ollama saw the request aborted/closed
+    await expect.poll(() => reqAborted, { timeout: 2000 }).toBe(true);
   });
 
   test('e) Smart mode: load file (subject analysis starts against slow fake Ollama), click Translate: analysis aborted, max concurrency <= 1', async ({ app, files }) => {
@@ -236,8 +257,8 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const { page } = app;
 
     await page.addInitScript(() => {
-      window.__docOllamaFirstTimeoutMs = 3000;
-      window.__docOllamaTimeoutMs = 3000;
+      window.__docOllamaFirstTimeoutMs = 2000;
+      window.__docOllamaTimeoutMs = 1000;
     });
 
     await page.route('**/api/tags', route => {
@@ -264,9 +285,10 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
 
+    // timeout >= first (2s) + retry (1s) + 3s margin = 6s
     const progText = page.locator('#dProgText');
-    await expect(progText).toContainText('Ollama', { timeout: 15000 });
-    await expect(progText).toContainText('پاسخی نداد');
+    await expect(progText).toContainText('پاسخی نداد', { timeout: 10000 });
+    await expect(progText).toContainText('Ollama', { timeout: 10000 });
 
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();

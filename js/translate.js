@@ -1007,12 +1007,14 @@ async function translateItems(items,o){
       return err;
     };
 
-    const runBatchAttempt=async(indices)=>{
+    const runBatchAttempt=async(indices, attemptTimeout)=>{
+      const timeoutMs = attemptTimeout !== undefined ? attemptTimeout : reqTimeout;
       startOllamaProg();
       try{
-        const batchPromise=runBatch(id,indices.map(i=>items[i]),subOpts);
+        const attemptSubOpts=Object.assign({},subOpts,{timeout:timeoutMs});
+        const batchPromise=runBatch(id,indices.map(i=>items[i]),attemptSubOpts);
         return o.forDocument
-          ? await withTimeout(batchPromise, reqTimeout, o.signal, `${ENG[id].name} did not answer`)
+          ? await withTimeout(batchPromise, timeoutMs, o.signal, `${ENG[id].name} did not answer`)
           : await batchPromise;
       }finally{
         stopOllamaProg();
@@ -1030,12 +1032,15 @@ async function translateItems(items,o){
         if(err.name==='AbortError'||o.signal?.aborted) throw err;
         const isTimeout=err.isTimeout||err.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(err.message||'');
         if(id==='ollama'&&isTimeout){
-          // Retry ONCE with half the batch size before giving up
+          // Retry ONCE with half the batch size before giving up, using the normal allowance
+          const retryTimeout=(typeof window!=='undefined'&&window.__docOllamaTimeoutMs!==undefined)
+            ? window.__docOllamaTimeoutMs
+            : 90000;
           if(b.length>1){
             const half=Math.max(1,Math.floor(b.length/2));
             const halfB=b.slice(0,half);
             try{
-              res=await runBatchAttempt(halfB);
+              res=await runBatchAttempt(halfB, retryTimeout);
               b=halfB;
             }catch(retryErr){
               if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
@@ -1043,7 +1048,7 @@ async function translateItems(items,o){
             }
           }else{
             try{
-              res=await runBatchAttempt(b);
+              res=await runBatchAttempt(b, retryTimeout);
             }catch(retryErr){
               if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
               throw makeOllamaTimeoutErr();
