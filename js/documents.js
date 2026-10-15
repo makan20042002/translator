@@ -1275,6 +1275,7 @@ async function loadDoc(f){
 
   const ext=(f.name.split('.').pop()||'txt').toLowerCase();
   $('dSave').disabled=true;
+  $('dGo').disabled=true;
   $('dBar').style.width='0';
   $('dFileName').textContent=f.name;
   $('dBadge').textContent=ext.toUpperCase();

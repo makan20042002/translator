@@ -397,18 +397,39 @@ test.describe('Web app: PDF Document input', () => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    // DOCX loads
+    // 1. DOCX loads
     await chooseFile(page, page.locator('#dDrop'), files.docx);
+    await expect(page.locator('#dWork')).toBeVisible();
     await expect(page.locator('#dBadge')).toHaveText('DOCX');
+    await expect(page.locator('#dFileName')).toContainText('sample.docx');
+    await expect(page.locator('#dInfo')).toHaveText(/\d+ segments/);
     await expect(page.locator('#dGo')).toBeEnabled();
-    const docxIn = await page.locator('#dIn').inputValue();
-    expect(docxIn.length).toBeGreaterThan(0);
+    await expect(page.locator('#dProgText')).toContainText('Ready to translate');
 
-    // TXT loads
+    // 2. TXT loads
     await chooseFile(page, page.locator('#dDrop'), files.txt);
+    await expect(page.locator('#dWork')).toBeVisible();
     await expect(page.locator('#dBadge')).toHaveText('TXT');
+    await expect(page.locator('#dFileName')).toContainText('sample.txt');
+    await expect(page.locator('#dInfo')).toHaveText('3 segments');
     await expect(page.locator('#dGo')).toBeEnabled();
-    const txtIn = await page.locator('#dIn').inputValue();
-    expect(txtIn.length).toBeGreaterThan(0);
+    await expect(page.locator('#dProgText')).toContainText('Ready to translate');
+
+    // 3. A PDF loads
+    await chooseFile(page, page.locator('#dDrop'), sample3PagePdf);
+    await expect(page.locator('#dWork')).toBeVisible();
+    await expect(page.locator('#dBadge')).toHaveText('PDF');
+    await expect(page.locator('#dFileName')).toContainText('sample-3page.pdf');
+    await expect(page.locator('#dProgText')).toContainText('PDF: 3 pages');
+    await expect(page.locator('#dGo')).toBeEnabled();
+
+    // 4. And then a DOCX again
+    await chooseFile(page, page.locator('#dDrop'), files.docx);
+    await expect(page.locator('#dWork')).toBeVisible();
+    await expect(page.locator('#dBadge')).toHaveText('DOCX');
+    await expect(page.locator('#dFileName')).toContainText('sample.docx');
+    await expect(page.locator('#dInfo')).toHaveText(/\d+ segments/);
+    await expect(page.locator('#dGo')).toBeEnabled();
+    await expect(page.locator('#dProgText')).toContainText('Ready to translate');
   });
 });
