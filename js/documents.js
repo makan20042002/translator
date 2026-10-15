@@ -1,5 +1,14 @@
-/* ---------- DOCUMENT ---------- */
 let doc=null,dCtl=null,dResult='',dOutItems=null;
+let docUiState='idle',docLoadToken=0;
+
+function setDocProgIdle(){
+  if(docUiState === 'loading' || docUiState === 'idle'){
+    const prog = $('dProgText');
+    if(prog && doc){
+      prog.textContent = ui === 'fa' ? 'آماده ترجمه' : 'Ready to translate';
+    }
+  }
+}
 const hasWords=s=>/\p{L}{2,}/u.test(s);
 function csvParse(s){const rows=[];let row=[],c='',q=false;
   for(let i=0;i<s.length;i++){const ch=s[i];
@@ -687,11 +696,10 @@ function refreshOllamaModelsForDoc(){
 
 function resetDocErrorStatus(){
   const chip = $('dStatusChip');
-  if(chip && chip.classList.contains('error')){
+  if(docUiState === 'error' || (chip && chip.classList.contains('error'))){
+    docUiState = 'idle';
     updateDocStatus('idle');
-    if($('dProgText') && doc){
-      $('dProgText').textContent = ui === 'fa' ? 'آماده ترجمه' : 'Ready to translate';
-    }
+    setDocProgIdle();
   }
 }
 
@@ -718,6 +726,7 @@ function initDocEnginePicker(){
 }
 
 function showDocEngineNotReady(msg){
+  docUiState = 'error';
   const progText = $('dProgText');
   if(progText){
     const linkText = ui === 'fa' ? 'موتورها و کلیدها' : 'Engines & keys';
@@ -927,7 +936,9 @@ function getDocEngineChain(){
   return (typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order).slice();
 }
 
-async function detectSubjectAndTerms(d){
+async function detectSubjectAndTerms(d, token){
+  if(typeof token !== 'undefined' && token !== docLoadToken) return;
+  if(docUiState === 'translating' || docUiState === 'error') return;
   const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   let engId = $('engine')?.value || 'auto';
   let isAi = false;
@@ -939,11 +950,15 @@ async function detectSubjectAndTerms(d){
     isAi = ENG[engId]?.ai || (engId === 'auto' && usableAiEngine());
   }
   if(!isAi){
-    $('docEngineNotice').hidden=false;
-    $('docSubjectCard').hidden=true;
-    $('docSubjAnalyzing').hidden=true;
+    if(typeof token === 'undefined' || token === docLoadToken){
+      $('docEngineNotice').hidden=false;
+      $('docSubjectCard').hidden=true;
+      $('docSubjAnalyzing').hidden=true;
+    }
     return;
   }
+  if(typeof token !== 'undefined' && token !== docLoadToken) return;
+  if(docUiState === 'translating' || docUiState === 'error') return;
   $('docEngineNotice').hidden=true;
   $('docSubjectCard').hidden=false;
   $('docSubjAnalyzing').hidden=false;
@@ -972,6 +987,7 @@ ${sampleText}`;
   const tm = setTimeout(() => ctl.abort(), 20000);
   try{
     const res=await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto',signal:ctl.signal});
+    if((typeof token !== 'undefined' && token !== docLoadToken) || docUiState === 'translating' || docUiState === 'error') return;
     let clean=res.text.replace(/```(?:json)?/g,'').trim();
     const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
     if(a>=0&&b>a) clean=clean.slice(a,b+1);
@@ -1182,6 +1198,9 @@ async function loadDoc(f){
   }
   if(/\.(srt|vtt)$/i.test(f.name)){document.querySelector('[data-tab=sub]').click();return loadSubs(f)}
 
+  const currentToken = ++docLoadToken;
+  docUiState = 'loading';
+
   let resolveDocLoad;
   docLoadingPromise = new Promise(resolve => { resolveDocLoad = resolve; });
 
@@ -1195,26 +1214,50 @@ async function loadDoc(f){
   try{
     if(ext==='docx'){
       const buf=await f.arrayBuffer();
+      if(currentToken !== docLoadToken){
+        resolveDocLoad(null);
+        return;
+      }
       loadedDoc=await prepDocx(f.name,buf);
     }else if(ext==='pptx'){
       const buf=await f.arrayBuffer();
+      if(currentToken !== docLoadToken){
+        resolveDocLoad(null);
+        return;
+      }
       loadedDoc=await prepPptx(f.name,buf);
     }else if(ext==='xlsx'){
       const buf=await f.arrayBuffer();
+      if(currentToken !== docLoadToken){
+        resolveDocLoad(null);
+        return;
+      }
       loadedDoc=await prepXlsx(f.name,buf);
     }else{
       const text=await f.text();
+      if(currentToken !== docLoadToken){
+        resolveDocLoad(null);
+        return;
+      }
       loadedDoc=prepDoc(f.name,text);
     }
+    if(currentToken !== docLoadToken){
+      resolveDocLoad(null);
+      return;
+    }
   }catch(e){
+    if(currentToken !== docLoadToken){
+      resolveDocLoad(null);
+      return;
+    }
     toast('Could not read file: '+e.message,'err',8000);
     docLoadingPromise = null;
+    docUiState = 'idle';
     resolveDocLoad(null);
     return;
   }
 
   doc = loadedDoc;
-  $('dWork').hidden = false;
 
   dResult='';dOutItems=null;
   const sizeKb=Math.round(f.size/1024)||(f.size>0?1:0);
@@ -1237,18 +1280,27 @@ async function loadDoc(f){
   $('dIn').value=doc.items.slice(0,25).join('\n\n').slice(0,50000);
   $('dOut').value='';
 
+  // Complete ALL UI writes before #dWork is unhidden and before docLoadingPromise resolves
+  docUiState = 'idle';
   updateDocStatus('idle');
   updateDocProgCounts(null, doc.items.length);
   $('dProgText').textContent=ui==='fa'?'آماده ترجمه':'Ready to translate';
   $('dEngineUsed').textContent='';
+  $('dGo').disabled=false;
+  $('dSave').disabled=true;
   if($('docSummaryCard')) $('docSummaryCard').hidden=true;
-
-  // Reset terms and detect subject
   renderDocTerms([]);
-  detectSubjectAndTerms(doc);
 
+  // Unhide #dWork
+  $('dWork').hidden = false;
+
+  // Resolve loader promise
+  const resolver = resolveDocLoad;
   docLoadingPromise = null;
-  resolveDocLoad(doc);
+  resolver(doc);
+
+  // Slow optional work after that
+  detectSubjectAndTerms(doc, currentToken);
 }
 
 dropzone($('dDrop'),$('dFile'),loadDoc);
@@ -1263,6 +1315,7 @@ $('dGo').onclick=async()=>{
   if(docChosen){
     const check = await checkDocEngineReady(docChosen);
     if(!check.ready){
+      docUiState = 'error';
       updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
       $('dBar').style.width = '0%';
       updateDocProgCounts(0, doc.items.length);
@@ -1287,6 +1340,7 @@ $('dGo').onclick=async()=>{
   }
 
   if(!docChosen && readyChain.length === 0){
+    docUiState = 'error';
     updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
     $('dBar').style.width = '0%';
     updateDocProgCounts(0, doc.items.length);
@@ -1335,6 +1389,7 @@ $('dGo').onclick=async()=>{
   window.fetch = wrappedFetch;
 
   dCtl=new AbortController();
+  docUiState = 'translating';
   busy([$('dGo')],$('dStop'),true);
   try{
     updateDocStatus('active');
@@ -1437,6 +1492,7 @@ $('dGo').onclick=async()=>{
       const memMsg=memHits?`${memHits} ${L('fromMemory')||'from memory'}`:'';
       if(memMsg) $('dEngineUsed').textContent=memMsg;
       updateDocProgCounts(doc.items.length, doc.items.length);
+      docUiState = 'done';
       updateDocStatus('ok');
       $('dProgText').textContent=memMsg?`${L('done')} · ${memMsg}`:L('done');
       renderDocSummary(doc.items.length, doc.items.length, 0, memHits, 'Memory');
@@ -1589,6 +1645,7 @@ $('dGo').onclick=async()=>{
       renderDocSummary(validCount, doc.items.length, failedCount, memHits, r.used);
 
       if(failedCount>0){
+        docUiState = 'done';
         updateDocStatus('warn', ui==='fa'?'ناقص':'Partial');
         const pct=Math.min(99, Math.round((validCount/doc.items.length)*100));
         $('dBar').style.width=pct+'%';
@@ -1598,6 +1655,7 @@ $('dGo').onclick=async()=>{
           : `${validCount} of ${doc.items.length} translated · ${failedCount} failed`;
         toast(ui==='fa'?`ترجمه با ${failedCount} خط ناموفق انجام شد`:`Done with ${failedCount} failed segments`,'warn');
       }else{
+        docUiState = 'done';
         updateDocStatus('ok');
         $('dBar').style.width='100%';
         updateDocProgCounts(doc.items.length, doc.items.length);
@@ -1643,6 +1701,7 @@ $('dGo').onclick=async()=>{
           }else{
             $('dSave').disabled=true;
           }
+          docUiState = 'done';
           updateDocStatus('warn', ui==='fa'?'متوقف شد':'Stopped');
           const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;
           $('dBar').style.width=pct+'%';
@@ -1655,6 +1714,7 @@ $('dGo').onclick=async()=>{
           fail(e);
         }
       }else{
+        docUiState = 'error';
         updateDocStatus('error', ui==='fa'?'خطا':'Error');
         const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;
         $('dBar').style.width=pct+'%';
@@ -2001,6 +2061,9 @@ function updateDocEngineInfo(){
   }else{
     txtEl.innerHTML=`Engine: ${engineHtml} · Mode: ${modeHtml} · Status: ${netHtml}`;
   }
+  if(doc && (docUiState === 'loading' || docUiState === 'idle')){
+    setDocProgIdle();
+  }
 }
 
 if($('docOpenEngineSettings')){
@@ -2009,7 +2072,7 @@ if($('docOpenEngineSettings')){
 
 if($('engine')) $('engine').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
 if($('tMode')) $('tMode').addEventListener('change', () => { updateDocEngineInfo(); resetDocErrorStatus(); });
-if($('offBtn')) $('offBtn').addEventListener('click', () => { setTimeout(updateDocEngineInfo, 10); resetDocErrorStatus(); });
+if($('offBtn')) $('offBtn').addEventListener('click', () => { resetDocErrorStatus(); setTimeout(updateDocEngineInfo, 10); });
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
 function onDocTabOpen(){
