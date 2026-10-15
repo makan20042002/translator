@@ -1,4 +1,6 @@
 'use strict';
+const fs = require('fs');
+const path = require('path');
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
 
 test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
@@ -461,5 +463,56 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     expect(overrides.first).toBe(2500);
     expect(overrides.normal).toBe(1200);
+  });
+
+  test('j) app never writes to window properties used by document-load-race, and window.__docDbgLog exists after translation attempt', async ({ app, files }) => {
+    const { page } = app;
+
+    // Read window names used by document-load-race.spec.js directly from its source text
+    const raceSpecPath = path.resolve(__dirname, 'document-load-race.spec.js');
+    const raceSource = fs.readFileSync(raceSpecPath, 'utf8');
+    const matches = raceSource.match(/window\.__doc[a-zA-Z0-9_]+/g) || [];
+    const loadRaceNames = Array.from(new Set(matches.map(m => m.replace('window.', ''))));
+    expect(loadRaceNames.length).toBeGreaterThan(0);
+
+    await page.route('**/api/tags', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+      });
+    });
+
+    await page.route('**/v1/chat/completions', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          choices: [{ message: { content: JSON.stringify(['یک', 'دو', 'سه']) } }]
+        })
+      });
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    const picker = page.locator('#dEngineSel');
+    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+    await picker.selectOption('ollama:gemma4:12b');
+
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+    await mouseClick(page, page.locator('#dGo'));
+
+    // Wait for the translation attempt to finish
+    await expect(page.locator('#dSave')).toBeEnabled({ timeout: 15000 });
+
+    // Assert the app never wrote to any of the window properties used by document-load-race
+    const leakedNames = await page.evaluate((names) => {
+      return names.filter(n => window[n] !== undefined);
+    }, loadRaceNames);
+    expect(leakedNames, `App code wrote to names used by load-race test: ${leakedNames.join(', ')}`).toEqual([]);
+
+    // Assert that window.__docDbgLog exists and contains logged events
+    const dbgLog = await page.evaluate(() => window.__docDbgLog);
+    expect(Array.isArray(dbgLog)).toBe(true);
+    expect(dbgLog.length).toBeGreaterThan(0);
   });
 });
