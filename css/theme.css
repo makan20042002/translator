@@ -458,14 +458,20 @@ textarea:focus {
   padding-inline: 10px;
   font-family: var(--body);
   font-size: 12px;
-  color: var(--muted);
+  color: var(--text);
   cursor: default;
   user-select: none;
   transition: border-color 0.2s, background 0.2s, color 0.2s;
 }
+.status-pill:hover {
+  color: var(--text);
+}
 .status-pill.ready {
   border-color: var(--success);
   background: var(--success-bg);
+  color: var(--text);
+}
+.status-pill.ready:hover {
   color: var(--text);
 }
 .status-pill .status-dot {
@@ -490,10 +496,25 @@ textarea:focus {
   font-weight: 500;
 }
 .status-pill .status-shield {
-  color: var(--muted);
+  color: currentColor;
   flex-shrink: 0;
 }
 .status-pill.ready .status-shield {
+  color: var(--ok);
+}
+
+[data-theme="makan-lab"] .status-pill,
+[data-theme="makan-lab"] .status-pill:hover {
+  color: var(--muted);
+}
+[data-theme="makan-lab"] .status-pill .status-shield {
+  color: var(--muted);
+}
+[data-theme="makan-lab"] .status-pill.ready,
+[data-theme="makan-lab"] .status-pill.ready:hover {
+  color: var(--text);
+}
+[data-theme="makan-lab"] .status-pill.ready .status-shield {
   color: var(--ok);
 }
 
@@ -2671,34 +2692,34 @@ html[lang="fa"] .doc-drop-text strong {
   font-weight: 600;
   border: 1px solid var(--border);
   background: var(--surface2);
-  color: var(--muted);
+  color: var(--text);
   transition: all 0.2s ease;
 }
 
 .doc-status-chip.idle {
   background: var(--surface2);
-  color: var(--muted);
+  color: var(--text);
   border-color: var(--border);
 }
 
 .doc-status-chip.active,
 .doc-status-chip.translating,
 .doc-status-chip.working {
-  background: var(--accent-dim, rgba(56, 189, 248, 0.12));
-  color: var(--accent);
+  background: var(--selected);
+  color: var(--text);
   border-color: var(--accent);
 }
 
 .doc-status-chip.waiting {
   background: rgba(167, 139, 250, 0.15);
-  color: var(--icon-purple);
+  color: var(--text);
   border-color: var(--icon-purple);
 }
 
 .doc-status-chip.ok,
 .doc-status-chip.done {
   background: var(--success-bg, rgba(34, 197, 94, 0.12));
-  color: var(--success);
+  color: var(--text);
   border-color: var(--success);
 }
 
@@ -2706,12 +2727,55 @@ html[lang="fa"] .doc-drop-text strong {
 .doc-status-chip.partial,
 .doc-status-chip.attention {
   background: var(--warn-dim, rgba(245, 158, 11, 0.12));
-  color: var(--warning);
+  color: var(--text);
   border-color: var(--warning);
 }
 
 .doc-status-chip.error,
 .doc-status-chip.failed {
+  background: var(--err-dim, rgba(239, 68, 68, 0.12));
+  color: var(--text);
+  border-color: var(--danger);
+}
+
+[data-theme="makan-lab"] .doc-status-chip,
+[data-theme="makan-lab"] .doc-status-chip.idle {
+  background: var(--surface2);
+  color: var(--muted);
+  border-color: var(--border);
+}
+
+[data-theme="makan-lab"] .doc-status-chip.active,
+[data-theme="makan-lab"] .doc-status-chip.translating,
+[data-theme="makan-lab"] .doc-status-chip.working {
+  background: var(--accent-dim, rgba(56, 189, 248, 0.12));
+  color: var(--accent);
+  border-color: var(--accent);
+}
+
+[data-theme="makan-lab"] .doc-status-chip.waiting {
+  background: rgba(167, 139, 250, 0.15);
+  color: var(--icon-purple);
+  border-color: var(--icon-purple);
+}
+
+[data-theme="makan-lab"] .doc-status-chip.ok,
+[data-theme="makan-lab"] .doc-status-chip.done {
+  background: var(--success-bg, rgba(34, 197, 94, 0.12));
+  color: var(--success);
+  border-color: var(--success);
+}
+
+[data-theme="makan-lab"] .doc-status-chip.warn,
+[data-theme="makan-lab"] .doc-status-chip.partial,
+[data-theme="makan-lab"] .doc-status-chip.attention {
+  background: var(--warn-dim, rgba(245, 158, 11, 0.12));
+  color: var(--warning);
+  border-color: var(--warning);
+}
+
+[data-theme="makan-lab"] .doc-status-chip.error,
+[data-theme="makan-lab"] .doc-status-chip.failed {
   background: var(--err-dim, rgba(239, 68, 68, 0.12));
   color: var(--danger);
   border-color: var(--danger);
