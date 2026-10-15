@@ -1914,7 +1914,7 @@ function updateDocEngineInfo(){
   const modeVal=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   const off=isOff();
   const chain=getDocEngineChain();
-  const primaryId=chain[0]||'google';
+  const primaryId=(typeof usable==='function'?chain.find(usable):null)||chain[0]||'google';
 
   let engName='';
   let autoTag='';
