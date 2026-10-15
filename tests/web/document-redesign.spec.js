@@ -8,7 +8,7 @@ test.describe('Web app: Document tab redesign', () => {
   test.describe('Item 1: Header and drop area', () => {
     test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
 
-    test('header exists, #dDrop works, chips match the 7 real supported formats (no PDF), and no horizontal overflow at 360/700/1280 in EN and FA', async ({ app, files }) => {
+    test('header exists, #dDrop works, chips match the 8 real supported formats (including PDF), and no horizontal overflow at 360/700/1280 in EN and FA', async ({ app, files }) => {
       const { page } = app;
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
@@ -27,12 +27,12 @@ test.describe('Web app: Document tab redesign', () => {
       expect(subText).not.toMatch(/keep the layout/i);
       expect(subText).not.toMatch(/\bpdf\b/i);
 
-      // Chips list ONLY the 7 formats the app really reads today: DOCX, PPTX, XLSX, TXT, MD, CSV, JSON
+      // Chips list the 8 formats the app really reads today: PDF, DOCX, PPTX, XLSX, TXT, MD, CSV, JSON
       const chips = page.locator('#dDrop .doc-chip');
-      await expect(chips).toHaveCount(7);
+      await expect(chips).toHaveCount(8);
       const chipTexts = (await chips.allTextContents()).map(s => s.trim());
-      expect(chipTexts).toEqual(['DOCX', 'PPTX', 'XLSX', 'TXT', 'MD', 'CSV', 'JSON']);
-      expect(chipTexts).not.toContain('PDF');
+      expect(chipTexts).toEqual(['PDF', 'DOCX', 'PPTX', 'XLSX', 'TXT', 'MD', 'CSV', 'JSON']);
+      expect(chipTexts).toContain('PDF');
 
       // Verify no horizontal overflow at 360, 700, 1280 in English and Persian
       for (const lang of ['en', 'fa']) {
