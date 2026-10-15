@@ -38,7 +38,22 @@ const SELECTORS = [
     })
   },
   { name: 'offline chip (offBtn)', selector: '#offBtn', setup: null },
-  { name: 'offline chip (statusPill)', selector: '#sidebarStatusPill', setup: null },
+  {
+    name: 'offline chip (statusPill)',
+    selector: '#sidebarStatusPill',
+    setup: (page) => page.evaluate(() => {
+      const el = document.getElementById('sidebarStatusPill');
+      if (el) el.classList.remove('ready');
+    })
+  },
+  {
+    name: 'offline chip (statusPill ready)',
+    selector: '#sidebarStatusPill',
+    setup: (page) => page.evaluate(() => {
+      const el = document.getElementById('sidebarStatusPill');
+      if (el) el.classList.add('ready');
+    })
+  },
   { name: 'language toggle', selector: '#uiLang', setup: null },
   { name: 'search box', selector: '#topbarSearch', setup: null },
   {
@@ -73,6 +88,30 @@ const SELECTORS = [
     selector: '#dStatusChip',
     setup: async (page) => {
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+      await page.waitForTimeout(50);
+    }
+  },
+  {
+    name: 'Document tab status chip (idle)',
+    selector: '#dStatusChip',
+    setup: async (page) => {
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+      await page.evaluate(() => {
+        const el = document.getElementById('dStatusChip');
+        if (el) el.className = 'doc-status-chip idle';
+      });
+      await page.waitForTimeout(50);
+    }
+  },
+  {
+    name: 'Document tab status chip (done)',
+    selector: '#dStatusChip',
+    setup: async (page) => {
+      await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+      await page.evaluate(() => {
+        const el = document.getElementById('dStatusChip');
+        if (el) el.className = 'doc-status-chip done';
+      });
       await page.waitForTimeout(50);
     }
   },
