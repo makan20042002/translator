@@ -924,6 +924,8 @@ async function runBatch(id,arr,o){
   }
   catch(e){
     if(e.name==='AbortError'||o.signal?.aborted) throw e;
+    const isTimeout=e.isTimeout||e.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(e.message||'');
+    if(isTimeout) throw e;
     if((e.mismatch || (ENG[id]?.ai && !isBlockError(e) && e.status !== 429 && !/429|resource_exhausted|rate limit/i.test(e.message||''))) && arr.length > 1){
       const h=arr.length>>1;
       return [...await runBatch(id,arr.slice(0,h),o), ...await runBatch(id,arr.slice(h),o)];
@@ -972,6 +974,7 @@ async function translateItems(items,o){
     let ollamaTimer=null;
     const startOllamaProg=()=>{
       if(id!=='ollama') return;
+      if(ollamaTimer){clearInterval(ollamaTimer);ollamaTimer=null;}
       let sec=0;
       const isFirst=(ollamaSuccessCount===0);
       const getTxt=s=>{
@@ -987,7 +990,7 @@ async function translateItems(items,o){
       o.onStatus?.(getTxt(0));
       ollamaTimer=setInterval(()=>{
         sec++;
-        if(o.signal?.aborted){clearInterval(ollamaTimer);return;}
+        if(o.signal?.aborted){clearInterval(ollamaTimer);ollamaTimer=null;return;}
         o.onStatus?.(getTxt(sec));
       },1000);
     };
@@ -995,8 +998,8 @@ async function translateItems(items,o){
       if(ollamaTimer){clearInterval(ollamaTimer);ollamaTimer=null;}
     };
 
-    const makeOllamaTimeoutErr=()=>{
-      const sec=Math.round(reqTimeout/1000);
+    const makeOllamaTimeoutErr=(totalWaitMs)=>{
+      const sec=Math.round((totalWaitMs ?? reqTimeout)/1000);
       const msg=ui==='fa'
         ? `Ollama در مدت ${sec} ثانیه پاسخی نداد. یک مدل کوچک‌تر را امتحان کنید یا منتظر بارگذاری مدل بمانید.`
         : `Ollama did not answer within ${sec} seconds. Try a smaller model or wait for the model to load.`;
@@ -1009,14 +1012,19 @@ async function translateItems(items,o){
 
     const runBatchAttempt=async(indices, attemptTimeout)=>{
       const timeoutMs = attemptTimeout !== undefined ? attemptTimeout : reqTimeout;
+      const attemptCtl = new AbortController();
+      const onParentAbort = () => attemptCtl.abort();
+      if (o.signal) o.signal.addEventListener('abort', onParentAbort, { once: true });
       startOllamaProg();
       try{
-        const attemptSubOpts=Object.assign({},subOpts,{timeout:timeoutMs});
+        const attemptSubOpts=Object.assign({},subOpts,{timeout:timeoutMs, signal:attemptCtl.signal});
         const batchPromise=runBatch(id,indices.map(i=>items[i]),attemptSubOpts);
         return o.forDocument
-          ? await withTimeout(batchPromise, timeoutMs, o.signal, `${ENG[id].name} did not answer`)
+          ? await withTimeout(batchPromise, timeoutMs, attemptCtl.signal, `${ENG[id].name} did not answer`)
           : await batchPromise;
       }finally{
+        attemptCtl.abort();
+        if (o.signal) o.signal.removeEventListener('abort', onParentAbort);
         stopOllamaProg();
       }
     };
@@ -1036,23 +1044,15 @@ async function translateItems(items,o){
           const retryTimeout=(typeof window!=='undefined'&&window.__docOllamaTimeoutMs!==undefined)
             ? window.__docOllamaTimeoutMs
             : 90000;
-          if(b.length>1){
-            const half=Math.max(1,Math.floor(b.length/2));
-            const halfB=b.slice(0,half);
-            try{
-              res=await runBatchAttempt(halfB, retryTimeout);
-              b=halfB;
-            }catch(retryErr){
-              if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
-              throw makeOllamaTimeoutErr();
-            }
-          }else{
-            try{
-              res=await runBatchAttempt(b, retryTimeout);
-            }catch(retryErr){
-              if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
-              throw makeOllamaTimeoutErr();
-            }
+          const half=Math.max(1,Math.floor(b.length/2));
+          const halfB=b.slice(0,half);
+          try{
+            res=await runBatchAttempt(halfB, retryTimeout);
+            b=halfB;
+          }catch(retryErr){
+            if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
+            const totalWaitMs = reqTimeout + retryTimeout;
+            throw makeOllamaTimeoutErr(totalWaitMs);
           }
         }else{
           throw err;
