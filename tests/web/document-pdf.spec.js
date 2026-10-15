@@ -135,11 +135,41 @@ test.describe('Web app: PDF Document input', () => {
     for (const p of paras) {
       expect(p.length).toBeGreaterThan(0);
     }
+    const allDocxText = paras.join('\n');
+    expect(allDocxText).not.toContain('Confidential Internal Report');
+    expect(allDocxText).not.toContain('Page 1');
+    expect(allDocxText).not.toContain('Page 2');
+    expect(allDocxText).not.toContain('Page 3');
 
-    // Requests should only target the stub / app origin
+    // Calls check: only allow provider calls to the engine host (clients5.google.com) and local app origin
     const calls = appCalls(stub);
-    const nonStubCalls = calls.filter(c => c.host !== '127.0.0.1' && c.host !== 'localhost' && !c.host.startsWith('localhost:'));
-    expect(nonStubCalls).toEqual([]);
+    const nonLocalCalls = calls.filter(c => c.host !== '127.0.0.1' && c.host !== 'localhost' && !c.host.startsWith('localhost:'));
+    for (const c of nonLocalCalls) {
+      expect(c.host).toBe('clients5.google.com');
+      expect(c.server).toBe('provider');
+    }
+    expect(nonLocalCalls.length).toBeGreaterThan(0);
+
+    // Verify request body contains exactly the 4 extracted paragraphs and no headers/footers
+    const googleCalls = nonLocalCalls.filter(c => c.host === 'clients5.google.com');
+    const sentParagraphs = [];
+    for (const c of googleCalls) {
+      const form = new URLSearchParams(c.body);
+      for (const q of form.getAll('q')) {
+        sentParagraphs.push(q);
+      }
+    }
+    expect(sentParagraphs.length).toBe(4);
+    expect(sentParagraphs[0]).toContain('Executive Summary');
+    expect(sentParagraphs[1]).toContain('introductory paragraph');
+    expect(sentParagraphs[2]).toContain('multinational');
+    expect(sentParagraphs[3]).toContain('concluding paragraph');
+
+    const allSentText = sentParagraphs.join('\n');
+    expect(allSentText).not.toContain('Confidential Internal Report');
+    expect(allSentText).not.toContain('Page 1');
+    expect(allSentText).not.toContain('Page 2');
+    expect(allSentText).not.toContain('Page 3');
   });
 
   // (3) PDF with no text: honest message in English and Persian, Translate disabled, 0 calls
