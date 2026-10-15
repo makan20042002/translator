@@ -491,6 +491,46 @@ async function prepXlsx(name,buffer){
   };
 }
 
+async function prepPdf(name, arrayBuffer, options = {}) {
+  const { pages, stats } = await extractPdfParagraphs(arrayBuffer, options);
+  const items = [];
+  const paragraphMeta = [];
+
+  for (const pg of pages) {
+    for (const p of pg.paragraphs) {
+      items.push(p.text);
+      paragraphMeta.push({
+        page: pg.n,
+        heading: p.heading,
+        size: p.size
+      });
+    }
+  }
+
+  const words = stats.charCount > 0
+    ? items.reduce((acc, t) => acc + (t.trim().split(/\s+/).filter(Boolean).length || 0), 0)
+    : 0;
+  const pageCount = stats.pageCount;
+  const paragraphCount = items.length;
+
+  return {
+    ext: 'pdf',
+    name,
+    items,
+    paragraphMeta,
+    pdfStats: stats,
+    meta: {
+      type: 'pdf',
+      words,
+      estPages: pageCount,
+      sizeEstimate: `${pageCount} ${L('pages') || 'pages'} · ${paragraphCount} ${L('segments') || 'paragraphs'} · ${words.toLocaleString()} ${L('words') || 'words'}`
+    },
+    build: async (out, notes, tgtLang) => {
+      return await buildPlainDocx(out, tgtLang);
+    }
+  };
+}
+
 function prepDoc(name,text){
   const ext=(name.split('.').pop()||'txt').toLowerCase();text=text.replace(/^\ufeff/,'');
   if(ext==='json'){
@@ -1222,12 +1262,9 @@ function renderDocSummary(validCount, totalCount, failedCount, memHits, engUsed)
 }
 
 let docLoadingPromise = null;
+let currentPdfAbort = null;
 
 async function loadDoc(f){
-  if(/\.pdf$/i.test(f.name)){
-    toast(L('pdfNotSupported')||'PDF files are not supported yet.','warn',6000);
-    return;
-  }
   if(/\.(srt|vtt)$/i.test(f.name)){document.querySelector('[data-tab=sub]').click();return loadSubs(f)}
 
   const currentToken = ++docLoadToken;
@@ -1244,7 +1281,48 @@ async function loadDoc(f){
 
   let loadedDoc = null;
   try{
-    if(ext==='docx'){
+    if(ext==='pdf'){
+      if(f.size > 200 * 1024 * 1024){
+        const sizeMb = Math.round(f.size / 1024 / 1024);
+        const err = new Error((L('pdfTooBigSize') || 'This PDF is too large ({size} MB, limit 200 MB).').replace('{size}', sizeMb));
+        err.code = 'too_big';
+        err.byteLength = f.size;
+        throw err;
+      }
+
+      const pdfAbort = new AbortController();
+      currentPdfAbort = pdfAbort;
+      $('dStop').hidden = false;
+      $('dStop').onclick = () => {
+        pdfAbort.abort();
+      };
+      $('dGo').disabled = true;
+
+      const initMsg = (L('pdfReadingProgress') || 'Reading PDF… page {n} of {m}').replace('{n}', '1').replace('{m}', '…');
+      $('dProgText').textContent = initMsg;
+
+      const buf = await f.arrayBuffer();
+      if(currentToken !== docLoadToken){
+        $('dStop').hidden = true;
+        $('dStop').onclick = () => dCtl?.abort();
+        resolveDocLoad(null);
+        return;
+      }
+
+      loadedDoc = await prepPdf(f.name, buf, {
+        signal: pdfAbort.signal,
+        onProgress: ({ current, total }) => {
+          if (currentToken !== docLoadToken) return;
+          const msg = (L('pdfReadingProgress') || 'Reading PDF… page {n} of {m}').replace('{n}', current).replace('{m}', total);
+          $('dProgText').textContent = msg;
+          $('dBar').style.width = Math.min(100, Math.round((current / total) * 100)) + '%';
+        }
+      });
+
+      $('dStop').hidden = true;
+      $('dStop').onclick = () => dCtl?.abort();
+      currentPdfAbort = null;
+    }else if(ext==='docx'){
       const buf=await f.arrayBuffer();
       if(currentToken !== docLoadToken){
         resolveDocLoad(null);
@@ -1278,10 +1356,65 @@ async function loadDoc(f){
       return;
     }
   }catch(e){
+    if(currentPdfAbort){
+      currentPdfAbort = null;
+    }
+    $('dStop').hidden = true;
+    $('dStop').onclick = () => dCtl?.abort();
+
     if(currentToken !== docLoadToken){
       resolveDocLoad(null);
       return;
     }
+
+    if(ext === 'pdf'){
+      if(e.name === 'AbortError' || e.message === 'Aborted'){
+        docUiState = 'idle';
+        updateDocStatus('idle');
+        $('dProgText').textContent = ui === 'fa' ? 'آماده ترجمه' : 'Ready to translate';
+        $('dBar').style.width = '0';
+        $('dGo').disabled = true;
+        docLoadingPromise = null;
+        resolveDocLoad(null);
+        return;
+      }
+
+      const code = typeof mapPdfError === 'function' ? mapPdfError(e, e.stats) : (e.code || 'corrupt');
+      let errMsg = '';
+      if(code === 'password'){
+        errMsg = L('pdfPassword') || 'This PDF is password protected. Remove the password first, then open it again.';
+      }else if(code === 'corrupt'){
+        errMsg = L('pdfCorrupt') || 'This PDF could not be read. It may be damaged.';
+      }else if(code === 'too_big'){
+        if(e.numPages > 1000){
+          errMsg = (L('pdfTooBigPages') || 'This PDF is too large ({count} pages, limit 1000).').replace('{count}', e.numPages);
+        }else{
+          const sizeMb = Math.round((e.byteLength || f.size || 0) / 1024 / 1024);
+          errMsg = (L('pdfTooBigSize') || 'This PDF is too large ({size} MB, limit 200 MB).').replace('{size}', sizeMb);
+        }
+      }else if(code === 'no_text'){
+        errMsg = L('pdfNoText') || 'This PDF has no selectable text, so it is probably a scanned document. OCR for PDF files is not available yet.';
+      }else{
+        errMsg = L('pdfCorrupt') || 'This PDF could not be read. It may be damaged.';
+      }
+
+      doc = null;
+      dResult = '';
+      dOutItems = null;
+      $('dIn').value = '';
+      $('dOut').value = '';
+      $('dWork').hidden = false;
+      $('dProgText').textContent = errMsg;
+      updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
+      $('dGo').disabled = true;
+      $('dSave').disabled = true;
+      toast(errMsg, 'err', 8000);
+      docUiState = 'idle';
+      docLoadingPromise = null;
+      resolveDocLoad(null);
+      return;
+    }
+
     toast('Could not read file: '+e.message,'err',8000);
     docLoadingPromise = null;
     docUiState = 'idle';
@@ -1294,7 +1427,11 @@ async function loadDoc(f){
   dResult='';dOutItems=null;
   const sizeKb=Math.round(f.size/1024)||(f.size>0?1:0);
   let detail='';
-  if(doc.ext==='docx'&&doc.parsed&&doc.parsed['word/document.xml']){
+  if(doc.ext==='pdf'){
+    const pCount=doc.pdfStats?.pageCount||doc.meta?.estPages||1;
+    const paraCount=doc.items.length;
+    detail=`${pCount} ${L('pages')||'pages'} · ${paraCount} ${L('segments')||'paragraphs'}`;
+  }else if(doc.ext==='docx'&&doc.parsed&&doc.parsed['word/document.xml']){
     const trCount=doc.parsed['word/document.xml'].getElementsByTagName('w:tr').length;
     if(trCount>0) detail=`${trCount} ${L('rows')||'table rows'}`;
     else detail=`${doc.items.length} ${L('segments')}`;
@@ -1316,7 +1453,18 @@ async function loadDoc(f){
   docUiState = 'idle';
   updateDocStatus('idle');
   updateDocProgCounts(null, doc.items.length);
-  $('dProgText').textContent=ui==='fa'?'آماده ترجمه':'Ready to translate';
+  if(doc.ext === 'pdf'){
+    const pCount = doc.pdfStats?.pageCount || doc.meta?.estPages || 1;
+    const paraCount = doc.items.length;
+    const wordCount = doc.meta?.words || 0;
+    const summaryMsg = (L('pdfSummary') || 'PDF: {pages} pages, {paras} paragraphs, about {words} words. Layout is rebuilt as paragraphs and may differ from the original.')
+      .replace('{pages}', pCount)
+      .replace('{paras}', paraCount)
+      .replace('{words}', wordCount);
+    $('dProgText').textContent = summaryMsg;
+  }else{
+    $('dProgText').textContent=ui==='fa'?'آماده ترجمه':'Ready to translate';
+  }
   $('dEngineUsed').textContent='';
   $('dGo').disabled=false;
   $('dSave').disabled=true;
@@ -2025,6 +2173,21 @@ $('dSave').onclick=async()=>{
   const p=doc.name.lastIndexOf('.');
   const baseName=p>0?doc.name.slice(0,p):doc.name;
   const fmt=$('dOutFmt').value;
+  if(doc.ext==='pdf'){
+    const targetFmt=(fmt==='same'||!OUT_FORMATS[fmt])?'docx':fmt;
+    if(!dOutItems&&!dResult){toast('Nothing translated yet','warn');return}
+    try{
+      $('dSave').disabled=true;
+      if(targetFmt==='docx'&&dResult instanceof Blob){
+        download(`${baseName}.${$('tgt').value}.docx`,dResult,OUT_FORMATS.docx.type);
+      }else{
+        const data=await buildOutputFormat(targetFmt);
+        download(`${baseName}.${$('tgt').value}.${OUT_FORMATS[targetFmt].ext}`,data,OUT_FORMATS[targetFmt].type);
+      }
+    }catch(e){fail(e)}
+    $('dSave').disabled=false;
+    return;
+  }
   if(fmt==='same'||!OUT_FORMATS[fmt]||(OUT_FORMATS[fmt].ext===doc.ext)){
     const ext=p>0?doc.name.slice(p):'.'+doc.ext;
     return download(`${baseName}.${$('tgt').value}${ext}`,dResult);
