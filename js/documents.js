@@ -757,6 +757,89 @@ async function checkDocEngineReady(docChosen){
   return {ready: true};
 }
 
+function getDocEngineDisplayName(id){
+  if(id === 'nllb') return 'Offline NLLB';
+  if(id === 'google') return 'Google Translate';
+  if(id === 'chrome') return 'Chrome on-device';
+  if(id === 'mymemory') return 'MyMemory';
+  if(id === 'ollama') return 'Ollama';
+  return ENG[id]?.name || id;
+}
+
+function buildHonestFailureMessage(chain, triedEngines, err){
+  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  const attempted = [];
+  const seenEngines = new Set();
+
+  function plainEngineErr(e, engId){
+    if(!e) return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+    const msg = String(e.message || e || '').toLowerCase();
+    if(engId === 'chrome' || /chrome|on-device|not available/i.test(msg)){
+      return L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here');
+    }
+    if(/timed?\s*out|did not answer/i.test(msg)){
+      return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+    }
+    if(/rate limit|quota|429/i.test(msg)){
+      return L('docRateLimitReached') || (ui === 'fa' ? 'محدودیت درخواست' : 'rate limit reached');
+    }
+    if(/network|connection|failed to fetch|offline/i.test(msg)){
+      return L('docNetworkError') || (ui === 'fa' ? 'خطای شبکه' : 'network error');
+    }
+    if(typeof toPlainReason === 'function'){
+      const r = toPlainReason(e);
+      if(r && !/api key|http|undefined|null/i.test(r)) return r;
+    }
+    return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+  }
+
+  if(docChosen){
+    const engId = docChosen.startsWith('ollama:') ? 'ollama' : docChosen;
+    const name = docChosen.startsWith('ollama:') ? `Ollama (${docChosen.slice(7)})` : getDocEngineDisplayName(engId);
+    const reason = plainEngineErr(err, engId);
+    attempted.push(`${name} (${reason})`);
+  } else {
+    const listToRun = (triedEngines && triedEngines.size > 0) ? Array.from(triedEngines) : (chain || []);
+    listToRun.forEach(id => {
+      if(seenEngines.has(id)) return;
+      seenEngines.add(id);
+      const name = getDocEngineDisplayName(id);
+      const reason = plainEngineErr(err, id);
+      attempted.push(`${name} (${reason})`);
+    });
+
+    const candidates = ['chrome', 'google', 'mymemory', 'nllb', 'ollama'];
+    candidates.forEach(candId => {
+      if(seenEngines.has(candId)) return;
+      if(!ENG[candId]) return;
+      const name = getDocEngineDisplayName(candId);
+      let reason = '';
+      if(cfg.eng?.[candId]?.on === false){
+        reason = L('docTurnedOffInSettings') || (ui === 'fa' ? 'خاموش در موتورها و کلیدها' : 'turned off in Engines & keys');
+      } else if(candId === 'nllb' && (typeof trAnyReady === 'function' && !trAnyReady())){
+        reason = L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded');
+      } else if(candId === 'ollama'){
+        reason = L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running');
+      } else if(candId === 'chrome' && !('Translator' in self)){
+        reason = L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here');
+      } else if(ENG[candId].key && !cfg.eng?.[candId]?.key){
+        reason = L('docNeedsKey') || (ui === 'fa' ? 'نیاز به کلید' : 'needs a key');
+      } else if(isOff() && !offCapable(candId)){
+        reason = L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active');
+      }
+      if(reason){
+        seenEngines.add(candId);
+        attempted.push(`${name} (${reason})`);
+      }
+    });
+  }
+
+  const listStr = attempted.join(ui === 'fa' ? '، ' : ', ');
+  const prefix = L('docTriedPrefix') || (ui === 'fa' ? 'موتورهای امتحان‌شده: ' : 'Tried: ');
+  const suffix = L('docTriedSuffix') || (ui === 'fa' ? '. یک موتور در «ترجمه با» انتخاب کنید یا «موتورها و کلیدها» را باز کنید.' : '. Choose an engine under Translate with, or open Engines & keys.');
+  return `${prefix}${listStr}${suffix}`;
+}
+
 function getDocEngineChain(){
   const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   if(docChosen){
@@ -1224,11 +1307,12 @@ $('dGo').onclick=async()=>{
       return;
     }
 
-    $('dSave').disabled=true;
-    // 2. Translate only missing unique pieces
+    let chain=[];
+    const triedEngines=new Set();
     try{
       const neededTexts=neededPieces.map(p=>p.text);
-      const chain=getDocEngineChain();
+      chain=getDocEngineChain();
+      if(chain.length) triedEngines.add(chain[0]);
       const initialEngName=ENG[chain[0]]?.name||chain[0];
       const initialMemNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
       if($('dProgText')){
@@ -1244,6 +1328,7 @@ $('dGo').onclick=async()=>{
         timeout:(typeof window!=='undefined'&&window.__docTimeoutMs)?window.__docTimeoutMs:20000,
         chromeAvailTimeoutMs:(typeof window!=='undefined'&&window.__chromeAvailTimeoutMs)?window.__chromeAvailTimeoutMs:2000,
         onEngineChange:(engId)=>{
+          if(engId) triedEngines.add(engId);
           if(dCtl?.signal?.aborted||hasTimeoutNotice)return;
           const engName=ENG[engId]?.name||engId;
           const memNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
@@ -1429,10 +1514,23 @@ $('dGo').onclick=async()=>{
         const pct=hasAnyTranslation?Math.min(99, Math.round((validCount/doc.items.length)*100)):0;
         $('dBar').style.width=pct+'%';
         updateDocProgCounts(hasAnyTranslation?validCount:0, doc.items.length);
-        const reason=toPlainReason(e)||e.message||'failed';
-        $('dProgText').textContent=ui==='fa'
-          ? `خطا در ترجمه: ${reason}`
-          : `Translation failed: ${reason}`;
+        if(!hasAnyTranslation){
+          const honestMsg=buildHonestFailureMessage(chain, triedEngines, e);
+          const linkText=ui==='fa'?'موتورها و کلیدها':'Engines & keys';
+          $('dProgText').innerHTML=`${esc(honestMsg)} <a href="#" id="docErrOpenSettings" style="color:var(--cyan);text-decoration:underline;margin-inline-start:6px">${esc(linkText)}</a>`;
+          const link=$('docErrOpenSettings');
+          if(link){
+            link.onclick=(ev)=>{
+              ev.preventDefault();
+              openDocEngineSettings();
+            };
+          }
+        }else{
+          const reason=toPlainReason(e)||e.message||'failed';
+          $('dProgText').textContent=ui==='fa'
+            ? `خطا در ترجمه: ${reason}`
+            : `Translation failed: ${reason}`;
+        }
         if(hasAnyTranslation){
           try{
             dResult=await doc.build(partialOut,partialNotes,$('tgt').value,$('src').value);
