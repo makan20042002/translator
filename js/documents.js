@@ -766,19 +766,26 @@ function getDocEngineDisplayName(id){
   return ENG[id]?.name || id;
 }
 
+let docEngineFailStatus = {};
+let docHasAnyTimeout = false;
+let currentDocEngine = '';
+
 function buildHonestFailureMessage(chain, triedEngines, err){
   const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   const attempted = [];
   const seenEngines = new Set();
 
   function plainEngineErr(e, engId){
-    if(!e) return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+    if(docEngineFailStatus[engId] === 'timeout'){
+      return L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time');
+    }
+    if(!e) return L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time');
     const msg = String(e.message || e || '').toLowerCase();
     if(engId === 'chrome' || /chrome|on-device|not available/i.test(msg)){
       return L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here');
     }
-    if(/timed?\s*out|did not answer/i.test(msg)){
-      return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+    if(docHasAnyTimeout || /timed?\s*out|did not answer|پاسخی نداد/i.test(msg)){
+      return L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time');
     }
     if(/rate limit|quota|429/i.test(msg)){
       return L('docRateLimitReached') || (ui === 'fa' ? 'محدودیت درخواست' : 'rate limit reached');
@@ -790,7 +797,7 @@ function buildHonestFailureMessage(chain, triedEngines, err){
       const r = toPlainReason(e);
       if(r && !/api key|http|undefined|null/i.test(r)) return r;
     }
-    return L('docDidNotAnswer') || (ui === 'fa' ? 'پاسخی نداد' : 'did not answer');
+    return L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time');
   }
 
   if(docChosen){
@@ -834,10 +841,11 @@ function buildHonestFailureMessage(chain, triedEngines, err){
     });
   }
 
+  const failLead = L('docTransFailed') || (ui === 'fa' ? 'ترجمه ناموفق بود.' : 'Translation failed.');
   const listStr = attempted.join(ui === 'fa' ? '، ' : ', ');
   const prefix = L('docTriedPrefix') || (ui === 'fa' ? 'موتورهای امتحان‌شده: ' : 'Tried: ');
   const suffix = L('docTriedSuffix') || (ui === 'fa' ? '. یک موتور در «ترجمه با» انتخاب کنید یا «موتورها و کلیدها» را باز کنید.' : '. Choose an engine under Translate with, or open Engines & keys.');
-  return `${prefix}${listStr}${suffix}`;
+  return `${failLead} ${prefix}${listStr}${suffix}`;
 }
 
 function getDocEngineChain(){
@@ -1197,6 +1205,24 @@ $('dGo').onclick=async()=>{
     }
   }
 
+  docEngineFailStatus = {};
+  docHasAnyTimeout = false;
+  currentDocEngine = '';
+  const origFetch = window.fetch;
+  const wrappedFetch = function(...args){
+    return origFetch.apply(this, args).catch(err => {
+      if(err){
+        const isTimeout = err.name === 'TimeoutError' || err.status === 408 || /timed?\s*out|did not answer/i.test(err.message || '');
+        if(isTimeout){
+          docHasAnyTimeout = true;
+          if(currentDocEngine) docEngineFailStatus[currentDocEngine] = 'timeout';
+        }
+      }
+      throw err;
+    });
+  };
+  window.fetch = wrappedFetch;
+
   dCtl=new AbortController();
   busy([$('dGo')],$('dStop'),true);
   try{
@@ -1312,7 +1338,10 @@ $('dGo').onclick=async()=>{
     try{
       const neededTexts=neededPieces.map(p=>p.text);
       chain=getDocEngineChain();
-      if(chain.length) triedEngines.add(chain[0]);
+      if(chain.length){
+        triedEngines.add(chain[0]);
+        currentDocEngine = chain[0];
+      }
       const initialEngName=ENG[chain[0]]?.name||chain[0];
       const initialMemNote=memHits?` · ${memHits} ${L('fromMemory')||'from memory'}`:'';
       if($('dProgText')){
@@ -1328,6 +1357,7 @@ $('dGo').onclick=async()=>{
         timeout:(typeof window!=='undefined'&&window.__docTimeoutMs)?window.__docTimeoutMs:20000,
         chromeAvailTimeoutMs:(typeof window!=='undefined'&&window.__chromeAvailTimeoutMs)?window.__chromeAvailTimeoutMs:2000,
         onEngineChange:(engId)=>{
+          currentDocEngine = engId;
           if(engId) triedEngines.add(engId);
           if(dCtl?.signal?.aborted||hasTimeoutNotice)return;
           const engName=ENG[engId]?.name||engId;
@@ -1341,7 +1371,11 @@ $('dGo').onclick=async()=>{
         onStatus:(msg)=>{
           if(dCtl?.signal?.aborted)return;
           if(msg&&!/Translating with|در حال ترجمه با/i.test(msg)){
-            if(/did not answer|پاسخی نداد/i.test(msg)) hasTimeoutNotice=true;
+            if(/did not answer|پاسخی نداد/i.test(msg)){
+              hasTimeoutNotice=true;
+              docHasAnyTimeout=true;
+              if(currentDocEngine) docEngineFailStatus[currentDocEngine]='timeout';
+            }
             if($('dProgText')) $('dProgText').textContent=msg;
           }
         },
@@ -1526,10 +1560,9 @@ $('dGo').onclick=async()=>{
             };
           }
         }else{
-          const reason=toPlainReason(e)||e.message||'failed';
-          $('dProgText').textContent=ui==='fa'
-            ? `خطا در ترجمه: ${reason}`
-            : `Translation failed: ${reason}`;
+          const reason=scrubKeys(toPlainReason(e)||e.message||'failed');
+          const failLead=L('docTransFailed')||(ui==='fa'?'ترجمه ناموفق بود.':'Translation failed.');
+          $('dProgText').textContent=`${failLead} ${reason}`;
         }
         if(hasAnyTranslation){
           try{
@@ -1545,6 +1578,9 @@ $('dGo').onclick=async()=>{
       }
     }
   }finally{
+    if(window.fetch === wrappedFetch){
+      window.fetch = origFetch;
+    }
     if(chosenOllamaModel && cfg.eng?.ollama){
       cfg.eng.ollama.model = prevOllamaModel;
     }
