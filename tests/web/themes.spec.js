@@ -71,6 +71,12 @@ test.describe('Theme System & Theme Picker', () => {
 
         if (themeId === 'makan-lab') {
           expect(colors[token], `makan-lab token ${token} must equal original-look.json`).toBe(originalLook[token]);
+        } else if (themeId === 'royal-amethyst' && token === 'OnAccent') {
+          // Documented override: royal-amethyst OnAccent is set to its TopBarText (#180A2A) to achieve WCAG contrast 5.71:1 (>= 4.5:1)
+          expect(colors[token], 'royal-amethyst OnAccent uses TopBarText override #180A2A for WCAG contrast').toBe('#180A2A');
+        } else if (themeId === 'rose-titanium' && token === 'OnAccent') {
+          // Documented override: rose-titanium OnAccent is set to its TopBarText (#260C18) to achieve WCAG contrast 7.23:1 (>= 4.5:1)
+          expect(colors[token], 'rose-titanium OnAccent uses TopBarText override #260C18 for WCAG contrast').toBe('#260C18');
         } else {
           const expectedVal = designData.themes[themeId].colors[token];
           expect(colors[token], `${themeId} token ${token} must equal epsilon-theme-tokens.json`).toBe(expectedVal);
@@ -186,14 +192,11 @@ test.describe('Theme System & Theme Picker', () => {
   });
 
   test('contrast per theme computed from token hex values meets WCAG standards', async () => {
-    // Explicit allow-list for pairs where the theme's design tokens have threshold between 2.5 and 4.5
-    const CONTRAST_ALLOW_LIST = {
-      'royal-amethyst:OnAccent_on_Accent': 3.0,
-      'rose-titanium:OnAccent_on_Accent': 2.5
-    };
-
     for (const themeId of EXPECTED_THEME_IDS) {
-      const colors = (themeId === 'makan-lab') ? originalLook : designData.themes[themeId].colors;
+      const colors = (themeId === 'makan-lab') ? originalLook : Object.assign({}, designData.themes[themeId].colors,
+        themeId === 'royal-amethyst' ? { OnAccent: '#180A2A' } : {},
+        themeId === 'rose-titanium' ? { OnAccent: '#260C18' } : {}
+      );
 
       const pairs = [
         { name: 'Text_on_Bg', fg: colors.Text, bg: colors.Bg },
@@ -206,9 +209,7 @@ test.describe('Theme System & Theme Picker', () => {
         // Hex values only
         if (pair.fg.startsWith('#') && pair.bg.startsWith('#')) {
           const ratio = getContrast(pair.fg, pair.bg);
-          const key = `${themeId}:${pair.name}`;
-          const minRatio = CONTRAST_ALLOW_LIST[key] || 4.5;
-          expect(ratio, `Theme ${themeId} ${pair.name} (${pair.fg} on ${pair.bg}) contrast ${ratio.toFixed(2)} must be >= ${minRatio}`).toBeGreaterThanOrEqual(minRatio);
+          expect(ratio, `Theme ${themeId} ${pair.name} (${pair.fg} on ${pair.bg}) contrast ${ratio.toFixed(2)} must be >= 4.5`).toBeGreaterThanOrEqual(4.5);
         }
       }
     }
