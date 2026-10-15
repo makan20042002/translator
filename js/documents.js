@@ -600,6 +600,7 @@ function buildDocEngineOptions(){
   const sel = $('dEngineSel');
   if(!sel) return;
   const saved = store.get('doc_engine', '');
+  const currentVal = (sel.options && sel.options.length > 0) ? sel.value : saved;
   const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
 
   const items = [];
