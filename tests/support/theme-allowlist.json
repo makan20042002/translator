@@ -1,0 +1,18 @@
+{
+  "description": "Allow-list for hardcoded color literals in stylesheets and brand assets",
+  "allowedPatterns": [
+    "--grad",
+    "--grad-mint-blue",
+    "--grad-blue",
+    "--mint",
+    "makanlab",
+    "url(",
+    "data:image/svg+xml"
+  ],
+  "allowedKeywords": [
+    "transparent",
+    "currentColor",
+    "inherit"
+  ],
+  "maxRemainingHardcodedCount": 850
+}
