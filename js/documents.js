@@ -1349,7 +1349,7 @@ $('dChangeFile').onclick=()=>{
 };
 
 $('dGo').onclick=async()=>{
-  if(typeof window !== 'undefined') window.__docClickTime = Date.now();
+  if(typeof window !== 'undefined') window.__docDbgT0 = Date.now();
   if(docAnalysisCtl){
     try{ docAnalysisCtl.abort(); }catch{}
     docAnalysisCtl = null;
@@ -1765,13 +1765,13 @@ $('dGo').onclick=async()=>{
         }
       }else{
         const failSnippet = String(e?.message || e || '').slice(0, 80);
-        if (typeof window !== 'undefined' && typeof window.__docDebugLogPush === 'function') {
-          window.__docDebugLogPush('final failure', { msg: failSnippet });
+        if (typeof window !== 'undefined' && typeof window.__docDbgLogPush === 'function') {
+          window.__docDbgLogPush('final failure', { msg: failSnippet });
         } else if (typeof window !== 'undefined') {
-          if (!window.__docDebugLog) window.__docDebugLog = [];
-          const origin = window.__docClickTime || Date.now();
-          window.__docDebugLog.push({ t: Date.now() - origin, ev: 'final failure', msg: failSnippet });
-          if (window.__docDebugLog.length > 200) window.__docDebugLog.shift();
+          if (!window.__docDbgLog) window.__docDbgLog = [];
+          const origin = window.__docDbgT0 || Date.now();
+          window.__docDbgLog.push({ t: Date.now() - origin, ev: 'final failure', msg: failSnippet });
+          if (window.__docDbgLog.length > 200) window.__docDbgLog.shift();
         }
         docUiState = 'error';
         updateDocStatus('error', ui==='fa'?'خطا':'Error');

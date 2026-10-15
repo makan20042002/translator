@@ -257,20 +257,20 @@ function scrubKeys(s){
   return s;
 }
 
-if (typeof window !== 'undefined' && !window.__docDebugLog) {
-  window.__docDebugLog = [];
+if (typeof window !== 'undefined' && !window.__docDbgLog) {
+  window.__docDbgLog = [];
 }
 let docLogStart = 0;
 function docDebugLog(ev, data = {}) {
   if (typeof window === 'undefined') return;
-  if (!window.__docDebugLog) window.__docDebugLog = [];
-  const origin = window.__docClickTime || docLogStart || Date.now();
+  if (!window.__docDbgLog) window.__docDbgLog = [];
+  const origin = window.__docDbgT0 || docLogStart || Date.now();
   const entry = Object.assign({ t: Date.now() - origin, ev }, data);
-  window.__docDebugLog.push(entry);
-  if (window.__docDebugLog.length > 200) window.__docDebugLog.shift();
+  window.__docDbgLog.push(entry);
+  if (window.__docDbgLog.length > 200) window.__docDbgLog.shift();
 }
 if (typeof window !== 'undefined') {
-  window.__docDebugLogPush = docDebugLog;
+  window.__docDbgLogPush = docDebugLog;
 }
 
 function urlHostOnly(url) {

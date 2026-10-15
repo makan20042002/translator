@@ -96,7 +96,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       await expect(progText).toContainText('did not answer', { timeout: maxWait });
       await expect(progText).toContainText('Ollama', { timeout: maxWait });
     } catch (err) {
-      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const debugLog = await page.evaluate(() => window.__docDbgLog).catch(() => []);
       const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
       throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
     }
@@ -317,7 +317,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       await expect(progText).toContainText('پاسخی نداد', { timeout: maxWait });
       await expect(progText).toContainText('Ollama', { timeout: maxWait });
     } catch (err) {
-      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const debugLog = await page.evaluate(() => window.__docDbgLog).catch(() => []);
       const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
       throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
     }
@@ -416,7 +416,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       await expect(progText).toContainText('did not answer', { timeout: maxWait });
       await expect(progText).toContainText('Ollama', { timeout: maxWait });
     } catch (err) {
-      const debugLog = await page.evaluate(() => window.__docDebugLog).catch(() => []);
+      const debugLog = await page.evaluate(() => window.__docDbgLog).catch(() => []);
       const info = `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
       throw new Error(`${err.message}\n${info}\nDebug log: ${JSON.stringify(debugLog)}`);
     }
