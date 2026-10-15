@@ -841,6 +841,12 @@ function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons =
   const seenEngines = new Set();
 
   function plainEngineErr(e, engId){
+    if(engId === 'ollama' && (docEngineFailStatus[engId] === 'timeout' || e?.isTimeout || /timed?\s*out|did not answer|پاسخی نداد/i.test(String(e?.message || e || '')))){
+      const sec = e?.ollamaTimeoutSec || docEngineFailStatus.ollamaSec || Math.round(((typeof window !== 'undefined' && window.__docOllamaFirstTimeoutMs) ? window.__docOllamaFirstTimeoutMs : 180000) / 1000);
+      return ui === 'fa'
+        ? `در مدت ${sec} ثانیه پاسخی نداد. یک مدل کوچک‌تر را امتحان کنید یا منتظر بارگذاری مدل بمانید.`
+        : `did not answer within ${sec} seconds. Try a smaller model or wait for the model to load.`;
+    }
     if(docEngineFailStatus[engId] === 'timeout'){
       return L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time');
     }
@@ -946,6 +952,8 @@ function getDocEngineChain(){
   return (typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order).slice();
 }
 
+let docAnalysisCtl = null;
+
 async function detectSubjectAndTerms(d, token){
   if(typeof token !== 'undefined' && token !== docLoadToken) return;
   if(docUiState === 'translating' || docUiState === 'error') return;
@@ -993,11 +1001,24 @@ Reply ONLY with a JSON object in this exact schema:
 Document sample:
 ${sampleText}`;
 
-  const ctl = new AbortController();
-  const tm = setTimeout(() => ctl.abort(), 20000);
+  if(docAnalysisCtl){
+    try{ docAnalysisCtl.abort(); }catch{}
+  }
+  docAnalysisCtl = new AbortController();
+  const ctl = docAnalysisCtl;
+
+  const analysisTimeoutMs = (typeof window !== 'undefined' && window.__docAnalysisTimeoutMs !== undefined)
+    ? window.__docAnalysisTimeoutMs
+    : 60000;
+  const tm = setTimeout(() => ctl.abort(), analysisTimeoutMs);
   try{
-    const res=await chat([{role:'user',content:prompt}],{engine:isAi?engId:'auto',signal:ctl.signal});
-    if((typeof token !== 'undefined' && token !== docLoadToken) || docUiState === 'translating' || docUiState === 'error') return;
+    const res=await chat([{role:'user',content:prompt}],{
+      engine:isAi?engId:'auto',
+      signal:ctl.signal,
+      forDocument:true,
+      silent:true
+    });
+    if((typeof token !== 'undefined' && token !== docLoadToken) || docUiState === 'translating' || docUiState === 'error' || ctl.signal.aborted) return;
     let clean=res.text.replace(/```(?:json)?/g,'').trim();
     const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
     if(a>=0&&b>a) clean=clean.slice(a,b+1);
@@ -1009,7 +1030,8 @@ ${sampleText}`;
     console.warn('Subject detection skipped:', scrubKeys(e.message));
   }finally{
     clearTimeout(tm);
-    $('docSubjAnalyzing').hidden=true;
+    if($('docSubjAnalyzing')) $('docSubjAnalyzing').hidden=true;
+    if(docAnalysisCtl === ctl) docAnalysisCtl = null;
   }
 }
 
@@ -1310,13 +1332,27 @@ async function loadDoc(f){
   resolver(doc);
 
   // Slow optional work after that
+  if(docAnalysisCtl){
+    try{ docAnalysisCtl.abort(); }catch{}
+    docAnalysisCtl = null;
+  }
   detectSubjectAndTerms(doc, currentToken);
 }
 
 dropzone($('dDrop'),$('dFile'),loadDoc);
-$('dChangeFile').onclick=()=>$('dFile').click();
+$('dChangeFile').onclick=()=>{
+  if(docAnalysisCtl){
+    try{ docAnalysisCtl.abort(); }catch{}
+    docAnalysisCtl = null;
+  }
+  $('dFile').click();
+};
 
 $('dGo').onclick=async()=>{
+  if(docAnalysisCtl){
+    try{ docAnalysisCtl.abort(); }catch{}
+    docAnalysisCtl = null;
+  }
   if(docLoadingPromise){
     await docLoadingPromise;
   }
@@ -1390,7 +1426,10 @@ $('dGo').onclick=async()=>{
         const isTimeout = err.name === 'TimeoutError' || err.status === 408 || /timed?\s*out|did not answer/i.test(err.message || '');
         if(isTimeout){
           docHasAnyTimeout = true;
-          if(currentDocEngine) docEngineFailStatus[currentDocEngine] = 'timeout';
+          if(currentDocEngine) {
+            docEngineFailStatus[currentDocEngine] = 'timeout';
+            if(err?.ollamaTimeoutSec) docEngineFailStatus.ollamaSec = err.ollamaTimeoutSec;
+          }
         }
       }
       throw err;

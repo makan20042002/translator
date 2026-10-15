@@ -69,7 +69,7 @@ const isLocalUrl=u=>/\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(
 const isOff=()=>cfg.offline||!navigator.onLine;
 const offCapable=id=>!!ENG[id]?.off||(id==='custom'&&isLocalUrl(cfg.eng?.[id]?.base));
 let glossary=store.get('gls',[]);
-const lim=id=>ENG[id].ai?{items:50,chars:5000}:{items:ENG[id].items,chars:ENG[id].chars};
+const lim=id=>id==='ollama'?{items:8,chars:1500}:(ENG[id].ai?{items:50,chars:5000}:{items:ENG[id].items,chars:ENG[id].chars});
 function why(id){
   if(!id||!ENG[id]||!cfg.eng?.[id])return 'unknown';
   const e=cfg.eng[id];
@@ -789,8 +789,16 @@ async function eAI(id,items,o){
     txt=(j.content||[]).map(c=>c.text||'').join('');
   }else{
     const h={'Content-Type':'application/json'};if(e.key)h.Authorization='Bearer '+e.key;
-    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',{method:'POST',signal,headers:h,
-      body:JSON.stringify({model:e.model,messages:[{role:'system',content:sys},{role:'user',content:user}]})});
+    const bodyObj={model:e.model,messages:[{role:'system',content:sys},{role:'user',content:user}]};
+    if(id==='ollama'&&o.forDocument){
+      const ka=(typeof window!=='undefined'&&window.__docOllamaKeepAlive!==undefined)
+        ? window.__docOllamaKeepAlive
+        : '30m';
+      if(ka) bodyObj.keep_alive=ka;
+    }
+    const fxOpt={method:'POST',signal,headers:h,body:JSON.stringify(bodyObj)};
+    if(o.timeout) fxOpt.timeout=o.timeout;
+    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',fxOpt);
     txt=j.choices?.[0]?.message?.content||'';
   }
   return parseArr(txt,items.length,!!o.includeNotes);
@@ -829,9 +837,16 @@ async function eAIChat(id,messages,o){
   }else{
     const h={'Content-Type':'application/json'};if(e.key)h.Authorization='Bearer '+e.key;
     const msgs=[{role:'system',content:sys},...messages.map(m=>({role:m.role,content:m.content}))];
-    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',{
-      method:'POST',signal,headers:h,
-      body:JSON.stringify({model:e.model,messages:msgs,temperature:0.7})});
+    const bodyObj={model:e.model,messages:msgs,temperature:0.7};
+    if(id==='ollama'&&o.forDocument){
+      const ka=(typeof window!=='undefined'&&window.__docOllamaKeepAlive!==undefined)
+        ? window.__docOllamaKeepAlive
+        : '30m';
+      if(ka) bodyObj.keep_alive=ka;
+    }
+    const fxOpt={method:'POST',signal,headers:h,body:JSON.stringify(bodyObj)};
+    if(o.timeout) fxOpt.timeout=o.timeout;
+    const j=await fx(e.base.replace(/\/+$/,'')+'/chat/completions',fxOpt);
     txt=j.choices?.[0]?.message?.content||'';
   }
   return cleanSpokenText(txt);
@@ -854,7 +869,7 @@ async function chat(messages,o={}){
         markBlocked(id);
         toast(`${ENG[id].name}: ${L('regionBlocked')}`,'warn',8000);
       }else if(i+1<chain.length){
-        toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[i+1]].name}`,'warn');
+        if(!o.silent) toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[i+1]].name}`,'warn');
       }
     }
   }
@@ -925,24 +940,120 @@ async function translateItems(items,o){
   items.forEach((s,i)=>{if(s&&s.trim())todo.push(i);else{out[i]=s||'';notes[i]=null}});
   if(todo.length>80&&!ENG[chain[0]].ai&&!tipShown){tipShown=true;toast(L('tipKey'),'warn',7000)}
   let pos=0,ci=0,rateWaits=0;
+  let ollamaSuccessCount=0;
   while(pos<todo.length){
     if(o.signal?.aborted)throw new DOMException('Aborted','AbortError');
-    const id=chain[ci],lm=lim(id),b=[];let chars=0;
+    const id=chain[ci],lm=lim(id);
+    let b=[];let chars=0;
     while(pos+b.length<todo.length&&b.length<lm.items){const s=items[todo[pos+b.length]];if(b.length&&chars+s.length>lm.chars)break;b.push(todo[pos+b.length]);chars+=s.length}
+    let reqTimeout;
+    if(id==='ollama'){
+      if(ollamaSuccessCount===0){
+        reqTimeout=(typeof window!=='undefined'&&window.__docOllamaFirstTimeoutMs!==undefined)
+          ? window.__docOllamaFirstTimeoutMs
+          : 180000;
+      }else{
+        reqTimeout=(typeof window!=='undefined'&&window.__docOllamaTimeoutMs!==undefined)
+          ? window.__docOllamaTimeoutMs
+          : 90000;
+      }
+    }else{
+      reqTimeout=o.timeout ?? (typeof window!=='undefined'&&window.__docTimeoutMs ? window.__docTimeoutMs : 20000);
+    }
     let batchDone=0;
     const subOpts=Object.assign({},o,{
+      timeout:reqTimeout,
       onSubProgress:(count,engId)=>{
         batchDone+=count;
         o.onProgress?.(pos+batchDone,todo.length,engId);
       }
     });
+
+    let ollamaTimer=null;
+    const startOllamaProg=()=>{
+      if(id!=='ollama') return;
+      let sec=0;
+      const isFirst=(ollamaSuccessCount===0);
+      const getTxt=s=>{
+        if(ui==='fa'){
+          return isFirst
+            ? `در حال انتظار برای Ollama… ${s} ثانیه (پاسخ اول ممکن است در حین بارگذاری مدل یک دقیقه طول بکشد)`
+            : `در حال انتظار برای Ollama… ${s} ثانیه`;
+        }
+        return isFirst
+          ? `Waiting for Ollama… ${s} s (the first answer can take a minute while the model loads)`
+          : `Waiting for Ollama… ${s} s`;
+      };
+      o.onStatus?.(getTxt(0));
+      ollamaTimer=setInterval(()=>{
+        sec++;
+        if(o.signal?.aborted){clearInterval(ollamaTimer);return;}
+        o.onStatus?.(getTxt(sec));
+      },1000);
+    };
+    const stopOllamaProg=()=>{
+      if(ollamaTimer){clearInterval(ollamaTimer);ollamaTimer=null;}
+    };
+
+    const makeOllamaTimeoutErr=()=>{
+      const sec=Math.round(reqTimeout/1000);
+      const msg=ui==='fa'
+        ? `Ollama در مدت ${sec} ثانیه پاسخی نداد. یک مدل کوچک‌تر را امتحان کنید یا منتظر بارگذاری مدل بمانید.`
+        : `Ollama did not answer within ${sec} seconds. Try a smaller model or wait for the model to load.`;
+      const err=new Error(msg);
+      err.name='TimeoutError';
+      err.isTimeout=true;
+      err.ollamaTimeoutSec=sec;
+      return err;
+    };
+
+    const runBatchAttempt=async(indices)=>{
+      startOllamaProg();
+      try{
+        const batchPromise=runBatch(id,indices.map(i=>items[i]),subOpts);
+        return o.forDocument
+          ? await withTimeout(batchPromise, reqTimeout, o.signal, `${ENG[id].name} did not answer`)
+          : await batchPromise;
+      }finally{
+        stopOllamaProg();
+      }
+    };
+
     try{
-      o.onStatus?.(ui==='fa'?`در حال ترجمه با ${ENG[id].name}…`:`Translating with ${ENG[id].name}…`);
-      const reqTimeout = o.timeout ?? (typeof window !== 'undefined' && window.__docTimeoutMs ? window.__docTimeoutMs : 20000);
-      const batchPromise = runBatch(id,b.map(i=>items[i]),subOpts);
-      const res = o.forDocument
-        ? await withTimeout(batchPromise, reqTimeout, o.signal, `${ENG[id].name} did not answer`)
-        : await batchPromise;
+      if(id!=='ollama'){
+        o.onStatus?.(ui==='fa'?`در حال ترجمه با ${ENG[id].name}…`:`Translating with ${ENG[id].name}…`);
+      }
+      let res;
+      try{
+        res=await runBatchAttempt(b);
+      }catch(err){
+        if(err.name==='AbortError'||o.signal?.aborted) throw err;
+        const isTimeout=err.isTimeout||err.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(err.message||'');
+        if(id==='ollama'&&isTimeout){
+          // Retry ONCE with half the batch size before giving up
+          if(b.length>1){
+            const half=Math.max(1,Math.floor(b.length/2));
+            const halfB=b.slice(0,half);
+            try{
+              res=await runBatchAttempt(halfB);
+              b=halfB;
+            }catch(retryErr){
+              if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
+              throw makeOllamaTimeoutErr();
+            }
+          }else{
+            try{
+              res=await runBatchAttempt(b);
+            }catch(retryErr){
+              if(retryErr.name==='AbortError'||o.signal?.aborted) throw retryErr;
+              throw makeOllamaTimeoutErr();
+            }
+          }
+        }else{
+          throw err;
+        }
+      }
+      if(id==='ollama') ollamaSuccessCount++;
       b.forEach((i,k)=>{
         const resItem=res[k];
         if(resItem&&typeof resItem==='object'&&('text' in resItem||'t' in resItem)){
@@ -968,7 +1079,7 @@ async function translateItems(items,o){
       }
       const isTimeout=e.isTimeout||e.name==='TimeoutError'||/timed?\s*out|did not answer/i.test(e.message||'');
       if(isTimeout){
-        if(ci+1<chain.length){
+        if(ci+1<chain.length && (!isOff() || offCapable(chain[ci+1]))){
           const nextName=ENG[chain[ci+1]].name;
           const msg=ui==='fa'
             ?`${ENG[id].name} پاسخی نداد، تلاش با ${nextName}…`
@@ -977,10 +1088,16 @@ async function translateItems(items,o){
           ci++;
           continue;
         }else{
+          if(e.ollamaTimeoutSec){
+            throw e;
+          }
           const msg=ui==='fa'
             ?`${ENG[id].name} پاسخی نداد`
             :`${ENG[id].name} did not answer`;
-          throw new Error(msg);
+          const te=new Error(msg);
+          te.name='TimeoutError';
+          te.isTimeout=true;
+          throw te;
         }
       }
       const is429=e.status===429||/429|resource_exhausted|rate limit|quota/i.test(e.message||'');
