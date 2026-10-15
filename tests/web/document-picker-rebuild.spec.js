@@ -15,7 +15,7 @@ test.describe('Document tab engine picker rebuild and preservation', () => {
 
     // Verify initial "Same as Text tab" option exists
     const firstOption = picker.locator('option').first();
-    await expect(firstOption).toHaveValue('');
+    await expect(firstOption).toHaveAttribute('value', '');
     await expect(firstOption).toHaveText(/Same as Text tab/i);
 
     // 2. Previously choose an engine
@@ -44,7 +44,7 @@ test.describe('Document tab engine picker rebuild and preservation', () => {
     // 7. Verify the picker still has the "Same as Text tab" option plus engine options
     const options = picker.locator('option');
     expect(await options.count()).toBeGreaterThan(1);
-    await expect(picker.locator('option').first()).toHaveValue('');
+    await expect(picker.locator('option').first()).toHaveAttribute('value', '');
     await expect(picker.locator('option').first()).toHaveText(/Same as Text tab/i);
 
     const values = await picker.locator('option').evaluateAll(opts => opts.map(o => o.value));
