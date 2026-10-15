@@ -9,8 +9,13 @@
 .doc-badge.excel{color:#10B981;border-color:rgba(16,185,129,.35);background:rgba(16,185,129,.08)}
 .doc-badge.txt{color:var(--cyan);border-color:rgba(19,200,245,.35);background:rgba(19,200,245,.08)}
 .doc-size-pill{font-family:var(--mono);font-size:11.5px;color:var(--muted);background:var(--surface2);padding:3px 10px;border-radius:999px;border:1px solid var(--border)}
-/* Document Engine Status Line */
-.doc-engine-line{font-size:11.5px;color:var(--text);background:var(--surface2);border:1px solid var(--border2);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;margin-inline-start:auto;max-width:100%;box-sizing:border-box}
+/* Document Engine Status Line & Picker */
+.doc-header-controls{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-inline-start:auto;max-width:100%;box-sizing:border-box}
+.doc-engine-picker-wrap{display:inline-flex;align-items:center;gap:6px;max-width:100%;box-sizing:border-box}
+.doc-engine-sel-label{font-size:11.5px;color:var(--muted);font-weight:500;white-space:nowrap}
+.doc-engine-sel{height:28px;font-size:11.5px;padding:2px 20px 2px 8px;border-radius:6px;background:var(--surface2);border:1px solid var(--border2);color:var(--text);max-width:260px;cursor:pointer;box-sizing:border-box}
+@media(max-width:480px){.doc-engine-sel{max-width:100%}}
+.doc-engine-line{font-size:11.5px;color:var(--text);background:var(--surface2);border:1px solid var(--border2);padding:3px 8px;border-radius:6px;display:inline-flex;align-items:center;gap:6px;flex-wrap:wrap;max-width:100%;box-sizing:border-box}
 .doc-engine-icon{display:inline-flex;align-items:center;color:var(--accent);flex-shrink:0}
 .doc-engine-text{display:inline-flex;align-items:center;gap:4px;flex-wrap:wrap}
 .doc-engine-name{font-weight:600;color:var(--text)}

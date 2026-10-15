@@ -546,7 +546,223 @@ function getDocTerms(){
   return (docTerms||[]).filter(x=>x.s&&x.t);
 }
 
+/* Document Tab Engine Picker (Item 1) */
+let cachedOllamaModels = null;
+let ollamaFetchPending = false;
+let lastPickerUiLang = null;
+
+async function fetchOllamaModelsSafely(){
+  if(typeof fetchOllamaModels === 'function'){
+    try{
+      return await fetchOllamaModels();
+    }catch(_){
+      return null;
+    }
+  }
+  return null;
+}
+
+function getDocEngineTag(id){
+  const isOff = typeof offCapable === 'function' ? offCapable(id) : !!ENG[id]?.off;
+  return isOff ? (L('docTagOffline') || 'Offline') : (L('docTagOnline') || 'Online');
+}
+
+function getDocEngineStatus(id, isOllamaModel = false){
+  if(typeof cfg === 'undefined' || !cfg.eng) return '';
+  if(cfg.eng[id]?.on === false) return L('docOffInSettings') || 'Off in Engines & keys';
+  if(id === 'ollama'){
+    if(isOllamaModel) return L('docStatusReady') || 'Ready';
+    if(cachedOllamaModels === null) return '';
+    if(cachedOllamaModels === false) return L('docNeedsOllamaRunning') || 'Needs Ollama running';
+    if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length === 0) return L('docNeedsModelDownload') || 'Needs model download';
+    return L('docStatusReady') || 'Ready';
+  }
+  if(id === 'nllb'){
+    if(typeof trAnyReady === 'function' && !trAnyReady()){
+      return L('docNeedsModelDownload') || 'Needs model download';
+    }
+    return L('docStatusReady') || 'Ready';
+  }
+  if(ENG[id]?.key && !cfg.eng[id]?.key){
+    return L('docNeedsKey') || 'Needs key';
+  }
+  if(id === 'chrome' && !('Translator' in self)){
+    return L('notHere') || 'not supported in this browser';
+  }
+  if(id === 'custom' && !cfg.eng[id]?.base){
+    return L('needUrl') || 'needs a URL';
+  }
+  return L('docStatusReady') || 'Ready';
+}
+
+function buildDocEngineOptions(){
+  const sel = $('dEngineSel');
+  if(!sel) return;
+  const saved = store.get('doc_engine', '');
+  const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
+
+  const items = [];
+  // 1. Same as Text tab (default)
+  items.push({
+    val: '',
+    text: L('docSameAsText') || (ui === 'fa' ? 'همانند برگه متن' : 'Same as Text tab')
+  });
+
+  order.forEach(id => {
+    if(!ENG[id]) return;
+    const tag = getDocEngineTag(id);
+    if(id === 'ollama'){
+      if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0){
+        cachedOllamaModels.forEach(m => {
+          const st = getDocEngineStatus('ollama', true);
+          items.push({
+            val: `ollama:${m}`,
+            text: `Ollama (${m}) · [${tag}] · ${st}`
+          });
+        });
+      } else {
+        const st = getDocEngineStatus('ollama', false);
+        const stSuffix = st ? ` · ${st}` : '';
+        items.push({
+          val: 'ollama',
+          text: `${ENG.ollama.name} · [${tag}]${stSuffix}`
+        });
+      }
+    } else {
+      const st = getDocEngineStatus(id, false);
+      const stSuffix = st ? ` · ${st}` : '';
+      items.push({
+        val: id,
+        text: `${ENG[id].name} · [${tag}]${stSuffix}`
+      });
+    }
+  });
+
+  // If saved engine is an ollama model not yet in items (before initial fetch completes):
+  if(saved && saved.startsWith('ollama:') && !items.some(it => it.val === saved)){
+    const m = saved.slice(7);
+    const tag = getDocEngineTag('ollama');
+    items.push({
+      val: saved,
+      text: `Ollama (${m}) · [${tag}]`
+    });
+  }
+
+  const currentVal = sel.value || saved;
+  sel.innerHTML = items.map(it => `<option value="${esc(it.val)}">${esc(it.text)}</option>`).join('');
+
+  if(items.some(it => it.val === currentVal)){
+    sel.value = currentVal;
+  } else if(items.some(it => it.val === saved)){
+    sel.value = saved;
+  } else {
+    sel.value = '';
+    store.set('doc_engine', '');
+  }
+}
+
+function refreshOllamaModelsForDoc(){
+  if(ollamaFetchPending) return;
+  ollamaFetchPending = true;
+  fetchOllamaModelsSafely().then(models => {
+    cachedOllamaModels = models || false;
+    buildDocEngineOptions();
+    updateDocEngineInfo();
+  }).finally(() => {
+    ollamaFetchPending = false;
+  });
+}
+
+function initDocEnginePicker(){
+  const sel = $('dEngineSel');
+  if(!sel) return;
+  buildDocEngineOptions();
+  sel.addEventListener('change', () => {
+    store.set('doc_engine', sel.value);
+    updateDocEngineInfo();
+    if(doc) detectSubjectAndTerms(doc);
+  });
+  refreshOllamaModelsForDoc();
+}
+
+function showDocEngineNotReady(msg){
+  const progText = $('dProgText');
+  if(progText){
+    const linkText = ui === 'fa' ? 'موتورها و کلیدها' : 'Engines & keys';
+    progText.innerHTML = `${esc(msg)} <a href="#" id="docPlainErrSettingsLink" style="color:var(--cyan);text-decoration:underline;margin-inline-start:6px">${esc(linkText)}</a>`;
+    const link = $('docPlainErrSettingsLink');
+    if(link){
+      link.onclick = (e) => {
+        e.preventDefault();
+        openDocEngineSettings();
+      };
+    }
+  }
+  toast(msg, 'warn', 7000);
+}
+
+async function checkDocEngineReady(docChosen){
+  let engId = docChosen;
+  let modelName = '';
+  if(docChosen.startsWith('ollama:')){
+    engId = 'ollama';
+    modelName = docChosen.slice(7);
+  }
+  if(!ENG[engId]){
+    return {ready: false, msg: ui === 'fa' ? 'موتور نامعتبر است.' : 'Invalid engine.'};
+  }
+  if(cfg.eng?.[engId]?.on === false){
+    const name = ENG[engId].name;
+    const msg = (L('docTurnedOffPrompt') || '{engine} is turned off. Turn it on in Engines & keys.').replace('{engine}', name);
+    return {ready: false, msg};
+  }
+  if(isOff() && !offCapable(engId)){
+    const name = ENG[engId].name;
+    const msg = (L('docInternetRequiredPrompt') || '{engine} requires an internet connection. Turn off Offline mode or connect to the internet.').replace('{engine}', name);
+    return {ready: false, msg};
+  }
+  if(engId === 'ollama'){
+    try{
+      const models = await fetchOllamaModels();
+      if(modelName && Array.isArray(models) && !models.includes(modelName)){
+        const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
+        return {ready: false, msg};
+      }
+    }catch(err){
+      const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
+      return {ready: false, msg};
+    }
+  }
+  if(engId === 'nllb'){
+    if(typeof trAnyReady === 'function' && !trAnyReady()){
+      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
+      return {ready: false, msg};
+    }
+  }
+  if(engId === 'chrome'){
+    if(!('Translator' in self)){
+      const msg = L('docChromeNotAvailablePrompt') || 'Chrome on-device translator is not available in this browser.';
+      return {ready: false, msg};
+    }
+  }
+  if(ENG[engId].key && !cfg.eng?.[engId]?.key){
+    const name = ENG[engId].name;
+    const msg = (L('docAddKeyPrompt') || 'Add a {engine} key in Engines & keys.').replace('{engine}', name);
+    return {ready: false, msg};
+  }
+  if(engId === 'custom' && !cfg.eng?.[engId]?.base){
+    const msg = L('docCustomUrlPrompt') || 'Add a server URL in Engines & keys.';
+    return {ready: false, msg};
+  }
+  return {ready: true};
+}
+
 function getDocEngineChain(){
+  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  if(docChosen){
+    if(docChosen.startsWith('ollama:')) return ['ollama'];
+    return [docChosen];
+  }
   const cur=$('engine')?.value||'auto';
   if(cur&&cur!=='auto'&&usable(cur)) return [cur];
   if(isOff()){
@@ -562,8 +778,16 @@ function getDocEngineChain(){
 }
 
 async function detectSubjectAndTerms(d){
-  const engId=$('engine').value;
-  const isAi=ENG[engId]?.ai||(engId==='auto'&&usableAiEngine());
+  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  let engId = $('engine')?.value || 'auto';
+  let isAi = false;
+  if(docChosen){
+    const chosenBase = docChosen.startsWith('ollama:') ? 'ollama' : docChosen;
+    engId = chosenBase;
+    isAi = !!ENG[chosenBase]?.ai;
+  }else{
+    isAi = ENG[engId]?.ai || (engId === 'auto' && usableAiEngine());
+  }
   if(!isAi){
     $('docEngineNotice').hidden=false;
     $('docSubjectCard').hidden=true;
@@ -869,6 +1093,27 @@ $('dChangeFile').onclick=()=>$('dFile').click();
 
 $('dGo').onclick=async()=>{
   if(!doc)return;
+  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  if(docChosen){
+    const check = await checkDocEngineReady(docChosen);
+    if(!check.ready){
+      updateDocStatus('warn');
+      $('dGo').disabled=false;
+      showDocEngineNotReady(check.msg);
+      return;
+    }
+  }
+
+  let chosenOllamaModel = '';
+  let prevOllamaModel = '';
+  if(docChosen && docChosen.startsWith('ollama:')){
+    chosenOllamaModel = docChosen.slice(7);
+    if(cfg.eng?.ollama){
+      prevOllamaModel = cfg.eng.ollama.model;
+      cfg.eng.ollama.model = chosenOllamaModel;
+    }
+  }
+
   dCtl=new AbortController();
   busy([$('dGo')],$('dStop'),true);
   try{
@@ -887,7 +1132,8 @@ $('dGo').onclick=async()=>{
 
     const curEngine=$('engine')?.value||'auto';
     const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
-    const docMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
+    const docMemEngine = docChosen ? docChosen : (firstEng || 'auto');
+    const docMemMode = `doc:${docMemEngine}`;
     const srcLang=$('src').value==='finglish'?'auto':$('src').value;
     const tgtLang=$('tgt').value;
     const tone=$('tone')?.value||'';
@@ -1201,6 +1447,9 @@ $('dGo').onclick=async()=>{
       }
     }
   }finally{
+    if(chosenOllamaModel && cfg.eng?.ollama){
+      cfg.eng.ollama.model = prevOllamaModel;
+    }
     busy([$('dGo')],$('dStop'),false);
   }
 };
@@ -1448,29 +1697,55 @@ function updateDocEngineInfo(){
   if(!line||!txtEl) return;
   if(typeof cfg==='undefined'||!cfg?.eng||!cfg?.order) return;
 
+  if(lastPickerUiLang !== ui){
+    lastPickerUiLang = ui;
+    buildDocEngineOptions();
+  }
+
+  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
   const curEng=$('engine')?.value||'auto';
   const modeVal=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   const off=isOff();
   const chain=getDocEngineChain();
   const primaryId=chain[0]||'google';
-  const engName=ENG[primaryId]?.name||primaryId;
 
+  let engName='';
+  let autoTag='';
   let modeLabel='';
-  if(off){
-    modeLabel=ui==='fa'?'آفلاین':'Offline';
-  }else if(modeVal==='fast'){
-    modeLabel=ui==='fa'?'سریع (Fast)':'Fast';
-  }else if(modeVal==='smart'){
-    modeLabel=ui==='fa'?'هوشمند (Smart)':'Smart';
-  }else if(modeVal==='both'){
-    modeLabel=ui==='fa'?'ترکیبی (Both)':'Both';
+
+  if(docChosen){
+    if(docChosen.startsWith('ollama:')){
+      const m=docChosen.slice(7);
+      engName=`Ollama (${m})`;
+    }else{
+      engName=ENG[docChosen]?.name||docChosen;
+    }
+    autoTag='';
+    if(off){
+      modeLabel=ui==='fa'?'آفلاین':'Offline';
+    }else if(ENG[primaryId]?.ai){
+      modeLabel=ui==='fa'?'هوشمند (Smart)':'Smart';
+    }else{
+      modeLabel=ui==='fa'?'سریع (Fast)':'Fast';
+    }
   }else{
-    modeLabel=modeVal;
+    engName=ENG[primaryId]?.name||primaryId;
+    autoTag=curEng==='auto'?(ui==='fa'?' (خودکار)':' (Auto)'):'';
+    if(off){
+      modeLabel=ui==='fa'?'آفلاین':'Offline';
+    }else if(modeVal==='fast'){
+      modeLabel=ui==='fa'?'سریع (Fast)':'Fast';
+    }else if(modeVal==='smart'){
+      modeLabel=ui==='fa'?'هوشمند (Smart)':'Smart';
+    }else if(modeVal==='both'){
+      modeLabel=ui==='fa'?'ترکیبی (Both)':'Both';
+    }else{
+      modeLabel=modeVal;
+    }
   }
 
   const netLabel=off?(ui==='fa'?'آفلاین':'Offline'):(ui==='fa'?'آنلاین':'Online');
   const netClass=off?'offline':'online';
-  const autoTag=curEng==='auto'?(ui==='fa'?' (خودکار)':' (Auto)'):'';
 
   const engineHtml=`<bdi class="doc-engine-name">${esc(engName)}${autoTag}</bdi>`;
   const modeHtml=`<span class="doc-engine-mode-pill">${esc(modeLabel)}</span>`;
@@ -1492,10 +1767,17 @@ if($('tMode')) $('tMode').addEventListener('change', updateDocEngineInfo);
 if($('offBtn')) $('offBtn').addEventListener('click', () => setTimeout(updateDocEngineInfo, 10));
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
-document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', updateDocEngineInfo));
+document.querySelectorAll('[data-tab=doc]').forEach(btn=>btn.addEventListener('click', ()=>{
+  buildDocEngineOptions();
+  updateDocEngineInfo();
+}));
 if(document.readyState!=='loading'){
+  initDocEnginePicker();
   updateDocEngineInfo();
 }else{
-  document.addEventListener('DOMContentLoaded', updateDocEngineInfo);
+  document.addEventListener('DOMContentLoaded', ()=>{
+    initDocEnginePicker();
+    updateDocEngineInfo();
+  });
 }
 
