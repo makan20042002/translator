@@ -12,7 +12,7 @@ const ROOT = path.resolve(__dirname, '../..');
 
 test.describe('Model download hosts', () => {
   test('no file of the app, the extension or the build refers to cdn-lfs.huggingface.co', () => {
-    const skip = new Set(['node_modules', '.git', 'dist', 'tests', 'test-assets', 'test_docs', 'docs']);
+    const skip = new Set(['node_modules', '.git', 'dist', 'tests', 'test_docs', 'docs']);
     const hits = [];
     const walk = dir => {
       for (const e of fs.readdirSync(dir, { withFileTypes: true })) {

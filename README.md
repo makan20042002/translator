@@ -27,8 +27,7 @@ automated tests found is in [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md).
 | `node_modules/` | The tools themselves, downloaded by `npm install`. Not kept in git. | Made for you. |
 | `test-server.py` | A small local web server from earlier development (port 8080). | Optional. |
 | `ENGINE_SYNC.md` | An older note about keeping the web app and the extension in step. Out of date; see `docs/OVERVIEW.md` section 5. | No. |
-| `test-assets/`, `test_docs/` | Old one-off test scripts and sample files from earlier work. Not used by the new tests. | No. |
-| `translator` | An empty, broken link to another copy of this repository, probably added by accident. | No. |
+| `test_docs/` | Sample files from earlier work. Not used by the new tests. | No. |
 
 ---
 
@@ -68,8 +67,8 @@ extension/engine.js      ← must stay in a folder called "extension"; index.htm
 vendor/piper/            ← the whole folder (5 files, about 29 MB): the offline voice engine, loaded by piper-worker.js
 ```
 
-Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test-assets/`,
-`test_docs/`, `package.json`, `package-lock.json` or `test-server.py`.
+Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test_docs/`,
+`package.json`, `package-lock.json` or `test-server.py`.
 
 > **Before you publish:** the web app no longer sends API keys to your
 > website's server (this was fixed; see `docs/OVERVIEW.md`, section 6).

@@ -21,7 +21,7 @@ test.describe('Screen Translator Native Windows OCR Service', () => {
   });
 
   test('recognizes English text from a synthetic image', async () => {
-    const testImgPath = path.join(rootDir, 'test-assets', 'ocr-test-image.png');
+    const testImgPath = path.join(rootDir, 'tests', 'fixtures', 'ocr-test-image.png');
     if (fs.existsSync(testImgPath)) {
       const buffer = fs.readFileSync(testImgPath);
       const res = await ocrService.recognize(buffer, 'en-US');

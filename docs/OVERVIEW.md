@@ -39,8 +39,7 @@ Neither has a build step for the app code itself. The only "build" is
 | `manifest.webmanifest`, `icon-192.png`, `icon-512.png` | Make the web app installable ("Add to home screen" / "Install app"). |
 | `test-server.py` | A small local web server on port 8080 used during development. It used to accept `POST /api/sync_keys` and throw the body away; that endpoint is removed (section 6, item 1). |
 | `ENGINE_SYNC.md` | A note about keeping the web app and the extension in step. **It is out of date**: it lists engines (DeepL, an "offline" entry) and settings that no longer match the code. |
-| `test-assets/`, `test_docs/` | Old ad-hoc scripts and sample files from earlier work. They are not part of the new test suite and nothing the user loads depends on them. Note: you said these were meant to be left out of the repository, but they are committed. |
-| `translator` | A broken "sub-repository" link (git calls it a submodule entry) pointing at an old commit of this same repository. It has no content and no `.gitmodules` file. It was probably added by accident. |
+| `test_docs/` | Old sample files from earlier work. Not used by the new tests. | No. |
 
 ### Extension (`extension/` folder)
 
@@ -503,8 +502,8 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
 31. `ENGINE_SYNC.md` and `PRIVACY.md` describe engines and addresses that do
     not match the code. For example, `PRIVACY.md` omits
     `clients5.google.com`, the main Google address used.
-32. The repository contains the old `test-assets/` scripts (you said they
-    were meant to stay out) and a broken `translator` sub-repository link.
+32. The obsolete `test-assets/` scripts and the broken `translator`
+    sub-repository link have been removed.
 
 33. `web-ext lint` (Mozilla's checker) reports 0 errors and 21 warnings for
     the Firefox build. 3 are about the `offscreen` API, which the code only
