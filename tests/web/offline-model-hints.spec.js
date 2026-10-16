@@ -23,6 +23,12 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     await page.evaluate(() => {
       store.set('mdl', {});
       store.set('nllb', false);
+      if (mcCache) {
+        const cat = self.MODEL_CATALOG?.models || [];
+        for (const m of cat) {
+          if (m.job === 'translate' && m.repo) delete mcCache[m.repo];
+        }
+      }
       cfg.trModel = 'auto';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -50,6 +56,8 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
       const d = store.get('mdl', {});
       d['tr-m2m100-418'] = { at: Date.now(), files: m2m.files.map(f => f[0]) };
       store.set('mdl', d);
+      if (!mcCache) mcCache = {};
+      mcCache[m2m.repo] = { bytes: 1000, files: new Map(m2m.files.map(f => [f[0], f[1]])) };
       cfg.trModel = 'tr-m2m100-418';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -66,6 +74,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     // Text tab: should show M2M-100 without reloading
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
     await expect(tHint).toBeVisible();
+    await expect(tHint).toHaveText(/^Offline model:/);
     await expect(tHint).toContainText('M2M-100');
 
     // Voice tab: should show M2M-100 without reloading
@@ -73,7 +82,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     await expect(vHint).toBeVisible();
     await expect(vHint).toContainText('M2M-100');
 
-    // 3. Switch choice to NLLB (seed NLLB as downloaded too and switch cfg.trModel without reloading)
+    // 3. Switch choice to NLLB (seed NLLB as downloaded too, keep M2M-100 cached, and switch cfg.trModel without reloading)
     await page.evaluate(() => {
       const cat = self.MODEL_CATALOG?.models || [];
       const nllb = cat.find(m => m.id === 'tr-nllb-600');
@@ -81,6 +90,8 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
       d['tr-nllb-600'] = { at: Date.now(), files: nllb.files.map(f => f[0]) };
       store.set('mdl', d);
       store.set('nllb', true);
+      if (!mcCache) mcCache = {};
+      mcCache[nllb.repo] = { bytes: 1000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
       cfg.trModel = 'tr-nllb-600';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -95,6 +106,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     // Text tab updates to NLLB
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
     await expect(tHint).toBeVisible();
+    await expect(tHint).toHaveText(/^Offline model:/);
     await expect(tHint).toContainText('NLLB');
     await expect(tHint).not.toContainText('M2M-100');
 
@@ -107,6 +119,19 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     await expect(docEngineText).toContainText('NLLB');
     await expect(docEngineText).not.toContainText('M2M-100');
     await dSel.selectOption('');
+
+    // 4. With cfg.trModel='auto' and both models cached, Text hint shows Auto and NLLB name
+    await page.evaluate(() => {
+      cfg.trModel = 'auto';
+      if (typeof saveCfg === 'function') saveCfg();
+      if (typeof mcRender === 'function') mcRender();
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
+    await expect(tHint).toBeVisible();
+    await expect(tHint).toHaveText(/^Offline model:/);
+    await expect(tHint).toContainText('Auto');
+    await expect(tHint).toContainText('NLLB');
   });
 
   const layoutConfigs = [
@@ -141,6 +166,12 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
         store.set('mdl', {});
         store.set('nllb', false);
+        if (mcCache) {
+          const cat = self.MODEL_CATALOG?.models || [];
+          for (const m of cat) {
+            if (m.job === 'translate' && m.repo) delete mcCache[m.repo];
+          }
+        }
         cfg.trModel = 'auto';
         if (typeof saveCfg === 'function') saveCfg();
         if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
