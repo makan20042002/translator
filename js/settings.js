@@ -12,27 +12,81 @@ function getOllamaUnreachableMsg(){
 }
 async function fetchOllamaModels(){
   const host=getOllamaHost();
-  try{
+  const v1base=(cfg.eng?.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+  const deadline=Date.now()+5000;
+  let hadTimeout=false;
+
+  function getAltUrl(urlStr){
+    try{
+      const u=new URL(urlStr);
+      if(u.hostname==='localhost'){
+        u.hostname='127.0.0.1';
+        return u.toString().replace(/\/+$/,'');
+      }
+      if(u.hostname==='127.0.0.1'){
+        u.hostname='localhost';
+        return u.toString().replace(/\/+$/,'');
+      }
+    }catch(e){}
+    return null;
+  }
+
+  async function tryTags(h){
+    const remaining=deadline-Date.now();
+    if(remaining<=0){hadTimeout=true;return null;}
     const ctrl=new AbortController();
-    const to=setTimeout(()=>ctrl.abort(),2500);
-    const res=await fetch(host+'/api/tags',{signal:ctrl.signal});
-    clearTimeout(to);
-    if(res.ok){
-      const data=await res.json();
-      return (data.models||[]).map(m=>m.name||m.model).filter(Boolean);
+    let timedOut=false;
+    const to=setTimeout(()=>{timedOut=true;hadTimeout=true;ctrl.abort();},Math.min(2500,Math.max(0,remaining)));
+    try{
+      const res=await fetch(h+'/api/tags',{signal:ctrl.signal});
+      clearTimeout(to);
+      if(res.ok){
+        const data=await res.json();
+        return (data.models||[]).map(m=>m.name||m.model).filter(Boolean);
+      }
+    }catch(err){
+      clearTimeout(to);
+      if(timedOut||err?.name==='AbortError')hadTimeout=true;
     }
-  }catch(err){}
-  try{
-    const v1base=(cfg.eng?.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
+    return null;
+  }
+
+  async function tryV1(b){
+    const remaining=deadline-Date.now();
+    if(remaining<=0){hadTimeout=true;return null;}
     const ctrl=new AbortController();
-    const to=setTimeout(()=>ctrl.abort(),2500);
-    const v1res=await fetch(v1base+'/models',{signal:ctrl.signal});
-    clearTimeout(to);
-    if(v1res.ok){
-      const data=await v1res.json();
-      return (data.data||[]).map(m=>m.id).filter(Boolean);
+    let timedOut=false;
+    const to=setTimeout(()=>{timedOut=true;hadTimeout=true;ctrl.abort();},Math.min(2500,Math.max(0,remaining)));
+    try{
+      const res=await fetch(b+'/models',{signal:ctrl.signal});
+      clearTimeout(to);
+      if(res.ok){
+        const data=await res.json();
+        return (data.data||[]).map(m=>m.id).filter(Boolean);
+      }
+    }catch(err){
+      clearTimeout(to);
+      if(timedOut||err?.name==='AbortError')hadTimeout=true;
     }
-  }catch(err){}
+    return null;
+  }
+
+  let models=await tryTags(host);
+  if(models!==null)return models;
+  models=await tryV1(v1base);
+  if(models!==null)return models;
+
+  const altHost=getAltUrl(host);
+  const altV1=getAltUrl(v1base);
+  if(!hadTimeout&&altHost){
+    models=await tryTags(altHost);
+    if(models!==null)return models;
+    if(altV1){
+      models=await tryV1(altV1);
+      if(models!==null)return models;
+    }
+  }
+
   throw new Error('Ollama unreachable');
 }
 let ollamaPullAbort=null;
