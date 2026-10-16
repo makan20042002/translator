@@ -221,6 +221,17 @@ function isWelcomeNllbReady() {
 }
 
 async function checkWelcomeOllama() {
+  const cache = (typeof cachedOllamaModels !== 'undefined') ? cachedOllamaModels : ((typeof window !== 'undefined' && window.cachedOllamaModels !== undefined) ? window.cachedOllamaModels : null);
+  if (Array.isArray(cache) && cache.length > 0) {
+    welcomeOllamaReachable = true;
+    updateWelcomePrivacyNotice();
+    return;
+  }
+  if (cache === false) {
+    welcomeOllamaReachable = false;
+    updateWelcomePrivacyNotice();
+    return;
+  }
   if (typeof engineConnStatus !== 'undefined' && engineConnStatus?.ollama?.code === 'works') {
     welcomeOllamaReachable = true;
     updateWelcomePrivacyNotice();
@@ -232,18 +243,24 @@ async function checkWelcomeOllama() {
   }
   const ctrl = new AbortController();
   welcomeOllamaAbortCtrl = ctrl;
-  const to = setTimeout(() => {
-    try { ctrl.abort(); } catch (e) {}
-  }, 1200);
   try {
-    const host = (typeof getOllamaHost === 'function') ? getOllamaHost() : 'http://localhost:11434';
-    let res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
-    if (!res || !res.ok) {
-      res = await fetch(host + '/v1/models', { signal: ctrl.signal }).catch(() => null);
-    }
-    clearTimeout(to);
-    if (welcomeOllamaAbortCtrl === ctrl) {
-      welcomeOllamaReachable = !!(res && res.ok);
+    if (typeof ollamaStatus === 'function') {
+      const st = await ollamaStatus({ timeoutMs: 1200 });
+      if (welcomeOllamaAbortCtrl === ctrl) {
+        welcomeOllamaReachable = (st.state === 'ok' || st.state === 'noModels');
+        if (typeof setCachedOllamaModels === 'function') {
+          setCachedOllamaModels(st.state === 'ok' ? st.models : (st.state === 'noModels' ? [] : false));
+        }
+      }
+    } else {
+      const host = (typeof getOllamaHost === 'function') ? getOllamaHost() : 'http://localhost:11434';
+      let res = await fetch(host + '/api/tags', { signal: ctrl.signal }).catch(() => null);
+      if (!res || !res.ok) {
+        res = await fetch(host + '/v1/models', { signal: ctrl.signal }).catch(() => null);
+      }
+      if (welcomeOllamaAbortCtrl === ctrl) {
+        welcomeOllamaReachable = !!(res && res.ok);
+      }
     }
   } catch (e) {
     if (welcomeOllamaAbortCtrl === ctrl) {
