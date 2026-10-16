@@ -683,6 +683,16 @@ function buildDocEngineOptions(){
             text: `${ENG.ollama.name} · [${tag}]${stSuffix}`
           });
         }
+      } else if(id === 'nllb'){
+        const choice = typeof offlineTrChoice === 'function' ? offlineTrChoice() : null;
+        const modelName = choice?.model ? mcText(choice.model.name).replace(/\s*\(default\)$/i, '') : '';
+        const baseName = modelName ? `Offline model · ${modelName}` : 'Offline model';
+        const st = getDocEngineStatus(id, false);
+        const stSuffix = st ? ` · ${st}` : '';
+        items.push({
+          val: id,
+          text: `${baseName} · [${tag}]${stSuffix}`
+        });
       } else {
         const st = getDocEngineStatus(id, false);
         const stSuffix = st ? ` · ${st}` : '';
@@ -862,8 +872,15 @@ async function checkDocEngineReady(docChosen){
   return {ready: true};
 }
 
-function getDocEngineDisplayName(id){
-  if(id === 'nllb') return 'Offline NLLB';
+function getDocEngineDisplayName(id, src, tgt){
+  if(id === 'nllb'){
+    const choice = typeof offlineTrChoice === 'function' ? offlineTrChoice(src, tgt) : null;
+    if(choice && choice.model){
+      const name = mcText(choice.model.name).replace(/\s*\(default\)$/i, '');
+      return `Offline model (${name})`;
+    }
+    return 'Offline model';
+  }
   if(id === 'google') return 'Google Translate';
   if(id === 'chrome') return 'Chrome on-device';
   if(id === 'mymemory') return 'MyMemory';
@@ -2331,5 +2348,10 @@ if(document.readyState!=='loading'){
     initDocEnginePicker();
     updateDocEngineInfo();
   });
+}
+if(typeof window!=='undefined'){
+  window.getDocEngineDisplayName=getDocEngineDisplayName;
+  window.buildHonestFailureMessage=buildHonestFailureMessage;
+  window.buildDocEngineOptions=buildDocEngineOptions;
 }
 
