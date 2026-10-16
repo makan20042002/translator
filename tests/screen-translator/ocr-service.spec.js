@@ -22,16 +22,15 @@ test.describe('Screen Translator Native Windows OCR Service', () => {
 
   test('recognizes English text from a synthetic image', async () => {
     const testImgPath = path.join(rootDir, 'tests', 'fixtures', 'ocr-test-image.png');
-    if (fs.existsSync(testImgPath)) {
-      const buffer = fs.readFileSync(testImgPath);
-      const res = await ocrService.recognize(buffer, 'en-US');
-      expect(res.ok).toBe(true);
-      expect(typeof res.text).toBe('string');
-      expect(res.text.length).toBeGreaterThan(0);
-      expect(res.text).toContain('MAKAN');
-      expect(Array.isArray(res.lines)).toBe(true);
-      expect(res.lines.length).toBeGreaterThan(0);
-    }
+    expect(fs.existsSync(testImgPath), `OCR test fixture image not found at ${testImgPath}`).toBe(true);
+    const buffer = fs.readFileSync(testImgPath);
+    const res = await ocrService.recognize(buffer, 'en-US');
+    expect(res.ok).toBe(true);
+    expect(typeof res.text).toBe('string');
+    expect(res.text.length).toBeGreaterThan(0);
+    expect(res.text).toContain('MAKAN');
+    expect(Array.isArray(res.lines)).toBe(true);
+    expect(res.lines.length).toBeGreaterThan(0);
   });
 
   test('gracefully handles missing language pack with actionable guidance', async () => {
