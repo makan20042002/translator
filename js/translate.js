@@ -30,6 +30,7 @@ if(!store.get('groq_order_fixed',false)){
   store.set('groq_order_fixed',true);
 }
 cfg.order=cfg.order.filter(id=>ENG[id]);
+if(typeof window!=='undefined'){window.cfg=cfg;}
 let engineConnStatus=store.get('eng_conn',{});
 const saveCfg=()=>{
   store.set('cfg',cfg);

@@ -132,9 +132,18 @@ test.describe('Offline fatal WASM error recovery', () => {
       const origWorker = window.Worker;
       window.Worker = MockWorker;
 
+      // Seed model in store so it is recognized as downloaded
+      const d = store.get('mdl', {});
+      d['asr-large-v3-turbo'] = { at: Date.now(), files: [] };
+      store.set('mdl', d);
+
       // Setup Whisper selection in cfg
-      window.cfg.stt = 'whisper';
-      window.cfg.whisper = 'large-v3-turbo';
+      cfg.stt = 'whisper';
+      cfg.whisper = 'large-v3-turbo';
+      if (typeof window !== 'undefined' && window.cfg) {
+        window.cfg.stt = 'whisper';
+        window.cfg.whisper = 'large-v3-turbo';
+      }
 
       let caughtErr = null;
       try {
@@ -144,7 +153,7 @@ test.describe('Offline fatal WASM error recovery', () => {
       }
 
       const failedModel = (self.MODEL_CATALOG?.models || []).find(m => m.key === 'large-v3-turbo');
-      const recordedFailure = failedModel ? window.mcFailed?.[failedModel.id] : null;
+      const recordedFailure = failedModel ? (typeof mcFailed !== 'undefined' ? mcFailed[failedModel.id] : window.mcFailed?.[failedModel.id]) : null;
 
       // Check readiness after failure
       const readinessAfterFail = window.getVoiceTabReadiness();

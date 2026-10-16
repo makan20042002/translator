@@ -83,6 +83,7 @@ function mcUnmark(m){
   if(m.kind==='whisper'){for(const k of ['whisper_wasm','whisper_webgpu','whisper'])if(store.get(k,'')===m.key)store.set(k,'')}
 }
 const mcFailed={};
+if(typeof window!=='undefined'){window.mcFailed=mcFailed;}
 function mcLicence(m){
   if(m.kind==='nllb')return 'CC BY-NC 4.0';
   if(m.kind==='whisper')return 'MIT / Apache 2.0';

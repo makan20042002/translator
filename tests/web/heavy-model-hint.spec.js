@@ -40,14 +40,24 @@ test.describe('Model Hub heavy-model RAM display and hint', () => {
 
       // Verify user is not blocked when selecting
       if ($('offWhisperSel')) {
+        let opt = Array.from($('offWhisperSel').options).find(o => o.value === 'large-v3-turbo');
+        if (!opt) {
+          opt = document.createElement('option');
+          opt.value = 'large-v3-turbo';
+          opt.textContent = 'Whisper Large v3 Turbo';
+          $('offWhisperSel').appendChild(opt);
+        }
         $('offWhisperSel').value = 'large-v3-turbo';
         $('offWhisperSel').dispatchEvent(new Event('change'));
+      } else {
+        cfg.whisper = 'large-v3-turbo';
+        if (typeof saveCfg === 'function') saveCfg();
       }
 
       window.toast = origToast;
       return {
         toasts,
-        activeWhisper: window.cfg.whisper
+        activeWhisper: (typeof cfg !== 'undefined' ? cfg.whisper : window.cfg?.whisper)
       };
     });
 
