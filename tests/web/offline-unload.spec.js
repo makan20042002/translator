@@ -14,6 +14,7 @@ test.describe('Offline model unload after download check', () => {
     const result = await page.evaluate(async () => {
       const calls = [];
       const resident = new Set();
+      let residentBeforeUnload = 0;
       const origWorker = window.Worker;
 
       class MockWorker {
@@ -33,6 +34,7 @@ test.describe('Offline model unload after download check', () => {
             if (repo) resident.add(repo);
             setTimeout(() => this.onmessage?.({ data: { id, ok: true, res: true } }), 10);
           } else if (cmd === 'unload') {
+            residentBeforeUnload = resident.size;
             if (a?.repo) resident.delete(a.repo);
             setTimeout(() => this.onmessage?.({ data: { id, ok: true, res: true } }), 10);
           } else if (cmd === 'stats') {
@@ -54,9 +56,11 @@ test.describe('Offline model unload after download check', () => {
       await mcDownload(m);
 
       const stats = await rpc('stats');
+      const statsCount = Number(stats.count ?? stats.length);
+      const statsRepos = Array.from(stats);
       window.Worker = origWorker;
 
-      return { calls, stats, repo: m.repo };
+      return { calls, statsCount, statsRepos, residentBeforeUnload, repo: m.repo };
     });
 
     const loadIndex = result.calls.findIndex(c => c.cmd === 'loadTr');
@@ -66,7 +70,10 @@ test.describe('Offline model unload after download check', () => {
     const unloadCall = result.calls.find(c => c.cmd === 'unload');
     expect(unloadCall).toBeDefined();
     expect(unloadCall.a.repo).toBe(result.repo);
-    expect(result.stats.count).toBe(0);
+    expect(result.residentBeforeUnload).toBe(1);
+    expect(typeof result.statsCount).toBe('number');
+    expect(result.statsCount).toBe(0);
+    expect(result.statsRepos).toEqual([]);
   });
 
   test('speech (Whisper) download check sends unload for whisper repo and leaves zero models resident', async ({ app }) => {
@@ -74,6 +81,7 @@ test.describe('Offline model unload after download check', () => {
     const result = await page.evaluate(async () => {
       const calls = [];
       const resident = new Set();
+      let residentBeforeUnload = 0;
       const origWorker = window.Worker;
 
       class MockWorker {
@@ -93,6 +101,7 @@ test.describe('Offline model unload after download check', () => {
             if (repo) resident.add(repo);
             setTimeout(() => this.onmessage?.({ data: { id, ok: true, res: true } }), 10);
           } else if (cmd === 'unload') {
+            residentBeforeUnload = resident.size;
             if (a?.repo) resident.delete(a.repo);
             setTimeout(() => this.onmessage?.({ data: { id, ok: true, res: true } }), 10);
           } else if (cmd === 'stats') {
@@ -114,9 +123,11 @@ test.describe('Offline model unload after download check', () => {
       await mcDownload(m);
 
       const stats = await rpc('stats');
+      const statsCount = Number(stats.count ?? stats.length);
+      const statsRepos = Array.from(stats);
       window.Worker = origWorker;
 
-      return { calls, stats, repo: m.repo };
+      return { calls, statsCount, statsRepos, residentBeforeUnload, repo: m.repo };
     });
 
     const loadIndex = result.calls.findIndex(c => c.cmd === 'loadAsr');
@@ -126,6 +137,9 @@ test.describe('Offline model unload after download check', () => {
     const unloadCall = result.calls.find(c => c.cmd === 'unload');
     expect(unloadCall).toBeDefined();
     expect(unloadCall.a.repo).toBe(result.repo);
-    expect(result.stats.count).toBe(0);
+    expect(result.residentBeforeUnload).toBe(1);
+    expect(typeof result.statsCount).toBe('number');
+    expect(result.statsCount).toBe(0);
+    expect(result.statsRepos).toEqual([]);
   });
 });
