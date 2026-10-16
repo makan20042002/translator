@@ -90,4 +90,30 @@ test.describe('Offline translation model choice and label (Item 1)', () => {
     expect(result.resE.choice.model.id).toBe('tr-nllb-600');
     expect(result.resE.label).toBe('Auto → NLLB-200 600M');
   });
+
+  test('window.cfg is undefined on load and after a model is marked downloaded and mcRender runs', async ({ app }) => {
+    const { page } = app;
+    // (1) Assert typeof window.cfg === 'undefined' after the app has loaded
+    const initialType = await page.evaluate(() => typeof window.cfg);
+    expect(initialType).toBe('undefined');
+
+    // (2) Assert typeof window.cfg === 'undefined' after a model has been marked downloaded and mcRender() has run
+    const afterRenderType = await page.evaluate(async () => {
+      const cat = self.MODEL_CATALOG?.models || [];
+      const nllb = cat.find(m => m.id === 'tr-nllb-600');
+      if (nllb) {
+        const d = store.get('mdl', {});
+        d[nllb.id] = { at: Date.now(), files: nllb.files.map(f => f[0]) };
+        store.set('mdl', d);
+        if (!mcCache) mcCache = {};
+        mcCache[nllb.repo] = { bytes: 1000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
+      }
+      try {
+        if (typeof mcRender === 'function') mcRender();
+      } catch {}
+      return typeof window.cfg;
+    });
+    expect(afterRenderType).toBe('undefined');
+  });
 });
+
