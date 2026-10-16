@@ -2264,10 +2264,21 @@ function updateDocEngineInfo(){
   let autoTag='';
   let modeLabel='';
 
+  const s=(typeof $==='function'&&$('src')?.value)||'auto';
+  const t=(typeof $==='function'&&$('tgt')?.value)||'fa';
+  const getOfflineDocEngName=()=>{
+    const choice=typeof offlineTrChoice==='function'?offlineTrChoice(s,t):null;
+    const modelName=choice?.model?mcText(choice.model.name).replace(/\s*\(default\)$/i,''):'';
+    const baseName=(typeof ui!=='undefined'&&ui==='fa')?'مدل آفلاین':'Offline model';
+    return modelName?`${baseName} · ${modelName}`:baseName;
+  };
+
   if(docChosen){
     if(docChosen.startsWith('ollama:')){
       const m=docChosen.slice(7);
       engName=`Ollama (${m})`;
+    }else if(docChosen==='nllb'){
+      engName=getOfflineDocEngName();
     }else{
       engName=ENG[docChosen]?.name||docChosen;
     }
@@ -2280,7 +2291,11 @@ function updateDocEngineInfo(){
       modeLabel=ui==='fa'?'سریع (Fast)':'Fast';
     }
   }else{
-    engName=ENG[primaryId]?.name||primaryId;
+    if(primaryId==='nllb'){
+      engName=getOfflineDocEngName();
+    }else{
+      engName=ENG[primaryId]?.name||primaryId;
+    }
     autoTag=curEng==='auto'?(ui==='fa'?' (خودکار)':' (Auto)'):'';
     if(off){
       modeLabel=ui==='fa'?'آفلاین':'Offline';
@@ -2307,7 +2322,11 @@ function updateDocEngineInfo(){
   }else{
     txtEl.innerHTML=`Engine: ${engineHtml} · Mode: ${modeHtml} · Status: ${netHtml}`;
   }
-  if(typeof updateOfflineModelHints==='function') updateOfflineModelHints();
+  txtEl.title=txtEl.textContent.trim();
+  const dSel=$('dEngineSel');
+  if(dSel&&typeof formatOfflineModelHint==='function'){
+    dSel.title=formatOfflineModelHint(s,t);
+  }
 }
 
 if($('docOpenEngineSettings')){

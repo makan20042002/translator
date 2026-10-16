@@ -114,14 +114,21 @@ function formatOfflineModelHint(src,tgt){
   const prefix=(typeof ui!=='undefined'&&ui==='fa')?'مدل آفلاین':'Offline model';
   return `${prefix}: ${lbl}`;
 }
+let isUpdatingDocFromHints=false;
 function updateOfflineModelHints(){
   const s=(typeof $==='function'&&$('src')?.value)||'auto';
   const t=(typeof $==='function'&&$('tgt')?.value)||'fa';
   const txt=formatOfflineModelHint(s,t);
-  const ids=['tOfflineModelHint','dOfflineModelHint','vOfflineModelHint','vTransOfflineModelHint'];
+  const ids=['tOfflineModelHint','vOfflineModelHint','vTransOfflineModelHint'];
   for(const id of ids){
     const el=typeof $==='function'?$(id):null;
     if(el) el.textContent=txt;
+  }
+  const dSel=typeof $==='function'?$('dEngineSel'):null;
+  if(dSel) dSel.title=txt;
+  if(!isUpdatingDocFromHints && typeof updateDocEngineInfo==='function'){
+    isUpdatingDocFromHints=true;
+    try{ updateDocEngineInfo(); }finally{ isUpdatingDocFromHints=false; }
   }
   if(typeof renderTextStatusStrip==='function') renderTextStatusStrip();
   if(typeof updateVoiceAutoEngineDisplay==='function') updateVoiceAutoEngineDisplay();

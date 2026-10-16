@@ -101,6 +101,8 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
   const layoutConfigs = [
     { vp: { width: 1280, height: 900 }, lang: 'en', doTranslation: true },
     { vp: { width: 1280, height: 900 }, lang: 'fa', doTranslation: true },
+    { vp: { width: 700, height: 900 }, lang: 'en', doTranslation: false },
+    { vp: { width: 700, height: 900 }, lang: 'fa', doTranslation: false },
     { vp: { width: 360, height: 700 }, lang: 'en', doTranslation: false },
     { vp: { width: 360, height: 700 }, lang: 'fa', doTranslation: false }
   ];
@@ -113,7 +115,12 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
       // Navigate to doc tab
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-      // Set UI language and seed a model so the hint displays text
+      const headerTop = page.locator('.doc-header-top');
+      const headerControls = page.locator('.doc-header-controls');
+      const dSel = page.locator('#dEngineSel');
+      const docEngineText = page.locator('#docEngineText');
+
+      // State 1: No offline model downloaded
       await page.evaluate(({ lang }) => {
         store.set('ui', lang);
         if (typeof ui !== 'undefined') ui = lang;
@@ -121,39 +128,61 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
         document.documentElement.dir = (lang === 'fa' ? 'rtl' : 'ltr');
         if (typeof applyUiLang === 'function') applyUiLang(lang);
 
+        store.set('mdl', {});
+        store.set('nllb', false);
+        cfg.trModel = 'auto';
+        if (typeof saveCfg === 'function') saveCfg();
+        if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
+        if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
+      }, { lang });
+
+      await dSel.selectOption('nllb');
+
+      const topBoxNoModel = await headerTop.boundingBox();
+      const controlsBoxNoModel = await headerControls.boundingBox();
+      expect(topBoxNoModel, 'header top bounding box with no model').not.toBeNull();
+      expect(controlsBoxNoModel, 'header controls bounding box with no model').not.toBeNull();
+
+      // State 2: Longest-named model (mBART-50 or M2M-100) chosen and downloaded
+      await page.evaluate(({ lang }) => {
         const cat = self.MODEL_CATALOG?.models || [];
-        const nllb = cat.find(m => m.id === 'tr-nllb-600');
-        if (nllb) {
+        const model = cat.find(m => m.id === 'tr-mbart50') || cat.find(m => m.id === 'tr-m2m100-418');
+        if (model) {
           const d = store.get('mdl', {});
-          d[nllb.id] = { at: Date.now(), files: nllb.files.map(f => f[0]) };
+          d[model.id] = { at: Date.now(), files: model.files.map(f => f[0]) };
           store.set('mdl', d);
           if (!mcCache) mcCache = {};
-          mcCache[nllb.repo] = { bytes: 1000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
+          mcCache[model.repo] = { bytes: 1000, files: new Map(model.files.map(f => [f[0], f[1]])) };
+          cfg.trModel = model.id;
+          if (typeof saveCfg === 'function') saveCfg();
         }
         if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
         if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
       }, { lang });
 
-      const dHint = page.locator('#dOfflineModelHint');
-      const dSel = page.locator('#dEngineSel');
+      await dSel.selectOption('nllb');
 
-      await expect(dHint).toBeVisible();
-      await expect(dSel).toBeVisible();
+      const topBoxWithModel = await headerTop.boundingBox();
+      const controlsBoxWithModel = await headerControls.boundingBox();
+      expect(topBoxWithModel, 'header top bounding box with model').not.toBeNull();
+      expect(controlsBoxWithModel, 'header controls bounding box with model').not.toBeNull();
 
-      const hintBox = await dHint.boundingBox();
-      const selBox = await dSel.boundingBox();
-      expect(hintBox, 'hint bounding box').not.toBeNull();
-      expect(selBox, 'select bounding box').not.toBeNull();
+      // Assert that .doc-header-controls height and .doc-header-top height are IDENTICAL in both states
+      expect(controlsBoxWithModel.height, 'controls height identical in both states').toBe(controlsBoxNoModel.height);
+      expect(topBoxWithModel.height, 'header top height identical in both states').toBe(topBoxNoModel.height);
 
-      // (a) Document hint is on the same horizontal band as #dEngineSel (its box top is within the select's box top/bottom)
-      expect(hintBox.y).toBeGreaterThanOrEqual(selBox.y);
-      expect(hintBox.y).toBeLessThanOrEqual(selBox.y + selBox.height);
+      // Assert that the controls fit on the same number of lines (compare heights)
+      expect(controlsBoxWithModel.height).toBe(controlsBoxNoModel.height);
 
-      // (b) its right edge is inside the viewport
-      expect(hintBox.x + hintBox.width).toBeLessThanOrEqual(vp.width);
-      expect(hintBox.x).toBeGreaterThanOrEqual(0);
+      // Assert the Document hint text really contains the model name (read #docEngineText textContent and the select's title)
+      const engineTextContent = await docEngineText.textContent();
+      const selTitle = await dSel.getAttribute('title');
+      expect(engineTextContent).toMatch(/mBART-50|M2M-100/);
+      expect(selTitle).toMatch(/mBART-50|M2M-100/);
 
-      // (c) after a stubbed translation of a small .txt the Download button bottom is <= viewport height and nothing covers it
+      // Reset picker to default for stubbed translation
+      await dSel.selectOption('');
+
       if (doTranslation) {
         await chooseFile(page, page.locator('#dDrop'), files.txt);
         await mouseClick(page, page.locator('#dGo'));
@@ -163,7 +192,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
         const saveBox = await dSave.boundingBox();
         expect(saveBox, '#dSave bounding box').not.toBeNull();
-        expect(saveBox.y + saveBox.height).toBeLessThanOrEqual(vp.height);
+        expect(saveBox.y + saveBox.height, '#dSave bottom must be <= viewport height at 1280x900').toBeLessThanOrEqual(vp.height);
 
         const onTop = await page.evaluate(({ x, y }) => {
           const e = document.elementFromPoint(x, y);
