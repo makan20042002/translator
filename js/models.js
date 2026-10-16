@@ -140,8 +140,13 @@ async function mcDownload(m){
         await window.makanDesktop.saveOcrModelFiles({modelId:m.id,files:filesPayload});
       }
     }
-    else if(m.job==='translate')await rpc('loadTr',{spec:{repo:m.repo,kind:m.kind}});
-    else await rpc('loadAsr',{model:m.key});
+    else if(m.job==='translate'){
+      await rpc('loadTr',{spec:{repo:m.repo,kind:m.kind}});
+      try{await rpc('unload',{repo:m.repo})}catch{}
+    }else{
+      await rpc('loadAsr',{model:m.key});
+      try{await rpc('unload',{repo:m.repo})}catch{}
+    }
     const seen=Object.keys(mcDownloading[m.id].files).filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')||f.endsWith('.txt'));
     await mcScan();
     mcMark(m,(mcCache?.[m.repo]?[...mcCache[m.repo].files.keys()].filter(f=>f.endsWith('.onnx')||f.endsWith('.onnx_data')||f.endsWith('.txt')):seen));
@@ -172,7 +177,7 @@ function mcCancel(m){
   }
 }
 async function mcDelete(m){
-  try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else if(m.job==='translate')await rpc('unload',{repo:m.repo})}catch{}
+  try{if(m.kind==='piper'){if(pwk)await prpc('unload',{voice:{path:m.voice}})}else if(m.repo)await rpc('unload',{repo:m.repo})}catch{}
   try{
     const c=await caches.open(MC_CACHE);
     for(const req of await c.keys())if(m.kind==='piper'?m.files.some(f=>req.url.endsWith('/'+f[0])):req.url.includes('/'+m.repo+'/resolve/'))await c.delete(req);

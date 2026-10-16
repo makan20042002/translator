@@ -602,6 +602,7 @@ const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
       if(timer)clearTimeout(timer);
       if(signal&&onAbort)signal.removeEventListener('abort',onAbort);
       if(a.spec?.repo)inWorker.add(a.spec.repo);
+      if(cmd==='unload'&&a?.repo)inWorker.delete(a.repo);
       end();
       res(v);
     },

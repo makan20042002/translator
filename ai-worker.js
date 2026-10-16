@@ -103,10 +103,17 @@ self.onmessage = async ({ data: { id, cmd, a } }) => {
       for (const s of a.items) res.push((await t(s, o))[0].translation_text);
     }
     else if (cmd === 'unload') {
-      for (const k of Object.keys(loaded)) if (k === a.repo || k.startsWith(a.repo + '_')) {
+      for (const k of Object.keys(loaded)) if (k === a?.repo || k.startsWith((a?.repo || '') + '_')) {
         const p = loaded[k]; delete loaded[k];
-        try { (await p).dispose?.(); } catch {}
+        try { const inst = await p; if (typeof inst?.dispose === 'function') await inst.dispose(); } catch {}
       }
+    }
+    else if (cmd === 'stats') {
+      const repos = Array.from(new Set(Object.keys(loaded).map(k => k.replace(/_wasm$/, ''))));
+      res = repos;
+      res.repos = repos;
+      res.models = repos;
+      res.count = repos.length;
     }
     else if (cmd === 'loadAsr') await getAsr(checkRepo(a.spec || defaultAsr(a.model)));
     else if (cmd === 'asr') {
