@@ -33,8 +33,7 @@ screenshots/
 **/screenshots/
 
 # Environment files and credentials
-.env
-.env.*
+.env*
 *.local
 
 # Exported settings and keys
@@ -47,8 +46,11 @@ makan-settings*.json
 # Test suite output (npm test)
 tests/.generated/
 tests/.results/
-/test-results
- 
+test-results/
+playwright-report/
+downloads/
+test-downloads/
+
 # Python
 __pycache__/
 *.py[cod]
