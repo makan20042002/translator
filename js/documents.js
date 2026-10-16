@@ -829,34 +829,8 @@ async function checkDocEngineReady(docChosen){
     return {ready: false, msg, reason: L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active')};
   }
   if(engId === 'ollama'){
-    let statusResult = null;
-    if(cachedOllamaModels === false || cachedOllamaModels === null){
-      if(typeof ollamaStatus === 'function'){
-        statusResult = await ollamaStatus();
-        if(statusResult.state === 'ok'){
-          cachedOllamaModels = statusResult.models;
-        }else if(statusResult.state === 'noModels'){
-          cachedOllamaModels = [];
-        }else{
-          cachedOllamaModels = false;
-        }
-        buildDocEngineOptions();
-        updateDocEngineInfo();
-      }
-    }
-    if(statusResult && statusResult.state === 'timeout'){
-      const msg = L('docOllamaTimeoutPrompt') || 'Ollama did not answer in time (it may be busy loading a model). Wait a moment and try again.';
-      return {ready: false, msg, reason: L('docDidNotAnswerInTime') || (ui === 'fa' ? 'به‌موقع پاسخی نداد' : 'did not answer in time')};
-    }
-    if(cachedOllamaModels === false){
-      const triedList = (statusResult?.tried && statusResult.tried.length) ? statusResult.tried : (typeof getCandidateOllamaHosts === 'function' ? getCandidateOllamaHosts() : [typeof getOllamaHost === 'function' ? getOllamaHost() : 'http://localhost:11434']);
-      const triedStr = triedList.join(', ');
-      const origin = (typeof getOllamaOrigin === 'function') ? getOllamaOrigin() : ((typeof location !== 'undefined' && location.origin) ? location.origin : 'http://localhost:8080');
-      const originHint = (L('docOllamaOriginHint') || 'If Ollama is running, ensure OLLAMA_ORIGINS includes {origin} and restart Ollama.').replace('{origin}', origin);
-      const msg = (L('docOllamaUnreachablePrompt') || 'Could not reach Ollama at {tried}. Ollama is not running. Start Ollama, then try again, or check the address in Engines & keys. {originHint}')
-        .replace('{tried}', triedStr)
-        .replace('{originHint}', originHint)
-        .trim();
+    if(cachedOllamaModels === false || cachedOllamaModels === null || isOff()){
+      const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
       return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
     }
     const models = Array.isArray(cachedOllamaModels) ? cachedOllamaModels : [];
