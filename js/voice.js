@@ -716,19 +716,6 @@ async function triggerLiveBrowserSpeaker(side) {
       voice: voiceName,
       dur: dt
     });
-    try {
-      const h = store.get('hist', []);
-      const vEng = (r.used && r.used !== 'nllb') ? r.used : (typeof engLabel === 'function' ? engLabel('nllb') : 'Offline');
-      h.unshift({
-        ts: Date.now(),
-        src: from,
-        tgt: to,
-        e: vEng,
-        i: String(tx || '').slice(0, 4000),
-        o: String(r.out?.[0] || '').slice(0, 4000)
-      });
-      store.set('hist', h.slice(0, 60));
-    } catch (_) {}
     if (r.out[0] && $('vAuto').checked) {
       setVoiceState('speaking', L('vLiveSpeaking'));
       const forceFast = $('vLiveVoiceSpeed')?.value !== 'quality';
@@ -1325,19 +1312,6 @@ async function handleConvPttAudio(audioInput) {
       voice: voiceName,
       dur: dt
     });
-    try {
-      const h = store.get('hist', []);
-      const vEng = (turnResult.engine && turnResult.engine !== 'nllb') ? turnResult.engine : (typeof engLabel === 'function' ? engLabel('nllb') : 'Offline');
-      h.unshift({
-        ts: Date.now(),
-        src: from,
-        tgt: to,
-        e: vEng,
-        i: String(turnResult.transcript || '').slice(0, 4000),
-        o: String(turnResult.translation || '').slice(0, 4000)
-      });
-      store.set('hist', h.slice(0, 60));
-    } catch (_) {}
 
     if (turnResult.translation && $('vAuto').checked) {
       setVoiceState('speaking');

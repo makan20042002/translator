@@ -1884,19 +1884,6 @@ $('dGo').onclick=async()=>{
         if(memHits>0) $('dEngineUsed').textContent=`${memHits} ${L('fromMemory')||'from memory'}`;
         $('dProgText').textContent=`${L('done')} · ${usedStr}`;
         toast(`${L('done')} · ${usedStr}`,'ok');
-        try {
-          const h = store.get('hist', []);
-          const docEng = (r.used && r.used !== 'nllb') ? r.used : (typeof getDocEngineDisplayName === 'function' ? getDocEngineDisplayName('nllb') : (typeof engLabel === 'function' ? engLabel('nllb') : 'Offline'));
-          h.unshift({
-            ts: Date.now(),
-            src: $('src')?.value || 'auto',
-            tgt: $('tgt')?.value || 'fa',
-            e: docEng,
-            i: (doc.name || 'document').slice(0, 4000),
-            o: (partialOut.filter(Boolean).slice(0, 25).join('\n\n')).slice(0, 4000)
-          });
-          store.set('hist', h.slice(0, 60));
-        } catch (_) {}
       }
       updateTmCount();
     }catch(e){

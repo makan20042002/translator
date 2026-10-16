@@ -100,7 +100,8 @@ function offlineTrLabel(src,tgt){
   if(!choice)return L('noOfflineModel')||'No offline model downloaded';
   const name=mcText(choice.model.name).replace(/\s*\(default\)$/i,'');
   if(choice.how==='auto'){
-    return `Auto → ${name}`;
+    const prefix=(typeof L==='function'&&L('autoModelPrefix'))||((typeof ui!=='undefined'&&ui==='fa')?'خودکار ← ':'Auto → ');
+    return `${prefix}${name}`;
   }
   return name;
 }
