@@ -8,6 +8,7 @@
  * - Records failure in mcFailed so Voice status line shows a warning instead of Ready until later success.
  */
 const { test, expect, onlyEngines } = require('../support/fixtures');
+const { fakeDownloaded } = require('../support/model-helpers');
 
 test.describe('Offline fatal WASM error recovery', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['google']) } } });
@@ -88,6 +89,10 @@ test.describe('Offline fatal WASM error recovery', () => {
 
   test('fatal speech error shows friendly message and marks Voice readiness warning until next success', async ({ app }) => {
     const { page } = app;
+    const cat = await page.evaluate(() => MODEL_CATALOG);
+    const turbo = cat.models.find(m => m.key === 'large-v3-turbo');
+    await fakeDownloaded(page, turbo.repo, turbo.files);
+
     const result = await page.evaluate(async () => {
       const workers = [];
       let nextId = 0;
@@ -132,18 +137,27 @@ test.describe('Offline fatal WASM error recovery', () => {
       const origWorker = window.Worker;
       window.Worker = MockWorker;
 
-      // Seed model in store so it is recognized as downloaded
-      const d = store.get('mdl', {});
-      d['asr-large-v3-turbo'] = { at: Date.now(), files: [] };
-      store.set('mdl', d);
+      // Seed model in store and mcCache so it is recognized as downloaded and ready
+      const cat = self.MODEL_CATALOG?.models || [];
+      const m = cat.find(x => x.key === 'large-v3-turbo');
+      if (m) {
+        const d = store.get('mdl', {});
+        d[m.id] = { at: Date.now(), files: m.files.map(f => f[0]) };
+        store.set('mdl', d);
+        await mcScan();
+        if (!mcCache) mcCache = {};
+        mcCache[m.repo] = {
+          bytes: m.bytes || 1000,
+          files: new Map(m.files.map(f => [f[0], f[1]]))
+        };
+      }
 
       // Setup Whisper selection in cfg
       cfg.stt = 'whisper';
       cfg.whisper = 'large-v3-turbo';
-      if (typeof window !== 'undefined' && window.cfg) {
-        window.cfg.stt = 'whisper';
-        window.cfg.whisper = 'large-v3-turbo';
-      }
+
+      // (a) Readiness before any failure
+      const readinessBefore = getVoiceTabReadiness();
 
       let caughtErr = null;
       try {
@@ -152,11 +166,11 @@ test.describe('Offline fatal WASM error recovery', () => {
         caughtErr = err.message;
       }
 
-      const failedModel = (self.MODEL_CATALOG?.models || []).find(m => m.key === 'large-v3-turbo');
+      const failedModel = (self.MODEL_CATALOG?.models || []).find(x => x.key === 'large-v3-turbo');
       const recordedFailure = failedModel ? (typeof mcFailed !== 'undefined' ? mcFailed[failedModel.id] : window.mcFailed?.[failedModel.id]) : null;
 
       // Check readiness after failure
-      const readinessAfterFail = window.getVoiceTabReadiness();
+      const readinessAfterFail = getVoiceTabReadiness();
 
       // Now run second call on fresh worker which succeeds
       let secondResult = null;
@@ -164,7 +178,8 @@ test.describe('Offline fatal WASM error recovery', () => {
         secondResult = await rpc('asr', { model: 'large-v3-turbo', audio: new Float32Array(16000) });
       } catch (err) {}
 
-      const readinessAfterSuccess = window.getVoiceTabReadiness();
+      const readinessAfterSuccess = getVoiceTabReadiness();
+      const mcFailedAfterSuccess = failedModel ? (typeof mcFailed !== 'undefined' ? mcFailed[failedModel.id] : window.mcFailed?.[failedModel.id]) : undefined;
 
       window.Worker = origWorker;
 
@@ -172,19 +187,30 @@ test.describe('Offline fatal WASM error recovery', () => {
         caughtErr,
         worker1Terminated: workers[0]?.terminated,
         recordedFailure,
+        readinessBeforeAsrOk: readinessBefore.asr.ok,
         readinessAfterFailAsrOk: readinessAfterFail.asr.ok,
+        readinessAfterFailAsrReason: readinessAfterFail.asr.reason,
         readinessAfterSuccessAsrOk: readinessAfterSuccess.asr.ok,
+        mcFailedAfterSuccess,
         secondResultText: secondResult?.text
       };
     });
 
-    // Friendly error, not raw WASM text
+    // (a) BEFORE any failure getVoiceTabReadiness().asr.ok === true;
+    expect(result.readinessBeforeAsrOk).toBe(true);
+
+    // (b) after the fatal failure asr.ok === false AND asr.reason equals the friendly out-of-memory message recorded in mcFailed (not the text 'Model not downloaded');
     expect(result.caughtErr).not.toContain("Can't create a session");
     expect(result.caughtErr).toContain('out of memory');
     expect(result.worker1Terminated).toBe(true);
-    expect(result.recordedFailure).toBeDefined();
+    expect(result.recordedFailure).toBeTruthy();
     expect(result.readinessAfterFailAsrOk).toBe(false);
+    expect(result.readinessAfterFailAsrReason).toBe(result.recordedFailure);
+    expect(result.readinessAfterFailAsrReason).not.toContain('Model not downloaded');
+
+    // (c) after the successful second call asr.ok === true and mcFailed for that model is gone
     expect(result.readinessAfterSuccessAsrOk).toBe(true);
+    expect(result.mcFailedAfterSuccess).toBeFalsy();
     expect(result.secondResultText).toBe('Recovered speech text');
   });
 });
