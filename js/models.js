@@ -59,6 +59,16 @@ function trCovers(m,src,tgt){
   if(m.kind==='opus')return m.pair[0]===src&&m.pair[1]===tgt;
   const c=trCodes(m.kind);return !!(c&&c[src]&&c[tgt]);
 }
+// Which downloaded model Auto picks: honours cfg.trPair, otherwise first ready non-OPUS model covering the pair, else pair model.
+function pickAutoTr(src,tgt){
+  const s=(!src||src==='auto')?((typeof store!=='undefined'&&store.get('src','en'))||'en'):src;
+  const t=(!tgt||tgt==='auto')?((typeof store!=='undefined'&&store.get('tgt','fa'))||'fa'):tgt;
+  const ok=trModels().filter(m=>mcReady(m)&&trCovers(m,s,t));
+  if(!ok.length)return null;
+  const pair=ok.find(m=>m.kind==='opus');
+  if(cfg.trPair&&pair)return pair;
+  return ok.find(m=>m.kind!=='opus')||pair||null;
+}
 // Which downloaded model translates this pair: the user's multilingual choice, unless they asked for the small pair models.
 function pickTr(src,tgt){
   const ok=trModels().filter(m=>mcReady(m)&&trCovers(m,src,tgt));
@@ -69,7 +79,7 @@ function pickTr(src,tgt){
     const chosen=ok.find(m=>m.id===cfg.trModel);
     if(chosen)return chosen;
   }
-  return ok.find(m=>m.kind!=='opus')||pair;
+  return pickAutoTr(src,tgt);
 }
 function offlineTrChoice(src,tgt){
   const s=src!==undefined?src:(typeof $==='function'&&$('src')?.value)||(typeof store!=='undefined'&&store.get('src','en'))||'en';
@@ -115,21 +125,13 @@ function updateOfflineModelHints(){
   if(typeof renderTextStatusStrip==='function') renderTextStatusStrip();
   if(typeof updateVoiceAutoEngineDisplay==='function') updateVoiceAutoEngineDisplay();
 }
-function getAutoTrModel(src,tgt){
-  const ok=trModels().filter(mcReady);
-  if(!ok.length)return null;
-  const s=src!==undefined?src:(typeof $==='function'&&$('src')?.value)||'auto';
-  const t=tgt!==undefined?tgt:(typeof $==='function'&&$('tgt')?.value)||'fa';
-  const pair=trPairModel(s,t);
-  if(pair&&mcReady(pair)&&(cfg.trPair||!ok.some(m=>m.kind!=='opus')))return pair;
-  return ok.find(m=>m.kind!=='opus')||pair||null;
-}
 if(typeof window!=='undefined'){
   window.offlineTrChoice=offlineTrChoice;
   window.offlineTrLabel=offlineTrLabel;
   window.formatOfflineModelHint=formatOfflineModelHint;
   window.updateOfflineModelHints=updateOfflineModelHints;
-  window.getAutoTrModel=getAutoTrModel;
+  window.pickAutoTr=pickAutoTr;
+  window.pickTr=pickTr;
 }
 function mcMark(m,files){
   const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
@@ -301,7 +303,7 @@ function mcRender(){
     const prevTr=(cfg.trModel&&(cfg.trModel==='auto'||trDownloaded.some(m=>m.id===cfg.trModel)))?cfg.trModel:'auto';
     const s=$('src')?.value||'auto';
     const t=$('tgt')?.value||'fa';
-    const autoM=getAutoTrModel(s,t);
+    const autoM=pickAutoTr(s,t);
     let autoText='';
     if(autoM){
       const aName=mcText(autoM.name).replace(/\s*\(default\)$/i,'');
@@ -359,7 +361,7 @@ function renderModelHub(){
 
   const s=$('src')?.value||'auto';
   const t=$('tgt')?.value||'fa';
-  const autoTrModel=getAutoTrModel(s,t);
+  const autoTrModel=pickAutoTr(s,t);
 
   grid.innerHTML=filtered.map(m=>{
     const ready=mcReady(m);

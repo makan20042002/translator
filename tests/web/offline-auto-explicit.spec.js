@@ -24,6 +24,8 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
       d['tr-nllb-600'] = { at: Date.now(), files: nllb.files.map(f => f[0]) };
       store.set('mdl', d);
       store.set('nllb', true);
+      if (!mcCache) mcCache = {};
+      mcCache[nllb.repo] = { bytes: 1000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
       cfg.trModel = 'auto';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -50,6 +52,10 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
       d['tr-m2m100-418'] = { at: Date.now(), files: m2m.files.map(f => f[0]) };
       store.set('mdl', d);
       store.set('nllb', false);
+      if (!mcCache) mcCache = {};
+      const nllb = cat.find(m => m.id === 'tr-nllb-600');
+      if (nllb) delete mcCache[nllb.repo];
+      mcCache[m2m.repo] = { bytes: 1000, files: new Map(m2m.files.map(f => [f[0], f[1]])) };
       cfg.trModel = 'auto';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -68,6 +74,10 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
     await page.evaluate(() => {
       store.set('mdl', {});
       store.set('nllb', false);
+      if (mcCache) {
+        const cat = self.MODEL_CATALOG?.models || [];
+        for (const m of cat) if (m.job === 'translate') delete mcCache[m.repo];
+      }
       cfg.trModel = 'auto';
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
@@ -75,5 +85,86 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
 
     await expect(autoOpt).toContainText('Auto (no model downloaded)');
     await expect(page.locator('.hub-model-card .auto-used')).toHaveCount(0);
+  });
+
+  test('for all combinations of trModel, trPair, and model sets, pickAutoTr equals pickTr(auto) and badge matches', async ({ app }) => {
+    const { page } = app;
+    const modelSets = [
+      { name: 'NLLB', ids: ['tr-nllb-600'] },
+      { name: 'NLLB+M2M100', ids: ['tr-nllb-600', 'tr-m2m100-418'] },
+      { name: 'NLLB+opus-en-de', ids: ['tr-nllb-600', 'tr-opus-en-de'] },
+      { name: 'M2M100 only', ids: ['tr-m2m100-418'] }
+    ];
+    const trModelValues = ['auto', 'tr-m2m100-418'];
+    const trPairValues = [true, false];
+
+    for (const mSet of modelSets) {
+      for (const trModel of trModelValues) {
+        for (const trPair of trPairValues) {
+          const evalResult = await page.evaluate(async ({ mIds, trModel, trPair }) => {
+            const cat = self.MODEL_CATALOG?.models || [];
+            const d = {};
+            if (!mcCache) mcCache = {};
+            for (const m of cat) {
+              if (m.job === 'translate') {
+                delete mcCache[m.repo];
+              }
+            }
+            for (const id of mIds) {
+              const m = cat.find(x => x.id === id);
+              if (m) {
+                d[m.id] = { at: Date.now(), files: m.files.map(f => f[0]) };
+                mcCache[m.repo] = { bytes: 1000, files: new Map(m.files.map(f => [f[0], f[1]])) };
+              }
+            }
+            store.set('mdl', d);
+            store.set('nllb', mIds.includes('tr-nllb-600'));
+            cfg.trModel = trModel;
+            cfg.trPair = trPair;
+
+            // Target pair en -> de to exercise opus-en-de, NLLB, and M2M100
+            if (typeof $ === 'function') {
+              if ($('src')) $('src').value = 'en';
+              if ($('tgt')) $('tgt').value = 'de';
+            }
+
+            const autoM = pickAutoTr('en', 'de');
+            const trM = pickTr('en', 'de');
+
+            let renderThrew = false;
+            try {
+              if (typeof mcRender === 'function') mcRender();
+              if (typeof renderModelHub === 'function') renderModelHub();
+            } catch (e) {
+              renderThrew = e.message || String(e);
+            }
+
+            const badges = Array.from(document.querySelectorAll('.hub-model-card .auto-used-badge'))
+              .map(el => el.closest('.hub-model-card')?.getAttribute('data-hub-mdl'))
+              .filter(Boolean);
+
+            return {
+              autoMId: autoM?.id || null,
+              trMId: trM?.id || null,
+              renderThrew,
+              badges
+            };
+          }, { mIds: mSet.ids, trModel, trPair });
+
+          expect(evalResult.renderThrew, `mcRender/renderModelHub threw for ${mSet.name}, trModel=${trModel}, trPair=${trPair}`).toBe(false);
+
+          if (trModel === 'auto') {
+            expect(evalResult.autoMId).toBe(evalResult.trMId);
+          }
+
+          if (evalResult.autoMId) {
+            expect(evalResult.badges).toContain(evalResult.autoMId);
+            expect(evalResult.badges.length).toBe(1);
+          } else {
+            expect(evalResult.badges.length).toBe(0);
+          }
+        }
+      }
+    }
   });
 });
