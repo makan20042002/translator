@@ -71,6 +71,33 @@ function pickTr(src,tgt){
   }
   return ok.find(m=>m.kind!=='opus')||pair;
 }
+function offlineTrChoice(src,tgt){
+  const s=src!==undefined?src:(typeof $==='function'&&$('src')?.value)||(typeof store!=='undefined'&&store.get('src','en'))||'en';
+  const t=tgt!==undefined?tgt:(typeof $==='function'&&$('tgt')?.value)||(typeof store!=='undefined'&&store.get('tgt','fa'))||'fa';
+  const model=pickTr(s,t);
+  if(!model)return null;
+  const isAuto=!cfg?.trModel||cfg.trModel==='auto';
+  if(isAuto){
+    return {model,how:'auto'};
+  }
+  if(model.id===cfg.trModel){
+    return {model,how:'chosen'};
+  }
+  return {model,how:'auto'};
+}
+function offlineTrLabel(src,tgt){
+  const choice=offlineTrChoice(src,tgt);
+  if(!choice)return L('noOfflineModel')||'No offline model downloaded';
+  const name=mcText(choice.model.name).replace(/\s*\(default\)$/i,'');
+  if(choice.how==='auto'){
+    return `Auto → ${name}`;
+  }
+  return name;
+}
+if(typeof window!=='undefined'){
+  window.offlineTrChoice=offlineTrChoice;
+  window.offlineTrLabel=offlineTrLabel;
+}
 function mcMark(m,files){
   const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
   // keep the older flags in step, so an older copy of the app still sees these two
