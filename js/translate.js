@@ -138,14 +138,52 @@ async function checkEngineConn(id){
   }
   if(id==='ollama'){
     const base=(e.base||'http://localhost:11434/v1').replace(/\/+$/,'');
-    const host=(e.base||'http://localhost:11434').replace(/\/+$/,'').replace(/\/v1$/,'');
     try{
-      let r=await fetch(host+'/api/tags').catch(()=>null);
-      if(!r||!r.ok) r=await fetch(base+'/models').catch(()=>null);
-      if(r&&r.ok)return {code:'works',text:L('connWorks')};
+      const st=typeof ollamaStatus==='function'?await ollamaStatus():null;
+      if(st&&(st.state==='ok'||st.state==='noModels')){
+        if(typeof setCachedOllamaModels==='function'){
+          setCachedOllamaModels(st.models);
+        }else if(typeof cachedOllamaModels!=='undefined'){
+          cachedOllamaModels=st.models;
+          if(typeof buildDocEngineOptions==='function')buildDocEngineOptions();
+          if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
+        }
+        return {code:'works',text:L('connWorks')};
+      }
+      if(!st){
+        const host=(e.base||'http://localhost:11434').replace(/\/+$/,'').replace(/\/v1$/,'');
+        let r=await fetch(host+'/api/tags').catch(()=>null);
+        if(!r||!r.ok) r=await fetch(base+'/models').catch(()=>null);
+        if(r&&r.ok){
+          const data=await r.json().catch(()=>null);
+          const models=(data?.models||[]).map(m=>m.name||m.model).filter(Boolean);
+          if(typeof setCachedOllamaModels==='function'){
+            setCachedOllamaModels(models);
+          }else if(typeof cachedOllamaModels!=='undefined'){
+            cachedOllamaModels=models;
+            if(typeof buildDocEngineOptions==='function')buildDocEngineOptions();
+            if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
+          }
+          return {code:'works',text:L('connWorks')};
+        }
+      }
+      if(typeof setCachedOllamaModels==='function'){
+        setCachedOllamaModels(false);
+      }else if(typeof cachedOllamaModels!=='undefined'){
+        cachedOllamaModels=false;
+        if(typeof buildDocEngineOptions==='function')buildDocEngineOptions();
+        if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
+      }
       if(isLocalAddress(base))return {code:'localDown',text:L('connLocalDown')};
       return {code:'netBlocked',text:L('connNetBlocked')};
     }catch(err){
+      if(typeof setCachedOllamaModels==='function'){
+        setCachedOllamaModels(false);
+      }else if(typeof cachedOllamaModels!=='undefined'){
+        cachedOllamaModels=false;
+        if(typeof buildDocEngineOptions==='function')buildDocEngineOptions();
+        if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
+      }
       if(isLocalAddress(base))return {code:'localDown',text:L('connLocalDown')};
       return {code:'netBlocked',text:L('connNetBlocked')};
     }

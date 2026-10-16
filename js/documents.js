@@ -597,6 +597,26 @@ function getDocTerms(){
 
 /* Document Tab Engine Picker (Item 1) */
 let cachedOllamaModels = null;
+function setCachedOllamaModels(val){
+  cachedOllamaModels = val;
+  buildDocEngineOptions();
+  updateDocEngineInfo();
+  if(typeof fillEngines === 'function') fillEngines();
+  if(typeof updateAskAiView === 'function') updateAskAiView();
+}
+try {
+  Object.defineProperty(window, 'cachedOllamaModels', {
+    get(){ return cachedOllamaModels; },
+    set(v){
+      cachedOllamaModels = v;
+      if(typeof buildDocEngineOptions === 'function') buildDocEngineOptions();
+      if(typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
+      if(typeof fillEngines === 'function') fillEngines();
+      if(typeof updateAskAiView === 'function') updateAskAiView();
+    },
+    configurable: true
+  });
+} catch(_){}
 let ollamaFetchPending = false;
 let ollamaRefreshQueued = false;
 let lastPickerUiLang = null;
@@ -745,10 +765,14 @@ function refreshOllamaModelsForDoc(){
     cachedOllamaModels = (Array.isArray(models) && models.length > 0) ? models : (models ? [] : false);
     buildDocEngineOptions();
     updateDocEngineInfo();
+    if(typeof fillEngines === 'function') fillEngines();
+    if(typeof updateAskAiView === 'function') updateAskAiView();
   }).catch(() => {
     cachedOllamaModels = false;
     buildDocEngineOptions();
     updateDocEngineInfo();
+    if(typeof fillEngines === 'function') fillEngines();
+    if(typeof updateAskAiView === 'function') updateAskAiView();
   }).finally(() => {
     ollamaFetchPending = false;
     if(ollamaRefreshQueued){
@@ -766,6 +790,24 @@ function resetDocErrorStatus(){
     updateDocStatus('idle');
     setDocProgIdle();
   }
+}
+
+let lastOllamaFocusRefresh = 0;
+function onOllamaWindowFocus(){
+  if(typeof document !== 'undefined' && document.visibilityState === 'hidden') return;
+  const now = Date.now();
+  if(now - lastOllamaFocusRefresh < 5000) return;
+  lastOllamaFocusRefresh = now;
+  refreshOllamaModelsForDoc();
+}
+
+window.addEventListener('focus', onOllamaWindowFocus);
+if(typeof document !== 'undefined'){
+  document.addEventListener('visibilitychange', () => {
+    if(document.visibilityState === 'visible'){
+      onOllamaWindowFocus();
+    }
+  });
 }
 
 function initDocEnginePicker(){
