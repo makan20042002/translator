@@ -12,13 +12,37 @@ const loaded = {};
 const REPO_OK = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;     // owner/name only, nothing else is ever fetched
 const checkRepo = spec => { if (!spec || !REPO_OK.test(spec.repo)) throw new Error('unknown model'); return spec; };
 const progress = (p, repo) => postMessage({ type: 'progress', p, repo });
-const get = (task, spec) => loaded[spec.repo] || (loaded[spec.repo] =
-  pipeline(task, spec.repo, { dtype: 'q8', progress_callback: p => progress(p, spec.repo) }).catch(e => { delete loaded[spec.repo]; throw e; }));
+
+async function evictExcept(keepRepo) {
+  for (const k of Object.keys(loaded)) {
+    if (keepRepo && (k === keepRepo || k.startsWith(keepRepo + '_'))) continue;
+    const p = loaded[k]; delete loaded[k];
+    try { const inst = await p; if (typeof inst?.dispose === 'function') await inst.dispose(); } catch {}
+  }
+}
+
+const get = async (task, spec) => {
+  if (loaded[spec.repo]) return loaded[spec.repo];
+  await evictExcept(spec.repo);
+  return (loaded[spec.repo] = pipeline(task, spec.repo, {
+    dtype: 'q8',
+    progress_callback: p => progress(p, spec.repo)
+  }).catch(e => { delete loaded[spec.repo]; throw e; }));
+};
 
 const getAsr = async (spec, forceWasm = false) => {
   const model = spec.repo;
   const key = model + (forceWasm ? '_wasm' : '');
   if (loaded[key]) return loaded[key];
+
+  await evictExcept(model);
+
+  // If switching to WASM fallback, dispose the previous WebGPU instance for this model to free GPU memory
+  if (forceWasm && loaded[model]) {
+    const p = loaded[model]; delete loaded[model];
+    try { const inst = await p; if (typeof inst?.dispose === 'function') await inst.dispose(); } catch {}
+  }
+
   if (!forceWasm && spec.gpu) {
     try {
       return (loaded[key] = await pipeline('automatic-speech-recognition', model, {

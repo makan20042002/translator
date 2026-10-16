@@ -544,16 +544,66 @@ function guessLang(s){
   if(/[\u0400-\u04FF]/.test(s))return 'ru';if(/[\u0590-\u05FF]/.test(s))return 'he';if(/[\u0900-\u097F]/.test(s))return 'hi';
   if(/[\u0E00-\u0E7F]/.test(s))return 'th';if(/[\u0370-\u03FF]/.test(s))return 'el';return 'en';
 }
-let wk=null,rid=0;const pend={};
-const inWorker=new Set();                  // repos the worker already holds in memory (so loading them again is quick)
+let trWk=null,asrWk=null,rid=0;const pend={};
+const inWorker=new Set();                  // repos the workers already hold in memory
 const asrGuard=import('./asr-guard.js').catch(()=>null);
-function worker(){
-  if(wk)return wk;
-  wk=new Worker('ai-worker.js',{type:'module'});
-  wk.onmessage=e=>{const m=e.data;if(m.type==='progress'){onProg(m.p,m.repo);return}if(m.type==='asr'){onAsrProg(m);return}const p=pend[m.id];if(!p)return;delete pend[m.id];m.ok?p.res(m.res):p.rej(new Error(m.err))};
-  wk.onerror=()=>{for(const k in pend){pend[k].rej(new Error('offline engine could not start (the app must be opened from a website or localhost, with ai-worker.js next to it)'));delete pend[k]}wk=null;inWorker.clear()};
-  return wk;
+
+function createAiWorker(role){
+  const w=new Worker('ai-worker.js',{type:'module'});
+  w.role=role;
+  w.onmessage=e=>{
+    const m=e.data;
+    if(m.type==='progress'){onProg(m.p,m.repo);return}
+    if(m.type==='asr'){onAsrProg(m);return}
+    const p=pend[m.id];
+    if(!p)return;
+    delete pend[m.id];
+    m.ok?p.res(m.res):p.rej(new Error(m.err));
+  };
+  w.onerror=()=>{
+    for(const k in pend){
+      if(pend[k].role===role){
+        pend[k].rej(new Error('offline engine could not start (the app must be opened from a website or localhost, with ai-worker.js next to it)'));
+        delete pend[k];
+      }
+    }
+    if(role==='speech')asrWk=null;
+    else trWk=null;
+  };
+  return w;
 }
+
+function worker(role='translate'){
+  if(role==='speech'){
+    if(!asrWk)asrWk=createAiWorker('speech');
+    return asrWk;
+  }
+  if(!trWk)trWk=createAiWorker('translate');
+  return trWk;
+}
+if(typeof window!=='undefined'){
+  window.getAiWorkers=()=>({trWorker:trWk,asrWorker:asrWk,worker});
+}
+
+function getRoleForCmd(cmd,a){
+  if(cmd==='loadAsr'||cmd==='asr')return 'speech';
+  if(cmd==='loadTr'||cmd==='translate')return 'translate';
+  if(cmd==='unload'){
+    if(a?.role==='speech')return 'speech';
+    if(a?.role==='translate')return 'translate';
+    if(a?.repo&&(a.repo.includes('whisper')||(self.MODEL_CATALOG?.models||[]).some(m=>m.repo===a.repo&&m.job==='listen'))){
+      return 'speech';
+    }
+    return 'translate';
+  }
+  if(cmd==='stats'){
+    if(a?.role==='speech'||a?.role==='asr')return 'speech';
+    if(a?.role==='translate'||a?.role==='tr')return 'translate';
+    return 'all';
+  }
+  return 'translate';
+}
+
 // Tells the worker which model files to use, from the catalogue and the user's choices. Older callers send only a model name.
 async function withSpec(cmd,a){
   if(cmd==='asr'||cmd==='loadAsr'){
@@ -563,7 +613,30 @@ async function withSpec(cmd,a){
   return a;
 }
 const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
-  let w;try{w=worker()}catch(e){return rej(new Error('offline engine needs the hosted app, not a local file'))}
+  const role=getRoleForCmd(cmd,a);
+  if(cmd==='stats'&&role==='all'){
+    try{
+      const trList=trWk?await rpc('stats',{role:'translate'}):[];
+      const asrList=asrWk?await rpc('stats',{role:'speech'}):[];
+      const combined=Array.from(new Set([...(Array.isArray(trList)?trList:trList?.repos||[]),...(Array.isArray(asrList)?asrList:asrList?.repos||[])]));
+      combined.repos=combined;
+      combined.models=combined;
+      combined.count=combined.length;
+      combined.tr=trList;
+      combined.asr=asrList;
+      return res(combined);
+    }catch(e){return rej(e)}
+  }
+  if(cmd==='stats'&&role==='translate'&&!trWk){
+    const empty=[];empty.repos=empty;empty.models=empty;empty.count=0;
+    return res(empty);
+  }
+  if(cmd==='stats'&&role==='speech'&&!asrWk){
+    const empty=[];empty.repos=empty;empty.models=empty;empty.count=0;
+    return res(empty);
+  }
+
+  let w;try{w=worker(role)}catch(e){return rej(new Error('offline engine needs the hosted app, not a local file'))}
   const id=++rid;
   try{a=await withSpec(cmd,a||{})}catch(e){return rej(e)}
   let end=()=>{};
@@ -598,6 +671,8 @@ const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
     signal.addEventListener('abort',onAbort,{once:true});
   }
   pend[id]={
+    role,
+    cmd,
     res:v=>{
       if(timer)clearTimeout(timer);
       if(signal&&onAbort)signal.removeEventListener('abort',onAbort);
