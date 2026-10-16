@@ -512,6 +512,8 @@ function selectSttChoice(stt, whisperKey, helperModel){
   cfg.stt = stt;
   if(stt === 'whisper' && whisperKey){
     cfg.whisper = whisperKey;
+    const m = (self.MODEL_CATALOG?.models || []).find(x => x.kind === 'whisper' && x.key === whisperKey);
+    if(typeof checkHeavyModelHint === 'function') checkHeavyModelHint(m);
   }
   if(stt === 'helper' && helperModel){
     cfg.helperModel = helperModel;

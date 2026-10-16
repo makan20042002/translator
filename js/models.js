@@ -303,6 +303,7 @@ function renderModelHub(){
     const realDisk=(ready&&mcBytes(m)>0)?` · Disk: ${mcSize(mcBytes(m))}`:'';
     const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
     const isConfirming=(hubDeleteConfirmId===m.id);
+    const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
 
     return `<div class="hub-model-card" data-hub-mdl="${esc(m.id)}" data-state="${state}">
       <div class="hub-model-head">
@@ -311,6 +312,7 @@ function renderModelHub(){
           <div class="hub-model-badges">
             ${stateBadge}
             <span class="hub-pill cat">${esc(catLbl)}</span>
+            <span class="hub-pill ram" title="Estimated RAM">RAM ≈ ${esc(mcSize(m.memMB*1048576))}</span>
             <span class="hub-pill lic" title="Licence">${esc(lic)}</span>
             ${m.rec?`<span class="hub-pill rec">${esc(L('mdlRecNonEn'))}</span>`:''}
             ${m.weak?`<span class="hub-pill warn">${esc(L('mdlWeak'))}</span>`:''}
@@ -329,6 +331,7 @@ function renderModelHub(){
         ${(!ready&&!busy)?`<button class="btn cta hub-act-btn" data-hub-act="dl" data-id="${esc(m.id)}" type="button"><span aria-hidden="true">⬇</span> ${esc(L('download'))}</button>`:''}
         ${busy?`<button class="btn danger hub-act-btn" data-hub-act="cancel" data-id="${esc(m.id)}" type="button">${esc(L('cancel')||'Cancel')}</button>`:''}
         ${(ready&&!busy)?`<button class="btn ghost danger hub-act-btn hub-btn-rm ${isConfirming?'confirming':''}" data-hub-act="rm" data-id="${esc(m.id)}" type="button">${isConfirming?esc(L('confirmDelete')||'Click again to confirm'):esc(L('mdlDelete'))}</button>`:''}
+        ${(ready&&!busy&&(m.job==='listen'||m.job==='translate'))?`<button class="btn ${inUse?'ghost inuse':'cta'} hub-act-btn" data-hub-act="use" data-id="${esc(m.id)}" type="button">${esc(L(inUse?'mdlInUse':'mdlUse'))}</button>`:''}
       </div>
     </div>`;
   }).join('');
@@ -344,6 +347,18 @@ function renderModelHub(){
       $('hubSiteStorageUsed').textContent=mcSize(e.usage)+(e.quota?' / '+mcSize(e.quota):'');
     }
   }).catch(()=>{});
+}
+
+function checkHeavyModelHint(m){
+  if(!m)return;
+  const isHeavy=(m.memMB&&m.memMB>=3000)||m.id==='asr-large-v3-turbo'||m.key==='large-v3-turbo';
+  if(isHeavy){
+    const hint=L('heavyModelHint')||'This model requires several GB of free memory. A smaller model is more reliable on devices with limited RAM.';
+    if(typeof toast==='function')toast(hint,'warn',7000);
+  }
+}
+if(typeof window!=='undefined'){
+  window.checkHeavyModelHint=checkHeavyModelHint;
 }
 
 $('hubFilterRow')?.addEventListener('click',e=>{
@@ -370,6 +385,12 @@ $('modelHubCatalog')?.addEventListener('click',async e=>{
     mcDownload(m);
   }else if(act==='cancel'){
     mcCancel(m);
+  }else if(act==='use'){
+    if(m.job==='listen')cfg.whisper=m.key;else cfg.trModel=m.id;
+    checkHeavyModelHint(m);
+    saveCfg();mcRender();fillEngines();
+    if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
+    if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
   }else if(act==='rm'){
     if(hubDeleteConfirmId!==m.id){
       hubDeleteConfirmId=m.id;
@@ -394,6 +415,7 @@ $('mdlCatalog').addEventListener('click',e=>{
   else if(b.dataset.act==='rm')mcDelete(m);
   else if(b.dataset.act==='use'){
     if(m.job==='listen')cfg.whisper=m.key;else cfg.trModel=m.id;
+    checkHeavyModelHint(m);
     saveCfg();mcRender();fillEngines();
     if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
   }
@@ -402,10 +424,14 @@ $('mdlCatalog').addEventListener('change',e=>{if(e.target.id==='mdlPrefPair'){cf
 
 if($('offTrModelSel'))$('offTrModelSel').onchange=e=>{
   cfg.trModel=e.target.value;
+  const m=(MC.models||[]).find(x=>x.id===cfg.trModel);
+  checkHeavyModelHint(m);
   saveCfg();mcRender();fillEngines();
 };
 if($('offWhisperSel'))$('offWhisperSel').onchange=e=>{
   cfg.whisper=e.target.value;
+  const m=(MC.models||[]).find(x=>x.kind==='whisper'&&x.key===cfg.whisper);
+  checkHeavyModelHint(m);
   saveCfg();mcRender();
   if(typeof updateVoiceAutoEngineDisplay==='function')updateVoiceAutoEngineDisplay();
   if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
