@@ -548,6 +548,32 @@ let trWk=null,asrWk=null,rid=0;const pend={};
 const inWorker=new Set();                  // repos the workers already hold in memory
 const asrGuard=import('./asr-guard.js').catch(()=>null);
 
+function isFatalEngineError(err){
+  const str=String(err?.message||err||'');
+  return /Aborted\(|failed to allocate|Can't create a session|out of memory|RuntimeError|memory access out of bounds/i.test(str);
+}
+
+function terminateAiWorker(role,reason){
+  const wk=role==='speech'?asrWk:trWk;
+  if(role==='speech')asrWk=null;
+  else trWk=null;
+  if(wk){
+    try{wk.terminate()}catch{}
+  }
+  const isSpeechRepo=repo=>repo.includes('whisper')||(self.MODEL_CATALOG?.models||[]).some(m=>m.repo===repo&&m.job==='listen');
+  for(const r of Array.from(inWorker)){
+    if(role==='speech'?isSpeechRepo(r):!isSpeechRepo(r)){
+      inWorker.delete(r);
+    }
+  }
+  for(const k in pend){
+    if(pend[k].role===role){
+      const p=pend[k];delete pend[k];
+      p.rej(new Error(reason||L('offlineOom')||'The offline model ran out of memory and was restarted. Try again, or choose a smaller model.'));
+    }
+  }
+}
+
 function createAiWorker(role){
   const w=new Worker('ai-worker.js',{type:'module'});
   w.role=role;
@@ -558,7 +584,44 @@ function createAiWorker(role){
     const p=pend[m.id];
     if(!p)return;
     delete pend[m.id];
-    m.ok?p.res(m.res):p.rej(new Error(m.err));
+    if(m.ok){
+      if(p.cmd==='asr'||p.cmd==='loadAsr'){
+        const wm=typeof asrModel==='function'?asrModel(p.a?.model):null;
+        if(wm&&typeof mcFailed!=='undefined'&&mcFailed[wm.id]){
+          delete mcFailed[wm.id];
+          if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
+          if(typeof mcRender==='function')mcRender();
+        }
+      }
+      p.res(m.res);
+    }else{
+      const errStr=String(m.err||'');
+      if(isFatalEngineError(errStr)){
+        const friendlyMsg=L('offlineOom')||'The offline model ran out of memory and was restarted. Try again, or choose a smaller model.';
+        terminateAiWorker(role,friendlyMsg);
+        if(p.cmd==='translate'&&!p.isRetry){
+          // Retry once automatically on the fresh worker
+          rpc('translate',p.a,p.tr,p.signal,true).then(p.res,err=>{
+            const finalMsg=isFatalEngineError(err)?friendlyMsg:(err.message||String(err));
+            if(typeof toast==='function')toast(friendlyMsg,'err',8000);
+            p.rej(new Error(finalMsg));
+          });
+          return;
+        }
+        if(p.cmd==='asr'||p.cmd==='loadAsr'){
+          const wm=typeof asrModel==='function'?asrModel(p.a?.model):null;
+          if(wm&&typeof mcFailed!=='undefined'){
+            mcFailed[wm.id]=friendlyMsg;
+            if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
+            if(typeof mcRender==='function')mcRender();
+          }
+        }
+        if(typeof toast==='function')toast(friendlyMsg,'err',8000);
+        p.rej(new Error(friendlyMsg));
+      }else{
+        p.rej(new Error(m.err));
+      }
+    }
   };
   w.onerror=()=>{
     for(const k in pend){
@@ -612,7 +675,7 @@ async function withSpec(cmd,a){
   }
   return a;
 }
-const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
+const rpc=(cmd,a,tr,signal,isRetry=false)=>new Promise(async(res,rej)=>{
   const role=getRoleForCmd(cmd,a);
   if(cmd==='stats'&&role==='all'){
     try{
@@ -673,6 +736,10 @@ const rpc=(cmd,a,tr,signal)=>new Promise(async(res,rej)=>{
   pend[id]={
     role,
     cmd,
+    a,
+    tr,
+    signal,
+    isRetry,
     res:v=>{
       if(timer)clearTimeout(timer);
       if(signal&&onAbort)signal.removeEventListener('abort',onAbort);

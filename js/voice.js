@@ -93,8 +93,14 @@ function getVoiceTabReadiness() {
   const mode = sttMode();
   let asrOk = true, asrReason = '';
   if (mode === 'whisper') {
-    asrOk = typeof asrReady === 'function' ? asrReady() : false;
-    if (!asrOk) asrReason = L('voiceNoModel') || 'Model not downloaded';
+    const wm = typeof asrModel === 'function' ? asrModel() : null;
+    if (wm && typeof mcFailed !== 'undefined' && mcFailed[wm.id]) {
+      asrOk = false;
+      asrReason = mcFailed[wm.id];
+    } else {
+      asrOk = typeof asrReady === 'function' ? asrReady() : false;
+      if (!asrOk) asrReason = L('voiceNoModel') || 'Model not downloaded';
+    }
   } else if (mode === 'browser') {
     const hasSR = 'SpeechRecognition' in self || 'webkitSpeechRecognition' in self;
     asrOk = !!hasSR;
