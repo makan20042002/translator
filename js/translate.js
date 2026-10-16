@@ -75,12 +75,6 @@ function why(id){
   const e=cfg.eng[id];
   if(ENG[id].key&&!e.key)return L('needKey');
   if(id==='custom'&&!e.base)return L('needUrl');
-  if(id==='ollama'){
-    const cache=(typeof cachedOllamaModels!=='undefined')?cachedOllamaModels:((typeof window!=='undefined'&&window.cachedOllamaModels!==undefined)?window.cachedOllamaModels:null);
-    if(cache===false)return L('docOllamaNotRunning')||'Ollama not running';
-    if(Array.isArray(cache)&&cache.length===0)return L('docNeedsModelDownload')||'Needs model download';
-    if(Array.isArray(cache)&&cache.length>0)return '';
-  }
   if(ENG[id].ai&&!e.model)return L('needModel');
   if(id==='chrome'&&!('Translator' in self))return L('notHere');
   if(id==='nllb'&&!trAnyReady())return L('needDl');

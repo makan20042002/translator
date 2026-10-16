@@ -43,15 +43,10 @@ function updateEmptyState() {
 }
 
 function usableAiEngine() {
-  const cache = (typeof cachedOllamaModels !== 'undefined') ? cachedOllamaModels : ((typeof window !== 'undefined' && window.cachedOllamaModels !== undefined) ? window.cachedOllamaModels : null);
-  const ollamaOk = cfg.eng?.ollama?.on && (
-    (Array.isArray(cache) && cache.length > 0) ||
-    (cache !== false && (cfg.eng.ollama.model || (typeof usable === 'function' && usable('ollama'))))
-  );
   return (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) ||
          (cfg.eng.groq.key && !sessionBlocked.has('groq')) ||
          (cfg.eng.openrouter.key && !sessionBlocked.has('openrouter')) ||
-         ollamaOk ||
+         (cfg.eng.ollama.on && cfg.eng.ollama.model) ||
          (cfg.eng.custom.on && cfg.eng.custom.model);
 }
 
@@ -132,13 +127,7 @@ function getVoiceTabReadiness() {
   if (typeof trAnyReady !== 'function') {
     transOk = true;
   } else if (isOff()) {
-    if (activeTransEng === 'ollama') {
-      transOk = typeof usable === 'function' ? usable('ollama') : true;
-    } else if (activeTransEng === 'auto') {
-      transOk = cfg.order.some(usable);
-    } else {
-      transOk = typeof usable === 'function' ? usable(activeTransEng) : trAnyReady();
-    }
+    transOk = trAnyReady();
   } else if (activeTransEng === 'auto') {
     transOk = cfg.order.some(usable);
   } else {

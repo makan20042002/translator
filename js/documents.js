@@ -1037,11 +1037,7 @@ function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons =
       } else if(candId === 'nllb' && (typeof trAnyReady === 'function' && !trAnyReady())){
         reason = L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded');
       } else if(candId === 'ollama'){
-        if(cachedOllamaModels === false || cachedOllamaModels === null){
-          reason = L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running');
-        } else if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length === 0){
-          reason = L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded');
-        }
+        reason = L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running');
       } else if(candId === 'chrome' && !('Translator' in self)){
         reason = L('docNotAvailableHere') || (ui === 'fa' ? 'در این مرورگر در دسترس نیست' : 'not available here');
       } else if(ENG[candId].key && !cfg.eng?.[candId]?.key){
