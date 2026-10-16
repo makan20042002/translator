@@ -8,7 +8,8 @@
  *    and the "Used by Auto" badge moves to the M2M-100 card.
  * 4. With no model downloaded, it shows "Auto (no model downloaded)" and no badge.
  */
-const { test, expect, onlyEngines } = require('../support/fixtures');
+const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { openSettings } = require('../support/model-helpers');
 
 test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['google', 'nllb']), src: 'en', tgt: 'fa' } } });
@@ -16,8 +17,16 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
   test('Auto option includes real model name and badge moves when downloaded models change', async ({ app }) => {
     const { page } = app;
 
+    // Switch to Model Hub tab so #tab-models is active
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+
+    // Open Settings and the Model Hub tab
+    await openSettings(page, 'modelHub');
+
     // 1. Seed NLLB as downloaded
     await page.evaluate(() => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 'tab-models'));
+      if (typeof hubActiveCat !== 'undefined') hubActiveCat = 'all';
       const cat = self.MODEL_CATALOG?.models || [];
       const nllb = cat.find(m => m.id === 'tr-nllb-600');
       const d = {};
@@ -46,6 +55,8 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
 
     // 2. Seed M2M100 as downloaded and NLLB deleted
     await page.evaluate(() => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 'tab-models'));
+      if (typeof hubActiveCat !== 'undefined') hubActiveCat = 'all';
       const cat = self.MODEL_CATALOG?.models || [];
       const m2m = cat.find(m => m.id === 'tr-m2m100-418');
       const d = {};
@@ -72,6 +83,8 @@ test.describe('Explicit Auto option and Used by Auto badge (Item 4)', () => {
 
     // 3. When no model is downloaded, shows "Auto (no model downloaded)" and no badge
     await page.evaluate(() => {
+      document.querySelectorAll('.tab').forEach(x => x.classList.toggle('on', x.id === 'tab-models'));
+      if (typeof hubActiveCat !== 'undefined') hubActiveCat = 'all';
       store.set('mdl', {});
       store.set('nllb', false);
       if (mcCache) {
