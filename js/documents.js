@@ -829,7 +829,7 @@ async function checkDocEngineReady(docChosen){
     return {ready: false, msg, reason: L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active')};
   }
   if(engId === 'ollama'){
-    if(cachedOllamaModels === false || cachedOllamaModels === null || isOff()){
+    if(cachedOllamaModels === false || cachedOllamaModels === null){
       const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
       return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
     }
