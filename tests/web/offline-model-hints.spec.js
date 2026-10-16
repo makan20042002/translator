@@ -15,7 +15,8 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     const { page } = app;
 
     const tHint = page.locator('#tOfflineModelHint');
-    const dHint = page.locator('#dOfflineModelHint');
+    const dSel = page.locator('#dEngineSel');
+    const docEngineText = page.locator('#docEngineText');
     const vHint = page.locator('#vOfflineModelHint');
 
     // 1. Initial state: no model is downloaded
@@ -33,8 +34,8 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
     // Document tab assertion
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(dHint).toBeVisible();
-    await expect(dHint).toContainText('No offline model downloaded');
+    await expect(dSel).toBeVisible();
+    await expect(dSel).toHaveAttribute('title', /No offline model downloaded/);
 
     // Voice tab assertion
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
@@ -54,8 +55,11 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     });
 
     // Document tab: should update immediately to show M2M-100
-    await expect(dHint).toBeVisible();
-    await expect(dHint).toContainText('M2M-100');
+    await expect(dSel).toBeVisible();
+    await expect(dSel).toHaveAttribute('title', /M2M-100/);
+    await dSel.selectOption('nllb');
+    await expect(docEngineText).toContainText('M2M-100');
+    await dSel.selectOption('');
 
     // Text tab: should show M2M-100 without reloading
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
@@ -93,9 +97,13 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
     // Document tab updates to NLLB
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(dHint).toBeVisible();
-    await expect(dHint).toContainText('NLLB');
-    await expect(dHint).not.toContainText('M2M-100');
+    await expect(dSel).toBeVisible();
+    await expect(dSel).toHaveAttribute('title', /NLLB/);
+    await expect(dSel).not.toHaveAttribute('title', /M2M-100/);
+    await dSel.selectOption('nllb');
+    await expect(docEngineText).toContainText('NLLB');
+    await expect(docEngineText).not.toContainText('M2M-100');
+    await dSel.selectOption('');
   });
 
   const layoutConfigs = [
