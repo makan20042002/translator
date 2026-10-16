@@ -142,7 +142,10 @@ async function checkEngineConn(id){
     try{
       let r=await fetch(host+'/api/tags').catch(()=>null);
       if(!r||!r.ok) r=await fetch(base+'/models').catch(()=>null);
-      if(r&&r.ok)return {code:'works',text:L('connWorks')};
+      if(r&&r.ok){
+        if(typeof refreshOllamaModelsForDoc==='function')refreshOllamaModelsForDoc();
+        return {code:'works',text:L('connWorks')};
+      }
       if(isLocalAddress(base))return {code:'localDown',text:L('connLocalDown')};
       return {code:'netBlocked',text:L('connNetBlocked')};
     }catch(err){
