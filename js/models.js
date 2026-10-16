@@ -115,11 +115,21 @@ function updateOfflineModelHints(){
   if(typeof renderTextStatusStrip==='function') renderTextStatusStrip();
   if(typeof updateVoiceAutoEngineDisplay==='function') updateVoiceAutoEngineDisplay();
 }
+function getAutoTrModel(src,tgt){
+  const ok=trModels().filter(mcReady);
+  if(!ok.length)return null;
+  const s=src!==undefined?src:(typeof $==='function'&&$('src')?.value)||'auto';
+  const t=tgt!==undefined?tgt:(typeof $==='function'&&$('tgt')?.value)||'fa';
+  const pair=trPairModel(s,t);
+  if(pair&&mcReady(pair)&&(cfg.trPair||!ok.some(m=>m.kind!=='opus')))return pair;
+  return ok.find(m=>m.kind!=='opus')||pair||null;
+}
 if(typeof window!=='undefined'){
   window.offlineTrChoice=offlineTrChoice;
   window.offlineTrLabel=offlineTrLabel;
   window.formatOfflineModelHint=formatOfflineModelHint;
   window.updateOfflineModelHints=updateOfflineModelHints;
+  window.getAutoTrModel=getAutoTrModel;
 }
 function mcMark(m,files){
   const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
@@ -289,7 +299,17 @@ function mcRender(){
   if(trSel){
     const trDownloaded=trModels().filter(mcReady);
     const prevTr=(cfg.trModel&&(cfg.trModel==='auto'||trDownloaded.some(m=>m.id===cfg.trModel)))?cfg.trModel:'auto';
-    let hTr=`<option value="auto">${esc(L('autoMdl'))}</option>`;
+    const s=$('src')?.value||'auto';
+    const t=$('tgt')?.value||'fa';
+    const autoM=getAutoTrModel(s,t);
+    let autoText='';
+    if(autoM){
+      const aName=mcText(autoM.name).replace(/\s*\(default\)$/i,'');
+      autoText=(typeof ui!=='undefined'&&ui==='fa')?`خودکار (اکنون: ${aName})`:`Auto (now: ${aName})`;
+    }else{
+      autoText=(typeof ui!=='undefined'&&ui==='fa')?'خودکار (هیچ مدلی دانلود نشده)':'Auto (no model downloaded)';
+    }
+    let hTr=`<option value="auto">${esc(autoText)}</option>`;
     for(const m of trDownloaded){
       hTr+=`<option value="${m.id}">${esc(mcText(m.name))}</option>`;
     }
@@ -337,6 +357,10 @@ function renderModelHub(){
     ocr:L('catOcr')||'OCR'
   };
 
+  const s=$('src')?.value||'auto';
+  const t=$('tgt')?.value||'fa';
+  const autoTrModel=getAutoTrModel(s,t);
+
   grid.innerHTML=filtered.map(m=>{
     const ready=mcReady(m);
     const busy=!!mcDownloading[m.id];
@@ -344,6 +368,8 @@ function renderModelHub(){
     const state=busy?'busy':(ready?'ready':(failed?'failed':'none'));
     const lic=mcLicence(m);
     const catLbl=categoryLabels[m.job]||m.job;
+    const isAutoPicked=(m.job==='translate'&&autoTrModel&&m.id===autoTrModel.id);
+    const autoBadge=isAutoPicked?`<span class="hub-pill auto-used auto-used-badge" title="${esc(L('usedByAuto')||'Used by Auto')}">${esc(L('usedByAuto')||'Used by Auto')}</span>`:'';
 
     let stateBadge='';
     if(busy)stateBadge=`<span class="hub-pill busy">⏳ ${esc(L('mdlDownloading'))}</span>`;
@@ -363,6 +389,7 @@ function renderModelHub(){
           <strong class="hub-model-name"><bdi>${esc(mcText(m.name))}</bdi></strong>
           <div class="hub-model-badges">
             ${stateBadge}
+            ${autoBadge}
             <span class="hub-pill cat">${esc(catLbl)}</span>
             <span class="hub-pill ram" title="Estimated RAM">RAM ≈ ${esc(mcSize(m.memMB*1048576))}</span>
             <span class="hub-pill lic" title="Licence">${esc(lic)}</span>
