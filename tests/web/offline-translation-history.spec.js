@@ -16,7 +16,7 @@ test.describe('Offline translation worker repo and history reporting (Item 5)', 
     const { page } = app;
 
     // 1. Seed all three models as downloaded and ready
-    await page.evaluate(() => {
+    const setupCheck = await page.evaluate(() => {
       const cat = self.MODEL_CATALOG?.models || [];
       const d = store.get('mdl', {});
       if (!mcCache) mcCache = {};
@@ -30,11 +30,20 @@ test.describe('Offline translation worker repo and history reporting (Item 5)', 
       store.set('mdl', d);
       store.set('nllb', true);
       store.set('hist', []);
-      cfg.order = ['nllb'];
-      cfg.eng = { nllb: { on: true, key: '' } };
+      if (cfg.eng?.nllb) {
+        cfg.eng.nllb.on = true;
+      }
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
+
+      return {
+        hasGroq: !!cfg.eng?.groq,
+        hasGemini: !!cfg.eng?.gemini
+      };
     });
+
+    expect(setupCheck.hasGroq).toBe(true);
+    expect(setupCheck.hasGemini).toBe(true);
 
     // 2. Install MockWorker (terminate existing worker first so MockWorker is instantiated)
     await page.evaluate(() => {
