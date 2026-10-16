@@ -167,7 +167,7 @@ async function doText(){
       if($('tgt').value==='fa'){                      // the conversion is the result
         $('tOut').value=fgPersian;
         $('tMeta').textContent=`${L('fgVia')} · ${fg.engine} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
-        const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:fg.engine,i:text.slice(0,4000),o:fgPersian.slice(0,4000)});store.set('hist',h.slice(0,60));
+        const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:(typeof engLabel==='function'?engLabel(fg.engine):fg.engine),i:text.slice(0,4000),o:fgPersian.slice(0,4000)});store.set('hist',h.slice(0,60));
         busy([$('tGo')],$('tStop'),false);return;
       }
       lines=fgPersian.split('\n');srcOverride='fa';
@@ -207,7 +207,7 @@ async function doText(){
       let fastDone=false,smartDone=false,fastErr=null;
       // Fast failed but Smart worked: show the Smart result and say so in one line.
       const noteFastFailed=()=>{const sp=document.createElement('span');sp.className='fast-failed';sp.textContent=` · ${L('fastFailed')} (${toPlainReason(fastErr)||fastErr.message})`;$('tMeta').appendChild(sp)};
-      let fastRes='',fastUsed=nonAiEng;
+      let fastRes='',fastUsed=typeof engLabel==='function'?engLabel(nonAiEng):nonAiEng;
       let smartRes='',smartUsed='';
 
       const fastPromise=translateItems(lines,opts({chain:getFastChain(),signal:tCtl.signal})).then(r=>{

@@ -783,7 +783,13 @@ function mcFileProgress(m,file,loaded,total){
 }
 // The name shown for an engine; the offline engine also says which downloaded model did the work.
 let offlineUsed='';
-const engLabel=i=>i==='nllb'&&offlineUsed?`${ENG.nllb.name} — ${offlineUsed}`:ENG[i].name;
+const engLabel=i=>{
+  if(i==='nllb'){
+    const used = offlineUsed || (typeof offlineTrChoice === 'function' && offlineTrChoice()?.model ? mcText(offlineTrChoice().model.name).replace(/\s*\(default\)$/i, '') : '');
+    return used ? `${ENG.nllb.name} — ${used}` : ENG.nllb.name;
+  }
+  return ENG[i]?.name || i;
+};
 async function eNllb(items,src,tgt,signal,onStatus){
   if(src==='auto')src=guessLang(items.join(' '));
   if(NLLB[src]&&NLLB[src]===NLLB[tgt])return items.slice();
@@ -800,7 +806,7 @@ async function eNllb(items,src,tgt,signal,onStatus){
   }
   const m=pickTr(src,tgt);
   if(!m)throw new Error('language not in the offline model');
-  offlineUsed=mcText(m.name);
+  offlineUsed=mcText(m.name).replace(/\s*\(default\)$/i, '');
   if(!inWorker.has(m.repo)){
     onStatus?.(L('loadingOfflineModel') || (ui==='fa'?'در حال بارگذاری مدل آفلاین…':'Loading offline model…'));
   }
@@ -1416,3 +1422,7 @@ function showOfflineGuidance(errReason,targetEl){
 }
 function fail(e){if(e.name==='AbortError')toast(L('stopped'),'warn');else if(isOff())showOfflineGuidance(e.message);else toast(e.message,'err',7000)}
 async function copy(s){try{await navigator.clipboard.writeText(s);toast(L('copied'),'ok',1500)}catch{toast('Clipboard blocked','err')}}
+if(typeof window!=='undefined'){
+  window.engLabel=engLabel;
+  window.terminateAiWorker=terminateAiWorker;
+}
