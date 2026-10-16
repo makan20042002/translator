@@ -534,8 +534,11 @@ function renderTextStatusStrip(){
   const items=[];
 
   // 1. Offline translation model readiness (NLLB or active catalogue translation model)
-  const trOk=typeof trAnyReady==='function'&&trAnyReady();
-  const trM=(typeof trModels==='function'&&typeof mcReady==='function'&&trModels().find(mcReady))||(typeof trModels==='function'&&trModels()[0])||null;
+  const src = $('src')?.value || 'auto';
+  const tgt = $('tgt')?.value || 'fa';
+  const choice = typeof offlineTrChoice === 'function' ? offlineTrChoice(src, tgt) : null;
+  const trM = choice?.model || (typeof trModels === 'function' && typeof mcReady === 'function' && trModels().find(mcReady)) || (typeof trModels === 'function' && trModels()[0]) || null;
+  const trOk = !!(trM && typeof mcReady === 'function' && mcReady(trM));
   const rawName=trM?.name||'NLLB';
   const fullTrName=typeof mcText==='function'?mcText(rawName):(typeof rawName==='object'?(rawName[ui]||rawName.en||''):rawName);
   const cleanTrName=fullTrName.replace(/\s*\(default\)\s*$/i,'');

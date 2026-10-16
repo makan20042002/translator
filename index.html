@@ -138,6 +138,7 @@
       <div class="grp" id="tEngineGrp">
         <label for="engine" data-t="engine">Engine</label>
         <select id="engine"></select>
+        <div class="hint offline-model-hint" id="tOfflineModelHint"></div>
       </div>
       <div class="grp" id="tToneGrp">
         <label for="tone" data-t="tone">Tone</label>
@@ -400,6 +401,7 @@
           <div class="doc-engine-picker-wrap">
             <label for="dEngineSel" class="doc-engine-sel-label" data-t="dTranslateWith">Translate with</label>
             <select id="dEngineSel" class="doc-engine-sel" aria-label="Translate with"></select>
+            <div class="hint offline-model-hint" id="dOfflineModelHint"></div>
           </div>
           <div class="doc-engine-line" id="docEngineLine">
             <span class="doc-engine-icon" aria-hidden="true">
@@ -695,6 +697,7 @@
       <div class="v-auto-engines" id="vAutoEngines" title="Active voice engines">
         <span class="v-eng-pill" id="vListenEngPill"><span data-t="vListenLabel">Mic:</span> <strong id="vListenEngName">—</strong></span>
         <span class="v-eng-pill" id="vTransEngPill"><span data-t="vTransLabel">Translate:</span> <strong id="vTransEngName">—</strong></span>
+        <div class="hint offline-model-hint" id="vOfflineModelHint"></div>
       </div>
     </div>
 
@@ -753,6 +756,7 @@
           <label class="v-set-item">
             <span class="v-set-label" data-t="engine">Translation engine</span>
             <select id="vTransEngine"></select>
+            <div class="hint offline-model-hint" id="vTransOfflineModelHint"></div>
           </label>
         </div>
       </div>

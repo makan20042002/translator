@@ -1016,7 +1016,14 @@ function getVoiceAutoEngines() {
     const chain = cfg.order.filter(usable);
     trans = chain[0] || 'google';
   }
-  const transName = ENG[trans]?.name || trans;
+  let transName = ENG[trans]?.name || trans;
+  if (trans === 'nllb') {
+    const s = $('src')?.value || 'auto', t = $('tgt')?.value || 'fa';
+    const choice = typeof offlineTrChoice === 'function' ? offlineTrChoice(s, t) : null;
+    if (choice?.model) {
+      transName = mcText(choice.model.name).replace(/\s*\(default\)$/i, '');
+    }
+  }
   return { listen, trans: transName };
 }
 
@@ -1040,4 +1047,5 @@ function voiceLabels(){
   if(typeof updateVoiceLangPills==='function') updateVoiceLangPills();
   updateVoiceAutoEngineDisplay();
   if(typeof updateListenButtonState==='function') updateListenButtonState();
+  if(typeof updateOfflineModelHints==='function') updateOfflineModelHints();
 }

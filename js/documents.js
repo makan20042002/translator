@@ -2303,6 +2303,7 @@ function updateDocEngineInfo(){
   }else{
     txtEl.innerHTML=`Engine: ${engineHtml} · Mode: ${modeHtml} · Status: ${netHtml}`;
   }
+  if(typeof updateOfflineModelHints==='function') updateOfflineModelHints();
 }
 
 if($('docOpenEngineSettings')){

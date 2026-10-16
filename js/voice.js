@@ -251,11 +251,16 @@ function updateVoiceStatusStrip(readiness) {
 
   let transName = 'Auto';
   const activeTrans = r.trans?.engine || $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
-  if (activeTrans !== 'auto' && ENG[activeTrans]) {
+  const vSrc = $('src')?.value || 'auto';
+  const vTgt = $('tgt')?.value || 'fa';
+  const vChoice = typeof offlineTrChoice === 'function' ? offlineTrChoice(vSrc, vTgt) : null;
+  if (activeTrans === 'nllb') {
+    transName = vChoice?.model ? mcText(vChoice.model.name).replace(/\s*\(default\)$/i, '') : 'Offline';
+  } else if (activeTrans !== 'auto' && ENG[activeTrans]) {
     transName = ENG[activeTrans].name;
   } else if (isOff()) {
-    const trM = (typeof trModels === 'function' && typeof mcReady === 'function' && trModels().find(mcReady)) || (typeof trModels === 'function' && trModels()[0]);
-    transName = trM ? mcText(trM.name) : 'Offline';
+    const trM = vChoice?.model || (typeof trModels === 'function' && trModels()[0]);
+    transName = trM ? mcText(trM.name).replace(/\s*\(default\)$/i, '') : 'Offline';
   }
 
   const tLang = $('tgt')?.value || 'fa';

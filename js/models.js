@@ -94,9 +94,32 @@ function offlineTrLabel(src,tgt){
   }
   return name;
 }
+function formatOfflineModelHint(src,tgt){
+  const choice=offlineTrChoice(src,tgt);
+  const lbl=offlineTrLabel(src,tgt);
+  if(!choice){
+    return lbl||(typeof L==='function'?L('noOfflineModel'):'')||'No offline model downloaded';
+  }
+  const prefix=(typeof ui!=='undefined'&&ui==='fa')?'مدل آفلاین':'Offline model';
+  return `${prefix}: ${lbl}`;
+}
+function updateOfflineModelHints(){
+  const s=(typeof $==='function'&&$('src')?.value)||'auto';
+  const t=(typeof $==='function'&&$('tgt')?.value)||'fa';
+  const txt=formatOfflineModelHint(s,t);
+  const ids=['tOfflineModelHint','dOfflineModelHint','vOfflineModelHint','vTransOfflineModelHint'];
+  for(const id of ids){
+    const el=typeof $==='function'?$(id):null;
+    if(el) el.textContent=txt;
+  }
+  if(typeof renderTextStatusStrip==='function') renderTextStatusStrip();
+  if(typeof updateVoiceAutoEngineDisplay==='function') updateVoiceAutoEngineDisplay();
+}
 if(typeof window!=='undefined'){
   window.offlineTrChoice=offlineTrChoice;
   window.offlineTrLabel=offlineTrLabel;
+  window.formatOfflineModelHint=formatOfflineModelHint;
+  window.updateOfflineModelHints=updateOfflineModelHints;
 }
 function mcMark(m,files){
   const d=mcDone();d[m.id]={at:Date.now(),files};store.set('mdl',d);
@@ -288,6 +311,7 @@ function mcRender(){
   if(typeof renderUnifiedVoicePicker==='function')renderUnifiedVoicePicker();
   if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
   renderModelHub();
+  updateOfflineModelHints();
 }
 let hubActiveCat='all';
 let hubDeleteConfirmId=null;
