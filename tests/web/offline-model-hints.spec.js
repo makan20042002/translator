@@ -29,6 +29,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     });
 
     // Text tab assertion
+    await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
     await expect(tHint).toBeVisible();
     await expect(tHint).toContainText('No offline model downloaded');
 
@@ -55,6 +56,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     });
 
     // Document tab: should update immediately to show M2M-100
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
     await expect(dSel).toBeVisible();
     await expect(dSel).toHaveAttribute('title', /M2M-100/);
     await dSel.selectOption('nllb');
@@ -85,6 +87,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     });
 
     // Voice tab updates to NLLB
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
     await expect(vHint).toBeVisible();
     await expect(vHint).toContainText('NLLB');
     await expect(vHint).not.toContainText('M2M-100');
