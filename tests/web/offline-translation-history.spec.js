@@ -19,24 +19,29 @@ test.describe('Offline translation worker repo and history reporting (Item 5)', 
     await page.evaluate(() => {
       const cat = self.MODEL_CATALOG?.models || [];
       const d = store.get('mdl', {});
+      if (!mcCache) mcCache = {};
       for (const id of ['tr-nllb-600', 'tr-m2m100-418', 'tr-mbart50']) {
         const m = cat.find(x => x.id === id);
         if (m) {
           d[id] = { at: Date.now(), files: m.files.map(f => f[0]) };
+          mcCache[m.repo] = { bytes: 1000, files: new Map(m.files.map(f => [f[0], f[1]])) };
         }
       }
       store.set('mdl', d);
       store.set('nllb', true);
       store.set('hist', []);
       cfg.order = ['nllb'];
-      cfg.eng = { nllb: true };
+      cfg.eng = { nllb: { on: true, key: '' } };
       if (typeof saveCfg === 'function') saveCfg();
       if (typeof mcRender === 'function') mcRender();
     });
 
-    // 2. Install MockWorker
+    // 2. Install MockWorker (terminate existing worker first so MockWorker is instantiated)
     await page.evaluate(() => {
       window.__lastWorkerTranslate = null;
+      if (typeof terminateAiWorker === 'function') {
+        terminateAiWorker('translate');
+      }
       class MockWorker {
         constructor() {
           this.role = 'translate';
@@ -81,8 +86,8 @@ test.describe('Offline translation worker repo and history reporting (Item 5)', 
       // Select the model
       await page.evaluate((modelId) => {
         window.__lastWorkerTranslate = null;
-        if (typeof window.terminateAiWorker === 'function') {
-          window.terminateAiWorker('translate');
+        if (typeof terminateAiWorker === 'function') {
+          terminateAiWorker('translate');
         }
         cfg.trModel = modelId;
         if (typeof saveCfg === 'function') saveCfg();

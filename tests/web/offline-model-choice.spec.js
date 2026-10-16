@@ -17,14 +17,23 @@ test.describe('Offline translation model choice and label (Item 1)', () => {
 
       const markReady = (models) => {
         const d = store.get('mdl', {});
+        if (!mcCache) mcCache = {};
         for (const m of models) {
           d[m.id] = { at: Date.now(), files: m.files.map(f => f[0]) };
+          mcCache[m.repo] = { bytes: 1000, files: new Map(m.files.map(f => [f[0], f[1]])) };
         }
         store.set('mdl', d);
       };
 
+      const clearReady = () => {
+        store.set('mdl', {});
+        if (mcCache) {
+          for (const m of cat) if (m.job === 'translate') delete mcCache[m.repo];
+        }
+      };
+
       // (d) nothing downloaded -> null, and label shows localized no-model
-      store.set('mdl', {});
+      clearReady();
       cfg.trModel = 'auto';
       const resD_choice = offlineTrChoice('en', 'fa');
       const resD_label = offlineTrLabel('en', 'fa');
@@ -42,14 +51,14 @@ test.describe('Offline translation model choice and label (Item 1)', () => {
       const resB_label = offlineTrLabel('en', 'fa');
 
       // (c) chosen model not downloaded -> auto (falls back to NLLB)
-      store.set('mdl', {});
+      clearReady();
       markReady([nllb]); // M2M not downloaded
       cfg.trModel = 'tr-m2m100-418';
       const resC_choice = offlineTrChoice('en', 'fa');
       const resC_label = offlineTrLabel('en', 'fa');
 
       // (e) chosen model does not cover the pair -> same model pickTr returns (NLLB covers en->ja, M2M doesn't)
-      store.set('mdl', {});
+      clearReady();
       markReady([nllb, m2m]);
       cfg.trModel = 'tr-m2m100-418'; // M2M doesn't cover Japanese
       const resE_choice = offlineTrChoice('en', 'ja');
