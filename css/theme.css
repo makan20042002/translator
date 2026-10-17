@@ -6445,6 +6445,112 @@ body:has(#tab-voice.on) .speak-notice,
   color: hsl(30, 85%, 30%);
 }
 
+/* Light-theme Accent text on tinted/panel2/selected backgrounds */
+[data-theme="champagne-minimal"] #swap,
+[data-theme="platinum-blue"] #swap,
+[data-theme="champagne-minimal"] .screen-swap-btn,
+[data-theme="platinum-blue"] .screen-swap-btn,
+[data-theme="champagne-minimal"] #screenSwapBtn,
+[data-theme="platinum-blue"] #screenSwapBtn,
+[data-theme="champagne-minimal"] #vSwap,
+[data-theme="platinum-blue"] #vSwap,
+[data-theme="champagne-minimal"] .models-hub-privacy-badge,
+[data-theme="platinum-blue"] .models-hub-privacy-badge,
+[data-theme="champagne-minimal"] .models-hub-privacy-badge span,
+[data-theme="platinum-blue"] .models-hub-privacy-badge span,
+[data-theme="champagne-minimal"] .screen-banner-text strong,
+[data-theme="platinum-blue"] .screen-banner-text strong,
+[data-theme="champagne-minimal"] .screen-banner-icon,
+[data-theme="platinum-blue"] .screen-banner-icon,
+[data-theme="champagne-minimal"] .trans-status-info-icon,
+[data-theme="platinum-blue"] .trans-status-info-icon,
+[data-theme="champagne-minimal"] .screen-mode-card.on .screen-mode-name,
+[data-theme="platinum-blue"] .screen-mode-card.on .screen-mode-name {
+  color: var(--accent-dark);
+}
+
+/* Light-theme Faint token element-level overrides */
+[data-theme="platinum-blue"] body,
+[data-theme="platinum-blue"] .app-shell,
+[data-theme="platinum-blue"] .modal,
+[data-theme="platinum-blue"] .welcome-modal {
+  --faint: #56708A;
+  --muted: #455D77;
+}
+
+[data-theme="champagne-minimal"] body,
+[data-theme="champagne-minimal"] .app-shell,
+[data-theme="champagne-minimal"] .modal,
+[data-theme="champagne-minimal"] .welcome-modal {
+  --faint: #745F45;
+  --muted: #65543F;
+}
+
+[data-theme="platinum-blue"] .lang-picker-lbl,
+[data-theme="platinum-blue"] .lang-picker-lbl bdi,
+[data-theme="platinum-blue"] .bar label,
+[data-theme="platinum-blue"] .trans-bar label:not(.switch-lbl),
+[data-theme="platinum-blue"] .screen-ctrl-lbl,
+[data-theme="platinum-blue"] .topbar-engine-lbl,
+[data-theme="platinum-blue"] .sidebar-sec-h,
+[data-theme="platinum-blue"] span.switch-txt,
+[data-theme="platinum-blue"] .meta,
+[data-theme="platinum-blue"] span.meta,
+[data-theme="platinum-blue"] #tWordCount,
+[data-theme="platinum-blue"] #tCount,
+[data-theme="platinum-blue"] #tmCount,
+[data-theme="platinum-blue"] .trans-status-info,
+[data-theme="platinum-blue"] .trans-status-info span,
+[data-theme="platinum-blue"] .offline-model-hint,
+[data-theme="platinum-blue"] .sub-prog-meta,
+[data-theme="platinum-blue"] .doc-prog-meta,
+[data-theme="platinum-blue"] .cue .n,
+[data-theme="platinum-blue"] .cue .tm,
+[data-theme="platinum-blue"] .cue .tr:empty::before,
+[data-theme="platinum-blue"] .mdl-sub,
+[data-theme="platinum-blue"] .models-hub-storage-item .storage-lbl,
+[data-theme="platinum-blue"] footer {
+  color: #56708A;
+}
+
+[data-theme="champagne-minimal"] .lang-picker-lbl,
+[data-theme="champagne-minimal"] .lang-picker-lbl bdi,
+[data-theme="champagne-minimal"] .bar label,
+[data-theme="champagne-minimal"] .trans-bar label:not(.switch-lbl),
+[data-theme="champagne-minimal"] .screen-ctrl-lbl,
+[data-theme="champagne-minimal"] .topbar-engine-lbl,
+[data-theme="champagne-minimal"] .sidebar-sec-h,
+[data-theme="champagne-minimal"] span.switch-txt,
+[data-theme="champagne-minimal"] .meta,
+[data-theme="champagne-minimal"] span.meta,
+[data-theme="champagne-minimal"] #tWordCount,
+[data-theme="champagne-minimal"] #tCount,
+[data-theme="champagne-minimal"] #tmCount,
+[data-theme="champagne-minimal"] .trans-status-info,
+[data-theme="champagne-minimal"] .trans-status-info span,
+[data-theme="champagne-minimal"] .offline-model-hint,
+[data-theme="champagne-minimal"] .sub-prog-meta,
+[data-theme="champagne-minimal"] .doc-prog-meta,
+[data-theme="champagne-minimal"] .cue .n,
+[data-theme="champagne-minimal"] .cue .tm,
+[data-theme="champagne-minimal"] .cue .tr:empty::before,
+[data-theme="champagne-minimal"] .mdl-sub,
+[data-theme="champagne-minimal"] .models-hub-storage-item .storage-lbl,
+[data-theme="champagne-minimal"] footer {
+  color: #745F45;
+}
+
+/* Light-theme Muted token element-level overrides */
+[data-theme="platinum-blue"] .hub-pill.none,
+[data-theme="platinum-blue"] .welcome-choice-card .choice-card-content span {
+  color: #455D77;
+}
+
+[data-theme="champagne-minimal"] .hub-pill.none,
+[data-theme="champagne-minimal"] .welcome-choice-card .choice-card-content span {
+  color: #65543F;
+}
+
 /* makan-lab exact original overrides */
 [data-theme="makan-lab"] .doc-drop-area {
   border: 1.5px dashed rgba(56, 189, 248, 0.35); /* makanlab */
