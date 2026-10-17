@@ -131,8 +131,11 @@ test.describe('Help & User Guide (ITEM 4b)', () => {
     await page.locator('#creditsClose').click();
     await expect(page.locator('#creditsBox')).toBeHidden();
 
-    // --- 2. Test in Persian (FA) ---
-    await page.locator('#uiLang').selectOption('fa');
+    // --- 2. Switch to Persian (FA) via toggle button ---
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('#uiLang')).toHaveText('English');
 
     await page.locator('#creditsBtn').click();
     await expect(page.locator('#creditsBox')).toBeVisible();
@@ -154,5 +157,19 @@ test.describe('Help & User Guide (ITEM 4b)', () => {
     expect(helpHtmlFa).toContain('Measured on:');
 
     await page.locator('#creditsClose').click();
+    await expect(page.locator('#creditsBox')).toBeHidden();
+
+    // --- 3. Switch back to English and verify ---
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('#uiLang')).toHaveText('فارسی');
+
+    await page.locator('#creditsBtn').click();
+    await expect(page.locator('#creditsBox')).toBeVisible();
+    await expect(page.locator('#helpGuideSection')).toBeVisible();
+    await expect(page.locator('#helpGuideTitle')).toHaveText('What it can do, limits, and what computer you need');
+    await page.locator('#creditsClose').click();
+    await expect(page.locator('#creditsBox')).toBeHidden();
   });
 });
