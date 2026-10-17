@@ -22,7 +22,12 @@ function getMediaWhisperChoice() {
 
 function getMediaTranslateChoice() {
   const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-  const id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
+  let id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
+  if (typeof isOff === 'function' && isOff()) {
+    if (chosen !== 'auto' && typeof offCapable === 'function' && !offCapable(chosen)) {
+      id = (typeof cfg !== 'undefined' && cfg.order) ? (cfg.order.find(x => usable(x) && offCapable(x)) || 'nllb') : 'nllb';
+    }
+  }
   const eng = (typeof ENG !== 'undefined' && ENG[id]) ? ENG[id] : { name: id, tier: 'free' };
   const isOffline = (typeof offCapable === 'function') ? offCapable(id) : false;
   const kind = isOffline ? 'offline' : 'online';
@@ -72,10 +77,23 @@ async function mediaTranslateCues(cues, opts) {
     throw err;
   }
 
+  const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+  let chain;
+  if (activeEngine === 'auto') {
+    chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
+  } else {
+    if (typeof usable === 'function' && !usable(activeEngine)) {
+      const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
+      err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
+      err.partial = [];
+      throw err;
+    }
+    chain = [activeEngine];
+  }
+
   if (typeof isOff === 'function' && isOff()) {
-    const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-    const id = chosen === 'auto' ? (cfg.order ? cfg.order.find(usable) : null) : chosen;
-    if (!id || (typeof offCapable === 'function' && !offCapable(id))) {
+    chain = chain.filter(id => (typeof offCapable === 'function' ? offCapable(id) : false));
+    if (!chain.length) {
       const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
       err.code = 'notdownloaded';
       err.partial = [];
@@ -83,19 +101,23 @@ async function mediaTranslateCues(cues, opts) {
     }
   }
 
+  if (!chain.length) {
+    const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'No engine available');
+    err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
+    err.partial = [];
+    throw err;
+  }
+
   const texts = cues.map(c => c.o || '');
   const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
 
-  let initialEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-  if (initialEngine === 'auto' && typeof cfg !== 'undefined' && cfg.order) {
-    initialEngine = cfg.order.find(usable) || cfg.order[0];
-  }
-  if (initialEngine && typeof ENG !== 'undefined' && ENG[initialEngine]) {
-    const eng = ENG[initialEngine];
-    const kind = (typeof offCapable === 'function' && offCapable(initialEngine)) ? 'offline' : 'online';
-    const model = (cfg.eng?.[initialEngine]?.model) || eng.model || (initialEngine === 'nllb' ? 'NLLB-200 600M' : '');
-    const licence = initialEngine === 'nllb' ? 'CC BY-NC 4.0' : (initialEngine === 'ollama' ? 'MIT' : '');
-    onInfo?.({ id: initialEngine, name: eng.name, kind, model, licence });
+  const firstEngine = chain[0];
+  if (firstEngine && typeof ENG !== 'undefined' && ENG[firstEngine]) {
+    const eng = ENG[firstEngine];
+    const kind = (typeof offCapable === 'function' && offCapable(firstEngine)) ? 'offline' : 'online';
+    const model = (cfg.eng?.[firstEngine]?.model) || eng.model || (firstEngine === 'nllb' ? 'NLLB-200 600M' : '');
+    const licence = firstEngine === 'nllb' ? 'CC BY-NC 4.0' : (firstEngine === 'ollama' ? 'MIT' : '');
+    onInfo?.({ id: firstEngine, name: eng.name, kind, model, licence });
   }
 
   try {
@@ -103,7 +125,7 @@ async function mediaTranslateCues(cues, opts) {
       src,
       tgt,
       signal,
-      engine: (typeof $ === 'function' && $('engine')?.value) || 'auto',
+      chain,
       onEngineChange: engId => {
         if (engId && typeof ENG !== 'undefined' && ENG[engId]) {
           const eng = ENG[engId];
@@ -188,6 +210,7 @@ function ensureMediaMounted() {
     translateCues: mediaTranslateCues,
     getTranslateChoice: getMediaTranslateChoice
   };
+  window.MediaTranslate.host = host;
   mediaMounting = window.MediaTranslate.mount(root, host).then(h => {
     mediaHandle = h;
     mediaMounting = null;
