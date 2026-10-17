@@ -531,10 +531,15 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
       try {
         const pingSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
-          ? AbortSignal.timeout(600)
+          ? AbortSignal.timeout(1500)
           : undefined;
         const pingRes = await fetch(`${appUrl}/__makan/ping`, {
-          method: 'GET',
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'X-Makan-Open': '1'
+          },
+          body: '{}',
           signal: pingSignal
         });
         if (pingRes.ok) {
