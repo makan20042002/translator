@@ -106,7 +106,7 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
 - **Browser**: Chrome 115+, Microsoft Edge 115+, Firefox 115+, or Safari 17+
 - **Graphics / WebGPU**: Optional (CPU / WASM fallback is supported)
 - **Speed**: speed not measured yet
-- *Measured on*: [Placeholder - to be filled after timing on test PCs]
+- Measured on: [Placeholder - to be filled after timing on test PCs]
 
 ### Recommended Hardware
 - **RAM**: 8 GB to 16 GB+ system memory
@@ -114,7 +114,7 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
 - **Browser**: Modern Google Chrome or Microsoft Edge with WebGPU enabled
 - **Graphics / WebGPU**: Dedicated GPU (NVIDIA GTX 1060 / RTX series, AMD Radeon, or Apple Silicon M1/M2/M3)
 - **Speed**: speed not measured yet
-- *Measured on*: [Placeholder - to be filled after timing on test PCs]
+- Measured on: [Placeholder - to be filled after timing on test PCs]
 
 ---
 
