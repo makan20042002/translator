@@ -89,9 +89,18 @@ const openSettings = async (page, tab) => {
 const row = (page, id) => page.locator(`[data-mdl="${id}"]`);
 
 /** Intercept ai-worker.js with a tiny fake worker matching the real message protocol */
-async function fakeAiWorker(page, options = {}) {
+async function fakeAiWorker(target, options = {}) {
+  const context = (typeof target.context === 'function' ? target.context() : target);
   const prefix = options.prefix ?? '[fa] ';
-  await page.route('**/ai-worker.js', route => {
+  const workerRequests = [];
+  await context.route('**/ai-worker.js', route => {
+    workerRequests.push({
+      url: route.request().url(),
+      method: route.request().method()
+    });
+    if (typeof options.onRequest === 'function') {
+      try { options.onRequest(route.request()); } catch (_) {}
+    }
     route.fulfill({
       status: 200,
       contentType: 'application/javascript',
@@ -115,6 +124,10 @@ async function fakeAiWorker(page, options = {}) {
       `
     });
   });
+  return {
+    requests: workerRequests,
+    wasRequested: () => workerRequests.length > 0
+  };
 }
 
 if (typeof global !== 'undefined') {

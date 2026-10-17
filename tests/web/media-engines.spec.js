@@ -163,7 +163,7 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
       });
 
       // Intercept ai-worker.js to serve fake worker answering the real message protocol
-      await fakeAiWorker(page);
+      const workerSpy = await fakeAiWorker(page);
 
       // Toggle offline mode using the real UI control #offBtn if not already active
       const offBtn = page.locator('#offBtn');
@@ -195,15 +195,22 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
         return await window.MediaTranslate.host.translateCues(testCues, { src: 'en', tgt: 'fa' });
       }, cues);
 
+      // Assert fake worker script WAS requested and answered
+      expect(workerSpy.requests.length).toBeGreaterThan(0);
+      expect(workerSpy.wasRequested()).toBe(true);
+
+      // Returns same cue count, same timing, non-empty t, zero online requests, nothing to port 11434
       expect(translated).toHaveLength(2);
       expect(translated[0].s).toBe(0.0);
       expect(translated[0].e).toBe(1.5);
       expect(translated[0].o).toBe('Offline safety check line 1');
       expect(translated[0].t).toBe('[fa] Offline safety check line 1');
+      expect(translated[0].t.length).toBeGreaterThan(0);
       expect(translated[1].s).toBe(1.5);
       expect(translated[1].e).toBe(3.0);
       expect(translated[1].o).toBe('Offline safety check line 2');
       expect(translated[1].t).toBe('[fa] Offline safety check line 2');
+      expect(translated[1].t.length).toBeGreaterThan(0);
       expect(onlineCalls).toEqual([]);
       expect(ollamaCalls).toEqual([]);
     });
