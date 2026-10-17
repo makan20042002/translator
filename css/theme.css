@@ -3253,21 +3253,21 @@ html[lang="fa"] .voice-page-title {
   display: flex;
   flex-direction: column;
   transition: transform 0.18s var(--ease), border-color 0.18s;
-  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 4px 16px color-mix(in srgb, var(--text) 12%, transparent);
   box-sizing: border-box;
 }
 
 .bub.a {
   align-self: flex-start;
-  background: rgba(13, 27, 50, 0.85);
-  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  background: var(--surface);
+  border: 1px solid var(--border2);
   border-start-start-radius: 4px;
 }
 
 .bub.b {
   align-self: flex-end;
-  background: rgba(16, 42, 82, 0.9);
-  border: 1px solid var(--accent-line, rgba(56, 189, 248, 0.35));
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  border: 1px solid var(--accent-line);
   border-start-end-radius: 4px;
 }
 
@@ -3278,18 +3278,23 @@ html[lang="fa"] .voice-page-title {
   gap: 8px;
   margin-bottom: 8px;
   font-size: 11.5px;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
 }
 
 .bub-speaker {
   font-weight: 600;
-  color: var(--accent, #38bdf8);
+  color: color-mix(in srgb, var(--accent) 55%, var(--text));
+}
+
+[data-theme="platinum-blue"] .bub-speaker,
+[data-theme="champagne-minimal"] .bub-speaker {
+  color: var(--accent-dark);
 }
 
 .bub-time {
   font-family: var(--mono);
   font-size: 11px;
-  color: var(--faint, #64748b);
+  color: var(--muted);
 }
 
 .bub-orig {
@@ -3297,18 +3302,18 @@ html[lang="fa"] .voice-page-title {
   align-items: baseline;
   gap: 6px;
   font-size: 13.5px;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
   margin-bottom: 6px;
   cursor: pointer;
   padding: 4px 8px;
   border-radius: 6px;
-  background: rgba(0, 0, 0, 0.15);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
   transition: background 0.15s, color 0.15s;
 }
 
 .bub-orig:hover {
-  background: rgba(255, 255, 255, 0.06);
-  color: var(--text, #fff);
+  background: color-mix(in srgb, var(--text) 12%, transparent);
+  color: var(--text);
 }
 
 .bub-orig-text {
@@ -3320,7 +3325,7 @@ html[lang="fa"] .voice-page-title {
 .bub-text {
   font-size: 16px;
   font-weight: 500;
-  color: var(--text, #fff);
+  color: var(--text);
   line-height: 1.6;
   word-break: break-word;
   margin-bottom: 8px;
@@ -3339,7 +3344,7 @@ html[dir="rtl"] .bub-orig-text {
   align-items: center;
   gap: 8px;
   flex-wrap: wrap;
-  border-top: 1px solid rgba(255, 255, 255, 0.07);
+  border-top: 1px solid color-mix(in srgb, var(--border) 60%, transparent);
   padding-top: 8px;
   margin-top: 4px;
 }
@@ -3352,17 +3357,17 @@ html[dir="rtl"] .bub-orig-text {
   font-size: 11.5px;
   padding: 3px 9px;
   border-radius: 6px;
-  background: var(--surface2, #0d1e38);
-  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
-  color: var(--text, #fff);
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
   cursor: pointer;
   transition: background 0.18s, border-color 0.18s;
 }
 
 .bub-actions .replay-btn:hover:not(:disabled),
 .bub-actions .copy-btn:hover {
-  background: var(--surface3, #132a4e);
-  border-color: var(--accent, #38bdf8);
+  background: var(--surface3);
+  border-color: var(--accent);
 }
 
 .bub-actions .replay-btn:disabled {
@@ -3380,17 +3385,107 @@ html[dir="rtl"] .bub-orig-text {
 }
 
 .bub-tag {
-  background: var(--surface3, #0b192e);
-  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  border: 1px solid var(--border2);
   border-radius: 999px;
   padding: 2px 8px;
   font-size: 11px;
   font-weight: 500;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
 }
 
 .bub-time-chip {
   font-family: var(--mono);
+  color: var(--text);
+  background: color-mix(in srgb, var(--accent) 12%, transparent);
+  border-color: color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+[data-theme="platinum-blue"] .bub-time-chip,
+[data-theme="champagne-minimal"] .bub-time-chip {
+  color: var(--accent-dark);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub {
+  box-shadow: 0 4px 16px rgba(0, 0, 0, 0.25);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub.a {
+  background: rgba(13, 27, 50, 0.85);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub.b {
+  background: rgba(16, 42, 82, 0.9);
+  border: 1px solid var(--accent-line, rgba(56, 189, 248, 0.35));
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-header {
+  color: var(--muted, #94a3b8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-speaker {
+  color: var(--accent, #38bdf8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-time {
+  color: var(--muted, #94a3b8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-orig {
+  color: var(--muted, #94a3b8);
+  background: rgba(0, 0, 0, 0.15);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-orig:hover {
+  background: rgba(255, 255, 255, 0.06);
+  color: var(--text, #fff);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-text {
+  color: var(--text, #fff);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-actions {
+  border-top: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-actions .replay-btn,
+/* makanlab */
+[data-theme="makan-lab"] .bub-actions .copy-btn {
+  background: var(--surface2, #0d1e38);
+  border: 1px solid var(--border, rgba(255, 255, 255, 0.08));
+  color: var(--text, #fff);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-actions .replay-btn:hover:not(:disabled),
+/* makanlab */
+[data-theme="makan-lab"] .bub-actions .copy-btn:hover {
+  background: var(--surface3, #132a4e);
+  border-color: var(--accent, #38bdf8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-tag {
+  background: var(--surface3, #0b192e);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  color: var(--muted, #94a3b8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .bub-time-chip {
   color: var(--accent, #38bdf8);
   background: rgba(56, 189, 248, 0.08);
   border-color: rgba(56, 189, 248, 0.25);
