@@ -232,7 +232,7 @@ Subtitle, Document, Compare and the Voice tab all use the same
   - `media/media-i18n.js`: English and Persian localized translation dictionary.
   - `media/media.css`: Scoped stylesheet (`.mt-*`) mapped to theme custom properties.
   - `media/media-tab.html`: Reference template.
-* **Extension exclusion**: The browser extension does **not** include the Media module, preserving its small bundle size and fast load time.
+* **Extension exclusion**: The extension does not include the Media tab or its files. The browser extension does **not** include the Media module, preserving its small bundle size and fast load time.
 
 ### Extension
 
