@@ -157,6 +157,7 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
   test('when bridge is unavailable, clicking "Open in App" falls back to opening new tab with web app href', async ({ ext }) => {
     await mockWorkerBridge(ext, { reachable: false });
     const page = ext.article;
+    const expectedText = (await page.locator('#li1').innerText()).trim();
 
     await dragSelect(page, '#li1');
     await pressM(page);
@@ -176,8 +177,11 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
     const cfg = await ext.getConfig();
     const expectedOrigin = new URL(cfg.webAppUrl || 'https://makanlab.tech').origin;
     expect(url.origin).toBe(expectedOrigin);
-    expect(url.hash).toContain('text=');
-    expect(url.hash).toContain('First%20item%20in%20the%20list%20of%20things');
+
+    const params = new URLSearchParams(url.hash.slice(1));
+    expect(params.get('text')).toBe(expectedText);
+    expect(params.get('src')).toBeTruthy();
+    expect(params.get('tgt')).toBeTruthy();
     await newPage.close();
   });
 });
