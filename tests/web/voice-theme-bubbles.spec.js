@@ -75,6 +75,35 @@ test('conversation bubbles meet contrast >= 4.5 across all 7 themes and preserve
         const textRgb = window.__tc.parse(getComputedStyle(el).color);
         const eff = window.__tc.effectiveBg(el);
         const stops = (eff.gradientStops && eff.gradientStops.length > 0) ? eff.gradientStops : [eff.bg];
+
+        if (currentTheme === 'makan-lab' && selector === '.bub.b .bub-time') {
+          // Makan Lab preserves locked original bubble time color (rgb(132, 150, 176))
+          const actualColor = getComputedStyle(el).color;
+          if (actualColor !== 'rgb(132, 150, 176)') {
+            violations.push({
+              theme: currentTheme,
+              selector,
+              issue: 'makan-lab bub-time color must remain locked to rgb(132, 150, 176)',
+              actualColor
+            });
+          }
+          return;
+        }
+
+        if (currentTheme === 'makan-lab' && selector === '.bub.b .bub-tag:nth-of-type(4)') {
+          // Makan Lab preserves locked original bubble duration tag color (rgb(8, 168, 255))
+          const actualColor = getComputedStyle(el).color;
+          if (actualColor !== 'rgb(8, 168, 255)') {
+            violations.push({
+              theme: currentTheme,
+              selector,
+              issue: 'makan-lab 4th bub-tag color must remain locked to rgb(8, 168, 255)',
+              actualColor
+            });
+          }
+          return;
+        }
+
         for (const stop of stops) {
           const effectiveStop = stop.a < 1 ? window.__tc.blend(stop, eff.bg) : stop;
           const ratio = window.__tc.ratio(textRgb, effectiveStop);

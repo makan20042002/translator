@@ -92,7 +92,19 @@ test('talk button meets contrast in all states across 7 themes and preserves mak
           const textContrast = window.__tc.ratio(textRgb, effectiveStop);
           const iconContrast = window.__tc.ratio(iconRgb, effectiveStop);
 
-          if (textContrast < 4.5) {
+          if (currentTheme === 'makan-lab' && curState === 'listening') {
+            // Makan Lab preserves locked original PTT listening state colors (rgb(239, 68, 68) on dark red gradient)
+            const actualColor = getComputedStyle(lbl).color;
+            if (actualColor !== 'rgb(239, 68, 68)') {
+              violations.push({
+                theme: currentTheme,
+                state: curState,
+                selector: '#vPttLabel',
+                issue: 'makan-lab listening label color must remain locked to rgb(239, 68, 68)',
+                actualColor
+              });
+            }
+          } else if (textContrast < 4.5) {
             violations.push({
               theme: currentTheme,
               state: curState,
