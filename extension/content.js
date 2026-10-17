@@ -596,8 +596,6 @@
             card.classList.add('fading');
             setTimeout(() => removeCard(), 400);
           }, 1100);
-        } else if (resp && resp.fallbackUrl) {
-          window.open(resp.fallbackUrl, '_blank');
         } else {
           window.open(openAppBtn.href, '_blank');
         }

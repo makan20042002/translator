@@ -260,8 +260,6 @@ document.addEventListener('DOMContentLoaded', async () => {
           clearTimeout(msg._timer);
           msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 2500);
         }
-      } else if (resp && resp.fallbackUrl) {
-        window.open(resp.fallbackUrl, '_blank');
       } else {
         window.open(pOpenWebApp.href, '_blank');
       }

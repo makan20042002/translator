@@ -528,7 +528,6 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       const src = req.src || 'auto';
       const tgt = req.tgt || 'fa';
       const appUrl = (typeof safeAppUrl === 'function' ? safeAppUrl(cfg.appUrl) : (cfg.appUrl || 'http://127.0.0.1:50505')).replace(/\/+$/, '');
-      const fallbackUrl = buildAppTargetUrl(appUrl, { text, src, tgt });
 
       try {
         const pingSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
@@ -565,7 +564,7 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
         // Desktop app not running or ping timed out
       }
 
-      return { ok: false, fallbackUrl };
+      return { ok: false };
     }
 
     if (req.action === 'dict-lookup') {

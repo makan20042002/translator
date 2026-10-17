@@ -528,8 +528,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       });
       if (resp && resp.via === 'exe') {
         toast((currentUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate');
-      } else if (resp && resp.fallbackUrl) {
-        window.open(resp.fallbackUrl, '_blank');
       } else {
         window.open(optOpenApp.href, '_blank');
       }

@@ -1,78 +1,71 @@
 'use strict';
 
-const http = require('http');
 const { test, expect, inShadow, dragSelect, pressM, openRealPopup } = require('../support/ext-fixtures');
 
-test.describe('Extension: Open in App via desktop app bridge', () => {
-  let bridgeServer;
-  let bridgePort;
-  let receivedRequests = [];
-
-  test.beforeAll(async () => {
-    receivedRequests = [];
-    await new Promise((resolve) => {
-      bridgeServer = http.createServer((req, res) => {
-        const corsHeaders = {
-          'Access-Control-Allow-Origin': '*',
-          'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-          'Access-Control-Allow-Headers': 'Content-Type, X-Makan-Open'
-        };
-
-        if (req.method === 'OPTIONS') {
-          res.writeHead(204, corsHeaders);
-          res.end();
-          return;
+async function mockWorkerBridge(ext, { reachable = true } = {}) {
+  const sw = await ext.worker();
+  await sw.evaluate((reachable) => {
+    self._bridgeRequests = [];
+    if (!self._realFetch) self._realFetch = self.fetch;
+    if (!reachable) {
+      self.fetch = async (input, init = {}) => {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url.includes('/__makan/')) {
+          throw new Error('Connection refused (fake exe inactive)');
         }
-
-        if (req.url === '/__makan/ping' && req.method === 'GET') {
-          res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
-          res.end(JSON.stringify({ app: 'makan-translate', v: 1 }));
-          return;
-        }
-
-        if (req.url === '/__makan/open' && req.method === 'POST') {
-          let data = '';
-          req.on('data', chunk => { data += chunk; });
-          req.on('end', () => {
-            let body = null;
-            try { body = JSON.parse(data); } catch {}
-            receivedRequests.push({
-              headers: req.headers,
-              body
-            });
-            res.writeHead(200, { ...corsHeaders, 'Content-Type': 'application/json' });
-            res.end(JSON.stringify({ ok: true }));
+        return self._realFetch(input, init);
+      };
+    } else {
+      self.fetch = async (input, init = {}) => {
+        const url = typeof input === 'string' ? input : (input && input.url) || '';
+        if (url.includes('/__makan/ping')) {
+          const headers = {};
+          if (init.headers) {
+            if (init.headers instanceof Headers) {
+              init.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+            } else if (Array.isArray(init.headers)) {
+              for (const [k, v] of init.headers) headers[k.toLowerCase()] = v;
+            } else {
+              for (const k of Object.keys(init.headers)) headers[k.toLowerCase()] = init.headers[k];
+            }
+          }
+          self._bridgeRequests.push({ url, method: init.method || 'GET', headers });
+          return new Response(JSON.stringify({ app: 'makan-translate', v: 1 }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
           });
-          return;
         }
+        if (url.includes('/__makan/open')) {
+          const headers = {};
+          if (init.headers) {
+            if (init.headers instanceof Headers) {
+              init.headers.forEach((v, k) => { headers[k.toLowerCase()] = v; });
+            } else if (Array.isArray(init.headers)) {
+              for (const [k, v] of init.headers) headers[k.toLowerCase()] = v;
+            } else {
+              for (const k of Object.keys(init.headers)) headers[k.toLowerCase()] = init.headers[k];
+            }
+          }
+          let body = null;
+          try { body = typeof init.body === 'string' ? JSON.parse(init.body) : null; } catch {}
+          self._bridgeRequests.push({ url, method: init.method || 'POST', headers, body });
+          return new Response(JSON.stringify({ ok: true, via: 'exe' }), {
+            status: 200,
+            headers: { 'Content-Type': 'application/json' }
+          });
+        }
+        return self._realFetch(input, init);
+      };
+    }
+  }, reachable);
+}
 
-        res.writeHead(404, corsHeaders);
-        res.end('Not found');
-      });
-
-      // Bind to 50505 if available, or an available port
-      bridgeServer.once('error', () => {
-        bridgeServer.listen(0, '127.0.0.1', () => {
-          bridgePort = bridgeServer.address().port;
-          resolve();
-        });
-      });
-      bridgeServer.listen(50505, '127.0.0.1', () => {
-        bridgePort = 50505;
-        resolve();
-      });
-    });
-  });
-
-  test.afterAll(() => {
-    if (bridgeServer) bridgeServer.close();
-  });
+test.describe('Extension: Open in App via desktop app bridge', () => {
 
   test('selection card "Open in App" notifies bridge, shows in-card note, and does not open new tab', async ({ ext }) => {
-    await ext.patchConfig({ appUrl: `http://127.0.0.1:${bridgePort}` });
+    await mockWorkerBridge(ext, { reachable: true });
     const page = ext.article;
     const initialPagesCount = ext.context.pages().length;
-    receivedRequests = [];
 
     await dragSelect(page, '#li1');
     await pressM(page);
@@ -81,51 +74,70 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
     const openBtn = inShadow(page, '#makanOpenApp');
     await openBtn.click();
 
-    await expect.poll(() => receivedRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
-    const lastReq = receivedRequests[receivedRequests.length - 1];
-    expect(lastReq.headers['x-makan-open']).toBe('1');
-    expect(lastReq.body).toBeTruthy();
-    expect(lastReq.body.text).toContain('First item in the list of things');
-
     // Shows in-card note
     const note = inShadow(page, '.makan-card-note');
     await expect(note).toBeVisible({ timeout: 5000 });
     await expect(note).toContainText(/Opened in MAKAN Translate|در MAKAN Translate باز شد/);
+
+    const sw = await ext.worker();
+    await expect.poll(async () => {
+      const reqs = await sw.evaluate(() => self._bridgeRequests || []);
+      return reqs.length;
+    }, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    const requests = await sw.evaluate(() => self._bridgeRequests);
+    const openReq = requests.find(r => r.url.includes('/__makan/open'));
+    expect(openReq).toBeTruthy();
+    expect(openReq.headers['x-makan-open']).toBe('1');
+    expect(openReq.body).toBeTruthy();
+    expect(openReq.body.text).toContain('First item in the list of things');
+    expect(openReq.body.src).toBeDefined();
+    expect(openReq.body.tgt).toBeDefined();
 
     // No new browser tab opened
     expect(ext.context.pages().length).toBe(initialPagesCount);
   });
 
   test('popup "Open in App" notifies bridge, displays confirmation, and does not open new tab', async ({ ext }) => {
-    await ext.patchConfig({ appUrl: `http://127.0.0.1:${bridgePort}` });
+    await mockWorkerBridge(ext, { reachable: true });
     const initialPagesCount = ext.context.pages().length;
-    receivedRequests = [];
 
     const popup = await openRealPopup(ext);
     await popup.click('#pInputText');
-    await popup.eval(`(() => { const t = document.getElementById('pInputText'); t.value = 'Popup bridge test'; })()`);
+    await popup.eval(`(() => { const t = document.getElementById('pInputText'); t.value = 'Popup bridge test'; t.dispatchEvent(new Event('input')); })()`);
     await popup.click('#pTransBtn');
     await popup.waitFor(`document.getElementById('pOutputText').textContent.startsWith('[fa] Popup bridge test')`);
 
     await popup.click('#pOpenWebApp');
 
-    await expect.poll(() => receivedRequests.length, { timeout: 10_000 }).toBeGreaterThan(0);
-    const lastReq = receivedRequests[receivedRequests.length - 1];
-    expect(lastReq.headers['x-makan-open']).toBe('1');
-    expect(lastReq.body.text).toBe('Popup bridge test');
+    // Wait for confirmation note in popup via popup API (not popup.locator)
+    await popup.waitFor(`(() => {
+      const msg = document.getElementById('pOpenAppMsg');
+      return msg && msg.style.display !== 'none' && /Opened in MAKAN Translate|در MAKAN Translate باز شد/.test(msg.textContent);
+    })()`, 5000);
 
-    const msg = await popup.locator('#pOpenAppMsg');
-    await expect(msg).toBeVisible({ timeout: 5000 });
-    await expect(msg).toContainText(/Opened in MAKAN Translate|در MAKAN Translate باز شد/);
+    const sw = await ext.worker();
+    await expect.poll(async () => {
+      const reqs = await sw.evaluate(() => self._bridgeRequests || []);
+      return reqs.length;
+    }, { timeout: 10_000 }).toBeGreaterThan(0);
+
+    const requests = await sw.evaluate(() => self._bridgeRequests);
+    const openReq = requests.find(r => r.url.includes('/__makan/open'));
+    expect(openReq).toBeTruthy();
+    expect(openReq.headers['x-makan-open']).toBe('1');
+    expect(openReq.body).toBeTruthy();
+    expect(openReq.body.text).toBe('Popup bridge test');
+    expect(openReq.body.src).toBeDefined();
+    expect(openReq.body.tgt).toBeDefined();
 
     // No extra tab opened
     expect(ext.context.pages().length).toBe(initialPagesCount);
     await popup.close();
   });
 
-  test('when bridge is unavailable, clicking "Open in App" falls back to opening new tab with hash', async ({ ext }) => {
-    // Configure an inactive port so ping fails
-    await ext.patchConfig({ appUrl: 'http://127.0.0.1:50599' });
+  test('when bridge is unavailable, clicking "Open in App" falls back to opening new tab with web app href', async ({ ext }) => {
+    await mockWorkerBridge(ext, { reachable: false });
     const page = ext.article;
 
     await dragSelect(page, '#li1');
@@ -138,7 +150,14 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
 
     const newPage = await newPagePromise;
     expect(newPage).toBeTruthy();
+    await newPage.waitForLoadState('domcontentloaded');
+
+    await expect.poll(() => newPage.url(), { timeout: 10_000 }).toContain('#');
     const url = new URL(newPage.url());
+    expect(url.origin).not.toBe('http://127.0.0.1:50505');
+    const cfg = await ext.getConfig();
+    const expectedOrigin = new URL(cfg.webAppUrl || 'https://makanlab.tech').origin;
+    expect(url.origin).toBe(expectedOrigin);
     expect(url.hash).toContain('text=');
     expect(url.hash).toContain('First%20item%20in%20the%20list%20of%20things');
     await newPage.close();
