@@ -127,6 +127,89 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
     expect(onlineCalls).toEqual([]);
   });
 
+  test.describe('offline NLLB model translation', () => {
+    test.use({
+      appOptions: {
+        seed: {
+          cfg: {
+            ...onlyEngines(['nllb', 'google']),
+            engine: 'nllb',
+            nllb: true,
+            offline: true
+          },
+          engine: 'nllb',
+          nllb: true,
+          mdl: { 'tr-nllb-600': { at: Date.now(), files: ['config.json'] } }
+        }
+      }
+    });
+
+    test('with offline mode on and NLLB seeded as downloaded, translateCues succeeds with same cue count and zero online requests', async ({ app }) => {
+      const { page } = app;
+
+      // Track any network calls made to cloud providers
+      const onlineCalls = [];
+      await page.route(/(?:googleapis|google\.com|mymemory|groq\.com|api\.openai\.com|openrouter\.ai)/, route => {
+        onlineCalls.push(route.request().url());
+        route.abort('failed');
+      });
+
+      // Mock offline engine at network level to answer locally
+      await page.route(/.*transformers.*/, route => {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/javascript',
+          body: `
+            export const env = { allowLocalModels: false };
+            export const pipeline = async () => async (text) => [{ translation_text: '[fa] ' + text }];
+          `
+        });
+      });
+      await page.route(/https:\/\/huggingface\.co\/.*/, route => {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: '{}'
+        });
+      });
+
+      // Toggle offline mode using the real UI control #offBtn if not already active
+      const offBtn = page.locator('#offBtn');
+      const isAlreadyOn = await offBtn.evaluate(el => el.classList.contains('on'));
+      if (!isAlreadyOn) {
+        await mouseClick(page, offBtn);
+      }
+      await expect(offBtn).toHaveClass(/\bon\b/);
+
+      // Seed storage cache so mcReady recognizes NLLB files
+      await page.evaluate(async () => {
+        const c = await caches.open('transformers-cache');
+        await c.put(
+          'https://huggingface.co/Xenova/nllb-200-distilled-600M/resolve/main/config.json',
+          new Response('{}', { headers: { 'content-length': '873' } })
+        );
+        if (typeof mcScan === 'function') await mcScan();
+      });
+
+      await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+      await expect(page.locator('#tab-media')).toBeVisible();
+
+      const cues = [
+        { s: 0.0, e: 1.5, o: 'Offline safety check line 1', t: '' },
+        { s: 1.5, e: 3.0, o: 'Offline safety check line 2', t: '' }
+      ];
+
+      const translated = await page.evaluate(async (testCues) => {
+        return await window.MediaTranslate.host.translateCues(testCues, { src: 'en', tgt: 'fa' });
+      }, cues);
+
+      expect(translated).toHaveLength(2);
+      expect(translated[0]).toEqual({ s: 0.0, e: 1.5, o: 'Offline safety check line 1', t: '[fa] Offline safety check line 1' });
+      expect(translated[1]).toEqual({ s: 1.5, e: 3.0, o: 'Offline safety check line 2', t: '[fa] Offline safety check line 2' });
+      expect(onlineCalls).toEqual([]);
+    });
+  });
+
   test.describe('NLLB engine choice and licence', () => {
     test.use({
       appOptions: {

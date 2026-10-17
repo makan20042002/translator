@@ -99,6 +99,8 @@
     const onProgress = opts?.onProgress;
     const onInfo = opts?.onInfo;
 
+    const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
+
     if (signal?.aborted) {
       const err = new DOMException('Aborted', 'AbortError');
       err.code = 'aborted';
@@ -106,50 +108,43 @@
       throw err;
     }
 
-    const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-    let chain;
-    if (activeEngine === 'auto') {
-      chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
-    } else {
-      if (typeof usable === 'function' && !usable(activeEngine)) {
-        const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
-        err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
-        err.partial = [];
-        throw err;
-      }
-      chain = [activeEngine];
-    }
-
-    if (typeof isOff === 'function' && isOff()) {
-      chain = chain.filter(id => (typeof offCapable === 'function' ? offCapable(id) : false));
-      if (!chain.length) {
-        const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
-        err.code = 'notdownloaded';
-        err.partial = [];
-        throw err;
-      }
-    }
-
-    if (!chain.length) {
-      const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'No engine available');
-      err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
-      err.partial = [];
-      throw err;
-    }
-
-    const texts = cues.map(c => c.o || '');
-    const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
-
-    const firstEngine = chain[0];
-    if (firstEngine && typeof ENG !== 'undefined' && ENG[firstEngine]) {
-      const eng = ENG[firstEngine];
-      const kind = (typeof offCapable === 'function' && offCapable(firstEngine)) ? 'offline' : 'online';
-      const model = (cfg.eng?.[firstEngine]?.model) || eng.model || (firstEngine === 'nllb' ? 'NLLB-200 600M' : '');
-      const licence = firstEngine === 'nllb' ? 'CC BY-NC 4.0' : (firstEngine === 'ollama' ? 'MIT' : '');
-      onInfo?.({ id: firstEngine, name: eng.name, kind, model, licence });
-    }
-
     try {
+      const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+      let chain;
+      if (activeEngine === 'auto') {
+        chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
+      } else {
+        if (typeof usable === 'function' && !usable(activeEngine)) {
+          const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
+          throw err;
+        }
+        chain = [activeEngine];
+      }
+
+      if (typeof isOff === 'function' && isOff()) {
+        chain = chain.filter(id => (typeof offCapable === 'function' ? offCapable(id) : false));
+        if (!chain.length) {
+          const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
+          throw err;
+        }
+      }
+
+      if (!chain.length) {
+        const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'No engine available');
+        throw err;
+      }
+
+      const texts = cues.map(c => c.o || '');
+
+      const firstEngine = chain[0];
+      if (firstEngine && typeof ENG !== 'undefined' && ENG[firstEngine]) {
+        const eng = ENG[firstEngine];
+        const kind = (typeof offCapable === 'function' && offCapable(firstEngine)) ? 'offline' : 'online';
+        const model = (cfg.eng?.[firstEngine]?.model) || eng.model || (firstEngine === 'nllb' ? 'NLLB-200 600M' : '');
+        const licence = firstEngine === 'nllb' ? 'CC BY-NC 4.0' : (firstEngine === 'ollama' ? 'MIT' : '');
+        onInfo?.({ id: firstEngine, name: eng.name, kind, model, licence });
+      }
+
       const res = await translateItems(texts, {
         src,
         tgt,
@@ -199,6 +194,11 @@
         throw abortErr;
       }
       err.partial = translatedCues;
+      if (!err.code) {
+        const offlineOn = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+        const hasOfflineModel = typeof trAnyReady === 'function' ? trAnyReady() : false;
+        err.code = (offlineOn && !hasOfflineModel) ? 'notdownloaded' : 'failed';
+      }
       throw err;
     }
   }
