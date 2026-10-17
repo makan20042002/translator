@@ -88,10 +88,39 @@ const openSettings = async (page, tab) => {
 };
 const row = (page, id) => page.locator(`[data-mdl="${id}"]`);
 
+/** Intercept ai-worker.js with a tiny fake worker matching the real message protocol */
+async function fakeAiWorker(page, options = {}) {
+  const prefix = options.prefix ?? '[fa] ';
+  await page.route('**/ai-worker.js', route => {
+    route.fulfill({
+      status: 200,
+      contentType: 'application/javascript',
+      body: `
+        self.onmessage = (e) => {
+          const { id, cmd, a } = e.data || {};
+          if (cmd === 'translate') {
+            const items = a?.items || a?.texts || [];
+            const res = items.map(t => ${JSON.stringify(prefix)} + t);
+            self.postMessage({ id, ok: true, res });
+          } else if (cmd === 'loadTr' || cmd === 'loadAsr') {
+            self.postMessage({ id, ok: true, res: true });
+          } else if (cmd === 'stats') {
+            self.postMessage({ id, ok: true, res: [] });
+          } else if (cmd === 'unload') {
+            self.postMessage({ id, ok: true, res: true });
+          } else {
+            self.postMessage({ id, ok: true, res: true });
+          }
+        };
+      `
+    });
+  });
+}
+
 if (typeof global !== 'undefined') {
   global.activateSettingsTab = activateSettingsTab;
   global.openSettings = openSettings;
 }
 
-module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row };
+module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row, fakeAiWorker };
 

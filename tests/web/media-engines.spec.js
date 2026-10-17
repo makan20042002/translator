@@ -3,6 +3,7 @@
 const fs = require('fs');
 const path = require('path');
 const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { fakeAiWorker } = require('../support/model-helpers');
 
 test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
 
@@ -154,24 +155,15 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
         route.abort('failed');
       });
 
-      // Mock offline engine at network level to answer locally
-      await page.route(/.*transformers.*/, route => {
-        route.fulfill({
-          status: 200,
-          contentType: 'application/javascript',
-          body: `
-            export const env = { allowLocalModels: false };
-            export const pipeline = async () => async (text) => [{ translation_text: '[fa] ' + text }];
-          `
-        });
+      // Track any calls to Ollama port 11434
+      const ollamaCalls = [];
+      await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+        ollamaCalls.push(route.request().url());
+        route.abort('connectionrefused');
       });
-      await page.route(/https:\/\/huggingface\.co\/.*/, route => {
-        route.fulfill({
-          status: 200,
-          contentType: 'application/json',
-          body: '{}'
-        });
-      });
+
+      // Intercept ai-worker.js to serve fake worker answering the real message protocol
+      await fakeAiWorker(page);
 
       // Toggle offline mode using the real UI control #offBtn if not already active
       const offBtn = page.locator('#offBtn');
@@ -204,9 +196,16 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
       }, cues);
 
       expect(translated).toHaveLength(2);
-      expect(translated[0]).toEqual({ s: 0.0, e: 1.5, o: 'Offline safety check line 1', t: '[fa] Offline safety check line 1' });
-      expect(translated[1]).toEqual({ s: 1.5, e: 3.0, o: 'Offline safety check line 2', t: '[fa] Offline safety check line 2' });
+      expect(translated[0].s).toBe(0.0);
+      expect(translated[0].e).toBe(1.5);
+      expect(translated[0].o).toBe('Offline safety check line 1');
+      expect(translated[0].t).toBe('[fa] Offline safety check line 1');
+      expect(translated[1].s).toBe(1.5);
+      expect(translated[1].e).toBe(3.0);
+      expect(translated[1].o).toBe('Offline safety check line 2');
+      expect(translated[1].t).toBe('[fa] Offline safety check line 2');
       expect(onlineCalls).toEqual([]);
+      expect(ollamaCalls).toEqual([]);
     });
   });
 
