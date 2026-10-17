@@ -88,12 +88,12 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.locator('#closeSet').click();
   });
 
-  test('with desktop host fixture, the desktop features become available and enabled', async ({ webBrowser, stub }) => {
+  test('with real-shaped desktop host fixture (what exe preload exposes today), Media filesystem/ffmpeg controls stay hidden', async ({ webBrowser, stub }) => {
     const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
     await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
     await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
 
-    // Inject the standard desktop API mock BEFORE any page script runs
+    // Inject the real-shaped desktop API mock matching exe preload-main.js (no Media filesystem methods)
     await context.addInitScript(() => {
       window.makanDesktop = {
         isDesktop: true,
@@ -125,10 +125,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
         getDesktopAudioSource: () => Promise.resolve(null),
         onExecuteScreenTranslation: () => {},
         sendScreenTranslationResponse: () => {},
-        onLoadTranslationInput: () => {},
-        saveNextTo: () => Promise.resolve({ ok: true }),
-        extractAudio: () => Promise.resolve(new Float32Array(0)),
-        ffmpeg: () => Promise.resolve({ ok: true })
+        onLoadTranslationInput: () => {}
       };
     });
 
@@ -143,10 +140,11 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     // 1. Header Screen Translator button is visible in desktop mode
     await expect(page.locator('#btnScreenTrans')).toBeVisible();
 
-    // 2. Settings: Screen Translator block is visible in desktop mode
+    // 2. Settings: Screen reading (OCR) block is visible in desktop mode and test button enabled
     await page.locator('#openSet').click();
     await activateSettingsTab(page, 'ocr');
     await expect(page.locator('#screenTransSettingsBlock')).toBeVisible();
+    await expect(page.locator('#btnTestScreenTrans')).toBeEnabled();
     await page.locator('#closeSet').click();
 
     // 3. Screen tab: banner is hidden and capture button is enabled
@@ -154,14 +152,65 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await expect(page.locator('#screenBrowserBanner')).toBeHidden();
     await expect(page.locator('#tabScreenLaunchBtn')).toBeEnabled();
 
-    // 4. Media tab: save next to file option is visible when cues and file are present in desktop mode
+    // 4. Media tab: with real-shaped desktop (lacks saveNextTo/ffmpeg), controls stay hidden
     await page.locator('#tabs button[data-tab="media"]').click();
     await expect(page.locator('#tab-media')).toBeVisible();
+    await expect(page.locator('.mt-ff')).toBeHidden();
     await page.evaluate(() => {
       const card = document.querySelector('.mt-pv');
-      if (window.MediaTranslate?.preview && card && window.MediaTranslate.host?.desktop) {
+      if (window.MediaTranslate?.preview && card && window.MediaTranslate.host) {
         const pv = window.MediaTranslate.preview.create({ card, host: window.MediaTranslate.host });
         pv.update({
+          visible: true,
+          cues: [{ s: 0, e: 1, o: 'Hello', t: 'سلام' }],
+          file: new File(['audio'], 'clip.mp4', { type: 'video/mp4' }),
+          kind: 'video',
+          version: 1
+        });
+      }
+    });
+    await expect(page.locator('.mt-pv-nextrow')).toBeHidden();
+
+    // 5. Helper-dependent controls available in desktop mode
+    await page.locator('#tabs button[data-tab="sub"]').click();
+    await expect(page.locator('#tab-sub')).toBeVisible();
+    await expect(page.locator('.sub-video-note')).toBeVisible();
+
+    await context.close();
+  });
+
+  test('with full Media desktop contract mock, save next to file option (.mt-pv-nextrow) becomes visible', async ({ webBrowser, stub }) => {
+    const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
+    await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
+    await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
+
+    // Inject desktop mock with Media module contract
+    await context.addInitScript(() => {
+      window.makanDesktop = {
+        isDesktop: true,
+        saveNextTo: () => Promise.resolve({ ok: true }),
+        extractAudio: () => Promise.resolve(new Float32Array(0)),
+        ffmpeg: () => Promise.resolve({ ok: true, path: 'C:\\ffmpeg\\ffmpeg.exe' })
+      };
+    });
+
+    const page = await context.newPage();
+    const errors = [];
+    watchConsole(page, errors);
+    stub.clearLog();
+    stub.resetModes();
+    await page.goto(stub.appUrl);
+    await expect(page.locator('#tabs button').first()).toBeVisible();
+
+    await page.locator('#tabs button[data-tab="media"]').click();
+    await expect(page.locator('#tab-media')).toBeVisible();
+
+    await page.evaluate(() => {
+      const card = document.querySelector('.mt-pv');
+      if (window.MediaTranslate?.preview && card && window.MediaTranslate.host) {
+        const pv = window.MediaTranslate.preview.create({ card, host: window.MediaTranslate.host });
+        pv.update({
+          visible: true,
           cues: [{ s: 0, e: 1, o: 'Hello', t: 'سلام' }],
           file: new File(['audio'], 'clip.mp4', { type: 'video/mp4' }),
           kind: 'video',
@@ -170,11 +219,6 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
       }
     });
     await expect(page.locator('.mt-pv-nextrow')).toBeVisible();
-
-    // 5. Helper-dependent controls available in desktop mode
-    await page.locator('#tabs button[data-tab="sub"]').click();
-    await expect(page.locator('#tab-sub')).toBeVisible();
-    await expect(page.locator('.sub-video-note')).toBeVisible();
 
     await context.close();
   });
