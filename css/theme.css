@@ -241,8 +241,16 @@
 .btn.cta kbd,
 .btn.primary kbd,
 .btn.accent kbd {
-  background: color-mix(in srgb, var(--on-accent) 18%, transparent);
-  border: 1px solid color-mix(in srgb, var(--on-accent) 35%, transparent);
+  background: color-mix(in srgb, var(--accent-dark) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-dark) 70%, transparent);
+  color: var(--on-accent);
+}
+
+[data-theme="royal-amethyst"] .btn.cta kbd,
+[data-theme="royal-amethyst"] .btn.primary kbd,
+[data-theme="royal-amethyst"] .btn.accent kbd {
+  background: color-mix(in srgb, var(--accent-dark) 20%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-dark) 40%, transparent);
   color: var(--on-accent);
 }
 
@@ -262,7 +270,8 @@
 /* makanlab */
 [data-theme="makan-lab"] .btn.cta kbd,
 /* makanlab */
-[data-theme="makan-lab"] .btn.primary kbd {
+[data-theme="makan-lab"] .btn.primary kbd,
+[data-theme="makan-lab"] .btn.accent kbd {
   background: rgba(255, 255, 255, 0.18); /* makanlab */
   border: 1px solid rgba(255, 255, 255, 0.35); /* makanlab */
   color: #FFFFFF; /* makanlab */

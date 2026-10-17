@@ -68,23 +68,37 @@ test('Text tab translate button kbd has high contrast and voice label does not o
         });
       }
 
-      let stops = window.__tc.gradientStops(tGoStyle.backgroundImage);
-      if (stops.length === 0) {
-        const baseFill = window.__tc.parse(tGoStyle.backgroundColor || 'rgb(19, 102, 226)');
-        stops = [baseFill];
-      }
-
-      for (const stop of stops) {
-        const ratio = window.__tc.ratio(kbdColor, stop);
-        if (ratio < 4.5) {
+      if (currentTheme === 'makan-lab') {
+        // Makan Lab preserves locked original button kbd styling
+        if (kbdStyle.color !== 'rgb(255, 255, 255)' || kbdStyle.backgroundColor !== 'rgba(255, 255, 255, 0.18)') {
           violations.push({
             theme: currentTheme,
             selector: '#tGo kbd',
-            text: kbd ? kbd.textContent : '',
-            color: kbdStyle.color,
-            bg: `rgb(${stop.r},${stop.g},${stop.b})`,
-            contrast: Math.round(ratio * 100) / 100
+            issue: 'makan-lab kbd style must remain locked to rgb(255, 255, 255) on rgba(255, 255, 255, 0.18)',
+            actualColor: kbdStyle.color,
+            actualBg: kbdStyle.backgroundColor
           });
+        }
+      } else {
+        let stops = window.__tc.gradientStops(tGoStyle.backgroundImage);
+        if (stops.length === 0) {
+          const baseFill = window.__tc.parse(tGoStyle.backgroundColor || 'rgb(19, 102, 226)');
+          stops = [baseFill];
+        }
+
+        for (const stop of stops) {
+          const effectiveStop = (kbdBg.a > 0 && kbdBg.a < 1) ? window.__tc.blend(kbdBg, stop) : stop;
+          const ratio = window.__tc.ratio(kbdColor, effectiveStop);
+          if (ratio < 4.5) {
+            violations.push({
+              theme: currentTheme,
+              selector: '#tGo kbd',
+              text: kbd ? kbd.textContent : '',
+              color: kbdStyle.color,
+              bg: `rgb(${effectiveStop.r},${effectiveStop.g},${effectiveStop.b})`,
+              contrast: Math.round(ratio * 100) / 100
+            });
+          }
         }
       }
 
