@@ -30,6 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblDefaultTgt: 'Default Target Language:',
       lblDefaultTone: 'Default Translation Tone:',
       lblAppUrl: 'App address:',
+      helpAppUrl: 'Only ports 50505 (desktop app) and 8080 (web app) on localhost / 127.0.0.1 are allowed.',
       lblWebAppUrl: 'Web App URL:',
       lblDictLookup: 'Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)',
       secEngines: 'Translation Engines & Keys',
@@ -80,6 +81,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblDefaultTgt: 'زبان مقصد پیش‌فرض:',
       lblDefaultTone: 'لحن پیش‌فرض ترجمه:',
       lblAppUrl: 'آدرس برنامه ویندوز (App address):',
+      helpAppUrl: 'فقط پورت‌های ۵۰۵۰۵ (برنامه دسکتاپ) و ۸۰۸۰ (نسخه وب) روی localhost / 127.0.0.1 مجاز هستند.',
       lblWebAppUrl: 'آدرس وب‌اپلیکیشن:',
       lblDictLookup: 'فعال‌سازی حالت دیکشنری با دوبار کلیک روی کلمه (تلفظ، معانی و مثال با هوش مصنوعی)',
       secEngines: 'موتورهای ترجمه و کلیدها',
@@ -299,6 +301,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     lblDefaultTgt.textContent = I18N[lang].lblDefaultTgt;
     lblDefaultTone.textContent = I18N[lang].lblDefaultTone;
     if (lblAppUrl) lblAppUrl.textContent = I18N[lang].lblAppUrl;
+    const helpAppUrl = document.getElementById('helpAppUrl');
+    if (helpAppUrl) helpAppUrl.textContent = I18N[lang].helpAppUrl;
     lblWebAppUrl.textContent = I18N[lang].lblWebAppUrl;
     lblDictLookup.textContent = I18N[lang].lblDictLookup;
     secEngines.textContent = I18N[lang].secEngines;
@@ -490,7 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const typed = txtAppUrl.value.trim() || 'http://127.0.0.1:50505';
       if (!isAllowListedLocalAddress(typed)) {
         txtAppUrl.value = cfg.appUrl || 'http://127.0.0.1:50505';
-        toast('App address must be an allow-listed local address (127.0.0.1 / localhost with fixed ports)', 'warn');
+        toast('App address must use an allowed port (50505 or 8080) on 127.0.0.1 or localhost', 'warn');
         return;
       }
       cfg.appUrl = new URL(typed).origin;

@@ -113,7 +113,7 @@ const isStr = v => typeof v === 'string';
 
 // Strict local allow-list for app addresses (127.0.0.1 / localhost with fixed ports)
 const ALLOWED_LOCAL_HOSTS = new Set(['127.0.0.1', 'localhost', '[::1]']);
-const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080', '8888', '3000', '8000', '5173']);
+const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080']);
 
 function isAllowListedLocalAddress(u) {
   if (!u || typeof u !== 'string') return false;
@@ -135,6 +135,13 @@ function safeHttpUrl(u, fallback) {
 }
 
 function safeAppUrl(u, fallback = 'http://127.0.0.1:50505') {
+  if (isAllowListedLocalAddress(u)) {
+    try { return new URL(String(u).trim()).origin; } catch {}
+  }
+  return fallback;
+}
+
+function safeWebAppUrl(u, fallback = 'http://localhost:8080') {
   if (isAllowListedLocalAddress(u)) {
     try { return new URL(String(u).trim()).origin; } catch {}
   }
@@ -233,7 +240,7 @@ function sanitizeConfig(raw, previous) {
   cfg.trigger = pick(src.trigger, v => ['auto', 'alt', 'never'].includes(v), 'trigger');
   cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
-  cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
+  cfg.webAppUrl = safeWebAppUrl(src.webAppUrl, safeWebAppUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
   cfg.appUrl = safeAppUrl(src.appUrl, safeAppUrl(prev.appUrl, DEFAULT_CFG.appUrl));
   cfg.edgeHintOff = src.edgeHintOff === true;
   cfg.showVulgar = src.showVulgar === true;
@@ -1628,6 +1635,7 @@ if (root) {
   root.ALLOWED_LOCAL_PORTS = ALLOWED_LOCAL_PORTS;
   root.isAllowListedLocalAddress = isAllowListedLocalAddress;
   root.safeAppUrl = safeAppUrl;
+  root.safeWebAppUrl = safeWebAppUrl;
   root.isAllowedAppUrl = isAllowedAppUrl;
   root.checkAddressReachable = checkAddressReachable;
   root.chooseAppAddress = chooseAppAddress;
