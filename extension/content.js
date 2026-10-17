@@ -121,9 +121,17 @@
     if (n) n.textContent = label ? 'Voice: ' + label : '';
   }
   // text: one plain line. retry: a function (shows a Retry button), onClose: called when the user dismisses it.
-  function showVoiceNotice(container, text, retry, onClose) {
+  function showVoiceNotice(container, text, retry, onClose, isError = false) {
+    if (!container) return;
+    if (!isError) {
+      const existing = container.querySelector('.makan-voice-notice');
+      if (existing && (existing.dataset.kind === 'error' || existing.querySelector('.makan-voice-retry:not([title="Dismiss"])') || (existing.textContent && !existing.textContent.startsWith('Microsoft Edge')))) {
+        return;
+      }
+    }
     const n = voiceLine(container, 'notice');
     if (!n) return;
+    n.dataset.kind = isError ? 'error' : 'hint';
     n.replaceChildren();
     const msg = document.createElement('span');
     msg.textContent = text;
@@ -144,7 +152,7 @@
     n.style.display = 'block';
   }
   function speakFailure(container, rawError, retry) {
-    showVoiceNotice(container, 'Gemini voice: ' + plainFailure(rawError), retry);
+    showVoiceNotice(container, 'Gemini voice: ' + plainFailure(rawError), retry, null, true);
   }
 
   async function handleSpeakClick(text, lang, btn, noticeContainer) {
@@ -208,9 +216,9 @@
         heldStates = [];
         for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
         // No device voice for this language, so Gemini was chosen automatically: say once that Edge has natural voices.
-        if (isAudioPlaying && !voice && !isEdgeBrowser && !cfg?.edgeHintOff && (!noticeContainer || !noticeContainer.querySelector('.makan-voice-notice span'))) {
+        if (isAudioPlaying && !voice && !isEdgeBrowser && !cfg?.edgeHintOff) {
           showVoiceNotice(noticeContainer, 'Microsoft Edge has built-in natural voices for this language.', null,
-            () => { cfg.edgeHintOff = true; askBackground({ action: 'dismiss-edge-hint' }); });
+            () => { cfg.edgeHintOff = true; askBackground({ action: 'dismiss-edge-hint' }); }, false);
         }
         // Playing via background offscreen or background page
         const monitorInterval = setInterval(() => {
@@ -233,7 +241,7 @@
           const msg = typeof getNoVoiceMessage === 'function'
             ? getNoVoiceMessage(lang, cfg?.ui || 'en')
             : `No voice installed for ${lang}. Add voice in Windows settings or configure Gemini API key in MAKAN Options.`;
-          showVoiceNotice(noticeContainer, msg + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''));
+          showVoiceNotice(noticeContainer, msg + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''), null, null, true);
         } else {
           speakFailure(noticeContainer, ttsRes?.error, retrySpeak);
         }

@@ -659,17 +659,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     const oldNotice = pOutputWrap.querySelector('.p-voice-notice');
     if (oldNotice) oldNotice.remove();
     const retrySpeak = () => pSpeakBtn.onclick();
-    popupLastSpeak = { token, fail: err => notify('Gemini voice: ' + plainFailure(err), retrySpeak) };
-    const isEdgeBrowser = /\bEdg\//.test(navigator.userAgent || '');
-    const usedLine = label => {
-      let u = pOutputWrap.querySelector('.p-voice-used');
-      if (!u) { u = document.createElement('div'); u.className = 'p-voice-used'; pOutputWrap.appendChild(u); }
-      u.textContent = label ? 'Voice: ' + label : '';
+    const hasVisibleErrorNotice = () => {
+      const notices = pOutputWrap.querySelectorAll('.p-voice-notice');
+      for (const n of notices) {
+        if (n.dataset.kind === 'error' || n.querySelector('.p-voice-retry:not([title="Dismiss"])') || (n.textContent && !n.textContent.startsWith('Microsoft Edge'))) {
+          return true;
+        }
+      }
+      return false;
     };
+
     // text: one plain line; retry: shows a Retry button; onClose: called when dismissed.
-    const notify = (text, retry, onClose) => {
+    const notify = (text, retry, onClose, isError = false) => {
+      if (!isError) {
+        if (hasVisibleErrorNotice()) return null;
+      }
+      pOutputWrap.querySelectorAll('.p-voice-notice').forEach(n => n.remove());
+
       const n = document.createElement('div');
       n.className = 'p-voice-notice';
+      n.dataset.kind = isError ? 'error' : 'hint';
       const m = document.createElement('span');
       m.textContent = text;
       n.appendChild(m);
@@ -687,6 +696,15 @@ document.addEventListener('DOMContentLoaded', async () => {
       x.onclick = () => { n.remove(); if (onClose) onClose(); };
       n.appendChild(x);
       pOutputWrap.appendChild(n);
+      return n;
+    };
+
+    popupLastSpeak = { token, fail: err => notify('Gemini voice: ' + plainFailure(err), retrySpeak, null, true) };
+    const isEdgeBrowser = /\bEdg\//.test(navigator.userAgent || '');
+    const usedLine = label => {
+      let u = pOutputWrap.querySelector('.p-voice-used');
+      if (!u) { u = document.createElement('div'); u.className = 'p-voice-used'; pOutputWrap.appendChild(u); }
+      u.textContent = label ? 'Voice: ' + label : '';
     };
 
     if (preferGemini || !voice) {
@@ -722,13 +740,13 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
           }
         }
-        if (isPopupSpeaking && !voice && !isEdgeBrowser && !cfg.edgeHintOff && (!pOutputWrap || !pOutputWrap.querySelector('.p-voice-notice'))) {
+        if (isPopupSpeaking && !voice && !isEdgeBrowser && !cfg.edgeHintOff) {
           notify('Microsoft Edge has built-in natural voices for this language.', null, () => {
             cfg.edgeHintOff = true;
             chrome.runtime.sendMessage({ action: 'dismiss-edge-hint' }).catch(() => {});
-          });
+          }, false);
         }
-                const check = setInterval(() => {
+        const check = setInterval(() => {
           if (token !== pSpeakToken) {
             clearInterval(check);
             cleanup();
@@ -746,9 +764,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (/not configured|key missing/i.test(String(ttsRes?.error || ''))) {
           notify((typeof getNoVoiceMessage === 'function'
             ? getNoVoiceMessage(targetLang, currentUi)
-            : `No voice installed for ${targetLang}. Configure Gemini API key in Options for AI voice.`) + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''));
+            : `No voice installed for ${targetLang}. Configure Gemini API key in Options for AI voice.`) + (!isEdgeBrowser ? ' Microsoft Edge has built-in natural voices for this language.' : ''), null, null, true);
         } else {
-          notify('Gemini voice: ' + plainFailure(ttsRes?.error), retrySpeak);
+          notify('Gemini voice: ' + plainFailure(ttsRes?.error), retrySpeak, null, true);
         }
         return;
       }
