@@ -230,6 +230,14 @@ Subtitle, Document, Compare and the Voice tab all use the same
    then asks it to open the card. If injecting is impossible, a small notice
    is shown on the page.
 6. The popup and the options page talk to `background.js` the same way.
+7. **Open in App (desktop app bridge)**: When "Open in App" is clicked in
+   the card or popup, `background.js` checks if the MAKAN Translate desktop app
+   is running by sending a `POST http://127.0.0.1:50505/__makan/ping` with the
+   trust header `X-Makan-Open: 1`. If the desktop app answers (HTTP 200 with
+   JSON `{"app":"makan-translate","v":1}`), the extension sends
+   `POST /__makan/open` with the text and language pair to bring the desktop app
+   window forward. If the desktop app is not running or the ping check is
+   rejected, the extension falls back to opening the web app in a browser tab.
 
 ## 4. Where settings and keys are stored
 
