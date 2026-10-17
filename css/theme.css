@@ -3791,7 +3791,7 @@ html[dir="rtl"] .bub-orig-text {
 .ptt-subtext {
   font-family: var(--mono, monospace);
   font-size: 11px;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
   margin-top: 8px;
   line-height: 1.3;
   text-align: center;
@@ -3801,6 +3801,20 @@ html[dir="rtl"] .bub-orig-text {
   display: flex;
   align-items: center;
   justify-content: center;
+}
+
+.ptt-subtext kbd {
+  color: var(--text);
+}
+
+[data-theme="platinum-blue"] .v-auto-engines .v-eng-pill strong,
+[data-theme="champagne-minimal"] .v-auto-engines .v-eng-pill strong {
+  color: var(--accent-dark);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-subtext {
+  color: var(--muted, #94a3b8);
 }
 
 .v-space-hint,
