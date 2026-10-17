@@ -177,7 +177,7 @@
   border: 1px solid var(--accent, #08a8ff);
   border-radius: 10px;
   background: var(--accent, #08a8ff);
-  color: var(--bg, #040914);
+  color: var(--on-accent, var(--bg, #040914));
   font: inherit;
   cursor: pointer;
 }
