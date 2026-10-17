@@ -9,6 +9,7 @@
     "test:ext": "node tests/run-all.js --only=ext",
     "test:firefox": "node tests/run-all.js --only=firefox",
     "build": "node build-manifests.js",
+    "build:web": "node tools/build-web.js",
     "start": "npm start --prefix \"../exe translator\"",
     "app": "npm start --prefix \"../exe translator\"",
     "build:exe": "npm run build:win --prefix \"../exe translator\"",
