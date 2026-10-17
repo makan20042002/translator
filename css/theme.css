@@ -1777,8 +1777,8 @@ html[lang="fa"] .sub-page-title {
 }
 
 .sub-entry-card {
-  background: var(--surface-card, #091428);
-  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  background: var(--surface);
+  border: 1px solid var(--border2);
   border-radius: var(--r-m, 14px);
   padding: 32px 20px;
   box-sizing: border-box;
@@ -1794,15 +1794,16 @@ html[lang="fa"] .sub-page-title {
 }
 
 .sub-entry-card-drop {
-  border: 2px dashed rgba(56, 189, 248, 0.35);
+  border: 2px dashed color-mix(in srgb, var(--accent) 40%, transparent);
   cursor: pointer;
-  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.08) 0%, rgba(9, 20, 40, 0.95) 70%);
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--accent) 10%, var(--surface)) 0%, var(--surface) 70%);
+  box-shadow: 0 4px 20px color-mix(in srgb, var(--text) 6%, transparent);
 }
 .sub-entry-card-drop:hover, .sub-entry-card-drop.over {
-  border-color: var(--accent, #38bdf8);
-  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.16) 0%, rgba(9, 20, 40, 0.95) 70%);
+  border-color: var(--accent);
+  background: radial-gradient(circle at 50% 30%, color-mix(in srgb, var(--accent) 16%, var(--surface)) 0%, var(--surface) 70%);
   transform: translateY(-2px);
-  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35);
+  box-shadow: 0 12px 30px color-mix(in srgb, var(--accent) 25%, transparent);
 }
 
 .sub-card-icon-wrap {
@@ -1813,17 +1814,22 @@ html[lang="fa"] .sub-page-title {
   align-items: center;
   justify-content: center;
   margin-block-end: 16px;
-  background: rgba(56, 189, 248, 0.1);
-  color: var(--accent, #38bdf8);
-  border: 1px solid rgba(56, 189, 248, 0.25);
-  box-shadow: 0 0 24px rgba(56, 189, 248, 0.15);
+  background: color-mix(in srgb, var(--accent) 12%, var(--surface));
+  color: var(--accent);
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+  box-shadow: 0 0 24px color-mix(in srgb, var(--accent) 15%, transparent);
+}
+
+[data-theme="platinum-blue"] .sub-card-icon-wrap,
+[data-theme="champagne-minimal"] .sub-card-icon-wrap {
+  color: var(--accent-dark);
 }
 
 .sub-entry-card strong {
   font-family: var(--display, 'Plus Jakarta Sans', system-ui);
   font-size: 18px;
   font-weight: 700;
-  color: var(--text, #fff);
+  color: var(--text);
   margin-block-end: 6px;
   display: block;
   max-width: 100%;
@@ -1837,7 +1843,7 @@ html[lang="fa"] .sub-entry-card strong {
 
 .sub-entry-card .hint {
   font-size: 13px;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
   max-width: 100%;
   word-break: break-word;
   overflow-wrap: break-word;
@@ -1857,20 +1863,24 @@ html[lang="fa"] .sub-entry-card strong {
   letter-spacing: 0.06em;
   padding: 3px 10px;
   border-radius: 6px;
-  background: rgba(56, 189, 248, 0.12);
-  color: var(--cyan, #38bdf8);
-  border: 1px solid rgba(56, 189, 248, 0.3);
+  background: color-mix(in srgb, var(--accent) 10%, var(--surface));
+  color: color-mix(in srgb, var(--accent) 55%, var(--text));
+  border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+[data-theme="platinum-blue"] .sub-chip,
+[data-theme="champagne-minimal"] .sub-chip {
+  color: var(--accent-dark);
 }
 
 .sub-entry-card-video {
-  border: 1px dashed var(--border2, rgba(28, 64, 118, 0.45));
-  background: rgba(9, 20, 40, 0.55);
-  opacity: 0.78;
+  border: 1px dashed var(--border2);
+  background: var(--surface2);
 }
 .sub-card-icon-video {
-  background: rgba(148, 163, 184, 0.08);
-  color: var(--muted, #94a3b8);
-  border-color: rgba(148, 163, 184, 0.2);
+  background: color-mix(in srgb, var(--text) 6%, transparent);
+  color: var(--muted);
+  border: 1px solid var(--border);
   box-shadow: none;
 }
 .sub-video-content {
@@ -1892,14 +1902,14 @@ html[lang="fa"] .sub-entry-card strong {
   font-weight: 700;
   padding: 2px 8px;
   border-radius: 999px;
-  background: rgba(255, 180, 74, 0.12);
-  color: var(--warn, #f59e0b);
-  border: 1px solid rgba(255, 180, 74, 0.3);
+  background: color-mix(in srgb, var(--warn) 12%, var(--surface));
+  color: var(--warn);
+  border: 1px solid color-mix(in srgb, var(--warn) 30%, transparent);
 }
 .sub-video-note {
   margin: 0;
   font-size: 12.5px;
-  color: var(--faint, #64748b);
+  color: var(--muted);
   max-width: 100%;
   word-break: break-word;
 }
@@ -1909,6 +1919,69 @@ html[lang="fa"] .sub-entry-card strong {
   cursor: not-allowed;
   pointer-events: none;
   font-size: 12.5px;
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card {
+  background: var(--surface-card, #091428); /* makanlab */
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45)); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card-drop {
+  border: 2px dashed rgba(56, 189, 248, 0.35); /* makanlab */
+  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.08) 0%, rgba(9, 20, 40, 0.95) 70%); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card-drop:hover,
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card-drop.over {
+  border-color: var(--accent, #38bdf8); /* makanlab */
+  background: radial-gradient(circle at 50% 30%, rgba(14, 165, 233, 0.16) 0%, rgba(9, 20, 40, 0.95) 70%); /* makanlab */
+  box-shadow: 0 12px 30px rgba(0, 0, 0, 0.35); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-card-icon-wrap {
+  background: rgba(56, 189, 248, 0.1); /* makanlab */
+  color: var(--accent, #38bdf8); /* makanlab */
+  border: 1px solid rgba(56, 189, 248, 0.25); /* makanlab */
+  box-shadow: 0 0 24px rgba(56, 189, 248, 0.15); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card strong {
+  color: var(--text, #fff); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card .hint {
+  color: var(--muted, #94a3b8); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-chip {
+  background: rgba(56, 189, 248, 0.12); /* makanlab */
+  color: var(--cyan, #38bdf8); /* makanlab */
+  border: 1px solid rgba(56, 189, 248, 0.3); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-entry-card-video {
+  border: 1px dashed var(--border2, rgba(28, 64, 118, 0.45)); /* makanlab */
+  background: rgba(9, 20, 40, 0.55); /* makanlab */
+  opacity: 0.78;
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-card-icon-video {
+  background: rgba(148, 163, 184, 0.08); /* makanlab */
+  color: var(--muted, #94a3b8); /* makanlab */
+  border-color: rgba(148, 163, 184, 0.2); /* makanlab */
+  box-shadow: none;
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-coming-soon-badge {
+  background: rgba(255, 180, 74, 0.12); /* makanlab */
+  color: var(--warn, #f59e0b); /* makanlab */
+  border: 1px solid rgba(255, 180, 74, 0.3); /* makanlab */
+}
+/* makanlab */
+[data-theme="makan-lab"] .sub-video-note {
+  color: var(--faint, #64748b); /* makanlab */
 }
 
 /* ==================== SUBTITLE FILE BAR (ITEM 2) ==================== */
