@@ -294,7 +294,10 @@ function mcRender(){
   if(speak.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpSpeak'))}</div>`+speak.map(mcRow).join('');
   const ocr=by('ocr');
   if(ocr.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpOcr')||(ui==='fa'?'خوانش تصویر و صفحه (OCR)':'OCR & Screen Reading'))}</div>`+ocr.map(mcRow).join('');
-  box.innerHTML=h;
+  if(box._lastHtml!==h){
+    box.innerHTML=h;
+    box._lastHtml=h;
+  }
   // total storage used by the models listed here
   const mine=MC.models.filter(m=>mcBytes(m)>0);
   const total=mine.reduce((a,m)=>a+mcBytes(m),0);
