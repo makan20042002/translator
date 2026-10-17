@@ -92,7 +92,7 @@ async function getAsr(spec, forceWasm, id) {
     try {
       const pipe = await lib.pipeline('automatic-speech-recognition', gpuRepo(spec), {
         device: 'webgpu',
-        dtype: spec.gpu,
+        dtype: typeof spec.gpu === 'boolean' ? 'fp32' : spec.gpu,
         progress_callback: onProgress
       });
       loaded[key] = pipe;

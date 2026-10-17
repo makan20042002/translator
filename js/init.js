@@ -8,6 +8,34 @@ function onMediaLanguageChange() {
   }
 }
 
+function isMediaWebGpuAvailable() {
+  if (typeof navigator === 'undefined' || !('gpu' in navigator) || !navigator.gpu) return false;
+  if (typeof hasWebGpu === 'boolean' && !hasWebGpu) return false;
+  return true;
+}
+
+function getMediaWhisperGpu(m) {
+  if (!isMediaWebGpuAvailable()) return false;
+  if (!m) return false;
+  if (!m.gpu && m.webgpu !== 'optional') return false;
+
+  const mKey = m.key || (typeof asrModel === 'function' ? asrModel()?.key : 'base');
+  const wasmVal = (typeof store !== 'undefined') ? store.get('whisper_wasm', '') : '';
+  const webgpuVal = (typeof store !== 'undefined') ? store.get('whisper_webgpu', '') : '';
+
+  if (wasmVal === mKey || wasmVal === true || wasmVal === '1') {
+    if (webgpuVal !== mKey && webgpuVal !== true) return false;
+  }
+  if (webgpuVal === mKey || webgpuVal === true || webgpuVal === '1') {
+    return true;
+  }
+  if (typeof cfg !== 'undefined') {
+    if (cfg.whisperDevice === 'wasm' || cfg.whisperDevice === 'cpu' || cfg.whisper_webgpu === false) return false;
+    if (cfg.whisperDevice === 'webgpu' || cfg.whisper_webgpu === true) return true;
+  }
+  return Boolean(m.gpu || m.webgpu === 'optional');
+}
+
 function getMediaWhisperChoice() {
   const m = (typeof asrModel === 'function') ? asrModel() : null;
   if (!m) return null;
@@ -16,7 +44,7 @@ function getMediaWhisperChoice() {
     name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
     memMB: m.memMB || 1000,
     ready: (typeof mcReady === 'function') ? mcReady(m) : false,
-    gpu: m.gpu
+    gpu: getMediaWhisperGpu(m)
   };
 }
 
@@ -208,7 +236,21 @@ function ensureMediaMounted() {
       if (btn) btn.click();
     },
     translateCues: mediaTranslateCues,
-    getTranslateChoice: getMediaTranslateChoice
+    getTranslateChoice: getMediaTranslateChoice,
+    loadSubtitleStyle: () => {
+      try {
+        return (typeof store !== 'undefined') ? store.get('media_subtitle_style', null) : null;
+      } catch (e) {
+        return null;
+      }
+    },
+    saveSubtitleStyle: style => {
+      try {
+        if (typeof store !== 'undefined' && style && typeof style === 'object') {
+          store.set('media_subtitle_style', style);
+        }
+      } catch (e) {}
+    }
   };
   window.MediaTranslate.host = host;
   mediaMounting = window.MediaTranslate.mount(root, host).then(h => {
