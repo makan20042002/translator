@@ -724,7 +724,7 @@ document.addEventListener('DOMContentLoaded', async () => {
             return;
           }
         }
-        if (!voice && !isEdgeBrowser && !cfg.edgeHintOff) {
+        if (isPopupSpeaking && !voice && !isEdgeBrowser && !cfg.edgeHintOff && (!pOutputWrap || !pOutputWrap.querySelector('.p-voice-notice'))) {
           notify('Microsoft Edge has built-in natural voices for this language.', null, () => {
             cfg.edgeHintOff = true;
             chrome.runtime.sendMessage({ action: 'dismiss-edge-hint' }).catch(() => {});

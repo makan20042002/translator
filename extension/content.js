@@ -208,7 +208,7 @@
         heldStates = [];
         for (const st of held) if (speakBackendToken !== null && st.token === speakBackendToken) applyTtsState(st);
         // No device voice for this language, so Gemini was chosen automatically: say once that Edge has natural voices.
-        if (!voice && !isEdgeBrowser && !cfg?.edgeHintOff) {
+        if (isAudioPlaying && !voice && !isEdgeBrowser && !cfg?.edgeHintOff && (!noticeContainer || !noticeContainer.querySelector('.makan-voice-notice span'))) {
           showVoiceNotice(noticeContainer, 'Microsoft Edge has built-in natural voices for this language.', null,
             () => { cfg.edgeHintOff = true; askBackground({ action: 'dismiss-edge-hint' }); });
         }
