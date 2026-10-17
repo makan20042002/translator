@@ -3,10 +3,22 @@ function initScreenWebUI() {
   const tabScreen = $('tab-screen');
   if (!tabScreen) return;
 
+  const isDesktop = !!(window.makanDesktop?.isDesktop);
+
   // Browser banner visibility
   const browserBanner = $('screenBrowserBanner');
   if (browserBanner) {
-    browserBanner.hidden = !!(window.makanDesktop?.isDesktop);
+    browserBanner.hidden = isDesktop;
+  }
+
+  const launchBtn = $('tabScreenLaunchBtn');
+  if (launchBtn) {
+    launchBtn.disabled = !isDesktop;
+    if (!isDesktop) {
+      launchBtn.setAttribute('title', L('screenBrowserNotice'));
+    } else {
+      launchBtn.removeAttribute('title');
+    }
   }
 
   // Populate language dropdowns
@@ -281,6 +293,11 @@ if (document.readyState === 'loading') {
   const stSettingsBlock = $('screenTransSettingsBlock');
   if (btnScreen) btnScreen.style.display = 'inline-flex';
   if (stSettingsBlock) stSettingsBlock.hidden = false;
+  const launchBtn = $('tabScreenLaunchBtn');
+  if (launchBtn) {
+    launchBtn.disabled = false;
+    launchBtn.removeAttribute('title');
+  }
 
   btnScreen?.addEventListener('click', () => {
     if (typeof window.closeSettings === 'function') window.closeSettings();
