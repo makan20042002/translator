@@ -7,7 +7,6 @@ const {
   isAllowedAppUrl,
   sanitizeConfig,
   safeAppUrl,
-  safeWebAppUrl,
   DEFAULT_CFG
 } = require('../../extension/engine');
 
@@ -39,30 +38,37 @@ test.describe('Extension: Allowed local ports restriction', () => {
     expect(isAllowedAppUrl('http://localhost:3000')).toBe(false);
   });
 
-  test('sanitizeConfig falls back to default if removed port is used', () => {
-    // When raw input specifies removed port 3000
-    const cfg = sanitizeConfig({ appUrl: 'http://localhost:3000', webAppUrl: 'http://localhost:8888' });
+  test('sanitizeConfig restricts appUrl to allowed ports and keeps webAppUrl flexible', () => {
+    // When raw input specifies removed port 3000 for appUrl
+    const cfg = sanitizeConfig({ appUrl: 'http://localhost:3000' });
     expect(cfg.appUrl).toBe('http://127.0.0.1:50505');
-    expect(cfg.webAppUrl).toBe('http://localhost:8080');
 
-    // When previous stored config had removed ports, it still falls back to default
+    // When previous stored config had removed port for appUrl, it falls back to default
     const prevWithOldPorts = {
       ...DEFAULT_CFG,
-      appUrl: 'http://127.0.0.1:3000',
-      webAppUrl: 'http://localhost:8000'
+      appUrl: 'http://127.0.0.1:3000'
     };
     const sanitized = sanitizeConfig({}, prevWithOldPorts);
     expect(sanitized.appUrl).toBe('http://127.0.0.1:50505');
-    expect(sanitized.webAppUrl).toBe('http://localhost:8080');
 
-    // Valid ports 50505 and 8080 are retained
-    const valid = sanitizeConfig({ appUrl: 'http://localhost:50505', webAppUrl: 'http://127.0.0.1:8080' });
+    // Valid ports 50505 and 8080 are retained for appUrl
+    const valid = sanitizeConfig({ appUrl: 'http://localhost:50505' });
     expect(valid.appUrl).toBe('http://localhost:50505');
-    expect(valid.webAppUrl).toBe('http://127.0.0.1:8080');
+
+    // webAppUrl allows hosted and arbitrary local ports, rejecting invalid protocols
+    const webHosted = sanitizeConfig({ webAppUrl: 'https://makanlab.tech' });
+    expect(webHosted.webAppUrl).toBe('https://makanlab.tech');
+
+    const webCustomPort = sanitizeConfig({ webAppUrl: 'http://localhost:9999' });
+    expect(webCustomPort.webAppUrl).toBe('http://localhost:9999');
+
+    const webInvalid = sanitizeConfig({ webAppUrl: 'javascript:alert(1)' });
+    expect(webInvalid.webAppUrl).toBe(DEFAULT_CFG.webAppUrl);
   });
 
   test('Options page renders help text for allowed ports in EN and FA', async ({ ext }) => {
-    const page = await ext.openOptions();
+    const page = await ext.context.newPage();
+    await page.goto(ext.url('options.html'));
     const help = page.locator('#helpAppUrl');
     await expect(help).toBeVisible();
     await expect(help).toContainText('50505');

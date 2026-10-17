@@ -494,7 +494,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       const typed = txtAppUrl.value.trim() || 'http://127.0.0.1:50505';
       if (!isAllowListedLocalAddress(typed)) {
         txtAppUrl.value = cfg.appUrl || 'http://127.0.0.1:50505';
-        toast('App address must use an allowed port (50505 or 8080) on 127.0.0.1 or localhost', 'warn');
+        toast('App address must be an allow-listed local address (127.0.0.1 or localhost, port 50505 or 8080)', 'warn');
         return;
       }
       cfg.appUrl = new URL(typed).origin;

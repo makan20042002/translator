@@ -26,8 +26,6 @@ test.describe('Extension: Open in App address choice and allow-list logic', () =
     expect(isAllowListedLocalAddress('http://localhost:8080')).toBe(true);
     expect(isAllowListedLocalAddress('http://127.0.0.1:8080')).toBe(true);
     expect(isAllowListedLocalAddress('http://localhost:50505')).toBe(true);
-    expect(isAllowListedLocalAddress('http://127.0.0.1:8888')).toBe(true);
-    expect(isAllowListedLocalAddress('http://localhost:3000')).toBe(true);
     expect(isAllowListedLocalAddress('http://[::1]:50505')).toBe(true);
     expect(isAllowListedLocalAddress('http://127.0.0.1:50505/some/subpath')).toBe(true);
 
@@ -38,6 +36,9 @@ test.describe('Extension: Open in App address choice and allow-list logic', () =
     expect(isAllowListedLocalAddress('http://10.0.0.1:8080')).toBe(false);
 
     // Reject unauthorized or arbitrary ports
+    // removed ports: owner decision 2026-10-17
+    expect(isAllowListedLocalAddress('http://127.0.0.1:8888')).toBe(false);
+    expect(isAllowListedLocalAddress('http://localhost:3000')).toBe(false);
     expect(isAllowListedLocalAddress('http://127.0.0.1:22')).toBe(false);
     expect(isAllowListedLocalAddress('http://localhost:21')).toBe(false);
     expect(isAllowListedLocalAddress('http://127.0.0.1:25')).toBe(false);
