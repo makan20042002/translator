@@ -3,8 +3,8 @@
 const { test, expect, mouseClick } = require('../support/fixtures');
 
 test.describe('Web app: Voice tab working timeout scaling', () => {
-  test('voiceWorkingLimitMs calculates correct timeout for various text lengths', async ({ page }) => {
-    await page.goto('/');
+  test('voiceWorkingLimitMs calculates correct timeout for various text lengths', async ({ app }) => {
+    const { page } = app;
     const results = await page.evaluate(() => {
       const fn = window.voiceWorkingLimitMs;
       return {
@@ -29,15 +29,16 @@ test.describe('Web app: Voice tab working timeout scaling', () => {
     expect(results.len100000).toBe(90000);
   });
 
-  test('Voice tab stays in working state at 25s for 2000 chars and shows "Still translating…"', async ({ page }) => {
+  test('Voice tab stays in working state at 25s for 2000 chars and shows "Still translating…"', async ({ app }) => {
+    const { page } = app;
     await page.clock.install();
-    await page.goto('/');
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
 
     await page.evaluate(() => {
       // Simulate initiating working state with long text limit (65000 ms)
       const limit = window.voiceWorkingLimitMs(2000);
-      window.setVoiceState('working', 'Translating…', limit);
+      setVoiceState('working', 'Translating…');
+      armWorking(limit);
     });
 
     const statusLine = page.locator('#vStatusLine');
@@ -49,7 +50,7 @@ test.describe('Web app: Voice tab working timeout scaling', () => {
     // Advance clock past 20s (e.g. 21s)
     await page.clock.fastForward(21000);
 
-    // Should remain in working state, not error, and show "Still translating…"
+    // Should remain in working state, not ready, and show "Still translating…"
     await expect(statusLine).toHaveAttribute('data-state', 'working');
     await expect(statusText).toContainText('Still translating');
 
@@ -63,30 +64,28 @@ test.describe('Web app: Voice tab working timeout scaling', () => {
     });
     await expect(statusLine).toHaveAttribute('data-state', 'working');
 
-    // Advance to limit (65s total from rearm) -> should timeout and go to error
+    // Advance past limit (65s total from rearm) -> should timeout and return to ready
     await page.clock.fastForward(66000);
-    await expect(statusLine).toHaveAttribute('data-state', 'error');
-    await expect(statusText).toContainText('timed out');
+    await expect(statusLine).toHaveAttribute('data-state', 'ready');
   });
 
-  test('Voice tab times out at 20s for short text', async ({ page }) => {
+  test('Voice tab times out at 20s for short text', async ({ app }) => {
+    const { page } = app;
     await page.clock.install();
-    await page.goto('/');
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
 
     await page.evaluate(() => {
       const limit = window.voiceWorkingLimitMs(50); // 20000 ms
-      window.setVoiceState('working', 'Translating…', limit);
+      setVoiceState('working', 'Translating…');
+      armWorking(limit);
     });
 
     const statusLine = page.locator('#vStatusLine');
-    const statusText = page.locator('#vStatusText');
 
     await expect(statusLine).toHaveAttribute('data-state', 'working');
 
-    // Advance 21 seconds -> exceeds 20s limit
+    // Advance 21 seconds -> exceeds 20s limit -> times out and returns to ready
     await page.clock.fastForward(21000);
-    await expect(statusLine).toHaveAttribute('data-state', 'error');
-    await expect(statusText).toContainText('timed out');
+    await expect(statusLine).toHaveAttribute('data-state', 'ready');
   });
 });
