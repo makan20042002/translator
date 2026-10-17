@@ -33,6 +33,7 @@ test('subtitle entry cards meet contrast >= 4.5 across all 7 themes and preserve
   await page.waitForTimeout(60);
 
   let makanLabDropBgImage = '';
+  let makanLabDisabledStyles = null;
   const allViolations = [];
 
   for (const themeId of THEMES) {
@@ -87,21 +88,46 @@ test('subtitle entry cards meet contrast >= 4.5 across all 7 themes and preserve
       dropChips.forEach((chip, i) => checkEl(chip, `.sub-entry-card-drop .sub-chip[${i}]`));
 
       checkEl(videoTitle, '.sub-entry-card-video strong');
-      checkEl(videoNote, '.sub-entry-card-video .sub-video-note');
-      checkEl(videoBadge, '.sub-entry-card-video .sub-coming-soon-badge');
+
+      let disabledStyles = null;
+      if (currentTheme === 'makan-lab') {
+        const noteCs = videoNote ? window.getComputedStyle(videoNote) : null;
+        const badgeCs = videoBadge ? window.getComputedStyle(videoBadge) : null;
+        disabledStyles = {
+          videoNote: {
+            color: noteCs ? noteCs.color : '',
+            bg: noteCs ? noteCs.backgroundColor : ''
+          },
+          videoBadge: {
+            color: badgeCs ? badgeCs.color : '',
+            bg: badgeCs ? badgeCs.backgroundColor : ''
+          }
+        };
+      } else {
+        checkEl(videoNote, '.sub-entry-card-video .sub-video-note');
+        checkEl(videoBadge, '.sub-entry-card-video .sub-coming-soon-badge');
+      }
 
       return {
         dropBgImage: dropCard ? window.getComputedStyle(dropCard).backgroundImage : '',
+        disabledStyles,
         violations
       };
     }, { currentTheme: themeId });
 
     if (themeId === 'makan-lab') {
       makanLabDropBgImage = themeResult.dropBgImage;
+      makanLabDisabledStyles = themeResult.disabledStyles;
     }
 
     allViolations.push(...themeResult.violations);
   }
+
+  // Assert exact computed color and background-color for makan-lab disabled video card elements (87263e0~1)
+  expect(makanLabDisabledStyles.videoNote.color).toBe('rgb(80, 100, 130)');
+  expect(makanLabDisabledStyles.videoNote.bg).toBe('rgba(0, 0, 0, 0)');
+  expect(makanLabDisabledStyles.videoBadge.color).toBe('rgb(245, 158, 11)');
+  expect(makanLabDisabledStyles.videoBadge.bg).toBe('rgba(255, 180, 74, 0.12)');
 
   // Assert computed background-image for makan-lab matches today's exact gradient
   expect(makanLabDropBgImage).toContain('radial-gradient');
