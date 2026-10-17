@@ -6495,11 +6495,8 @@ body:has(#tab-voice.on) .speak-notice,
   --muted: #65543F;
 }
 
-[data-theme="platinum-blue"] .lang-picker-lbl,
-[data-theme="platinum-blue"] .lang-picker-lbl bdi,
 [data-theme="platinum-blue"] .bar label,
 [data-theme="platinum-blue"] .trans-bar label:not(.switch-lbl),
-[data-theme="platinum-blue"] .screen-ctrl-lbl,
 [data-theme="platinum-blue"] .topbar-engine-lbl,
 [data-theme="platinum-blue"] .sidebar-sec-h,
 [data-theme="platinum-blue"] span.switch-txt,
@@ -6507,7 +6504,6 @@ body:has(#tab-voice.on) .speak-notice,
 [data-theme="platinum-blue"] span.meta,
 [data-theme="platinum-blue"] #tWordCount,
 [data-theme="platinum-blue"] #tCount,
-[data-theme="platinum-blue"] #tmCount,
 [data-theme="platinum-blue"] .trans-status-info,
 [data-theme="platinum-blue"] .trans-status-info span,
 [data-theme="platinum-blue"] .offline-model-hint,
@@ -6517,16 +6513,12 @@ body:has(#tab-voice.on) .speak-notice,
 [data-theme="platinum-blue"] .cue .tm,
 [data-theme="platinum-blue"] .cue .tr:empty::before,
 [data-theme="platinum-blue"] .mdl-sub,
-[data-theme="platinum-blue"] .models-hub-storage-item .storage-lbl,
 [data-theme="platinum-blue"] footer {
   color: #56708A;
 }
 
-[data-theme="champagne-minimal"] .lang-picker-lbl,
-[data-theme="champagne-minimal"] .lang-picker-lbl bdi,
 [data-theme="champagne-minimal"] .bar label,
 [data-theme="champagne-minimal"] .trans-bar label:not(.switch-lbl),
-[data-theme="champagne-minimal"] .screen-ctrl-lbl,
 [data-theme="champagne-minimal"] .topbar-engine-lbl,
 [data-theme="champagne-minimal"] .sidebar-sec-h,
 [data-theme="champagne-minimal"] span.switch-txt,
@@ -6534,7 +6526,6 @@ body:has(#tab-voice.on) .speak-notice,
 [data-theme="champagne-minimal"] span.meta,
 [data-theme="champagne-minimal"] #tWordCount,
 [data-theme="champagne-minimal"] #tCount,
-[data-theme="champagne-minimal"] #tmCount,
 [data-theme="champagne-minimal"] .trans-status-info,
 [data-theme="champagne-minimal"] .trans-status-info span,
 [data-theme="champagne-minimal"] .offline-model-hint,
@@ -6544,9 +6535,25 @@ body:has(#tab-voice.on) .speak-notice,
 [data-theme="champagne-minimal"] .cue .tm,
 [data-theme="champagne-minimal"] .cue .tr:empty::before,
 [data-theme="champagne-minimal"] .mdl-sub,
-[data-theme="champagne-minimal"] .models-hub-storage-item .storage-lbl,
 [data-theme="champagne-minimal"] footer {
   color: #745F45;
+}
+
+[data-theme="platinum-blue"] .lang-picker-lbl,
+[data-theme="platinum-blue"] .lang-picker-lbl bdi,
+[data-theme="platinum-blue"] .screen-ctrl-lbl,
+[data-theme="platinum-blue"] .storage-lbl,
+[data-theme="platinum-blue"] .models-hub-storage-item .storage-lbl,
+[data-theme="platinum-blue"] #tmCount,
+[data-theme="platinum-blue"] [data-t="tmSavedCount"],
+[data-theme="champagne-minimal"] .lang-picker-lbl,
+[data-theme="champagne-minimal"] .lang-picker-lbl bdi,
+[data-theme="champagne-minimal"] .screen-ctrl-lbl,
+[data-theme="champagne-minimal"] .storage-lbl,
+[data-theme="champagne-minimal"] .models-hub-storage-item .storage-lbl,
+[data-theme="champagne-minimal"] #tmCount,
+[data-theme="champagne-minimal"] [data-t="tmSavedCount"] {
+  color: var(--muted);
 }
 
 /* Light-theme Muted token element-level overrides */
