@@ -9,6 +9,7 @@
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const LIGHT_THEMES = ['platinum-blue', 'champagne-minimal'];
 
@@ -18,6 +19,16 @@ test('guard: all visible text elements inside Voice tab meet contrast >= 4.5 in 
   // Open Voice tab
   await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
   await page.waitForTimeout(60);
+
+  // Inject shared color helpers
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+
+  // Disable animations and transitions for stable measurement
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+  const allViolations = [];
+  let totalTested = 0;
 
   for (const themeId of LIGHT_THEMES) {
     // Apply light theme
@@ -44,7 +55,7 @@ test('guard: all visible text elements inside Voice tab meet contrast >= 4.5 in 
         stt: 'Whisper',
         engine: 'Groq',
         voice: 'Zira',
-        dur: '1.1s'
+        dur: '0.9s'
       });
 
       const btn = document.getElementById('vPttBtn');
@@ -60,86 +71,7 @@ test('guard: all visible text elements inside Voice tab meet contrast >= 4.5 in 
     await page.waitForTimeout(60);
 
     // Audit every visible text node inside #tab-voice
-    const auditResults = await page.evaluate(() => {
-      function parseRgb(colorStr) {
-        if (!colorStr) return null;
-        const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-        if (!m) return null;
-        return {
-          r: parseFloat(m[1]),
-          g: parseFloat(m[2]),
-          b: parseFloat(m[3]),
-          a: m[4] !== undefined ? parseFloat(m[4]) : 1
-        };
-      }
-
-      function parseHex(hex) {
-        let c = hex.replace('#', '');
-        if (c.length === 3) c = c.split('').map(x => x + x).join('');
-        const num = parseInt(c, 16);
-        return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255, a: 1 };
-      }
-
-      function parseFirstGradientStop(bgImage) {
-        if (!bgImage || bgImage === 'none') return null;
-        const rgbMatch = bgImage.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/);
-        if (rgbMatch) return parseRgb(rgbMatch[0]);
-        const hexMatch = bgImage.match(/#(?:[0-9a-fA-F]{3,4}){1,2}\b/);
-        if (hexMatch) return parseHex(hexMatch[0]);
-        return null;
-      }
-
-      function blend(fg, bg) {
-        const a = fg.a;
-        return {
-          r: Math.round(fg.r * a + bg.r * (1 - a)),
-          g: Math.round(fg.g * a + bg.g * (1 - a)),
-          b: Math.round(fg.b * a + bg.b * (1 - a)),
-          a: 1
-        };
-      }
-
-      function sRGBtoLin(c) {
-        const v = c / 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      }
-
-      function luminance(rgb) {
-        return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-      }
-
-      function contrastRatio(rgb1, rgb2) {
-        const l1 = luminance(rgb1);
-        const l2 = luminance(rgb2);
-        const lighter = Math.max(l1, l2);
-        const darker = Math.min(l1, l2);
-        return (lighter + 0.05) / (darker + 0.05);
-      }
-
-      function computeEffectiveBg(el) {
-        const path = [];
-        let cur = el;
-        while (cur && cur !== document.documentElement) {
-          path.unshift(cur);
-          cur = cur.parentElement;
-        }
-        let bg = parseRgb(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
-        for (const node of path) {
-          const cs = getComputedStyle(node);
-          if (cs.backgroundImage && cs.backgroundImage.includes('gradient')) {
-            const stop = parseFirstGradientStop(cs.backgroundImage);
-            if (stop) {
-              bg = stop.a < 1 ? blend(stop, bg) : stop;
-            }
-          }
-          const c = parseRgb(cs.backgroundColor);
-          if (c && c.a > 0) {
-            bg = blend(c, bg);
-          }
-        }
-        return bg;
-      }
-
+    const auditResults = await page.evaluate(({ currentTheme }) => {
       const root = document.getElementById('tab-voice');
       const walker = document.createTreeWalker(
         root,
@@ -182,27 +114,44 @@ test('guard: all visible text elements inside Voice tab meet contrast >= 4.5 in 
         if (seenElements.has(el)) continue;
         seenElements.add(el);
 
-        const textRgb = parseRgb(getComputedStyle(el).color);
-        const bgRgb = computeEffectiveBg(el);
-        const ratio = contrastRatio(textRgb, bgRgb);
+        const textRgb = window.__tc.parse(getComputedStyle(el).color);
+        const eff = window.__tc.effectiveBg(el);
+        const stops = (eff.gradientStops && eff.gradientStops.length > 0) ? eff.gradientStops : [eff.bg];
+
+        let worstRatio = Infinity;
+        let worstStop = eff.bg;
+
+        for (const stop of stops) {
+          const effectiveStop = stop.a < 1 ? window.__tc.blend(stop, eff.bg) : stop;
+          const ratio = window.__tc.ratio(textRgb, effectiveStop);
+          if (ratio < worstRatio) {
+            worstRatio = ratio;
+            worstStop = effectiveStop;
+          }
+        }
 
         const item = {
-          tag: el.tagName.toLowerCase(),
-          className: el.className,
+          theme: currentTheme,
+          selector: el.className ? '.' + el.className.split(/\s+/).join('.') : el.tagName.toLowerCase(),
           text: node.textContent.trim().slice(0, 30),
-          ratio: Math.round(ratio * 100) / 100
+          color: getComputedStyle(el).color,
+          bg: `rgb(${worstStop.r},${worstStop.g},${worstStop.b})`,
+          contrast: Math.round(worstRatio * 100) / 100
         };
         tested.push(item);
 
-        if (ratio < 4.5) {
+        if (worstRatio < 4.5) {
           violations.push(item);
         }
       }
 
       return { testedCount: tested.length, violations };
-    });
+    }, { currentTheme: themeId });
 
-    expect(auditResults.testedCount).toBeGreaterThan(15);
-    expect(auditResults.violations).toEqual([]);
+    totalTested += auditResults.testedCount;
+    allViolations.push(...auditResults.violations);
   }
+
+  expect(totalTested).toBeGreaterThan(15);
+  expect(allViolations).toEqual([]);
 });

@@ -8,6 +8,7 @@
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const THEMES = [
   'makan-lab',
@@ -26,8 +27,16 @@ test('conversation bubbles meet contrast >= 4.5 across all 7 themes and preserve
   await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
   await page.waitForTimeout(60);
 
+  // Inject shared color helpers
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+
+  // Disable animations and transitions for stable measurement
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
   let makanLabABg = '';
   let makanLabBBg = '';
+  const allViolations = [];
 
   for (const themeId of THEMES) {
     await page.evaluate((id) => {
@@ -58,113 +67,69 @@ test('conversation bubbles meet contrast >= 4.5 across all 7 themes and preserve
     });
     await page.waitForTimeout(60);
 
-    const metrics = await page.evaluate(() => {
-      function parseRgb(colorStr) {
-        if (!colorStr) return null;
-        const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-        if (!m) return null;
-        return {
-          r: parseFloat(m[1]),
-          g: parseFloat(m[2]),
-          b: parseFloat(m[3]),
-          a: m[4] !== undefined ? parseFloat(m[4]) : 1
-        };
-      }
+    const result = await page.evaluate(({ currentTheme }) => {
+      const violations = [];
 
-      function blend(fg, bg) {
-        const a = fg.a;
-        return {
-          r: Math.round(fg.r * a + bg.r * (1 - a)),
-          g: Math.round(fg.g * a + bg.g * (1 - a)),
-          b: Math.round(fg.b * a + bg.b * (1 - a)),
-          a: 1
-        };
-      }
-
-      function sRGBtoLin(c) {
-        const v = c / 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      }
-
-      function luminance(rgb) {
-        return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-      }
-
-      function contrastRatio(rgb1, rgb2) {
-        const l1 = luminance(rgb1);
-        const l2 = luminance(rgb2);
-        const lighter = Math.max(l1, l2);
-        const darker = Math.min(l1, l2);
-        return (lighter + 0.05) / (darker + 0.05);
-      }
-
-      function computeEffectiveBg(el) {
-        const path = [];
-        let cur = el;
-        while (cur && cur !== document.documentElement) {
-          path.unshift(cur);
-          cur = cur.parentElement;
-        }
-        let bg = parseRgb(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
-        for (const node of path) {
-          const cs = getComputedStyle(node);
-          const c = parseRgb(cs.backgroundColor);
-          if (c && c.a > 0) {
-            bg = blend(c, bg);
+      function measureEl(el, selector) {
+        if (!el) return;
+        const textRgb = window.__tc.parse(getComputedStyle(el).color);
+        const eff = window.__tc.effectiveBg(el);
+        const stops = (eff.gradientStops && eff.gradientStops.length > 0) ? eff.gradientStops : [eff.bg];
+        for (const stop of stops) {
+          const effectiveStop = stop.a < 1 ? window.__tc.blend(stop, eff.bg) : stop;
+          const ratio = window.__tc.ratio(textRgb, effectiveStop);
+          if (ratio < 4.5) {
+            violations.push({
+              theme: currentTheme,
+              selector: selector || (el.className ? '.' + el.className.split(/\s+/).join('.') : el.tagName.toLowerCase()),
+              text: (el.textContent || '').trim().slice(0, 30),
+              color: getComputedStyle(el).color,
+              bg: `rgb(${effectiveStop.r},${effectiveStop.g},${effectiveStop.b})`,
+              contrast: Math.round(ratio * 100) / 100
+            });
           }
         }
-        return bg;
-      }
-
-      function measureEl(el) {
-        const textRgb = parseRgb(getComputedStyle(el).color);
-        const bgRgb = computeEffectiveBg(el);
-        return contrastRatio(textRgb, bgRgb);
       }
 
       const bubA = document.querySelector('.bub.a');
       const bubB = document.querySelector('.bub.b');
 
+      if (bubA) {
+        measureEl(bubA.querySelector('.bub-text'), '.bub.a .bub-text');
+        measureEl(bubA.querySelector('.bub-orig-text'), '.bub.a .bub-orig-text');
+        measureEl(bubA.querySelector('.bub-speaker'), '.bub.a .bub-speaker');
+        measureEl(bubA.querySelector('.bub-time'), '.bub.a .bub-time');
+        Array.from(bubA.querySelectorAll('.bub-tag')).forEach((tag, idx) => {
+          measureEl(tag, `.bub.a .bub-tag:nth-of-type(${idx + 1})`);
+        });
+      }
+
+      if (bubB) {
+        measureEl(bubB.querySelector('.bub-text'), '.bub.b .bub-text');
+        measureEl(bubB.querySelector('.bub-orig-text'), '.bub.b .bub-orig-text');
+        measureEl(bubB.querySelector('.bub-speaker'), '.bub.b .bub-speaker');
+        measureEl(bubB.querySelector('.bub-time'), '.bub.b .bub-time');
+        Array.from(bubB.querySelectorAll('.bub-tag')).forEach((tag, idx) => {
+          measureEl(tag, `.bub.b .bub-tag:nth-of-type(${idx + 1})`);
+        });
+      }
+
       return {
-        aBg: getComputedStyle(bubA).backgroundColor,
-        bBg: getComputedStyle(bubB).backgroundColor,
-        aText: measureEl(bubA.querySelector('.bub-text')),
-        aOrig: measureEl(bubA.querySelector('.bub-orig-text')),
-        aSpeaker: measureEl(bubA.querySelector('.bub-speaker')),
-        aTime: measureEl(bubA.querySelector('.bub-time')),
-        aTags: Array.from(bubA.querySelectorAll('.bub-tag')).map(measureEl),
-        bText: measureEl(bubB.querySelector('.bub-text')),
-        bOrig: measureEl(bubB.querySelector('.bub-orig-text')),
-        bSpeaker: measureEl(bubB.querySelector('.bub-speaker')),
-        bTime: measureEl(bubB.querySelector('.bub-time')),
-        bTags: Array.from(bubB.querySelectorAll('.bub-tag')).map(measureEl)
+        aBg: bubA ? getComputedStyle(bubA).backgroundColor : '',
+        bBg: bubB ? getComputedStyle(bubB).backgroundColor : '',
+        violations
       };
-    });
+    }, { currentTheme: themeId });
 
     if (themeId === 'makan-lab') {
-      makanLabABg = metrics.aBg;
-      makanLabBBg = metrics.bBg;
+      makanLabABg = result.aBg;
+      makanLabBBg = result.bBg;
     }
 
-    expect(metrics.aText).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.aOrig).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.aSpeaker).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.aTime).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.aTags.length).toBeGreaterThan(0);
-    for (const ratio of metrics.aTags) {
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    }
-
-    expect(metrics.bText).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.bOrig).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.bSpeaker).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.bTime).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.bTags.length).toBeGreaterThan(0);
-    for (const ratio of metrics.bTags) {
-      expect(ratio).toBeGreaterThanOrEqual(4.5);
-    }
+    allViolations.push(...result.violations);
   }
 
+  expect(allViolations).toEqual([]);
   expect(makanLabABg).toBe('rgba(13, 27, 50, 0.85)');
   expect(makanLabBBg).toBe('rgba(16, 42, 82, 0.9)');
 });

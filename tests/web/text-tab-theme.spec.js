@@ -10,6 +10,7 @@
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const THEMES = [
   'makan-lab',
@@ -28,6 +29,15 @@ test('Text tab translate button kbd has high contrast and voice label does not o
   await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
   await page.waitForTimeout(60);
 
+  // Inject shared color helpers
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+
+  // Disable animations and transitions for stable measurement
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
+  const allViolations = [];
+
   for (const themeId of THEMES) {
     await page.evaluate((id) => {
       if (typeof applyTheme === 'function') {
@@ -38,85 +48,53 @@ test('Text tab translate button kbd has high contrast and voice label does not o
     }, themeId);
     await page.waitForTimeout(60);
 
-    const buttonMetrics = await page.evaluate(() => {
-      function parseRgb(colorStr) {
-        if (!colorStr) return null;
-        const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-        if (!m) return null;
-        return {
-          r: parseFloat(m[1]),
-          g: parseFloat(m[2]),
-          b: parseFloat(m[3]),
-          a: m[4] !== undefined ? parseFloat(m[4]) : 1
-        };
-      }
-
-      function parseGradientStops(bgImage) {
-        if (!bgImage || !bgImage.includes('gradient')) return [];
-        const regex = /rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/g;
-        const matches = bgImage.match(regex);
-        if (!matches) return [];
-        return matches.map(parseRgb).filter(Boolean);
-      }
-
-      function blend(fg, bg) {
-        const a = fg.a;
-        return {
-          r: Math.round(fg.r * a + bg.r * (1 - a)),
-          g: Math.round(fg.g * a + bg.g * (1 - a)),
-          b: Math.round(fg.b * a + bg.b * (1 - a)),
-          a: 1
-        };
-      }
-
-      function sRGBtoLin(c) {
-        const v = c / 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      }
-
-      function luminance(rgb) {
-        return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-      }
-
-      function contrastRatio(rgb1, rgb2) {
-        const l1 = luminance(rgb1);
-        const l2 = luminance(rgb2);
-        const lighter = Math.max(l1, l2);
-        const darker = Math.min(l1, l2);
-        return (lighter + 0.05) / (darker + 0.05);
-      }
-
+    const buttonResult = await page.evaluate(({ currentTheme }) => {
+      const violations = [];
       const tGo = document.getElementById('tGo');
       const kbd = tGo ? tGo.querySelector('kbd') : null;
 
       const tGoStyle = window.getComputedStyle(tGo);
       const kbdStyle = window.getComputedStyle(kbd);
 
-      const kbdColor = parseRgb(kbdStyle.color);
-      const kbdBg = parseRgb(kbdStyle.backgroundColor);
+      const kbdColor = window.__tc.parse(kbdStyle.color);
+      const kbdBg = window.__tc.parse(kbdStyle.backgroundColor);
 
-      let tGoFill = parseRgb(tGoStyle.backgroundColor);
-      if ((!tGoFill || tGoFill.a === 0) && tGoStyle.backgroundImage && tGoStyle.backgroundImage.includes('gradient')) {
-        const stops = parseGradientStops(tGoStyle.backgroundImage);
-        if (stops.length > 0) {
-          tGoFill = stops[0];
+      if (kbdBg.a >= 0.5) {
+        violations.push({
+          theme: currentTheme,
+          selector: '#tGo kbd',
+          issue: 'kbd background alpha must be < 0.5',
+          actualAlpha: kbdBg.a
+        });
+      }
+
+      let stops = window.__tc.gradientStops(tGoStyle.backgroundImage);
+      if (stops.length === 0) {
+        const baseFill = window.__tc.parse(tGoStyle.backgroundColor || 'rgb(19, 102, 226)');
+        stops = [baseFill];
+      }
+
+      for (const stop of stops) {
+        const ratio = window.__tc.ratio(kbdColor, stop);
+        if (ratio < 4.5) {
+          violations.push({
+            theme: currentTheme,
+            selector: '#tGo kbd',
+            text: kbd ? kbd.textContent : '',
+            color: kbdStyle.color,
+            bg: `rgb(${stop.r},${stop.g},${stop.b})`,
+            contrast: Math.round(ratio * 100) / 100
+          });
         }
       }
-      if (!tGoFill || tGoFill.a === 0) {
-        tGoFill = { r: 19, g: 102, b: 226, a: 1 };
-      }
 
-      const ratio = contrastRatio(kbdColor, tGoFill);
+      return violations;
+    }, { currentTheme: themeId });
 
-      return {
-        contrast: ratio,
-        kbdAlpha: kbdBg ? kbdBg.a : 1
-      };
-    });
-
-    expect(buttonMetrics.contrast, `kbd text vs #tGo fill in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    expect(buttonMetrics.kbdAlpha, `kbd background alpha in ${themeId}`).toBeLessThan(0.5);
+    allViolations.push(...buttonResult);
   }
+
+  expect(allViolations).toEqual([]);
 
   // Verify voice label title === full text
   const labelData = await page.evaluate(() => {

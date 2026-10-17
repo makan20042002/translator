@@ -11,6 +11,7 @@
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const LIGHT_THEMES = ['platinum-blue', 'champagne-minimal'];
 
@@ -23,6 +24,11 @@ const TABS = [
 
 test('light theme contrast scan across Text, Subtitle, Voice, and Screen tabs meets >= 4.5', async ({ app }) => {
   const { page } = app;
+
+  await page.addInitScript({ content: COLOR_HELPERS_SOURCE });
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
 
   const allViolations = [];
 
@@ -84,85 +90,6 @@ test('light theme contrast scan across Text, Subtitle, Voice, and Screen tabs me
       }
 
       const scanResult = await page.evaluate(({ tabId, rootSel, currentTheme }) => {
-        function parseRgb(colorStr) {
-          if (!colorStr) return null;
-          const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-          if (!m) return null;
-          return {
-            r: parseFloat(m[1]),
-            g: parseFloat(m[2]),
-            b: parseFloat(m[3]),
-            a: m[4] !== undefined ? parseFloat(m[4]) : 1
-          };
-        }
-
-        function parseHex(hex) {
-          let c = hex.replace('#', '');
-          if (c.length === 3) c = c.split('').map(x => x + x).join('');
-          const num = parseInt(c, 16);
-          return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255, a: 1 };
-        }
-
-        function parseFirstGradientStop(bgImage) {
-          if (!bgImage || bgImage === 'none') return null;
-          const rgbMatch = bgImage.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/);
-          if (rgbMatch) return parseRgb(rgbMatch[0]);
-          const hexMatch = bgImage.match(/#(?:[0-9a-fA-F]{3,4}){1,2}\b/);
-          if (hexMatch) return parseHex(hexMatch[0]);
-          return null;
-        }
-
-        function blend(fg, bg) {
-          const a = fg.a;
-          return {
-            r: Math.round(fg.r * a + bg.r * (1 - a)),
-            g: Math.round(fg.g * a + bg.g * (1 - a)),
-            b: Math.round(fg.b * a + bg.b * (1 - a)),
-            a: 1
-          };
-        }
-
-        function sRGBtoLin(c) {
-          const v = c / 255;
-          return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-        }
-
-        function luminance(rgb) {
-          return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-        }
-
-        function contrastRatio(rgb1, rgb2) {
-          const l1 = luminance(rgb1);
-          const l2 = luminance(rgb2);
-          const lighter = Math.max(l1, l2);
-          const darker = Math.min(l1, l2);
-          return (lighter + 0.05) / (darker + 0.05);
-        }
-
-        function computeEffectiveBg(el) {
-          const path = [];
-          let cur = el;
-          while (cur && cur !== document.documentElement) {
-            path.unshift(cur);
-            cur = cur.parentElement;
-          }
-          let bg = parseRgb(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
-          for (const node of path) {
-            const cs = getComputedStyle(node);
-            if (cs.backgroundImage && cs.backgroundImage.includes('gradient')) {
-              const stop = parseFirstGradientStop(cs.backgroundImage);
-              if (stop) {
-                bg = stop.a < 1 ? blend(stop, bg) : stop;
-              }
-            }
-            const c = parseRgb(cs.backgroundColor);
-            if (c && c.a > 0) {
-              bg = blend(c, bg);
-            }
-          }
-          return bg;
-        }
-
         function getSelector(el) {
           if (!el) return '';
           if (el.id) return `#${el.id}`;
@@ -220,21 +147,32 @@ test('light theme contrast scan across Text, Subtitle, Voice, and Screen tabs me
           seen.add(el);
           count++;
 
-          const textRgb = parseRgb(getComputedStyle(el).color);
-          const bgRgb = computeEffectiveBg(el);
-          if (!textRgb || !bgRgb) continue;
+          const textRgb = window.__tc.parse(window.getComputedStyle(el).color);
+          const bgInfo = window.__tc.effectiveBg(el);
+          if (!textRgb || !bgInfo) continue;
 
-          const ratio = contrastRatio(textRgb, bgRgb);
-          if (ratio < 4.5) {
-            violations.push({
-              tab: tabId,
-              theme: currentTheme,
-              selector: getSelector(el),
-              text: node.textContent.trim().slice(0, 30),
-              color: getComputedStyle(el).color,
-              bg: `rgb(${bgRgb.r},${bgRgb.g},${bgRgb.b})`,
-              contrast: Math.round(ratio * 100) / 100
-            });
+          const bgCandidates = [];
+          if (bgInfo.gradientStops && bgInfo.gradientStops.length > 0) {
+            for (const s of bgInfo.gradientStops) {
+              bgCandidates.push(s.a < 1 ? window.__tc.blend(s, bgInfo) : s);
+            }
+          } else {
+            bgCandidates.push(bgInfo);
+          }
+
+          for (const cand of bgCandidates) {
+            const ratio = window.__tc.ratio(textRgb, cand);
+            if (ratio < 4.5) {
+              violations.push({
+                tab: tabId,
+                theme: currentTheme,
+                selector: getSelector(el),
+                text: node.textContent.trim().slice(0, 30),
+                color: window.getComputedStyle(el).color,
+                bg: `rgb(${cand.r},${cand.g},${cand.b})`,
+                contrast: Math.round(ratio * 100) / 100
+              });
+            }
           }
         }
 

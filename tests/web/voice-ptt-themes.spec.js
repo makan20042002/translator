@@ -2,12 +2,13 @@
 
 /**
  * Item 2: Talk button (.ptt-btn) across all states and themes
- * Verifies contrast >= 4.5 for text and icon in every state (ready, listening, working, preparing, speaking)
+ * Verifies contrast >= 4.5 for text and >= 3.0 for icon in every state (ready, listening, working, preparing, speaking)
  * across all 7 themes.
  * For makan-lab, asserts computed background-image matches today's exact values for each state.
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const THEMES = [
   'makan-lab',
@@ -42,7 +43,15 @@ test('talk button meets contrast in all states across 7 themes and preserves mak
   await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
   await page.waitForTimeout(60);
 
+  // Inject shared color helpers
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+
+  // Disable animations and transitions for stable measurement
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
   const makanLabBgs = {};
+  const allViolations = [];
 
   for (const themeId of THEMES) {
     await page.evaluate((id) => {
@@ -55,80 +64,8 @@ test('talk button meets contrast in all states across 7 themes and preserves mak
     await page.waitForTimeout(60);
 
     for (const { state, label } of STATES) {
-      const stateResult = await page.evaluate(({ curState, curLabel }) => {
-        function parseRgb(colorStr) {
-          if (!colorStr) return null;
-          const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-          if (!m) return null;
-          return {
-            r: parseFloat(m[1]),
-            g: parseFloat(m[2]),
-            b: parseFloat(m[3]),
-            a: m[4] !== undefined ? parseFloat(m[4]) : 1
-          };
-        }
-
-        function parseHex(hex) {
-          let c = hex.replace('#', '');
-          if (c.length === 3) c = c.split('').map(x => x + x).join('');
-          const num = parseInt(c, 16);
-          return { r: (num >> 16) & 255, g: (num >> 8) & 255, b: num & 255, a: 1 };
-        }
-
-        function blend(fg, bg) {
-          const a = fg.a;
-          return {
-            r: Math.round(fg.r * a + bg.r * (1 - a)),
-            g: Math.round(fg.g * a + bg.g * (1 - a)),
-            b: Math.round(fg.b * a + bg.b * (1 - a)),
-            a: 1
-          };
-        }
-
-        function sRGBtoLin(c) {
-          const v = c / 255;
-          return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-        }
-
-        function luminance(rgb) {
-          return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-        }
-
-        function contrastRatio(rgb1, rgb2) {
-          const l1 = luminance(rgb1);
-          const l2 = luminance(rgb2);
-          const lighter = Math.max(l1, l2);
-          const darker = Math.min(l1, l2);
-          return (lighter + 0.05) / (darker + 0.05);
-        }
-
-        function computeEffectiveBg(el) {
-          const path = [];
-          let cur = el;
-          while (cur && cur !== document.documentElement) {
-            path.unshift(cur);
-            cur = cur.parentElement;
-          }
-          let bg = parseRgb(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
-          for (const node of path) {
-            const cs = getComputedStyle(node);
-            const c = parseRgb(cs.backgroundColor);
-            if (c && c.a > 0) {
-              bg = blend(c, bg);
-            }
-          }
-          return bg;
-        }
-
-        function parseFirstGradientStop(bgImage) {
-          if (!bgImage || bgImage === 'none') return null;
-          const rgbMatch = bgImage.match(/rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/);
-          if (rgbMatch) return parseRgb(rgbMatch[0]);
-          const hexMatch = bgImage.match(/#(?:[0-9a-fA-F]{3,4}){1,2}\b/);
-          if (hexMatch) return parseHex(hexMatch[0]);
-          return null;
-        }
-
+      const stateResult = await page.evaluate(({ curState, curLabel, currentTheme }) => {
+        const violations = [];
         const btn = document.getElementById('vPttBtn');
         btn.dataset.state = curState;
         btn.classList.toggle('rec', curState === 'listening');
@@ -138,33 +75,65 @@ test('talk button meets contrast in all states across 7 themes and preserves mak
 
         const cs = getComputedStyle(btn);
         const bgImg = cs.backgroundImage;
-        let stopRgb = parseFirstGradientStop(bgImg);
-        if (!stopRgb) {
-          stopRgb = parseRgb(cs.backgroundColor) || { r: 0, g: 0, b: 0, a: 1 };
-        }
-        if (stopRgb.a < 1) {
-          const parentBg = computeEffectiveBg(btn.parentElement);
-          stopRgb = blend(stopRgb, parentBg);
+        let stops = window.__tc.gradientStops(bgImg);
+        if (stops.length === 0) {
+          const baseC = window.__tc.parse(cs.backgroundColor || 'rgb(0,0,0)');
+          stops = [baseC];
         }
 
-        const textRgb = parseRgb(getComputedStyle(lbl).color);
-        const iconRgb = parseRgb(getComputedStyle(icon).color);
+        const effParent = window.__tc.effectiveBg(btn.parentElement);
+        const parentBg = effParent.bg;
+
+        const textRgb = window.__tc.parse(getComputedStyle(lbl).color);
+        const iconRgb = window.__tc.parse(getComputedStyle(icon).color);
+
+        for (const stop of stops) {
+          const effectiveStop = stop.a < 1 ? window.__tc.blend(stop, parentBg) : stop;
+          const textContrast = window.__tc.ratio(textRgb, effectiveStop);
+          const iconContrast = window.__tc.ratio(iconRgb, effectiveStop);
+
+          if (textContrast < 4.5) {
+            violations.push({
+              theme: currentTheme,
+              state: curState,
+              selector: '#vPttLabel',
+              text: curLabel,
+              color: getComputedStyle(lbl).color,
+              bg: `rgb(${effectiveStop.r},${effectiveStop.g},${effectiveStop.b})`,
+              contrast: Math.round(textContrast * 100) / 100,
+              required: 4.5
+            });
+          }
+
+          if (iconContrast < 3.0) {
+            violations.push({
+              theme: currentTheme,
+              state: curState,
+              selector: '#vPttIcon',
+              text: 'icon',
+              color: getComputedStyle(icon).color,
+              bg: `rgb(${effectiveStop.r},${effectiveStop.g},${effectiveStop.b})`,
+              contrast: Math.round(iconContrast * 100) / 100,
+              required: 3.0
+            });
+          }
+        }
 
         return {
           bgImage: bgImg,
-          textContrast: contrastRatio(textRgb, stopRgb),
-          iconContrast: contrastRatio(iconRgb, stopRgb)
+          violations
         };
-      }, { curState: state, curLabel: label });
+      }, { curState: state, curLabel: label, currentTheme: themeId });
 
       if (themeId === 'makan-lab') {
         makanLabBgs[state] = stateResult.bgImage;
       }
 
-      expect(stateResult.textContrast).toBeGreaterThanOrEqual(4.5);
-      expect(stateResult.iconContrast).toBeGreaterThanOrEqual(3.0);
+      allViolations.push(...stateResult.violations);
     }
   }
+
+  expect(allViolations).toEqual([]);
 
   for (const { state } of STATES) {
     expect(makanLabBgs[state]).toBe(EXPECTED_MAKAN_LAB_BG[state]);

@@ -8,6 +8,7 @@
  */
 
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { COLOR_HELPERS_SOURCE } = require('../support/color-helpers');
 
 const THEMES = [
   'makan-lab',
@@ -22,11 +23,17 @@ const THEMES = [
 test('subtitle entry cards meet contrast >= 4.5 across all 7 themes and preserve makan-lab values', async ({ app }) => {
   const { page } = app;
 
+  await page.addInitScript({ content: COLOR_HELPERS_SOURCE });
+  await page.addScriptTag({ content: COLOR_HELPERS_SOURCE });
+  await page.addStyleTag({ content: '*,*::before,*::after{transition:none !important;animation:none !important}' });
+  await page.evaluate(() => new Promise(r => requestAnimationFrame(() => requestAnimationFrame(r))));
+
   // Open Subtitle tab
   await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
   await page.waitForTimeout(60);
 
   let makanLabDropBgImage = '';
+  const allViolations = [];
 
   for (const themeId of THEMES) {
     await page.evaluate((id) => {
@@ -38,102 +45,30 @@ test('subtitle entry cards meet contrast >= 4.5 across all 7 themes and preserve
     }, themeId);
     await page.waitForTimeout(60);
 
-    const metrics = await page.evaluate(() => {
-      function parseRgb(colorStr) {
-        if (!colorStr) return null;
-        const m = colorStr.match(/rgba?\(\s*([\d.]+)\s*,\s*([\d.]+)\s*,\s*([\d.]+)(?:\s*,\s*([\d.]+))?\s*\)/);
-        if (!m) return null;
-        return {
-          r: parseFloat(m[1]),
-          g: parseFloat(m[2]),
-          b: parseFloat(m[3]),
-          a: m[4] !== undefined ? parseFloat(m[4]) : 1
-        };
-      }
+    const themeResult = await page.evaluate(({ currentTheme }) => {
+      const violations = [];
 
-      function parseGradientStops(bgImage) {
-        if (!bgImage || !bgImage.includes('gradient')) return [];
-        const regex = /rgba?\(\s*[\d.]+\s*,\s*[\d.]+\s*,\s*[\d.]+(?:\s*,\s*[\d.]+)?\s*\)/g;
-        const matches = bgImage.match(regex);
-        if (!matches) return [];
-        return matches.map(parseRgb).filter(Boolean);
-      }
-
-      function blend(fg, bg) {
-        const a = fg.a;
-        return {
-          r: Math.round(fg.r * a + bg.r * (1 - a)),
-          g: Math.round(fg.g * a + bg.g * (1 - a)),
-          b: Math.round(fg.b * a + bg.b * (1 - a)),
-          a: 1
-        };
-      }
-
-      function sRGBtoLin(c) {
-        const v = c / 255;
-        return v <= 0.04045 ? v / 12.92 : Math.pow((v + 0.055) / 1.055, 2.4);
-      }
-
-      function luminance(rgb) {
-        return 0.2126 * sRGBtoLin(rgb.r) + 0.7152 * sRGBtoLin(rgb.g) + 0.0722 * sRGBtoLin(rgb.b);
-      }
-
-      function contrastRatio(rgb1, rgb2) {
-        const l1 = luminance(rgb1);
-        const l2 = luminance(rgb2);
-        const lighter = Math.max(l1, l2);
-        const darker = Math.min(l1, l2);
-        return (lighter + 0.05) / (darker + 0.05);
-      }
-
-      function computeEffectiveAncestors(el) {
-        const path = [];
-        let cur = el;
-        while (cur && cur !== document.documentElement) {
-          path.unshift(cur);
-          cur = cur.parentElement;
-        }
-
-        let bg = parseRgb(getComputedStyle(document.body).backgroundColor) || { r: 255, g: 255, b: 255, a: 1 };
-        let gradientStops = [];
-
-        for (const node of path) {
-          const cs = getComputedStyle(node);
-          if (cs.backgroundImage && cs.backgroundImage.includes('gradient') && gradientStops.length === 0) {
-            gradientStops = parseGradientStops(cs.backgroundImage);
-          }
-          const c = parseRgb(cs.backgroundColor);
-          if (c && c.a > 0) {
-            bg = blend(c, bg);
+      function checkEl(el, name) {
+        if (!el) return;
+        const textRgb = window.__tc.parse(window.getComputedStyle(el).color);
+        const bgInfo = window.__tc.effectiveBg(el);
+        const stops = bgInfo.gradientStops && bgInfo.gradientStops.length > 0
+          ? bgInfo.gradientStops
+          : [bgInfo];
+        for (const stop of stops) {
+          const cand = stop.a < 1 ? window.__tc.blend(stop, bgInfo) : stop;
+          const ratio = window.__tc.ratio(textRgb, cand);
+          if (ratio < 4.5) {
+            violations.push({
+              theme: currentTheme,
+              selector: name,
+              text: el.textContent.trim().slice(0, 30),
+              color: window.getComputedStyle(el).color,
+              bg: `rgb(${cand.r},${cand.g},${cand.b})`,
+              contrast: Math.round(ratio * 100) / 100
+            });
           }
         }
-        return { bg, gradientStops };
-      }
-
-      function measureEl(el) {
-        if (!el) return null;
-        const textRgb = parseRgb(getComputedStyle(el).color);
-        const { bg, gradientStops } = computeEffectiveAncestors(el);
-
-        if (gradientStops.length >= 2) {
-          // For gradients, test first and last color stop blended over base
-          const firstStop = blend(gradientStops[0], bg);
-          const lastStop = blend(gradientStops[gradientStops.length - 1], bg);
-          const ratioFirst = contrastRatio(textRgb, firstStop);
-          const ratioLast = contrastRatio(textRgb, lastStop);
-          return {
-            worst: Math.min(ratioFirst, ratioLast),
-            ratioFirst,
-            ratioLast
-          };
-        }
-
-        const ratio = contrastRatio(textRgb, bg);
-        return {
-          worst: ratio,
-          ratioFirst: ratio,
-          ratioLast: ratio
-        };
       }
 
       const dropCard = document.querySelector('.sub-entry-card-drop');
@@ -147,35 +82,31 @@ test('subtitle entry cards meet contrast >= 4.5 across all 7 themes and preserve
       const videoNote = videoCard ? videoCard.querySelector('.sub-video-note') : null;
       const videoBadge = videoCard ? videoCard.querySelector('.sub-coming-soon-badge') : null;
 
+      checkEl(dropTitle, '.sub-entry-card-drop strong');
+      checkEl(dropHint, '.sub-entry-card-drop .hint');
+      dropChips.forEach((chip, i) => checkEl(chip, `.sub-entry-card-drop .sub-chip[${i}]`));
+
+      checkEl(videoTitle, '.sub-entry-card-video strong');
+      checkEl(videoNote, '.sub-entry-card-video .sub-video-note');
+      checkEl(videoBadge, '.sub-entry-card-video .sub-coming-soon-badge');
+
       return {
-        dropBgImage: dropCard ? getComputedStyle(dropCard).backgroundImage : '',
-        dropTitle: measureEl(dropTitle),
-        dropHint: measureEl(dropHint),
-        dropChips: dropChips.map(measureEl),
-        videoTitle: measureEl(videoTitle),
-        videoNote: measureEl(videoNote),
-        videoBadge: measureEl(videoBadge)
+        dropBgImage: dropCard ? window.getComputedStyle(dropCard).backgroundImage : '',
+        violations
       };
-    });
+    }, { currentTheme: themeId });
 
     if (themeId === 'makan-lab') {
-      makanLabDropBgImage = metrics.dropBgImage;
+      makanLabDropBgImage = themeResult.dropBgImage;
     }
 
-    expect(metrics.dropTitle.worst, `dropTitle in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.dropHint.worst, `dropHint in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.dropChips.length, `dropChips in ${themeId}`).toBeGreaterThan(0);
-    for (const chipMetrics of metrics.dropChips) {
-      expect(chipMetrics.worst, `dropChip in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    }
-
-    expect(metrics.videoTitle.worst, `videoTitle in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.videoNote.worst, `videoNote in ${themeId}`).toBeGreaterThanOrEqual(4.5);
-    expect(metrics.videoBadge.worst, `videoBadge in ${themeId}`).toBeGreaterThanOrEqual(4.5);
+    allViolations.push(...themeResult.violations);
   }
 
   // Assert computed background-image for makan-lab matches today's exact gradient
   expect(makanLabDropBgImage).toContain('radial-gradient');
   expect(makanLabDropBgImage).toContain('rgba(14, 165, 233, 0.08)');
   expect(makanLabDropBgImage).toContain('rgba(9, 20, 40, 0.95)');
+
+  expect(allViolations).toEqual([]);
 });
