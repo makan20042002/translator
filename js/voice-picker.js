@@ -78,6 +78,7 @@ function getVoiceDisplayName(val, lang){
 function updateCompactVoiceButtons(){
   const tLang=($('tgt')?.value||'fa').split('-')[0].toLowerCase();
   const tVal=cfg.tts?.voices?.[tLang]||'';
+  const tTxt=getVoiceDisplayName(tVal,tLang);
   if($('tVoiceCurLabel')) {
     $('tVoiceCurLabel').textContent=tTxt;
     $('tVoiceCurLabel').title=tTxt;
