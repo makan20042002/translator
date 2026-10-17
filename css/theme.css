@@ -6833,6 +6833,41 @@ html[lang="fa"] .media-page-title {
   --video-bg: var(--bg);
 }
 
+/* Light theme contrast safety for Media tab (platinum-blue and champagne-minimal) */
+[data-theme="platinum-blue"] #tab-media,
+[data-theme="platinum-blue"] .mt-root,
+[data-theme="champagne-minimal"] #tab-media,
+[data-theme="champagne-minimal"] .mt-root {
+  --good: var(--success-text);
+  --warn: var(--warning-text);
+}
 
+[data-theme="platinum-blue"] #tab-media .mt-drop-or,
+[data-theme="platinum-blue"] #tab-media .mt-btn-quiet,
+[data-theme="platinum-blue"] #tab-media .mt-pv-time,
+[data-theme="champagne-minimal"] #tab-media .mt-drop-or,
+[data-theme="champagne-minimal"] #tab-media .mt-btn-quiet,
+[data-theme="champagne-minimal"] #tab-media .mt-pv-time {
+  color: var(--accent-dark);
+}
 
+[data-theme="platinum-blue"] #tab-media .mt-btn:not(.mt-btn-quiet),
+[data-theme="champagne-minimal"] #tab-media .mt-btn:not(.mt-btn-quiet) {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: var(--on-accent);
+}
 
+[data-theme="platinum-blue"] #tab-media .mt-btn:not(.mt-btn-quiet):hover,
+[data-theme="champagne-minimal"] #tab-media .mt-btn:not(.mt-btn-quiet):hover {
+  background: var(--accent-dark);
+  border-color: var(--accent-dark);
+  color: var(--on-accent);
+  filter: brightness(0.95);
+}
+
+[data-theme="platinum-blue"] #tab-media .mt-btn-quiet:hover,
+[data-theme="champagne-minimal"] #tab-media .mt-btn-quiet:hover {
+  color: var(--accent-dark);
+  background: var(--hover);
+}
