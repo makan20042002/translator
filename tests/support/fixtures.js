@@ -79,6 +79,7 @@ const test = base.test.extend({
   app: async ({ webBrowser, stub, appOptions }, use) => {
     const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
     await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
+    await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
     if (appOptions.seed) await context.addInitScript(seedScript(appOptions.seed));
     const page = await context.newPage();
     const errors = [];

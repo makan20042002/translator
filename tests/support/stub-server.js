@@ -295,8 +295,18 @@ async function startStub() {
     providerHandler(req, res).catch(err => { try { sendJson(res, 500, { error: { message: 'stub crashed: ' + err.message } }); } catch { /* ignore */ } });
   });
 
+  function isOllamaTarget(urlOrHost) {
+    if (!urlOrHost || typeof urlOrHost !== 'string') return false;
+    return /(localhost|127\.0\.0\.1|\[::1\]):11434\b/i.test(urlOrHost);
+  }
+
   /* ---------- proxy ---------- */
   const proxyServer = http.createServer(async (req, res) => {
+    if (isOllamaTarget(req.url) || isOllamaTarget(req.headers.host)) {
+      if (req.socket) req.socket.destroy();
+      else res.destroy();
+      return;
+    }
     // Plain-http request through the proxy (absolute URL). Nothing in the
     // app uses plain http to the internet; answer 502 and record it.
     const body = await readBody(req);
@@ -305,6 +315,10 @@ async function startStub() {
     res.end('test proxy: plain http to the internet is not imitated');
   });
   proxyServer.on('connect', (req, clientSocket, head) => {
+    if (isOllamaTarget(req.url) || isOllamaTarget(req.headers.host)) {
+      clientSocket.destroy();
+      return;
+    }
     const [host] = String(req.url).split(':');
     log.push({ server: 'proxy-connect', host, method: 'CONNECT', path: req.url, headers: req.headers, body: '', time: Date.now() });
     const upstream = net.connect(providerServer.address().port, '127.0.0.1', () => {
@@ -346,12 +360,18 @@ async function startStub() {
   const sockets = new Set();
   for (const s of [providerServer, proxyServer, appServer]) s.on('connection', c => { sockets.add(c); c.on('close', () => sockets.delete(c)); });
 
-  const appOrigin = `http://127.0.0.1:${appServer.address().port}`;
+  const appPort = appServer.address().port;
+  const providerPort = providerServer.address().port;
+  const proxyPort = proxyServer.address().port;
+  const appOrigin = `http://127.0.0.1:${appPort}`;
   return {
     VALID_KEY, BAD_KEY,
     appOrigin,
     appUrl: appOrigin + '/index.html',
-    proxyUrl: `http://127.0.0.1:${proxyServer.address().port}`,
+    proxyUrl: `http://127.0.0.1:${proxyPort}`,
+    appPort,
+    providerPort,
+    proxyPort,
     log,
     /** Requests seen by the provider imitation (not counting the browser's CORS preflight checks), optionally only for one host. */
     calls(host) { return log.filter(e => e.server === 'provider' && e.method !== 'OPTIONS' && (!host || e.host === host)); },
@@ -373,8 +393,18 @@ async function startStub() {
 
 /** Command-line switches that send all of the browser's internet traffic to the stub. */
 function chromiumNetworkArgs(stub) {
+  const appPort = stub?.appPort || (stub?.appOrigin ? new URL(stub.appOrigin).port : null);
+  const providerPort = stub?.providerPort;
+  const bypassEntries = ['<-loopback>'];
+  if (appPort) {
+    bypassEntries.push(`127.0.0.1:${appPort}`, `localhost:${appPort}`, `[::1]:${appPort}`);
+  }
+  if (providerPort) {
+    bypassEntries.push(`127.0.0.1:${providerPort}`, `localhost:${providerPort}`, `[::1]:${providerPort}`);
+  }
   return [
     `--proxy-server=${stub.proxyUrl}`,
+    `--proxy-bypass-list=${bypassEntries.join(';')}`,
     '--ignore-certificate-errors',
     // Stop Chromium's own background services from making noise in the logs.
     '--disable-background-networking', '--disable-component-update', '--no-first-run', '--no-default-browser-check'

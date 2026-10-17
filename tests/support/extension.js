@@ -85,6 +85,7 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
     ]
   });
   await context.grantPermissions(['clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
+  await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
 
   const opened = [];
   for (const url of preOpen) {
