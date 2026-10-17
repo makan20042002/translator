@@ -139,19 +139,19 @@
 /* Single Status Line */
 .v-status-line{display:inline-flex;align-items:center;gap:9px;padding:5px 14px;border-radius:999px;background:var(--surface2);border:1px solid var(--border2);font-family:var(--mono);font-size:12.5px;color:var(--text);min-height:30px;transition:border-color .18s,background .18s;max-width:100%}
 .v-status-dot{width:8px;height:8px;border-radius:50%;background:var(--ok);flex:none;transition:background .2s,box-shadow .2s}
-.v-status-line[data-state="ready"] .v-status-dot{background:var(--ok);box-shadow:0 0 8px rgba(34,229,138,.5)}
-.v-status-line[data-state="listening"]{border-color:rgba(255,107,122,.4);background:rgba(255,107,122,.08)}
-.v-status-line[data-state="listening"] .v-status-dot{background:var(--err);box-shadow:0 0 10px rgba(255,107,122,.8);animation:pulse 1s infinite}
-.v-status-line[data-state="working"]{border-color:rgba(19,200,245,.4);background:rgba(19,200,245,.08)}
-.v-status-line[data-state="working"] .v-status-dot{background:var(--cyan);box-shadow:0 0 10px rgba(19,200,245,.7);animation:pulse 1s infinite}
-.v-status-line[data-state="speaking"]{border-color:rgba(88,166,255,.4);background:rgba(88,166,255,.08)}
-.v-status-line[data-state="speaking"] .v-status-dot{background:var(--accent);box-shadow:0 0 10px rgba(88,166,255,.7)}
-.v-status-line[data-state="preparing"]{border-color:rgba(255,190,83,.4);background:rgba(255,190,83,.08)}
-.v-status-line[data-state="preparing"] .v-status-dot{background:#ffbe53;box-shadow:0 0 10px rgba(255,190,83,.7)}
-.v-status-line[data-state="error"]{border-color:rgba(255,180,74,.4);background:rgba(255,180,74,.08)}
-.v-status-line[data-state="error"] .v-status-dot{background:var(--warn);box-shadow:0 0 8px rgba(255,180,74,.6)}
-#tSpeak.preparing{border-color:#ffbe53!important;color:#ffbe53!important;background:rgba(255,190,83,.14)!important;box-shadow:0 0 8px rgba(255,190,83,.3)!important}
-#tSpeak.playing{border-color:var(--cyan)!important;color:var(--cyan)!important;background:rgba(19,200,245,.14)!important;box-shadow:0 0 8px rgba(19,200,245,.3)!important}
+.v-status-line[data-state="ready"] .v-status-dot{background:var(--ok);box-shadow:0 0 8px color-mix(in srgb, var(--ok) 50%, transparent)}
+.v-status-line[data-state="listening"]{border-color:color-mix(in srgb, var(--err) 40%, transparent);background:color-mix(in srgb, var(--err) 8%, var(--surface2))}
+.v-status-line[data-state="listening"] .v-status-dot{background:var(--err);box-shadow:0 0 10px color-mix(in srgb, var(--err) 80%, transparent);animation:pulse 1s infinite}
+.v-status-line[data-state="working"]{border-color:color-mix(in srgb, var(--cyan) 40%, transparent);background:color-mix(in srgb, var(--cyan) 8%, var(--surface2))}
+.v-status-line[data-state="working"] .v-status-dot{background:var(--cyan);box-shadow:0 0 10px color-mix(in srgb, var(--cyan) 70%, transparent);animation:pulse 1s infinite}
+.v-status-line[data-state="speaking"]{border-color:color-mix(in srgb, var(--accent) 40%, transparent);background:color-mix(in srgb, var(--accent) 8%, var(--surface2))}
+.v-status-line[data-state="speaking"] .v-status-dot{background:var(--accent);box-shadow:0 0 10px color-mix(in srgb, var(--accent) 70%, transparent)}
+.v-status-line[data-state="preparing"]{border-color:color-mix(in srgb, var(--warn) 40%, transparent);background:color-mix(in srgb, var(--warn) 8%, var(--surface2))}
+.v-status-line[data-state="preparing"] .v-status-dot{background:var(--warn);box-shadow:0 0 10px color-mix(in srgb, var(--warn) 70%, transparent)}
+.v-status-line[data-state="error"]{border-color:color-mix(in srgb, var(--err) 40%, transparent);background:color-mix(in srgb, var(--err) 8%, var(--surface2))}
+.v-status-line[data-state="error"] .v-status-dot{background:var(--err);box-shadow:0 0 8px color-mix(in srgb, var(--err) 60%, transparent)}
+#tSpeak.preparing{border-color:var(--warn)!important;color:var(--warn)!important;background:color-mix(in srgb, var(--warn) 14%, transparent)!important;box-shadow:0 0 8px color-mix(in srgb, var(--warn) 30%, transparent)!important}
+#tSpeak.playing{border-color:var(--cyan)!important;color:var(--cyan)!important;background:color-mix(in srgb, var(--cyan) 14%, transparent)!important;box-shadow:0 0 8px color-mix(in srgb, var(--cyan) 30%, transparent)!important}
 
 /* Live Microphone Level Meter */
 .v-meter{display:none;align-items:flex-end;gap:3px;height:14px;margin-inline-start:4px}
@@ -159,7 +159,7 @@
 .v-meter-bar{width:3px;height:3px;background:var(--err);border-radius:2px;opacity:.3;transition:height .08s ease,opacity .08s ease}
 
 /* Partial Live Transcript */
-.v-partial{width:100%;max-width:560px;padding:8px 14px;border-radius:10px;background:rgba(88,166,255,.06);border:1px dashed var(--accent-line);color:var(--text);font-size:14.5px;text-align:center;font-style:italic;margin-top:2px}
+.v-partial{width:100%;max-width:560px;padding:8px 14px;border-radius:10px;background:color-mix(in srgb, var(--accent) 6%, transparent);border:1px dashed var(--accent-line);color:var(--text);font-size:14.5px;text-align:center;font-style:italic;margin-top:2px}
 
 /* Action Dock Grid */
 .v-action-dock{display:grid;grid-template-columns:minmax(0, 1fr) auto minmax(0, 1fr);align-items:center;width:100%;max-width:540px;margin-top:2px}
@@ -182,9 +182,9 @@
 .ptt-subtext kbd{background:var(--surface2);border:1px solid var(--border2);padding:2px 5px;border-radius:4px;font-size:10.5px}
 
 /* Live Button */
-.v-live-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:999px;border:1px solid var(--border2);background:var(--surface2);color:var(--muted);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s var(--ease);min-height:38px}
-.v-live-btn:hover{color:var(--text);border-color:var(--accent-line);background:#142033}
-.v-live-btn.live-on{border-color:var(--err);background:rgba(255,107,122,.15);color:var(--err);box-shadow:0 0 15px rgba(255,107,122,.35)}
+.v-live-btn{display:inline-flex;align-items:center;gap:7px;padding:8px 16px;border-radius:999px;border:1px solid var(--border2);background:var(--surface2);color:var(--text);font-size:13px;font-weight:600;cursor:pointer;transition:all .18s var(--ease);min-height:38px}
+.v-live-btn:hover{color:var(--text);border-color:var(--accent-line);background:var(--surface3)}
+.v-live-btn.live-on{border-color:var(--err);background:color-mix(in srgb, var(--err) 15%, transparent);color:var(--err);box-shadow:0 0 15px color-mix(in srgb, var(--err) 35%, transparent)}
 .v-live-dot{width:8px;height:8px;border-radius:50%;background:currentColor;flex:none}
 .v-live-btn.live-on .v-live-dot{animation:pulse 1s infinite}
 .v-stop-speak-btn{min-height:38px;padding:0 14px;border-radius:999px;display:inline-flex;align-items:center;gap:6px;font-size:13px}

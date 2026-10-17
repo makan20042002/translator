@@ -3113,16 +3113,32 @@ html[lang="fa"] .voice-page-title {
 .voice-bar .v-voice-prefix,
 .voice-control-bar .v-stt-prefix,
 .voice-control-bar .v-voice-prefix {
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
   font-weight: 500;
   margin-inline-end: 4px;
 }
+
+.v-voice-label-wrap {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .voice-bar .mic-stt-cur,
 .voice-bar .compact-voice-cur,
 .voice-control-bar .mic-stt-cur,
 .voice-control-bar .compact-voice-cur {
   font-weight: 600;
-  color: var(--text, #fff);
+  color: var(--text);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
 }
 
 /* Status Chip */
@@ -3134,25 +3150,48 @@ html[lang="fa"] .voice-page-title {
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 600;
-  background: rgba(34, 197, 94, 0.12);
-  border: 1px solid rgba(34, 197, 94, 0.35);
-  color: #4ade80;
+  background: color-mix(in srgb, var(--success) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--success) 35%, transparent);
+  color: var(--success);
   margin-inline-start: auto;
   transition: all 0.2s ease;
 }
 .voice-status-chip.not-ready {
-  background: rgba(245, 158, 11, 0.12);
-  border-color: rgba(245, 158, 11, 0.35);
-  color: #fbbf24;
+  background: color-mix(in srgb, var(--warning) 12%, transparent);
+  border-color: color-mix(in srgb, var(--warning) 35%, transparent);
+  color: var(--warning);
 }
 .voice-ready-dot {
   width: 8px;
   height: 8px;
   border-radius: 50%;
+  background: var(--success);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--success) 60%, transparent);
+}
+.voice-status-chip.not-ready .voice-ready-dot {
+  background: var(--warning);
+  box-shadow: 0 0 8px color-mix(in srgb, var(--warning) 60%, transparent);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .voice-status-chip {
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.35);
+  color: #4ade80;
+}
+/* makanlab */
+[data-theme="makan-lab"] .voice-status-chip.not-ready {
+  background: rgba(245, 158, 11, 0.12);
+  border-color: rgba(245, 158, 11, 0.35);
+  color: #fbbf24;
+}
+/* makanlab */
+[data-theme="makan-lab"] .voice-ready-dot {
   background: #22c55e;
   box-shadow: 0 0 8px rgba(34, 197, 94, 0.6);
 }
-.voice-status-chip.not-ready .voice-ready-dot {
+/* makanlab */
+[data-theme="makan-lab"] .voice-status-chip.not-ready .voice-ready-dot {
   background: #f59e0b;
   box-shadow: 0 0 8px rgba(245, 158, 11, 0.6);
 }
@@ -3799,7 +3838,7 @@ html[dir="rtl"] .bub-orig-text {
   align-items: center;
   gap: 6px;
   font-size: 11.5px;
-  color: var(--muted, #94a3b8);
+  color: var(--muted);
   user-select: none;
 }
 
@@ -3809,13 +3848,13 @@ html[dir="rtl"] .bub-orig-text {
   justify-content: center;
   padding: 2px 7px;
   border-radius: 5px;
-  background: var(--surface2, #0d1e38);
-  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  background: var(--surface2);
+  border: 1px solid var(--border2);
   font-family: var(--mono, monospace);
   font-size: 11px;
   font-weight: 600;
-  color: var(--text, #fff);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+  color: var(--text);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--text) 15%, transparent);
 }
 
 .voice-privacy-note {
@@ -3825,15 +3864,35 @@ html[dir="rtl"] .bub-orig-text {
   font-size: 11.5px;
   padding: 4px 10px;
   border-radius: 999px;
-  background: rgba(35, 134, 54, 0.12);
-  border: 1px solid rgba(46, 160, 67, 0.3);
-  color: #3fb950;
+  background: color-mix(in srgb, var(--success) 10%, var(--surface));
+  border: 1px solid color-mix(in srgb, var(--success) 30%, transparent);
+  color: var(--success);
   max-width: 220px;
   line-height: 1.3;
 }
 
 .voice-privacy-note svg {
   flex-shrink: 0;
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .v-space-hint {
+  color: var(--muted, #94a3b8);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .v-space-hint .v-kbd {
+  background: var(--surface2, #0d1e38);
+  border: 1px solid var(--border2, rgba(28, 64, 118, 0.45));
+  color: var(--text, #fff);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.2);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .voice-privacy-note {
+  background: rgba(35, 134, 54, 0.12);
+  border: 1px solid rgba(46, 160, 67, 0.3);
+  color: #3fb950;
 }
 
 @media (max-width: 600px) {

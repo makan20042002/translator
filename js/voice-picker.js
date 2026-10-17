@@ -79,9 +79,14 @@ function updateCompactVoiceButtons(){
   const tLang=($('tgt')?.value||'fa').split('-')[0].toLowerCase();
   const tVal=cfg.tts?.voices?.[tLang]||'';
   const tTxt=getVoiceDisplayName(tVal,tLang);
-  if($('tVoiceCurLabel'))$('tVoiceCurLabel').textContent=tTxt;
-  if($('vConvVoiceCurLabel'))$('vConvVoiceCurLabel').textContent=tTxt;
-  if($('vLiveVoiceCurLabel'))$('vLiveVoiceCurLabel').textContent=tTxt;
+  if($('tVoiceCurLabel')) { $('tVoiceCurLabel').textContent=tTxt; $('tVoiceCurLabel').title=tTxt; }
+  if($('vConvVoiceCurLabel')) {
+    $('vConvVoiceCurLabel').textContent=tTxt;
+    $('vConvVoiceCurLabel').title=tTxt;
+    const wrap=$('vConvVoiceCurLabel').closest('.v-voice-label-wrap');
+    if(wrap) wrap.title=wrap.textContent.trim();
+  }
+  if($('vLiveVoiceCurLabel')) { $('vLiveVoiceCurLabel').textContent=tTxt; $('vLiveVoiceCurLabel').title=tTxt; }
 
   const askL=(($('vAskLang')?.value==='auto'?$('tgt')?.value:$('vAskLang')?.value)||'fa').split('-')[0].toLowerCase();
   const askVal=cfg.tts?.voices?.[askL]||'';
