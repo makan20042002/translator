@@ -354,6 +354,14 @@ function updateListenButtonState(){
     }
   }
 }
+if($('tVoiceUsed') && typeof MutationObserver !== 'undefined'){
+  const vuEl=$('tVoiceUsed');
+  new MutationObserver(()=>{
+    if(vuEl.textContent && vuEl.title !== vuEl.textContent){
+      vuEl.title=vuEl.textContent;
+    }
+  }).observe(vuEl, {childList: true, characterData: true, subtree: true});
+}
 
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();
 $('tIn').addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key==='Enter'){e.preventDefault();doText()}});

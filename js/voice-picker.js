@@ -78,8 +78,12 @@ function getVoiceDisplayName(val, lang){
 function updateCompactVoiceButtons(){
   const tLang=($('tgt')?.value||'fa').split('-')[0].toLowerCase();
   const tVal=cfg.tts?.voices?.[tLang]||'';
-  const tTxt=getVoiceDisplayName(tVal,tLang);
-  if($('tVoiceCurLabel')) { $('tVoiceCurLabel').textContent=tTxt; $('tVoiceCurLabel').title=tTxt; }
+  if($('tVoiceCurLabel')) {
+    $('tVoiceCurLabel').textContent=tTxt;
+    $('tVoiceCurLabel').title=tTxt;
+    const btn=$('tVoiceCurLabel').closest('.compact-voice-btn');
+    if(btn) btn.title=(typeof L==='function'&&L('voiceUsed')?`${L('voiceUsed')}: ${tTxt}`:`Voice: ${tTxt}`);
+  }
   if($('vConvVoiceCurLabel')) {
     $('vConvVoiceCurLabel').textContent=tTxt;
     $('vConvVoiceCurLabel').title=tTxt;
