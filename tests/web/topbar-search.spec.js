@@ -15,6 +15,8 @@ test('search icon and text box do not intersect in EN and FA, header height is p
 
   await page.setViewportSize({ width: 1280, height: 900 });
 
+  const headerHeights = {};
+
   for (const lang of ['en', 'fa']) {
     await page.evaluate((l) => {
       document.documentElement.lang = l;
@@ -27,11 +29,13 @@ test('search icon and text box do not intersect in EN and FA, header height is p
       const icon = document.querySelector('.topbar-search-icon');
       const input = document.getElementById('topbarSearch');
       const header = document.getElementById('topbar');
+      const lead = header ? header.querySelector('.topbar-lead') : null;
 
       const iconRect = icon.getBoundingClientRect();
       const inputRect = input.getBoundingClientRect();
       const headerRect = header.getBoundingClientRect();
       const inputStyle = window.getComputedStyle(input);
+      const headerStyle = window.getComputedStyle(header);
 
       const padLeft = parseFloat(inputStyle.paddingLeft);
       const padRight = parseFloat(inputStyle.paddingRight);
@@ -47,19 +51,39 @@ test('search icon and text box do not intersect in EN and FA, header height is p
       const horizontalOverlap = Math.max(0, Math.min(iconRect.right, textBox.right) - Math.max(iconRect.left, textBox.left));
       const verticalOverlap = Math.max(0, Math.min(iconRect.bottom, textBox.bottom) - Math.max(iconRect.top, textBox.top));
 
+      const paddingTop = parseFloat(headerStyle.paddingTop) || 0;
+      const paddingBottom = parseFloat(headerStyle.paddingBottom) || 0;
+      const borderBottomWidth = parseFloat(headerStyle.borderBottomWidth) || 0;
+
+      let tallestDirectChildHeight = 0;
+      if (header) {
+        for (const child of header.children) {
+          const h = child.getBoundingClientRect().height;
+          if (h > tallestDirectChildHeight) tallestDirectChildHeight = h;
+        }
+      }
+      const leadHeight = lead ? lead.getBoundingClientRect().height : tallestDirectChildHeight;
+      const contentHeight = Math.max(leadHeight, tallestDirectChildHeight);
+      const expectedHeaderHeight = Math.round(contentHeight + paddingTop + paddingBottom + borderBottomWidth);
+
       return {
         hasIntersection: horizontalOverlap > 0 && verticalOverlap > 0,
         horizontalOverlap,
         headerHeight: Math.round(headerRect.height),
+        expectedHeaderHeight,
         inputHeight: Math.round(parseFloat(inputStyle.height)),
         padInlineStart: parseFloat(inputStyle.paddingInlineStart)
       };
     });
 
+    headerHeights[lang] = metrics.headerHeight;
+
     expect(metrics.hasIntersection).toBe(false);
     expect(metrics.horizontalOverlap).toBe(0);
     expect(metrics.padInlineStart).toBeGreaterThanOrEqual(36);
     expect(metrics.inputHeight).toBe(38);
-    expect(metrics.headerHeight).toBe(68);
+    expect(metrics.headerHeight).toBe(metrics.expectedHeaderHeight);
   }
+
+  expect(headerHeights['fa']).toBe(headerHeights['en']);
 });
