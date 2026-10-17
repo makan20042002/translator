@@ -147,5 +147,6 @@ test('Screen tab controls and preview mock reach >= 4.5 contrast across all 7 th
 
   // Assert computed background-color in makan-lab preserves today's values
   expect(makanLabModeCardBg).toBe('rgba(15, 23, 42, 0.5)');
-  expect(makanLabPreviewCardBg).toBe('rgb(11, 17, 28)');
+  // .screen-preview-card uses var(--surface, #0b111c); in makan-lab --surface is #0a1528 = rgb(10, 21, 40), #0b111c was only fallback
+  expect(makanLabPreviewCardBg).toBe('rgb(10, 21, 40)');
 });
