@@ -8,6 +8,7 @@
  * Used to verify subfolder deployment without network access.
  */
 
+const os = require('os');
 const http = require('http');
 const fs = require('fs');
 const path = require('path');
@@ -15,7 +16,6 @@ const { URL } = require('url');
 const { buildWeb } = require('../../tools/build-web');
 
 const REPO_ROOT = path.resolve(__dirname, '..', '..');
-const DEFAULT_WEB_DIR = path.join(REPO_ROOT, 'dist', 'web');
 const PREFIX = '/translate/app/';
 
 const MIME = {
@@ -37,10 +37,12 @@ const MIME = {
 };
 
 function startPrefixServer(options = {}) {
-  const webDir = options.webDir || DEFAULT_WEB_DIR;
+  const isTemp = !options.webDir;
+  const tempDir = isTemp ? fs.mkdtempSync(path.join(os.tmpdir(), 'mkt-prefix-web-')) : null;
+  const webDir = options.webDir || tempDir;
 
-  // Ensure dist/web exists
-  if (!fs.existsSync(webDir) || !fs.existsSync(path.join(webDir, 'index.html'))) {
+  // Always build a fresh copy of the web app into the target directory
+  if (!options.noBuild) {
     buildWeb({ rootDir: REPO_ROOT, outDir: webDir });
   }
 
@@ -113,7 +115,18 @@ function startPrefixServer(options = {}) {
         origin,
         baseUrl,
         requests,
-        close: () => new Promise(cb => server.close(cb))
+        webDir,
+        close: () => new Promise((res, rej) => {
+          server.close(err => {
+            if (isTemp && tempDir && fs.existsSync(tempDir)) {
+              try {
+                fs.rmSync(tempDir, { recursive: true, force: true });
+              } catch (_) {}
+            }
+            if (err) rej(err);
+            else res();
+          });
+        })
       });
     });
     server.on('error', reject);

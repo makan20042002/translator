@@ -549,10 +549,28 @@ function guessLang(s){
 }
 let trWk=null,asrWk=null,rid=0;const pend={};
 const inWorker=new Set();                  // repos the workers already hold in memory
-const asrGuardUrl = (typeof document !== 'undefined' && document.currentScript?.src)
-  ? new URL('../asr-guard.js', document.currentScript.src).href
-  : '../asr-guard.js';
-const asrGuard = import(asrGuardUrl).catch(() => import('../asr-guard.js')).catch(() => null);
+function resolveAsrGuardUrl() {
+  if (typeof document !== 'undefined') {
+    if (document.currentScript?.src) {
+      try { return new URL('../asr-guard.js', document.currentScript.src).href; } catch (_) {}
+    }
+    const scriptEl = document.querySelector('script[src*="translate.js"]');
+    if (scriptEl?.src) {
+      try { return new URL('../asr-guard.js', scriptEl.src).href; } catch (_) {}
+    }
+    if (document.baseURI) {
+      try { return new URL('asr-guard.js', document.baseURI).href; } catch (_) {}
+    }
+    if (typeof location !== 'undefined' && location.href) {
+      try { return new URL('asr-guard.js', location.href).href; } catch (_) {}
+    }
+  }
+  return '../asr-guard.js';
+}
+const asrGuardUrl = resolveAsrGuardUrl();
+const asrGuard = import(asrGuardUrl)
+  .catch(() => (typeof document !== 'undefined' && document.baseURI ? import(new URL('asr-guard.js', document.baseURI).href) : import('../asr-guard.js')))
+  .catch(() => null);
 
 function isFatalEngineError(err){
   const str=String(err?.message||err||'');
