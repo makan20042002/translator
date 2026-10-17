@@ -17,7 +17,7 @@
  *     4. Browser banner (#screenBrowserBanner) is hidden.
  */
 
-const { test, expect, mouseClick } = require('../support/fixtures');
+const { test, expect, mouseClick, watchConsole, activateSettingsTab } = require('../support/fixtures');
 
 test.describe('Web-only Honesty Controls (ITEM 4)', () => {
   test('in plain browser, desktop-only features are hidden or disabled with clear explanations in EN and FA', async ({ app }) => {
@@ -29,6 +29,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
 
     // 2. Settings: Screen Translator block is hidden
     await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
     await expect(page.locator('#screenTransSettingsBlock')).toBeHidden();
 
     // 3. Helper honesty notice in Settings
@@ -46,7 +47,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
 
     // 5. Subtitles tab: subVideoBtn is disabled with speech helper note
     await page.locator('#tabs button[data-tab="sub"]').click();
-    await expect(page.locator('#subVideoBtn')).toBeDisabled();
+    await expect(page.locator('.sub-video-btn')).toBeDisabled();
     await expect(page.locator('.sub-video-note')).toBeVisible();
     await expect(page.locator('.sub-video-note')).toContainText('Requires the local speech helper desktop app');
 
@@ -54,8 +55,9 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.locator('#tabs button[data-tab="media"]').click();
     await expect(page.locator('.mt-pv-nextrow')).toBeHidden();
 
-    // --- Switch to Persian (FA) Mode ---
-    await page.locator('#uiLang').selectOption('fa');
+    // --- Switch to Persian (FA) Mode via toggle button ---
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
 
     // Verify Screen tab in Persian
     await page.locator('#tabs button[data-tab="screen"]').click();
@@ -65,7 +67,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
 
     // Verify Subtitles tab in Persian
     await page.locator('#tabs button[data-tab="sub"]').click();
-    await expect(page.locator('#subVideoBtn')).toBeDisabled();
+    await expect(page.locator('.sub-video-btn')).toBeDisabled();
     await expect(page.locator('.sub-video-note')).toContainText('نیاز به دستیار گفتار محلی دارد');
 
     // Verify Helper notice in Persian
@@ -74,10 +76,12 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.locator('#closeSet').click();
   });
 
-  test('with desktop host fixture, the desktop features become available and enabled', async ({ app }) => {
-    const { page, context } = app;
+  test('with desktop host fixture, the desktop features become available and enabled', async ({ webBrowser, stub }) => {
+    const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
+    await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
+    await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
 
-    // Inject the standard desktop API mock
+    // Inject the standard desktop API mock BEFORE any page script runs
     await context.addInitScript(() => {
       window.makanDesktop = {
         isDesktop: true,
@@ -87,29 +91,49 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
           { tag: 'fa-IR', displayName: 'Persian', nativeName: 'فارسی' }
         ]),
         getOcrEngines: () => Promise.resolve([
-          { id: 'windows', name: 'Windows Media OCR', available: true }
+          { id: 'windows', name: 'Windows Media OCR', available: true },
+          { id: 'rapidocr', name: 'PaddleOCR / RapidOCR (ONNX)', available: true },
+          { id: 'dual', name: 'Dual Engine', available: true }
         ]),
         getScreenTransConfig: () => Promise.resolve({
           enabled: true,
           hotkey: 'CommandOrControl+Shift+S',
           targetLang: 'fa',
           ocrLang: 'en-US',
-          ocrEngine: 'windows'
+          ocrEngine: 'windows',
+          freezeFrame: true,
+          clipboardWatcher: false,
+          autoCopy: false,
+          saveHistory: true
         }),
-        saveScreenTransConfig: () => Promise.resolve({ ok: true }),
+        saveScreenTransConfig: (cfg) => Promise.resolve({ ok: true, config: cfg }),
+        loadAppConfig: () => Promise.resolve({}),
+        saveAppConfig: () => Promise.resolve({ ok: true }),
+        saveOcrModelFiles: () => Promise.resolve({ ok: true }),
+        getDesktopAudioSource: () => Promise.resolve(null),
         onExecuteScreenTranslation: () => {},
         sendScreenTranslationResponse: () => {},
-        onLoadTranslationInput: () => {}
+        onLoadTranslationInput: () => {},
+        saveNextTo: () => Promise.resolve({ ok: true }),
+        extractAudio: () => Promise.resolve(new Float32Array(0)),
+        ffmpeg: () => Promise.resolve({ ok: true })
       };
     });
 
-    await page.reload();
+    const page = await context.newPage();
+    const errors = [];
+    watchConsole(page, errors);
+    stub.clearLog();
+    stub.resetModes();
+    await page.goto(stub.appUrl);
+    await expect(page.locator('#tabs button').first()).toBeVisible();
 
     // 1. Header Screen Translator button is visible in desktop mode
     await expect(page.locator('#btnScreenTrans')).toBeVisible();
 
     // 2. Settings: Screen Translator block is visible in desktop mode
     await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
     await expect(page.locator('#screenTransSettingsBlock')).toBeVisible();
     await page.locator('#closeSet').click();
 
@@ -117,5 +141,29 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.locator('#tabs button[data-tab="screen"]').click();
     await expect(page.locator('#screenBrowserBanner')).toBeHidden();
     await expect(page.locator('#tabScreenLaunchBtn')).toBeEnabled();
+
+    // 4. Media tab: save next to file option is visible when cues and file are present in desktop mode
+    await page.locator('#tabs button[data-tab="media"]').click();
+    await expect(page.locator('#tab-media')).toBeVisible();
+    await page.evaluate(() => {
+      const card = document.querySelector('.mt-pv');
+      if (window.MediaTranslate?.preview && card && window.MediaTranslate.host?.desktop) {
+        const pv = window.MediaTranslate.preview.create({ card, host: window.MediaTranslate.host });
+        pv.update({
+          cues: [{ s: 0, e: 1, o: 'Hello', t: 'سلام' }],
+          file: new File(['audio'], 'clip.mp4', { type: 'video/mp4' }),
+          kind: 'video',
+          version: 1
+        });
+      }
+    });
+    await expect(page.locator('.mt-pv-nextrow')).toBeVisible();
+
+    // 5. Helper-dependent controls available in desktop mode
+    await page.locator('#tabs button[data-tab="sub"]').click();
+    await expect(page.locator('#tab-sub')).toBeVisible();
+    await expect(page.locator('.sub-video-note')).toBeVisible();
+
+    await context.close();
   });
 });

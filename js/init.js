@@ -244,7 +244,8 @@
           store.set('media_subtitle_style', style);
         }
       } catch (e) {}
-    }
+    },
+    desktop: (typeof window !== 'undefined' && (window.MTDesktop || (window.makanDesktop?.isDesktop ? window.makanDesktop : null))) || null
   };
 
   if (typeof window !== 'undefined' && window.MediaTranslate) {

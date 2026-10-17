@@ -11,7 +11,7 @@ function initScreenWebUI() {
     browserBanner.hidden = isDesktop;
   }
 
-  const launchBtn = $('tabScreenLaunchBtn');
+    const launchBtn = $('tabScreenLaunchBtn');
   if (launchBtn) {
     launchBtn.disabled = !isDesktop;
     if (!isDesktop) {
@@ -19,6 +19,16 @@ function initScreenWebUI() {
     } else {
       launchBtn.removeAttribute('title');
     }
+  }
+
+  const stSettingsBlock = $('screenTransSettingsBlock');
+  if (stSettingsBlock) {
+    stSettingsBlock.hidden = !isDesktop;
+  }
+
+  const btnScreen = $('btnScreenTrans');
+  if (btnScreen) {
+    btnScreen.style.display = isDesktop ? 'inline-flex' : 'none';
   }
 
   // Populate language dropdowns
