@@ -1,6 +1,210 @@
 /* ---------- shell ---------- */
+let mediaHandle = null;
+let mediaMounting = null;
+
+function onMediaLanguageChange() {
+  if (mediaHandle && typeof mediaHandle.refresh === 'function') {
+    mediaHandle.refresh();
+  }
+}
+
+function getMediaWhisperChoice() {
+  const m = (typeof asrModel === 'function') ? asrModel() : null;
+  if (!m) return null;
+  return {
+    repo: m.repo,
+    name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
+    memMB: m.memMB || 1000,
+    ready: (typeof mcReady === 'function') ? mcReady(m) : false,
+    gpu: m.gpu
+  };
+}
+
+function getMediaTranslateChoice() {
+  const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+  const id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
+  const eng = (typeof ENG !== 'undefined' && ENG[id]) ? ENG[id] : { name: id, tier: 'free' };
+  const isOffline = (typeof offCapable === 'function') ? offCapable(id) : false;
+  const kind = isOffline ? 'offline' : 'online';
+
+  let model = (typeof cfg !== 'undefined' && cfg.eng?.[id]?.model) || eng.model || '';
+  if (id === 'nllb') {
+    const s = (typeof $ === 'function' && $('src')?.value) || 'en';
+    const t = (typeof $ === 'function' && $('tgt')?.value) || 'fa';
+    const m = (typeof pickTr === 'function') ? pickTr(s, t) : null;
+    model = m ? ((typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo)) : 'NLLB-200 600M';
+  }
+
+  const ready = (typeof why === 'function' ? !why(id) : true) && (!isOff() || isOffline);
+  const needsKey = Boolean(eng.key && !(typeof cfg !== 'undefined' && cfg.eng?.[id]?.key));
+
+  const res = {
+    id,
+    name: eng.name,
+    kind,
+    model,
+    ready: Boolean(ready && !needsKey),
+    needsKey
+  };
+
+  if (id === 'nllb') {
+    res.licence = 'CC BY-NC 4.0';
+    res.licenceNote = 'Non-commercial use only (CC BY-NC 4.0)';
+  } else if (id === 'ollama') {
+    res.licence = 'MIT';
+  }
+
+  return res;
+}
+
+async function mediaTranslateCues(cues, opts) {
+  if (!Array.isArray(cues)) return [];
+  const src = opts.src || (typeof $ === 'function' && $('src')?.value) || 'en';
+  const tgt = opts.tgt || (typeof $ === 'function' && $('tgt')?.value) || 'fa';
+  const signal = opts.signal;
+  const onProgress = opts.onProgress;
+  const onInfo = opts.onInfo;
+
+  if (signal?.aborted) {
+    const err = new DOMException('Aborted', 'AbortError');
+    err.code = 'aborted';
+    err.partial = [];
+    throw err;
+  }
+
+  if (typeof isOff === 'function' && isOff()) {
+    const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+    const id = chosen === 'auto' ? (cfg.order ? cfg.order.find(usable) : null) : chosen;
+    if (!id || (typeof offCapable === 'function' && !offCapable(id))) {
+      const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
+      err.code = 'notdownloaded';
+      err.partial = [];
+      throw err;
+    }
+  }
+
+  const texts = cues.map(c => c.o || '');
+  const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
+
+  let initialEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+  if (initialEngine === 'auto' && typeof cfg !== 'undefined' && cfg.order) {
+    initialEngine = cfg.order.find(usable) || cfg.order[0];
+  }
+  if (initialEngine && typeof ENG !== 'undefined' && ENG[initialEngine]) {
+    const eng = ENG[initialEngine];
+    const kind = (typeof offCapable === 'function' && offCapable(initialEngine)) ? 'offline' : 'online';
+    const model = (cfg.eng?.[initialEngine]?.model) || eng.model || (initialEngine === 'nllb' ? 'NLLB-200 600M' : '');
+    const licence = initialEngine === 'nllb' ? 'CC BY-NC 4.0' : (initialEngine === 'ollama' ? 'MIT' : '');
+    onInfo?.({ id: initialEngine, name: eng.name, kind, model, licence });
+  }
+
+  try {
+    const res = await translateItems(texts, {
+      src,
+      tgt,
+      signal,
+      engine: (typeof $ === 'function' && $('engine')?.value) || 'auto',
+      onEngineChange: engId => {
+        if (engId && typeof ENG !== 'undefined' && ENG[engId]) {
+          const eng = ENG[engId];
+          const kind = (typeof offCapable === 'function' && offCapable(engId)) ? 'offline' : 'online';
+          const model = (cfg.eng?.[engId]?.model) || eng.model || (engId === 'nllb' ? 'NLLB-200 600M' : '');
+          const licence = engId === 'nllb' ? 'CC BY-NC 4.0' : (engId === 'ollama' ? 'MIT' : '');
+          onInfo?.({ id: engId, name: eng.name, kind, model, licence });
+        }
+      },
+      onProgress: (done, total, engId) => {
+        onProgress?.({
+          stage: 'translate',
+          fraction: total ? (done / total) : 0,
+          done,
+          total,
+          engine: (typeof ENG !== 'undefined' && ENG[engId]?.name) || engId
+        });
+      },
+      onBatch: (batchIndices, batchRes, allOut) => {
+        batchIndices.forEach(idx => {
+          translatedCues[idx] = {
+            s: cues[idx].s,
+            e: cues[idx].e,
+            o: cues[idx].o,
+            t: allOut[idx] || ''
+          };
+        });
+      }
+    });
+
+    return cues.map((c, i) => ({
+      s: c.s,
+      e: c.e,
+      o: c.o,
+      t: (res && res.out && res.out[i] !== undefined) ? res.out[i] : ''
+    }));
+  } catch (err) {
+    if (signal?.aborted || err.name === 'AbortError' || err.code === 'aborted') {
+      const abortErr = new DOMException('Aborted', 'AbortError');
+      abortErr.code = 'aborted';
+      abortErr.partial = translatedCues;
+      throw abortErr;
+    }
+    err.partial = translatedCues;
+    throw err;
+  }
+}
+
+function ensureMediaMounted() {
+  if (mediaHandle) return Promise.resolve(mediaHandle);
+  if (mediaMounting) return mediaMounting;
+  const root = $('tab-media');
+  if (!root || typeof window.MediaTranslate === 'undefined' || typeof window.MediaTranslate.mount !== 'function') {
+    return Promise.resolve(null);
+  }
+  const host = {
+    t: k => (typeof L === 'function' ? L(k) : k),
+    getLang: () => (typeof ui !== 'undefined' ? ui : 'en'),
+    toast: (msg, type) => (typeof toast === 'function' ? toast(msg, type) : null),
+    saveFile: (name, blob) => {
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = name;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    },
+    getLanguages: () => (typeof LANGS !== 'undefined' ? LANGS.map(([code, label]) => {
+      const parts = label.split(' · ');
+      const name = (ui === 'fa' ? parts[0] : parts[1]) || label;
+      return { code, name };
+    }) : []),
+    getWhisperChoice: getMediaWhisperChoice,
+    engine: { libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1' },
+    onModelUsed: repo => { if (typeof recordModelUse === 'function') recordModelUse(repo); },
+    openModelHub: () => {
+      const btn = document.querySelector('#tabs button[data-tab="models"]');
+      if (btn) btn.click();
+    },
+    translateCues: mediaTranslateCues,
+    getTranslateChoice: getMediaTranslateChoice
+  };
+  mediaMounting = window.MediaTranslate.mount(root, host).then(h => {
+    mediaHandle = h;
+    mediaMounting = null;
+    return h;
+  }).catch(err => {
+    mediaMounting = null;
+    throw err;
+  });
+  return mediaMounting;
+}
+
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
-  document.querySelectorAll('#tabs button').forEach(x=>x.classList.toggle('on',x===b));
+  document.querySelectorAll('#tabs button').forEach(x=>{
+    const on=(x===b);
+    x.classList.toggle('on',on);
+    if(x.hasAttribute('aria-selected'))x.setAttribute('aria-selected',on?'true':'false');
+  });
   document.querySelectorAll('.tab').forEach(x=>x.classList.toggle('on',x.id==='tab-'+b.dataset.tab));
   if($('speakNotice'))$('speakNotice').classList.toggle('voice-mode',b.dataset.tab==='voice');
   if($('sidebar'))$('sidebar').classList.remove('open');
@@ -12,6 +216,7 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
   if(b.dataset.tab==='models'){if(typeof renderModelHub==='function')renderModelHub();if(typeof mcScan==='function')mcScan().then(()=>{if(typeof renderModelHub==='function')renderModelHub();});}
   if(b.dataset.tab==='sub')updateSubEngineNotice();
+  if(b.dataset.tab==='media')ensureMediaMounted();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });
 if($('sidebarToggleBtn'))$('sidebarToggleBtn').onclick=()=>{

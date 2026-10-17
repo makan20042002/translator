@@ -1,0 +1,158 @@
+<!-- Media Translate tab fragment. No <html>/<head>. Text comes from data-mt-i18n keys.
+     The page title/subtitle (mediaTitle / mediaSubtitle) are shown by the HOST in its own page header. -->
+<section class="mt-tab">
+  <div class="mt-drop" role="button" tabindex="0">
+    <p class="mt-drop-title" data-mt-i18n="mediaDropTitle"></p>
+    <p class="mt-drop-or" data-mt-i18n="mediaDropOr"></p>
+    <p class="mt-drop-formats" data-mt-i18n="mediaDropFormats"></p>
+  </div>
+  <input class="mt-file-input" type="file" hidden>
+
+  <div class="mt-error" role="alert" hidden></div>
+
+  <div class="mt-card mt-big" hidden>
+    <h3 class="mt-card-title" data-mt-i18n="mediaBigTitle"></h3>
+    <p class="mt-card-text mt-big-name"></p>
+    <p class="mt-card-text" data-mt-i18n="mediaBigText"></p>
+    <div class="mt-actions">
+      <button type="button" class="mt-btn mt-big-continue" data-mt-i18n="mediaBigContinue"></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-big-cancel" data-mt-i18n="mediaBigCancel"></button>
+    </div>
+  </div>
+
+  <div class="mt-card mt-ff" hidden>
+    <p class="mt-card-text mt-ff-status"></p>
+    <p class="mt-ff-error" role="alert" hidden></p>
+    <div class="mt-actions">
+      <button type="button" class="mt-btn mt-btn-quiet mt-ff-choose" data-mt-i18n="mediaFfmpegChoose" hidden></button>
+    </div>
+  </div>
+
+  <div class="mt-card mt-info" hidden>
+    <div class="mt-info-row">
+      <span class="mt-info-label" data-mt-i18n="mediaInfoName"></span>
+      <span class="mt-info-value mt-info-name"></span>
+    </div>
+    <div class="mt-info-row">
+      <span class="mt-info-label" data-mt-i18n="mediaInfoSize"></span>
+      <span class="mt-info-value mt-info-size"></span>
+    </div>
+    <div class="mt-info-row">
+      <span class="mt-info-label" data-mt-i18n="mediaInfoDuration"></span>
+      <span class="mt-info-value mt-info-duration"></span>
+    </div>
+    <div class="mt-info-row">
+      <span class="mt-info-label" data-mt-i18n="mediaInfoType"></span>
+      <span class="mt-info-value mt-info-type"></span>
+    </div>
+    <div class="mt-actions">
+      <button type="button" class="mt-btn mt-prepare" data-mt-i18n="mediaPrepare"></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-cancel" data-mt-i18n="mediaCancel" hidden></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-remove" data-mt-i18n="mediaRemove"></button>
+    </div>
+    <div class="mt-progress" hidden>
+      <div class="mt-progress-bar"><i class="mt-progress-fill"></i></div>
+      <span class="mt-progress-text"></span>
+    </div>
+    <p class="mt-decode-ok" hidden></p>
+    <div class="mt-decode-error" role="alert" hidden></div>
+  </div>
+
+  <div class="mt-card mt-asr" hidden>
+    <h3 class="mt-card-title" data-mt-i18n="mediaAsrTitle"></h3>
+    <label class="mt-asr-row">
+      <span class="mt-asr-label" data-mt-i18n="mediaAsrLang"></span>
+      <select class="mt-asr-lang"></select>
+    </label>
+    <p class="mt-card-text mt-asr-model"></p>
+    <p class="mt-asr-warn" hidden></p>
+    <div class="mt-actions">
+      <button type="button" class="mt-btn mt-transcribe" data-mt-i18n="mediaAsrStart"></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-asr-cancel" data-mt-i18n="mediaCancel" hidden></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-asr-hub" data-mt-i18n="mediaAsrOpenHub" hidden></button>
+    </div>
+    <div class="mt-asr-progress" hidden>
+      <div class="mt-asr-bar"><i class="mt-asr-fill"></i></div>
+      <span class="mt-asr-progress-text"></span>
+    </div>
+    <p class="mt-asr-detected" hidden></p>
+    <p class="mt-asr-ok" hidden></p>
+    <p class="mt-asr-cues" hidden></p>
+    <div class="mt-asr-error" role="alert" hidden></div>
+    <pre class="mt-asr-text" hidden></pre>
+  </div>
+
+  <div class="mt-card mt-tr" hidden>
+    <h3 class="mt-card-title" data-mt-i18n="mediaTrTitle"></h3>
+    <label class="mt-tr-row">
+      <span class="mt-tr-label" data-mt-i18n="mediaTrFrom"></span>
+      <select class="mt-tr-src"></select>
+    </label>
+    <label class="mt-tr-row">
+      <span class="mt-tr-label" data-mt-i18n="mediaTrTo"></span>
+      <select class="mt-tr-tgt"></select>
+    </label>
+    <p class="mt-card-text mt-tr-engine" hidden></p>
+    <p class="mt-tr-licence" hidden></p>
+    <p class="mt-tr-switch" hidden></p>
+    <p class="mt-tr-wait" hidden></p>
+    <p class="mt-tr-used" hidden></p>
+    <p class="mt-tr-warn" hidden></p>
+    <div class="mt-actions">
+      <button type="button" class="mt-btn mt-translate" data-mt-i18n="mediaTrStart"></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-tr-cancel" data-mt-i18n="mediaCancel" hidden></button>
+      <button type="button" class="mt-btn mt-btn-quiet mt-tr-hub" data-mt-i18n="mediaTrOpenHub" hidden></button>
+    </div>
+    <div class="mt-tr-progress" hidden>
+      <div class="mt-tr-bar"><i class="mt-tr-fill"></i></div>
+      <span class="mt-tr-progress-text"></span>
+    </div>
+    <p class="mt-tr-ok" hidden></p>
+    <div class="mt-tr-error" role="alert" hidden></div>
+    <pre class="mt-tr-text" hidden></pre>
+  </div>
+
+  <div class="mt-card mt-pv" hidden>
+    <h3 class="mt-card-title" data-mt-i18n="mediaPvTitle"></h3>
+    <div class="mt-pv-media"></div>
+    <div class="mt-pv-caption" hidden></div>
+    <details class="mt-pv-style">
+      <summary class="mt-pv-style-sum" data-mt-i18n="mediaPvStyle"></summary>
+      <div class="mt-pv-style-body">
+        <label class="mt-pv-style-row"><span class="mt-pv-label" data-mt-i18n="mediaPvFont"></span><select class="mt-pv-font"></select></label>
+        <label class="mt-pv-style-row"><span class="mt-pv-label" data-mt-i18n="mediaPvSize"></span><input type="range" class="mt-pv-size" min="14" max="48" step="1"><output class="mt-pv-size-out"></output></label>
+        <div class="mt-pv-style-row"><span class="mt-pv-label" data-mt-i18n="mediaPvColor"></span><div class="mt-pv-swatches" role="group"></div></div>
+        <label class="mt-pv-style-row"><span class="mt-pv-label" data-mt-i18n="mediaPvPickColor"></span><input type="color" class="mt-pv-color-pick"></label>
+        <label class="mt-pv-style-row"><span class="mt-pv-label" data-mt-i18n="mediaPvBg"></span><select class="mt-pv-bg"></select></label>
+        <label class="mt-pv-style-row mt-pv-infiles-row"><input type="checkbox" class="mt-pv-infiles" checked> <span data-mt-i18n="mediaPvInFiles"></span></label>
+        <p class="mt-card-text mt-pv-style-note" data-mt-i18n="mediaPvStyleNote"></p>
+        <button type="button" class="mt-btn mt-btn-quiet mt-pv-style-reset" data-mt-i18n="mediaPvReset"></button>
+      </div>
+    </details>
+    <label class="mt-pv-showrow">
+      <span class="mt-pv-label" data-mt-i18n="mediaPvShow"></span>
+      <select class="mt-pv-show">
+        <option value="original"></option>
+        <option value="translated"></option>
+      </select>
+    </label>
+    <p class="mt-pv-note" hidden></p>
+    <p class="mt-card-text mt-pv-hint" data-mt-i18n="mediaPvHint"></p>
+    <div class="mt-pv-list" role="list"></div>
+    <div class="mt-pv-export">
+      <h4 class="mt-pv-export-title" data-mt-i18n="mediaPvExportTitle"></h4>
+      <label class="mt-pv-nextrow" hidden>
+        <input type="checkbox" class="mt-pv-nextto" checked>
+        <span data-mt-i18n="mediaPvNextTo"></span>
+      </label>
+      <div class="mt-actions">
+        <button type="button" class="mt-btn mt-pv-exp-orig" data-mt-i18n="mediaPvExpOrig"></button>
+        <button type="button" class="mt-btn mt-pv-exp-tr" data-mt-i18n="mediaPvExpTr"></button>
+        <button type="button" class="mt-btn mt-pv-exp-bi" data-mt-i18n="mediaPvExpBi"></button>
+        <button type="button" class="mt-btn mt-btn-quiet mt-pv-exp-vtt" data-mt-i18n="mediaPvExpVtt"></button>
+        <button type="button" class="mt-btn mt-btn-quiet mt-pv-exp-ass" data-mt-i18n="mediaPvExpAss"></button>
+        <button type="button" class="mt-btn mt-btn-quiet mt-pv-exp-txt" data-mt-i18n="mediaPvExpTxt"></button>
+      </div>
+    </div>
+  </div>
+</section>

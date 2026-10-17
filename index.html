@@ -14,6 +14,7 @@
 <link rel="stylesheet" href="css/components.css">
 <link rel="stylesheet" href="css/tabs.css">
 <link rel="stylesheet" href="css/theme.css">
+<link rel="stylesheet" href="media/media.css">
 <script src="js/themes.js"></script>
 </head>
 <body>
@@ -45,6 +46,7 @@
         <button data-tab="doc" data-t="tabDoc" role="tab" aria-selected="false" title="Document">Document</button>
         <button data-tab="voice" data-t="tabVoice" role="tab" aria-selected="false" title="Voice">Voice</button>
         <button data-tab="screen" data-t="tabScreen" role="tab" aria-selected="false" title="Screen">Screen</button>
+        <button data-tab="media" data-t="tabMedia" role="tab" aria-selected="false" title="Media">Media</button>
       </div>
       <div class="sidebar-sec">
         <div class="sidebar-sec-h" data-t="secTools">TOOLS</div>
@@ -1210,6 +1212,14 @@
     </div>
   </section>
 
+  <!-- MEDIA -->
+  <section class="tab" id="tab-media">
+    <div class="media-page-header">
+      <h1 class="media-page-title" data-t="mediaTitle">Media Translate</h1>
+      <p class="media-page-sub" data-t="mediaSubtitle">Turn speech in audio or video files into subtitles in any language.</p>
+    </div>
+  </section>
+
   <!-- GAMES -->
   <section class="tab" id="tab-games">
     <div class="card" style="text-align:center;padding:56px 24px">
@@ -1861,6 +1871,14 @@
 <script src="models-catalog.js"></script>
 <script src="translation-memory.js"></script>
 <script src="js/store.js"></script>
+<script src="media/media-i18n.js"></script>
+<script src="media/media-file.js"></script>
+<script src="media/media-decode.js"></script>
+<script src="media/media-asr.js"></script>
+<script src="media/media-cues.js"></script>
+<script src="media/media-export.js"></script>
+<script src="media/media-preview.js"></script>
+<script src="media/media-ui.js"></script>
 <script src="js/i18n.js"></script>
 <script src="js/translate.js"></script>
 <script src="js/speech.js"></script>
