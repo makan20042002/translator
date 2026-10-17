@@ -576,17 +576,33 @@
       e.stopPropagation();
       e.preventDefault();
       try {
-        const resp = await chrome.runtime.sendMessage({
+        const resp = await askBackground({
           action: 'open-in-app',
           text: (text || '').slice(0, 2000),
           src: curSrc,
           tgt: curTgt
         });
-        if (resp && !resp.ok) {
-          showToastNotice(resp.error || 'Start MAKAN Translate first');
+        if (resp && resp.via === 'exe') {
+          let note = card.querySelector('.makan-card-note');
+          if (!note) {
+            note = document.createElement('div');
+            note.className = 'makan-card-note';
+            const body = card.querySelector('#makanCardBody');
+            if (body) body.prepend(note);
+            else card.appendChild(note);
+          }
+          note.textContent = (curUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate';
+          setTimeout(() => {
+            card.classList.add('fading');
+            setTimeout(() => removeCard(), 400);
+          }, 1100);
+        } else if (resp && resp.fallbackUrl) {
+          window.open(resp.fallbackUrl, '_blank');
+        } else {
+          window.open(openAppBtn.href, '_blank');
         }
       } catch {
-        showToastNotice('Start MAKAN Translate first');
+        window.open(openAppBtn.href, '_blank');
       }
     });
 

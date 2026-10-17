@@ -21,6 +21,9 @@ The extension communicates strictly with the following translation providers, an
 | **Anthropic Claude** | `https://api.anthropic.com/v1/messages` | Selected text or page text, language codes, user's Claude key in header | On user request when Claude engine is active |
 | **Ollama (Local AI)** | `http://localhost:11434/v1/chat/completions` | Selected text, language codes | Processed **locally on user's machine**; zero internet transmission |
 | **Custom Server** | User-configured URL (e.g., `http://localhost:1234/v1`) | Selected text, language codes | User-defined local or private server |
+| **MAKAN Desktop App Bridge** | `http://127.0.0.1:50505/__makan/*` | Selected text, language pair codes | On user clicking "Open in App" to focus the running desktop app |
+
+> **Local Desktop App Bridge**: When clicking 'Open in App', the extension checks if the MAKAN Translate desktop app is running on 127.0.0.1:50505. Only localhost/127.0.0.1 is contacted, no external network call is made.
 
 > **Note on other services**: MAKAN Translate does NOT integrate or call DeepL, analytics platforms, advertising trackers, or telemetry endpoints. Only the services listed above exist in the codebase.
 

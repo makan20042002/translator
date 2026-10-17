@@ -524,21 +524,48 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     }
 
     if (req.action === 'open-in-app') {
-      const choice = await chooseAppAddress({
-        appUrl: cfg.appUrl || 'http://127.0.0.1:50505',
-        webAppUrl: cfg.webAppUrl || 'http://localhost:8080',
-        timeoutMs: 400
-      });
-      if (choice.ok && choice.url) {
-        const fullUrl = buildAppTargetUrl(choice.url, {
-          text: req.text || '',
-          src: req.src || 'auto',
-          tgt: req.tgt || 'fa'
+      const text = typeof req.text === 'string' ? req.text.slice(0, 2000) : '';
+      const src = req.src || 'auto';
+      const tgt = req.tgt || 'fa';
+      const appUrl = (typeof safeAppUrl === 'function' ? safeAppUrl(cfg.appUrl) : (cfg.appUrl || 'http://127.0.0.1:50505')).replace(/\/+$/, '');
+      const fallbackUrl = buildAppTargetUrl(appUrl, { text, src, tgt });
+
+      try {
+        const pingSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+          ? AbortSignal.timeout(600)
+          : undefined;
+        const pingRes = await fetch(`${appUrl}/__makan/ping`, {
+          method: 'GET',
+          signal: pingSignal
         });
-        await chrome.tabs.create({ url: fullUrl });
-        return { ok: true, url: fullUrl };
+        if (pingRes.ok) {
+          const pingData = await pingRes.json().catch(() => null);
+          if (pingData && pingData.app === 'makan-translate') {
+            const openSignal = typeof AbortSignal !== 'undefined' && typeof AbortSignal.timeout === 'function'
+              ? AbortSignal.timeout(1500)
+              : undefined;
+            const openRes = await fetch(`${appUrl}/__makan/open`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'X-Makan-Open': '1'
+              },
+              body: JSON.stringify({ text, src, tgt }),
+              signal: openSignal
+            });
+            if (openRes.ok) {
+              const openData = await openRes.json().catch(() => null);
+              if (openData && openData.ok) {
+                return { ok: true, via: 'exe' };
+              }
+            }
+          }
+        }
+      } catch (e) {
+        // Desktop app not running or ping timed out
       }
-      return { ok: false, error: 'Start MAKAN Translate first' };
+
+      return { ok: false, fallbackUrl };
     }
 
     if (req.action === 'dict-lookup') {

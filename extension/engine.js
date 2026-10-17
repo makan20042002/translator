@@ -141,6 +141,10 @@ function safeAppUrl(u, fallback = 'http://127.0.0.1:50505') {
   return fallback;
 }
 
+function isAllowedAppUrl(u) {
+  return isAllowListedLocalAddress(u);
+}
+
 async function checkAddressReachable(url, timeoutMs = 400, fetchFn = (typeof fetch !== 'undefined' ? fetch : null)) {
   if (!isAllowListedLocalAddress(url)) return false;
   if (!fetchFn) return false;
@@ -1624,6 +1628,7 @@ if (root) {
   root.ALLOWED_LOCAL_PORTS = ALLOWED_LOCAL_PORTS;
   root.isAllowListedLocalAddress = isAllowListedLocalAddress;
   root.safeAppUrl = safeAppUrl;
+  root.isAllowedAppUrl = isAllowedAppUrl;
   root.checkAddressReachable = checkAddressReachable;
   root.chooseAppAddress = chooseAppAddress;
   root.buildAppTargetUrl = buildAppTargetUrl;

@@ -252,23 +252,21 @@ document.addEventListener('DOMContentLoaded', async () => {
         src: pSrcLang.value || 'auto',
         tgt: pTgtLang.value || 'fa'
       });
-      if (resp && !resp.ok) {
+      if (resp && resp.via === 'exe') {
         const msg = document.getElementById('pOpenAppMsg');
         if (msg) {
-          msg.textContent = resp.error || 'Start MAKAN Translate first';
+          msg.textContent = (currentUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate';
           msg.style.display = 'block';
           clearTimeout(msg._timer);
-          msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 4000);
+          msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 2500);
         }
+      } else if (resp && resp.fallbackUrl) {
+        window.open(resp.fallbackUrl, '_blank');
+      } else {
+        window.open(pOpenWebApp.href, '_blank');
       }
     } catch {
-      const msg = document.getElementById('pOpenAppMsg');
-      if (msg) {
-        msg.textContent = 'Start MAKAN Translate first';
-        msg.style.display = 'block';
-        clearTimeout(msg._timer);
-        msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 4000);
-      }
+      window.open(pOpenWebApp.href, '_blank');
     }
   });
 

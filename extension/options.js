@@ -515,15 +515,22 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   optOpenApp.onclick = async (e) => {
     e.preventDefault();
-    const res = await chooseAppAddress({
-      appUrl: cfg.appUrl || 'http://127.0.0.1:50505',
-      webAppUrl: cfg.webAppUrl || 'http://localhost:8080',
-      timeoutMs: 400
-    });
-    if (res.ok && res.url) {
-      window.open(res.url, '_blank');
-    } else {
-      toast(res.error || 'Start MAKAN Translate first', 'warn');
+    try {
+      const resp = await chrome.runtime.sendMessage({
+        action: 'open-in-app',
+        text: '',
+        src: cfg.src || 'auto',
+        tgt: cfg.tgt || 'fa'
+      });
+      if (resp && resp.via === 'exe') {
+        toast((currentUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate');
+      } else if (resp && resp.fallbackUrl) {
+        window.open(resp.fallbackUrl, '_blank');
+      } else {
+        window.open(optOpenApp.href, '_blank');
+      }
+    } catch {
+      window.open(optOpenApp.href, '_blank');
     }
   };
 
