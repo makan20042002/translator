@@ -3638,6 +3638,104 @@ html[dir="rtl"] .bub-orig-text {
   pointer-events: auto !important;
 }
 
+/* Light themes talk button */
+[data-theme="platinum-blue"] .ptt-btn,
+[data-theme="platinum-blue"] .ptt-btn[data-state="ready"],
+[data-theme="champagne-minimal"] .ptt-btn,
+[data-theme="champagne-minimal"] .ptt-btn[data-state="ready"] {
+  background: radial-gradient(circle at 35% 30%, var(--surface2) 0%, var(--surface) 100%);
+  border-color: var(--accent-line);
+  color: var(--text);
+  box-shadow: 0 10px 24px color-mix(in srgb, var(--text) 12%, transparent);
+}
+
+[data-theme="platinum-blue"] .ptt-btn:active,
+[data-theme="platinum-blue"] .ptt-btn.rec,
+[data-theme="platinum-blue"] .ptt-btn[data-state="listening"],
+[data-theme="champagne-minimal"] .ptt-btn:active,
+[data-theme="champagne-minimal"] .ptt-btn.rec,
+[data-theme="champagne-minimal"] .ptt-btn[data-state="listening"] {
+  border-color: var(--err);
+  color: var(--err);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--err) 12%, var(--surface)) 0%, color-mix(in srgb, var(--err) 4%, var(--surface)) 100%);
+  box-shadow: 0 0 0 8px color-mix(in srgb, var(--err) 16%, transparent), 0 0 24px color-mix(in srgb, var(--err) 25%, transparent);
+}
+
+[data-theme="platinum-blue"] .ptt-btn[data-state="working"],
+[data-theme="champagne-minimal"] .ptt-btn[data-state="working"] {
+  border-color: var(--cyan);
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--cyan) 12%, var(--surface)) 0%, color-mix(in srgb, var(--cyan) 4%, var(--surface)) 100%);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--cyan) 25%, transparent);
+}
+
+[data-theme="platinum-blue"] .ptt-btn[data-state="preparing"],
+[data-theme="champagne-minimal"] .ptt-btn[data-state="preparing"] {
+  border-color: var(--warn);
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--warn) 12%, var(--surface)) 0%, color-mix(in srgb, var(--warn) 4%, var(--surface)) 100%);
+  box-shadow: 0 0 20px color-mix(in srgb, var(--warn) 25%, transparent);
+}
+
+[data-theme="platinum-blue"] .ptt-btn[data-state="speaking"],
+[data-theme="champagne-minimal"] .ptt-btn[data-state="speaking"] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--accent) 12%, var(--surface)) 0%, color-mix(in srgb, var(--accent) 4%, var(--surface)) 100%);
+  box-shadow: 0 0 25px color-mix(in srgb, var(--accent) 25%, transparent);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn,
+[data-theme="makan-lab"] .ptt-btn[data-state="ready"] {
+  background: radial-gradient(circle at 35% 30%, #182338 0%, #091120 100%);
+  border-color: var(--accent-line);
+  color: var(--text);
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn:hover {
+  border-color: var(--accent);
+  box-shadow: 0 12px 35px rgba(88, 166, 255, 0.25);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn:active,
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn.rec,
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn[data-state="listening"] {
+  border-color: var(--err);
+  color: var(--err);
+  background: radial-gradient(circle at 35% 30%, #3d1319 0%, #19080c 100%);
+  box-shadow: 0 0 0 8px rgba(255, 107, 122, 0.18), 0 0 35px rgba(255, 107, 122, 0.5);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn[data-state="working"] {
+  border-color: var(--cyan);
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, #0d2838 0%, #05141c 100%);
+  box-shadow: 0 0 20px rgba(19, 200, 245, 0.35);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn[data-state="preparing"] {
+  border-color: #ffbe53;
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, #3d2e14 0%, #1c1408 100%);
+  box-shadow: 0 0 20px rgba(255, 190, 83, 0.45);
+}
+
+/* makanlab */
+[data-theme="makan-lab"] .ptt-btn[data-state="speaking"] {
+  border-color: var(--accent);
+  color: var(--text);
+  background: radial-gradient(circle at 35% 30%, #132b47 0%, #081526 100%);
+  box-shadow: 0 0 25px rgba(88, 166, 255, 0.45);
+}
+
 .ptt-icon-wrap,
 .ptt-icon-wrap *,
 .ptt-label {
