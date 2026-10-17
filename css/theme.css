@@ -6451,7 +6451,7 @@ body:has(#tab-voice.on) .speak-notice,
 [data-theme="platinum-blue"] .eng-status.warn,
 [data-theme="champagne-minimal"] .tier.paid,
 [data-theme="platinum-blue"] .tier.paid {
-  color: hsl(30, 85%, 30%);
+  color: var(--warning-text);
 }
 
 /* Light-theme Accent text on tinted/panel2/selected backgrounds */
@@ -6478,21 +6478,66 @@ body:has(#tab-voice.on) .speak-notice,
   color: var(--accent-dark);
 }
 
-/* Light-theme Faint token element-level overrides */
+/* Theme-level tokens for success/warning pill text */
+[data-theme="platinum-blue"],
 [data-theme="platinum-blue"] body,
 [data-theme="platinum-blue"] .app-shell,
 [data-theme="platinum-blue"] .modal,
 [data-theme="platinum-blue"] .welcome-modal {
   --faint: #56708A;
   --muted: #455D77;
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
 }
 
+[data-theme="champagne-minimal"],
 [data-theme="champagne-minimal"] body,
 [data-theme="champagne-minimal"] .app-shell,
 [data-theme="champagne-minimal"] .modal,
 [data-theme="champagne-minimal"] .welcome-modal {
   --faint: #745F45;
   --muted: #65543F;
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
+}
+
+[data-theme="dracula"] {
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
+}
+
+[data-theme="rose-titanium"] {
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
+}
+
+[data-theme="royal-amethyst"] {
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
+}
+
+[data-theme="obsidian-gold"] {
+  --success-text: color-mix(in srgb, var(--success) 70%, var(--text));
+  --warning-text: color-mix(in srgb, var(--warning) 60%, var(--text));
+}
+
+:root:not([data-theme="makan-lab"]) .screen-mode-status.ready,
+:root:not([data-theme="makan-lab"]) #screenModeRegionStatus,
+:root:not([data-theme="makan-lab"]) #screenModeRegionStatus *,
+:root:not([data-theme="makan-lab"]) .doc-engine-net-pill.online,
+:root:not([data-theme="makan-lab"]) #tmPersistStatus,
+:root:not([data-theme="makan-lab"]) #tabScreenOpenOcrBtn,
+:root:not([data-theme="makan-lab"]) #tabScreenOpenOcrBtn * {
+  color: var(--success-text);
+}
+
+:root:not([data-theme="makan-lab"]) .sub-coming-soon-badge,
+:root:not([data-theme="makan-lab"]) #vVoiceReadyText,
+:root:not([data-theme="makan-lab"]) .voice-ready-text,
+:root:not([data-theme="makan-lab"]) .voice-status-chip.not-ready,
+:root:not([data-theme="makan-lab"]) .voice-status-chip.not-ready *,
+:root:not([data-theme="makan-lab"]) .hub-pill.warn {
+  color: var(--warning-text);
 }
 
 [data-theme="platinum-blue"] .bar label,
