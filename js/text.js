@@ -339,6 +339,15 @@ function updateStatusChip(){
   chip.hidden = !hasRes;
 }
 
+function setVoiceUsed(text){
+  const el = $('tVoiceUsed');
+  if(el){
+    el.textContent = text || '';
+    el.title = text || '';
+  }
+}
+window.setVoiceUsed = setVoiceUsed;
+
 function updateListenButtonState(){
   const btn = $('tSpeak');
   if(!btn) return;
@@ -348,19 +357,8 @@ function updateListenButtonState(){
     const v = resolveVoice(tgt);
     const vName = v.kind === 'device' ? v.voice?.name : v.kind === 'gemini' ? `Gemini (${v.voiceName})` : v.kind === 'piper' ? (typeof mcText==='function'?mcText(v.m?.name):v.m?.name) : '';
     btn.title = vName ? `${L('speak')} · ${vName}` : (L('speak') || 'Speak');
-    if($('tVoiceUsed')){
-      $('tVoiceUsed').textContent = vName ? `${L('voiceUsed')}: ${vName}` : '';
-      $('tVoiceUsed').title = $('tVoiceUsed').textContent;
-    }
+    setVoiceUsed(vName ? `${L('voiceUsed')}: ${vName}` : '');
   }
-}
-if($('tVoiceUsed') && typeof MutationObserver !== 'undefined'){
-  const vuEl=$('tVoiceUsed');
-  new MutationObserver(()=>{
-    if(vuEl.textContent && vuEl.title !== vuEl.textContent){
-      vuEl.title=vuEl.textContent;
-    }
-  }).observe(vuEl, {childList: true, characterData: true, subtree: true});
 }
 
 $('tGo').onclick=doText;$('tStop').onclick=()=>tCtl?.abort();

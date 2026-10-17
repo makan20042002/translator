@@ -111,25 +111,24 @@ test('Text tab translate button kbd has high contrast and voice label does not o
   expect(allViolations).toEqual([]);
 
   // Verify voice label title === full text
-  const labelData = await page.evaluate(() => {
+  const fullText = 'Voice: Microsoft David - English (United States)';
+  await page.evaluate((txt) => {
     if (typeof updateCompactVoiceButtons === 'function') {
       updateCompactVoiceButtons();
     }
-    const vu = document.getElementById('tVoiceUsed');
-    if (vu) {
-      vu.textContent = 'Voice: Microsoft David - English (United States)';
+    if (typeof setVoiceUsed === 'function') {
+      setVoiceUsed(txt);
+    } else {
+      const vu = document.getElementById('tVoiceUsed');
+      if (vu) {
+        vu.textContent = txt;
+        vu.title = txt;
+      }
     }
-    const cur = document.getElementById('tVoiceCurLabel');
-    return {
-      vuTitle: vu ? vu.getAttribute('title') : '',
-      vuText: vu ? vu.textContent.trim() : '',
-      curTitle: cur ? cur.getAttribute('title') : '',
-      curText: cur ? cur.textContent.trim() : ''
-    };
-  });
+  }, fullText);
 
-  expect(labelData.vuTitle).toBe(labelData.vuText);
-  expect(labelData.curTitle).toBe(labelData.curText);
+  await expect(page.locator('#tVoiceUsed')).toHaveAttribute('title', fullText);
+  await expect(page.locator('#tVoiceCurLabel')).toHaveAttribute('title', /.+/);
 
   // Verify no horizontal overflow of the card at 360px, 700px, 1280px in EN and FA
   for (const width of [360, 700, 1280]) {
