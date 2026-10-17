@@ -1,214 +1,208 @@
 /* ---------- shell ---------- */
-let mediaHandle = null;
-let mediaMounting = null;
+(() => {
+  let mediaHandle = null;
+  let mediaMounting = null;
 
-function onMediaLanguageChange() {
-  if (mediaHandle && typeof mediaHandle.refresh === 'function') {
-    mediaHandle.refresh();
-  }
-}
-
-function isMediaWebGpuAvailable() {
-  if (typeof navigator === 'undefined' || !('gpu' in navigator) || !navigator.gpu) return false;
-  if (typeof hasWebGpu === 'boolean' && !hasWebGpu) return false;
-  return true;
-}
-
-function getMediaWhisperGpu(m) {
-  if (!isMediaWebGpuAvailable()) return false;
-  if (!m) return false;
-  if (!m.gpu && m.webgpu !== 'optional') return false;
-
-  const mKey = m.key || (typeof asrModel === 'function' ? asrModel()?.key : 'base');
-  const wasmVal = (typeof store !== 'undefined') ? store.get('whisper_wasm', '') : '';
-  const webgpuVal = (typeof store !== 'undefined') ? store.get('whisper_webgpu', '') : '';
-
-  if (wasmVal === mKey || wasmVal === true || wasmVal === '1') {
-    if (webgpuVal !== mKey && webgpuVal !== true) return false;
-  }
-  if (webgpuVal === mKey || webgpuVal === true || webgpuVal === '1') {
-    return true;
-  }
-  if (typeof cfg !== 'undefined') {
-    if (cfg.whisperDevice === 'wasm' || cfg.whisperDevice === 'cpu' || cfg.whisper_webgpu === false) return false;
-    if (cfg.whisperDevice === 'webgpu' || cfg.whisper_webgpu === true) return true;
-  }
-  return Boolean(m.gpu || m.webgpu === 'optional');
-}
-
-function getMediaWhisperChoice() {
-  const m = (typeof asrModel === 'function') ? asrModel() : null;
-  if (!m) return null;
-  return {
-    repo: m.repo,
-    name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
-    memMB: m.memMB || 1000,
-    ready: (typeof mcReady === 'function') ? mcReady(m) : false,
-    gpu: getMediaWhisperGpu(m)
-  };
-}
-
-function getMediaTranslateChoice() {
-  const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-  let id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
-  if (typeof isOff === 'function' && isOff()) {
-    if (chosen !== 'auto' && typeof offCapable === 'function' && !offCapable(chosen)) {
-      id = (typeof cfg !== 'undefined' && cfg.order) ? (cfg.order.find(x => usable(x) && offCapable(x)) || 'nllb') : 'nllb';
+  function onMediaLanguageChange() {
+    if (mediaHandle && typeof mediaHandle.refresh === 'function') {
+      mediaHandle.refresh();
     }
   }
-  const eng = (typeof ENG !== 'undefined' && ENG[id]) ? ENG[id] : { name: id, tier: 'free' };
-  const isOffline = (typeof offCapable === 'function') ? offCapable(id) : false;
-  const kind = isOffline ? 'offline' : 'online';
 
-  let model = (typeof cfg !== 'undefined' && cfg.eng?.[id]?.model) || eng.model || '';
-  if (id === 'nllb') {
-    const s = (typeof $ === 'function' && $('src')?.value) || 'en';
-    const t = (typeof $ === 'function' && $('tgt')?.value) || 'fa';
-    const m = (typeof pickTr === 'function') ? pickTr(s, t) : null;
-    model = m ? ((typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo)) : 'NLLB-200 600M';
+  function isMediaWebGpuAvailable() {
+    if (typeof navigator === 'undefined' || !('gpu' in navigator) || !navigator.gpu) return false;
+    if (typeof hasWebGpu === 'boolean' && !hasWebGpu) return false;
+    return true;
   }
 
-  const ready = (typeof why === 'function' ? !why(id) : true) && (!isOff() || isOffline);
-  const needsKey = Boolean(eng.key && !(typeof cfg !== 'undefined' && cfg.eng?.[id]?.key));
+  function getMediaWhisperGpu(m) {
+    if (!isMediaWebGpuAvailable()) return false;
+    if (!m) return false;
+    if (!m.gpu && m.webgpu !== 'optional') return false;
 
-  const res = {
-    id,
-    name: eng.name,
-    kind,
-    model,
-    ready: Boolean(ready && !needsKey),
-    needsKey
-  };
+    const mKey = m.key || (typeof asrModel === 'function' ? asrModel()?.key : 'base');
+    const wasmVal = (typeof store !== 'undefined') ? store.get('whisper_wasm', '') : '';
+    const webgpuVal = (typeof store !== 'undefined') ? store.get('whisper_webgpu', '') : '';
 
-  if (id === 'nllb') {
-    res.licence = 'CC BY-NC 4.0';
-    res.licenceNote = 'Non-commercial use only (CC BY-NC 4.0)';
-  } else if (id === 'ollama') {
-    res.licence = 'MIT';
+    if (wasmVal === mKey || wasmVal === true || wasmVal === '1') {
+      if (webgpuVal !== mKey && webgpuVal !== true) return false;
+    }
+    if (webgpuVal === mKey || webgpuVal === true || webgpuVal === '1') {
+      return true;
+    }
+    if (typeof cfg !== 'undefined') {
+      if (cfg.whisperDevice === 'wasm' || cfg.whisperDevice === 'cpu' || cfg.whisper_webgpu === false) return false;
+      if (cfg.whisperDevice === 'webgpu' || cfg.whisper_webgpu === true) return true;
+    }
+    return Boolean(m.gpu || m.webgpu === 'optional');
   }
 
-  return res;
-}
-
-async function mediaTranslateCues(cues, opts) {
-  if (!Array.isArray(cues)) return [];
-  const src = opts.src || (typeof $ === 'function' && $('src')?.value) || 'en';
-  const tgt = opts.tgt || (typeof $ === 'function' && $('tgt')?.value) || 'fa';
-  const signal = opts.signal;
-  const onProgress = opts.onProgress;
-  const onInfo = opts.onInfo;
-
-  if (signal?.aborted) {
-    const err = new DOMException('Aborted', 'AbortError');
-    err.code = 'aborted';
-    err.partial = [];
-    throw err;
+  function getMediaWhisperChoice() {
+    const m = (typeof asrModel === 'function') ? asrModel() : null;
+    if (!m) return null;
+    return {
+      repo: m.repo,
+      name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
+      memMB: m.memMB || 1000,
+      ready: (typeof mcReady === 'function') ? mcReady(m) : false,
+      gpu: getMediaWhisperGpu(m)
+    };
   }
 
-  const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
-  let chain;
-  if (activeEngine === 'auto') {
-    chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
-  } else {
-    if (typeof usable === 'function' && !usable(activeEngine)) {
-      const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
+  function getMediaTranslateChoice() {
+    const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+    let id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
+    if (typeof isOff === 'function' && isOff()) {
+      if (chosen !== 'auto' && typeof offCapable === 'function' && !offCapable(chosen)) {
+        id = (typeof cfg !== 'undefined' && cfg.order) ? (cfg.order.find(x => usable(x) && offCapable(x)) || 'nllb') : 'nllb';
+      }
+    }
+    const eng = (typeof ENG !== 'undefined' && ENG[id]) ? ENG[id] : { name: id, tier: 'free' };
+    const isOffline = (typeof offCapable === 'function') ? offCapable(id) : false;
+    const kind = isOffline ? 'offline' : 'online';
+
+    let model = (typeof cfg !== 'undefined' && cfg.eng?.[id]?.model) || eng.model || '';
+    if (id === 'nllb') {
+      const s = (typeof $ === 'function' && $('src')?.value) || 'en';
+      const t = (typeof $ === 'function' && $('tgt')?.value) || 'fa';
+      const m = (typeof pickTr === 'function') ? pickTr(s, t) : null;
+      model = m ? ((typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo)) : 'NLLB-200 600M';
+    }
+
+    const ready = (typeof why === 'function' ? !why(id) : true) && (!isOff() || isOffline);
+    const needsKey = Boolean(eng.key && !(typeof cfg !== 'undefined' && cfg.eng?.[id]?.key));
+
+    const res = {
+      id,
+      name: eng.name,
+      kind,
+      model,
+      ready: Boolean(ready && !needsKey),
+      needsKey
+    };
+
+    if (id === 'nllb') {
+      res.licence = 'CC BY-NC 4.0';
+      res.licenceNote = 'Non-commercial use only (CC BY-NC 4.0)';
+    } else if (id === 'ollama') {
+      res.licence = 'MIT';
+    }
+
+    return res;
+  }
+
+  async function mediaTranslateCues(cues, opts) {
+    if (!Array.isArray(cues)) return [];
+    const src = opts?.src || (typeof $ === 'function' && $('src')?.value) || 'en';
+    const tgt = opts?.tgt || (typeof $ === 'function' && $('tgt')?.value) || 'fa';
+    const signal = opts?.signal;
+    const onProgress = opts?.onProgress;
+    const onInfo = opts?.onInfo;
+
+    if (signal?.aborted) {
+      const err = new DOMException('Aborted', 'AbortError');
+      err.code = 'aborted';
+      err.partial = [];
+      throw err;
+    }
+
+    const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+    let chain;
+    if (activeEngine === 'auto') {
+      chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
+    } else {
+      if (typeof usable === 'function' && !usable(activeEngine)) {
+        const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
+        err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
+        err.partial = [];
+        throw err;
+      }
+      chain = [activeEngine];
+    }
+
+    if (typeof isOff === 'function' && isOff()) {
+      chain = chain.filter(id => (typeof offCapable === 'function' ? offCapable(id) : false));
+      if (!chain.length) {
+        const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
+        err.code = 'notdownloaded';
+        err.partial = [];
+        throw err;
+      }
+    }
+
+    if (!chain.length) {
+      const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'No engine available');
       err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
       err.partial = [];
       throw err;
     }
-    chain = [activeEngine];
-  }
 
-  if (typeof isOff === 'function' && isOff()) {
-    chain = chain.filter(id => (typeof offCapable === 'function' ? offCapable(id) : false));
-    if (!chain.length) {
-      const err = new Error(typeof L === 'function' ? L('noOff') : 'No offline engine is ready');
-      err.code = 'notdownloaded';
-      err.partial = [];
+    const texts = cues.map(c => c.o || '');
+    const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
+
+    const firstEngine = chain[0];
+    if (firstEngine && typeof ENG !== 'undefined' && ENG[firstEngine]) {
+      const eng = ENG[firstEngine];
+      const kind = (typeof offCapable === 'function' && offCapable(firstEngine)) ? 'offline' : 'online';
+      const model = (cfg.eng?.[firstEngine]?.model) || eng.model || (firstEngine === 'nllb' ? 'NLLB-200 600M' : '');
+      const licence = firstEngine === 'nllb' ? 'CC BY-NC 4.0' : (firstEngine === 'ollama' ? 'MIT' : '');
+      onInfo?.({ id: firstEngine, name: eng.name, kind, model, licence });
+    }
+
+    try {
+      const res = await translateItems(texts, {
+        src,
+        tgt,
+        signal,
+        chain,
+        onEngineChange: engId => {
+          if (engId && typeof ENG !== 'undefined' && ENG[engId]) {
+            const eng = ENG[engId];
+            const kind = (typeof offCapable === 'function' && offCapable(engId)) ? 'offline' : 'online';
+            const model = (cfg.eng?.[engId]?.model) || eng.model || (engId === 'nllb' ? 'NLLB-200 600M' : '');
+            const licence = engId === 'nllb' ? 'CC BY-NC 4.0' : (engId === 'ollama' ? 'MIT' : '');
+            onInfo?.({ id: engId, name: eng.name, kind, model, licence });
+          }
+        },
+        onProgress: (done, total, engId) => {
+          onProgress?.({
+            stage: 'translate',
+            fraction: total ? (done / total) : 0,
+            done,
+            total,
+            engine: (typeof ENG !== 'undefined' && ENG[engId]?.name) || engId
+          });
+        },
+        onBatch: (batchIndices, batchRes, allOut) => {
+          batchIndices.forEach(idx => {
+            translatedCues[idx] = {
+              s: cues[idx].s,
+              e: cues[idx].e,
+              o: cues[idx].o,
+              t: allOut[idx] || ''
+            };
+          });
+        }
+      });
+
+      return cues.map((c, i) => ({
+        s: c.s,
+        e: c.e,
+        o: c.o,
+        t: (res && res.out && res.out[i] !== undefined) ? res.out[i] : ''
+      }));
+    } catch (err) {
+      if (signal?.aborted || err.name === 'AbortError' || err.code === 'aborted') {
+        const abortErr = new DOMException('Aborted', 'AbortError');
+        abortErr.code = 'aborted';
+        abortErr.partial = translatedCues;
+        throw abortErr;
+      }
+      err.partial = translatedCues;
       throw err;
     }
   }
 
-  if (!chain.length) {
-    const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'No engine available');
-    err.code = (typeof isOff === 'function' && isOff()) ? 'notdownloaded' : 'failed';
-    err.partial = [];
-    throw err;
-  }
-
-  const texts = cues.map(c => c.o || '');
-  const translatedCues = cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '' }));
-
-  const firstEngine = chain[0];
-  if (firstEngine && typeof ENG !== 'undefined' && ENG[firstEngine]) {
-    const eng = ENG[firstEngine];
-    const kind = (typeof offCapable === 'function' && offCapable(firstEngine)) ? 'offline' : 'online';
-    const model = (cfg.eng?.[firstEngine]?.model) || eng.model || (firstEngine === 'nllb' ? 'NLLB-200 600M' : '');
-    const licence = firstEngine === 'nllb' ? 'CC BY-NC 4.0' : (firstEngine === 'ollama' ? 'MIT' : '');
-    onInfo?.({ id: firstEngine, name: eng.name, kind, model, licence });
-  }
-
-  try {
-    const res = await translateItems(texts, {
-      src,
-      tgt,
-      signal,
-      chain,
-      onEngineChange: engId => {
-        if (engId && typeof ENG !== 'undefined' && ENG[engId]) {
-          const eng = ENG[engId];
-          const kind = (typeof offCapable === 'function' && offCapable(engId)) ? 'offline' : 'online';
-          const model = (cfg.eng?.[engId]?.model) || eng.model || (engId === 'nllb' ? 'NLLB-200 600M' : '');
-          const licence = engId === 'nllb' ? 'CC BY-NC 4.0' : (engId === 'ollama' ? 'MIT' : '');
-          onInfo?.({ id: engId, name: eng.name, kind, model, licence });
-        }
-      },
-      onProgress: (done, total, engId) => {
-        onProgress?.({
-          stage: 'translate',
-          fraction: total ? (done / total) : 0,
-          done,
-          total,
-          engine: (typeof ENG !== 'undefined' && ENG[engId]?.name) || engId
-        });
-      },
-      onBatch: (batchIndices, batchRes, allOut) => {
-        batchIndices.forEach(idx => {
-          translatedCues[idx] = {
-            s: cues[idx].s,
-            e: cues[idx].e,
-            o: cues[idx].o,
-            t: allOut[idx] || ''
-          };
-        });
-      }
-    });
-
-    return cues.map((c, i) => ({
-      s: c.s,
-      e: c.e,
-      o: c.o,
-      t: (res && res.out && res.out[i] !== undefined) ? res.out[i] : ''
-    }));
-  } catch (err) {
-    if (signal?.aborted || err.name === 'AbortError' || err.code === 'aborted') {
-      const abortErr = new DOMException('Aborted', 'AbortError');
-      abortErr.code = 'aborted';
-      abortErr.partial = translatedCues;
-      throw abortErr;
-    }
-    err.partial = translatedCues;
-    throw err;
-  }
-}
-
-function ensureMediaMounted() {
-  if (mediaHandle) return Promise.resolve(mediaHandle);
-  if (mediaMounting) return mediaMounting;
-  const root = $('tab-media');
-  if (!root || typeof window.MediaTranslate === 'undefined' || typeof window.MediaTranslate.mount !== 'function') {
-    return Promise.resolve(null);
-  }
   const host = {
     t: k => (typeof L === 'function' ? L(k) : k),
     getLang: () => (typeof ui !== 'undefined' ? ui : 'en'),
@@ -252,17 +246,46 @@ function ensureMediaMounted() {
       } catch (e) {}
     }
   };
-  window.MediaTranslate.host = host;
-  mediaMounting = window.MediaTranslate.mount(root, host).then(h => {
-    mediaHandle = h;
-    mediaMounting = null;
-    return h;
-  }).catch(err => {
-    mediaMounting = null;
-    throw err;
-  });
-  return mediaMounting;
-}
+
+  if (typeof window !== 'undefined' && window.MediaTranslate) {
+    window.MediaTranslate.host = host;
+    window.MediaTranslate.onLanguageChange = onMediaLanguageChange;
+  }
+
+  function ensureMediaMounted() {
+    if (mediaHandle) return Promise.resolve(mediaHandle);
+    if (mediaMounting) return mediaMounting;
+    const root = typeof $ === 'function' ? $('tab-media') : document.getElementById('tab-media');
+    if (!root || typeof window.MediaTranslate === 'undefined' || typeof window.MediaTranslate.mount !== 'function') {
+      return Promise.resolve(null);
+    }
+    window.MediaTranslate.host = host;
+    window.MediaTranslate.onLanguageChange = onMediaLanguageChange;
+    mediaMounting = window.MediaTranslate.mount(root, host).then(h => {
+      mediaHandle = h;
+      mediaMounting = null;
+      return h;
+    }).catch(err => {
+      mediaMounting = null;
+      throw err;
+    });
+    return mediaMounting;
+  }
+
+  if (typeof window !== 'undefined' && window.MediaTranslate) {
+    window.MediaTranslate.ensureMounted = ensureMediaMounted;
+  }
+
+  const tabsEl = typeof $ === 'function' ? $('tabs') : document.getElementById('tabs');
+  if (tabsEl) {
+    tabsEl.addEventListener('click', e => {
+      const b = e.target.closest('button');
+      if (b && b.dataset.tab === 'media') {
+        ensureMediaMounted();
+      }
+    });
+  }
+})();
 
 $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)return;
   document.querySelectorAll('#tabs button').forEach(x=>{
@@ -281,7 +304,7 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
   if(b.dataset.tab==='models'){if(typeof renderModelHub==='function')renderModelHub();if(typeof mcScan==='function')mcScan().then(()=>{if(typeof renderModelHub==='function')renderModelHub();});}
   if(b.dataset.tab==='sub')updateSubEngineNotice();
-  if(b.dataset.tab==='media')ensureMediaMounted();
+  if(b.dataset.tab==='media'&&typeof window.MediaTranslate?.ensureMounted==='function')window.MediaTranslate.ensureMounted();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });
 if($('sidebarToggleBtn'))$('sidebarToggleBtn').onclick=()=>{
