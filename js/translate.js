@@ -1324,6 +1324,8 @@ async function translateItems(items,o){
           toast(`${ENG[id].name} (429 Rate Limit) — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn',6000);
           ci++;
           o.onEngineChange?.(chain[ci]);
+          o.onChainFallback?.(id, chain[ci]);
+          if(typeof voiceChainRearm==='function')voiceChainRearm();
           continue;
         }else{
           // Last engine left: wait and try again, but only a few times; then say so instead of waiting forever.
@@ -1344,6 +1346,8 @@ async function translateItems(items,o){
         if(!isBlockError(e)) toast(`${ENG[id].name} ${L('failed')}: ${e.message} — ${L('switching')} ${ENG[chain[ci+1]].name}`,'warn');
         ci++;
         o.onEngineChange?.(chain[ci]);
+        o.onChainFallback?.(id, chain[ci]);
+        if(typeof voiceChainRearm==='function')voiceChainRearm();
       }else throw new Error(`${ENG[id].name}: ${isBlockError(e)?L('regionBlocked'):plainWithDetail(e)}`);
     }
   }

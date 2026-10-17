@@ -729,11 +729,39 @@ function resetMeterLevel(){
 
 let voiceState='ready';
 let voiceStateTimer=null;
+let voiceStillTimer=null;
+let currentWorkingLimitMs=20000;
+
+function voiceWorkingLimitMs(textLength){
+  const len=Math.max(0,Number(textLength)||0);
+  if(len<=200)return 20000;
+  const extra=Math.round((len-200)*(1000/40));
+  return Math.min(90000,20000+extra);
+}
+
+function voiceChainRearm(overrideMs){
+  if(typeof voiceState==='undefined'||voiceState!=='working')return;
+  const ms=overrideMs||currentWorkingLimitMs||20000;
+  armWorking(ms);
+}
+
 // (Re)starts the clock for the 'working' state. Recognition of a long recording asks for more time and
 // calls this again whenever the worker reports progress, so a job that is alive is never cut off.
 function armWorking(ms){
   if(voiceState!=='working')return;
+  currentWorkingLimitMs=ms;
   clearTimeout(voiceStateTimer);
+  clearTimeout(voiceStillTimer);
+  if(ms>20000){
+    voiceStillTimer=setTimeout(()=>{
+      if(voiceState==='working'){
+        const statusText=$('vStatusText'),askStatusText=$('vAskStatusText');
+        const txt=(typeof L==='function'?(L('vStatusStillWorking')||L('stillTranslating')):'Still translating…')||'Still translating…';
+        if(statusText)statusText.textContent=txt;
+        if(askStatusText)askStatusText.textContent=txt;
+      }
+    },20000);
+  }
   voiceStateTimer=setTimeout(()=>{
     if(voiceState==='working'){
       toast(L('timeoutWorking'),'err');
@@ -741,8 +769,12 @@ function armWorking(ms){
     }
   },ms);
 }
+if(typeof window!=='undefined'){
+  window.voiceWorkingLimitMs=voiceWorkingLimitMs;
+  window.voiceChainRearm=voiceChainRearm;
+}
 function setVoiceState(state,message='',opts={}){
-  voiceState=state;clearTimeout(voiceStateTimer);
+  voiceState=state;clearTimeout(voiceStateTimer);clearTimeout(voiceStillTimer);
   const statusLine=$('vStatusLine'),statusText=$('vStatusText');
   const pttBtn=$('vPttBtn'),pttLabel=$('vPttLabel'),pttSub=$('vPttSub'),pttIcon=$('vPttIcon');
   const askStatusLine=$('vAskStatusLine'),askStatusText=$('vAskStatusText'),askPttBtn=$('vAskPttBtn');

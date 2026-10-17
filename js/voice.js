@@ -700,10 +700,16 @@ async function triggerLiveBrowserSpeaker(side) {
       return;
     }
     tx = tx.trim();
-    setVoiceState('working', L('vLiveTranslating'));
+    const limitMs = typeof voiceWorkingLimitMs === 'function' ? voiceWorkingLimitMs(tx.length) : 20000;
+    setVoiceState('working', L('vLiveTranslating'), { timeoutMs: limitMs });
     const t0 = performance.now();
     const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
-    const r = await translateItems([tx], opts({ src: from, tgt: to, engine: activeTransEng }));
+    const r = await translateItems([tx], opts({
+      src: from,
+      tgt: to,
+      engine: activeTransEng,
+      onChainFallback: () => { if (typeof voiceChainRearm === 'function') voiceChainRearm(limitMs); }
+    }));
     if (!liveActive) return;
     const dt = ((performance.now() - t0) / 1000).toFixed(1) + 's';
     const voiceObj = pickVoice(to);
@@ -1290,7 +1296,14 @@ async function handleConvPttAudio(audioInput) {
 
     if (!turnResult.translation) {
       const activeTransEng = $('vTransEngine')?.value || store.get('voiceTransEngine', 'auto');
-      const tr = await translateItems([turnResult.transcript], opts({ src: from, tgt: to, engine: activeTransEng }));
+      const limitMs = typeof voiceWorkingLimitMs === 'function' ? voiceWorkingLimitMs(turnResult.transcript.length) : 20000;
+      if (typeof armWorking === 'function') armWorking(limitMs);
+      const tr = await translateItems([turnResult.transcript], opts({
+        src: from,
+        tgt: to,
+        engine: activeTransEng,
+        onChainFallback: () => { if (typeof voiceChainRearm === 'function') voiceChainRearm(limitMs); }
+      }));
       turnResult.translation = tr.out[0];
       turnResult.engine = tr.used;
     }
