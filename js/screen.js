@@ -1,4 +1,152 @@
 /* ---------- MAKAN SCREEN TRANSLATOR (WEB UI & DESKTOP INTEGRATION) ---------- */
+function renderOcrModels(chosenId) {
+  const stOcrModel = $('stOcrModel');
+  if (!stOcrModel) return;
+  const ocrModels = (typeof MC !== 'undefined' && MC.models ? MC.models : []).filter(m => m.job === 'ocr');
+  stOcrModel.innerHTML = '';
+  ocrModels.forEach(m => {
+    const ready = typeof mcReady === 'function' ? mcReady(m) : false;
+    const opt = document.createElement('option');
+    opt.value = m.id;
+    const sizeStr = typeof mcSize === 'function' ? mcSize((typeof mcBytes === 'function' ? mcBytes(m) : null) || m.bytes) : '';
+    opt.textContent = ready
+      ? `${typeof mcText === 'function' ? mcText(m.name) : m.name} (✓ Ready · ${sizeStr})`
+      : `${typeof mcText === 'function' ? mcText(m.name) : m.name} (${sizeStr} · ${typeof L === 'function' ? L('notDl') : 'Not downloaded'})`;
+    stOcrModel.appendChild(opt);
+  });
+  if (chosenId && Array.from(stOcrModel.options).some(o => o.value === chosenId)) {
+    stOcrModel.value = chosenId;
+  } else if (stOcrModel.options.length > 0) {
+    stOcrModel.selectedIndex = 0;
+  }
+  syncOcrModelDlBtn();
+}
+
+function syncOcrModelDlBtn() {
+  const stOcrModel = $('stOcrModel');
+  const stOcrModelDlBtn = $('stOcrModelDlBtn');
+  if (!stOcrModel || !stOcrModelDlBtn) return;
+  const curId = stOcrModel.value;
+  const m = (typeof MC !== 'undefined' && MC.models ? MC.models : []).find(x => x.id === curId);
+  if (!m) {
+    stOcrModelDlBtn.style.display = 'none';
+    return;
+  }
+  const ready = typeof mcReady === 'function' ? mcReady(m) : false;
+  if (ready) {
+    stOcrModelDlBtn.style.display = 'none';
+  } else {
+    stOcrModelDlBtn.style.display = 'inline-flex';
+    stOcrModelDlBtn.textContent = `${typeof L === 'function' ? L('dlBtn') : 'Download'} (${typeof mcSize === 'function' ? mcSize(m.bytes) : ''})`;
+  }
+}
+
+function updateActiveReadingStatus() {
+  const engineVal = $('stOcrEngine')?.value || 'auto';
+  const langVal = $('stOcrLang')?.value || 'auto';
+  const modelVal = $('stOcrModel')?.value;
+  const engineNames = {
+    auto: 'Auto (Dual Engine)',
+    windows: 'Windows Media OCR',
+    rapidocr: 'RapidOCR (PaddleOCR ONNX)',
+    dual: 'Dual Engine (Windows + RapidOCR)'
+  };
+  const engName = engineNames[engineVal] || engineVal;
+  let lName = langVal;
+  if (langVal === 'auto') lName = 'Auto-detect';
+  else if (langVal.startsWith('fa')) lName = 'Persian (fa)';
+  else if (langVal.startsWith('en')) lName = 'English (' + langVal + ')';
+  else if (langVal.startsWith('ar')) lName = 'Arabic (' + langVal + ')';
+
+  let modelSuffix = '';
+  if (modelVal && (engineVal === 'rapidocr' || engineVal === 'auto' || engineVal === 'dual')) {
+    const mdl = (typeof MC !== 'undefined' && MC.models ? MC.models : []).find(x => x.id === modelVal);
+    if (mdl) modelSuffix = ` · ${typeof mcText === 'function' ? mcText(mdl.name) : mdl.name}`;
+  }
+
+  const statusEl = $('stActiveReadingStatus');
+  if (statusEl) {
+    statusEl.textContent = `${engName} · ${lName}${modelSuffix}`;
+  }
+  const screenStatusEl = $('screenActiveReadingStatus');
+  if (screenStatusEl) {
+    screenStatusEl.innerHTML = `Active reading: <bdi>${typeof esc === 'function' ? esc(engName) : engName}</bdi> · ${typeof esc === 'function' ? esc(lName) : lName}${modelSuffix}`;
+  }
+
+  const warnEl = $('stPersianWarningLine');
+  const warnTxt = $('stPersianWarningText');
+  if (warnEl && warnTxt) {
+    const isFa = langVal.startsWith('fa');
+    if (engineVal === 'windows' && isFa) {
+      warnEl.style.display = 'block';
+      warnTxt.textContent = '⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.';
+    } else if (engineVal === 'rapidocr' && isFa) {
+      const arabicMdl = (typeof MC !== 'undefined' && MC.models ? MC.models : []).find(m => m.id === (modelVal || 'ocr-rapid-arabic'));
+      const isReady = arabicMdl && typeof mcReady === 'function' && mcReady(arabicMdl);
+      if (!isReady) {
+        warnEl.style.display = 'block';
+        warnTxt.textContent = 'ℹ RapidOCR requires the Arabic & Persian model (11.3 MB). Download it below in Engines & keys > Offline.';
+      } else {
+        warnEl.style.display = 'none';
+      }
+    } else {
+      warnEl.style.display = 'none';
+    }
+  }
+
+  const badgeEl = $('stPersianStatusBadge');
+  const descEl = $('stPersianStatusDesc');
+  if (badgeEl && descEl) {
+    const arabicMdl = (typeof MC !== 'undefined' && MC.models ? MC.models : []).find(m => m.id === 'ocr-rapid-arabic');
+    const isRapidReady = arabicMdl && typeof mcReady === 'function' && mcReady(arabicMdl);
+    const isWinFa = Array.from($('stOcrLang')?.options || []).some(o => o.value.toLowerCase().startsWith('fa') && o.value !== 'auto');
+    if (isRapidReady) {
+      badgeEl.textContent = 'Ready (RapidOCR)';
+      badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
+      badgeEl.style.color = 'var(--success, #3FB950)';
+      descEl.textContent = 'Persian deep learning recognition model (RapidOCR) is downloaded and ready.';
+    } else if (isWinFa) {
+      badgeEl.textContent = 'Ready (Windows OCR)';
+      badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
+      badgeEl.style.color = 'var(--success, #3FB950)';
+      descEl.textContent = 'Windows Persian OCR language pack is installed and ready.';
+    } else {
+      badgeEl.textContent = 'Not installed';
+      badgeEl.style.background = 'rgba(255, 180, 74, 0.15)';
+      badgeEl.style.color = 'var(--warning, #FFB44A)';
+      descEl.textContent = 'Persian OCR model is not downloaded. RapidOCR can recognize Persian after downloading the 11.3 MB model below.';
+    }
+  }
+}
+
+async function persistStConfig() {
+  updateActiveReadingStatus();
+  if (typeof cfg !== 'undefined') {
+    cfg.screenTrans = cfg.screenTrans || {};
+    cfg.screenTrans.enabled = ($('stEnable')?.value === '1' ? 1 : 0);
+  }
+  if (window.makanDesktop?.saveScreenTransConfig) {
+    try {
+      await window.makanDesktop.saveScreenTransConfig({
+        enabled: $('stEnable')?.value === '1',
+        ocrEngine: $('stOcrEngine')?.value || 'auto',
+        ocrModel: $('stOcrModel')?.value || 'ocr-rapid-arabic',
+        hotkey: $('stHotkey')?.value || 'CommandOrControl+Shift+S',
+        freezeFrame: $('stFreezeFrame')?.value === '1',
+        clipboardWatcher: $('stClipboardWatcher')?.value === '1',
+        ocrLang: $('stOcrLang')?.value || 'auto',
+        targetLang: $('stTgtLang')?.value || 'fa',
+        autoCopy: $('stAutoCopy')?.value === '1',
+        saveHistory: $('stSaveHist')?.value === '1',
+        returnToAppAfterCapture: $('stReturnToApp')?.value === '1'
+      });
+    } catch (e) {
+      console.warn('[ScreenTranslator] Error saving config:', e);
+    }
+  }
+}
+window._persistStConfig = persistStConfig;
+
 function initScreenWebUI() {
   const tabScreen = $('tab-screen');
   if (!tabScreen) return;
@@ -11,7 +159,7 @@ function initScreenWebUI() {
     browserBanner.hidden = isDesktop;
   }
 
-    const launchBtn = $('tabScreenLaunchBtn');
+  const launchBtn = $('tabScreenLaunchBtn');
   if (launchBtn) {
     launchBtn.disabled = !isDesktop;
     if (!isDesktop) {
@@ -21,15 +169,72 @@ function initScreenWebUI() {
     }
   }
 
-  const stSettingsBlock = $('screenTransSettingsBlock');
-  if (stSettingsBlock) {
-    stSettingsBlock.hidden = !isDesktop;
-  }
-
   const btnScreen = $('btnScreenTrans');
   if (btnScreen) {
     btnScreen.style.display = isDesktop ? 'inline-flex' : 'none';
   }
+
+  // Screen reading (OCR) settings: keep honesty at the control level
+  const btnTest = $('btnTestScreenTrans');
+  const stOcrHint = $('stOcrStatusHint');
+  if (btnTest) {
+    btnTest.disabled = !isDesktop;
+    if (!isDesktop) {
+      btnTest.setAttribute('title', L('screenBrowserNotice'));
+    } else {
+      btnTest.removeAttribute('title');
+    }
+  }
+  if (stOcrHint && !isDesktop) {
+    stOcrHint.dataset.t = 'screenBrowserNotice';
+    stOcrHint.textContent = L('screenBrowserNotice');
+  }
+
+  const stEnable = $('stEnable');
+  if (stEnable && typeof cfg !== 'undefined' && cfg.screenTrans?.enabled !== undefined) {
+    stEnable.value = cfg.screenTrans.enabled ? '1' : '0';
+  }
+
+  // Wire settings events
+  $('stEnable')?.addEventListener('change', persistStConfig);
+  $('stOcrEngine')?.addEventListener('change', persistStConfig);
+  $('stHotkey')?.addEventListener('change', persistStConfig);
+  $('stFreezeFrame')?.addEventListener('change', persistStConfig);
+  $('stClipboardWatcher')?.addEventListener('change', persistStConfig);
+  $('stOcrLang')?.addEventListener('change', persistStConfig);
+  $('stTgtLang')?.addEventListener('change', persistStConfig);
+  $('stAutoCopy')?.addEventListener('change', persistStConfig);
+  $('stSaveHist')?.addEventListener('change', persistStConfig);
+  $('stReturnToApp')?.addEventListener('change', persistStConfig);
+  $('btnSaveDone')?.addEventListener('click', persistStConfig);
+
+  const stOcrModel = $('stOcrModel');
+  const stOcrModelDlBtn = $('stOcrModelDlBtn');
+  stOcrModel?.addEventListener('change', () => {
+    syncOcrModelDlBtn();
+    updateActiveReadingStatus();
+    persistStConfig();
+  });
+
+  stOcrModelDlBtn?.addEventListener('click', async () => {
+    const curId = stOcrModel?.value;
+    const m = (typeof MC !== 'undefined' && MC.models ? MC.models : []).find(x => x.id === curId);
+    if (!m) return;
+    stOcrModelDlBtn.disabled = true;
+    stOcrModelDlBtn.textContent = typeof L === 'function' ? L('mdlDownloading') : 'Downloading…';
+    try {
+      if (typeof mcDownload === 'function') await mcDownload(m);
+    } catch (e) {
+      if (typeof toast === 'function') toast(e.message, 'err');
+    } finally {
+      stOcrModelDlBtn.disabled = false;
+      renderOcrModels(curId);
+      updateActiveReadingStatus();
+    }
+  });
+
+  renderOcrModels('ocr-rapid-arabic');
+  updateActiveReadingStatus();
 
   // Populate language dropdowns
   const srcSelect = $('screenSrcLang');
@@ -298,16 +503,21 @@ if (document.readyState === 'loading') {
 (async function initScreenTranslatorDesktop() {
   if (!window.makanDesktop?.isDesktop) return;
 
-  // Show the header button and settings block in desktop environment
+  // Show the header button and enable launch controls in desktop environment
   const btnScreen = $('btnScreenTrans');
-  const stSettingsBlock = $('screenTransSettingsBlock');
   if (btnScreen) btnScreen.style.display = 'inline-flex';
-  if (stSettingsBlock) stSettingsBlock.hidden = false;
   const launchBtn = $('tabScreenLaunchBtn');
   if (launchBtn) {
     launchBtn.disabled = false;
     launchBtn.removeAttribute('title');
   }
+  const btnTest = $('btnTestScreenTrans');
+  if (btnTest) {
+    btnTest.disabled = false;
+    btnTest.removeAttribute('title');
+  }
+  const stOcrHint = $('stOcrStatusHint');
+  if (stOcrHint) stOcrHint.removeAttribute('data-t');
 
   btnScreen?.addEventListener('click', () => {
     if (typeof window.closeSettings === 'function') window.closeSettings();
@@ -384,149 +594,7 @@ if (document.readyState === 'loading') {
     if (stOcrHint) stOcrHint.textContent = 'Native Windows OCR is ready.';
   }
 
-  // Populate and manage OCR model dropdown
-  const stOcrModel = $('stOcrModel');
-  const stOcrModelDlBtn = $('stOcrModelDlBtn');
 
-  function renderOcrModels(chosenId) {
-    if (!stOcrModel) return;
-    const ocrModels = (MC.models || []).filter(m => m.job === 'ocr');
-    stOcrModel.innerHTML = '';
-    ocrModels.forEach(m => {
-      const ready = mcReady(m);
-      const opt = document.createElement('option');
-      opt.value = m.id;
-      const sizeStr = mcSize(mcBytes(m) || m.bytes);
-      opt.textContent = ready
-        ? `${mcText(m.name)} (✓ Ready · ${sizeStr})`
-        : `${mcText(m.name)} (${sizeStr} · ${L('notDl')})`;
-      stOcrModel.appendChild(opt);
-    });
-    if (chosenId && Array.from(stOcrModel.options).some(o => o.value === chosenId)) {
-      stOcrModel.value = chosenId;
-    } else if (stOcrModel.options.length > 0) {
-      stOcrModel.selectedIndex = 0;
-    }
-    syncOcrModelDlBtn();
-  }
-
-  function syncOcrModelDlBtn() {
-    if (!stOcrModel || !stOcrModelDlBtn) return;
-    const curId = stOcrModel.value;
-    const m = (MC.models || []).find(x => x.id === curId);
-    if (!m) {
-      stOcrModelDlBtn.style.display = 'none';
-      return;
-    }
-    const ready = mcReady(m);
-    if (ready) {
-      stOcrModelDlBtn.style.display = 'none';
-    } else {
-      stOcrModelDlBtn.style.display = 'inline-flex';
-      stOcrModelDlBtn.textContent = `${L('dlBtn')} (${mcSize(m.bytes)})`;
-    }
-  }
-
-  stOcrModel?.addEventListener('change', () => {
-    syncOcrModelDlBtn();
-    updateActiveReadingStatus();
-    persistStConfig();
-  });
-
-  stOcrModelDlBtn?.addEventListener('click', async () => {
-    const curId = stOcrModel?.value;
-    const m = (MC.models || []).find(x => x.id === curId);
-    if (!m) return;
-    stOcrModelDlBtn.disabled = true;
-    stOcrModelDlBtn.textContent = L('mdlDownloading');
-    try {
-      await mcDownload(m);
-    } catch (e) {
-      toast(e.message, 'err');
-    } finally {
-      stOcrModelDlBtn.disabled = false;
-      renderOcrModels(curId);
-      updateActiveReadingStatus();
-    }
-  });
-
-  function updateActiveReadingStatus() {
-    const engineVal = $('stOcrEngine')?.value || 'auto';
-    const langVal = $('stOcrLang')?.value || 'auto';
-    const modelVal = $('stOcrModel')?.value;
-    const engineNames = {
-      auto: 'Auto (Dual Engine)',
-      windows: 'Windows Media OCR',
-      rapidocr: 'RapidOCR (PaddleOCR ONNX)',
-      dual: 'Dual Engine (Windows + RapidOCR)'
-    };
-    const engName = engineNames[engineVal] || engineVal;
-    let lName = langVal;
-    if (langVal === 'auto') lName = 'Auto-detect';
-    else if (langVal.startsWith('fa')) lName = 'Persian (fa)';
-    else if (langVal.startsWith('en')) lName = 'English (' + langVal + ')';
-    else if (langVal.startsWith('ar')) lName = 'Arabic (' + langVal + ')';
-
-    let modelSuffix = '';
-    if (modelVal && (engineVal === 'rapidocr' || engineVal === 'auto' || engineVal === 'dual')) {
-      const mdl = (MC.models || []).find(x => x.id === modelVal);
-      if (mdl) modelSuffix = ` · ${mcText(mdl.name)}`;
-    }
-
-    const statusEl = $('stActiveReadingStatus');
-    if (statusEl) {
-      statusEl.textContent = `${engName} · ${lName}${modelSuffix}`;
-    }
-    const screenStatusEl = $('screenActiveReadingStatus');
-    if (screenStatusEl) {
-      screenStatusEl.innerHTML = `Active reading: <bdi>${typeof esc === 'function' ? esc(engName) : engName}</bdi> · ${typeof esc === 'function' ? esc(lName) : lName}${modelSuffix}`;
-    }
-
-    const warnEl = $('stPersianWarningLine');
-    const warnTxt = $('stPersianWarningText');
-    if (warnEl && warnTxt) {
-      const isFa = langVal.startsWith('fa');
-      if (engineVal === 'windows' && isFa) {
-        warnEl.style.display = 'block';
-        warnTxt.textContent = '⚠ This engine cannot read Persian: install the Windows Persian language pack or use RapidOCR.';
-      } else if (engineVal === 'rapidocr' && isFa) {
-        const arabicMdl = MC.models?.find(m => m.id === (modelVal || 'ocr-rapid-arabic'));
-        const isReady = arabicMdl && mcReady(arabicMdl);
-        if (!isReady) {
-          warnEl.style.display = 'block';
-          warnTxt.textContent = 'ℹ RapidOCR requires the Arabic & Persian model (11.3 MB). Download it below in Engines & keys > Offline.';
-        } else {
-          warnEl.style.display = 'none';
-        }
-      } else {
-        warnEl.style.display = 'none';
-      }
-    }
-
-    const badgeEl = $('stPersianStatusBadge');
-    const descEl = $('stPersianStatusDesc');
-    if (badgeEl && descEl) {
-      const arabicMdl = (MC.models || []).find(m => m.id === 'ocr-rapid-arabic');
-      const isRapidReady = arabicMdl && mcReady(arabicMdl);
-      const isWinFa = Array.from($('stOcrLang')?.options || []).some(o => o.value.toLowerCase().startsWith('fa') && o.value !== 'auto');
-      if (isRapidReady) {
-        badgeEl.textContent = 'Ready (RapidOCR)';
-        badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
-        badgeEl.style.color = 'var(--success, #3FB950)';
-        descEl.textContent = 'Persian deep learning recognition model (RapidOCR) is downloaded and ready.';
-      } else if (isWinFa) {
-        badgeEl.textContent = 'Ready (Windows OCR)';
-        badgeEl.style.background = 'var(--success-bg, rgba(63, 185, 80, 0.15))';
-        badgeEl.style.color = 'var(--success, #3FB950)';
-        descEl.textContent = 'Windows Persian OCR language pack is installed and ready.';
-      } else {
-        badgeEl.textContent = 'Not installed';
-        badgeEl.style.background = 'rgba(255, 180, 74, 0.15)';
-        badgeEl.style.color = 'var(--warning, #FFB44A)';
-        descEl.textContent = 'Persian OCR model is not downloaded. RapidOCR can recognize Persian after downloading the 11.3 MB model below.';
-      }
-    }
-  }
 
   // Load and apply current screen translator configuration
   try {
@@ -562,40 +630,7 @@ if (document.readyState === 'loading') {
   }
   updateActiveReadingStatus();
 
-  // Sync settings back to backend on change or Save
-  async function persistStConfig() {
-    updateActiveReadingStatus();
-    try {
-      await window.makanDesktop.saveScreenTransConfig({
-        enabled: $('stEnable')?.value === '1',
-        ocrEngine: $('stOcrEngine')?.value || 'auto',
-        ocrModel: $('stOcrModel')?.value || 'ocr-rapid-arabic',
-        hotkey: $('stHotkey')?.value || 'CommandOrControl+Shift+S',
-        freezeFrame: $('stFreezeFrame')?.value === '1',
-        clipboardWatcher: $('stClipboardWatcher')?.value === '1',
-        ocrLang: $('stOcrLang')?.value || 'auto',
-        targetLang: $('stTgtLang')?.value || 'fa',
-        autoCopy: $('stAutoCopy')?.value === '1',
-        saveHistory: $('stSaveHist')?.value === '1',
-        returnToAppAfterCapture: $('stReturnToApp')?.value === '1'
-      });
-    } catch (e) {
-      console.warn('[ScreenTranslator] Error saving config:', e);
-    }
-  }
-  window._persistStConfig = persistStConfig;
 
-  $('stEnable')?.addEventListener('change', persistStConfig);
-  $('stOcrEngine')?.addEventListener('change', persistStConfig);
-  $('stHotkey')?.addEventListener('change', persistStConfig);
-  $('stFreezeFrame')?.addEventListener('change', persistStConfig);
-  $('stClipboardWatcher')?.addEventListener('change', persistStConfig);
-  $('stOcrLang')?.addEventListener('change', persistStConfig);
-  $('stTgtLang')?.addEventListener('change', persistStConfig);
-  $('stAutoCopy')?.addEventListener('change', persistStConfig);
-  $('stSaveHist')?.addEventListener('change', persistStConfig);
-  $('stReturnToApp')?.addEventListener('change', persistStConfig);
-  $('btnSaveDone')?.addEventListener('click', persistStConfig);
 
   $('btnTestScreenTrans')?.addEventListener('click', () => {
     window.makanDesktop.startScreenTranslator();

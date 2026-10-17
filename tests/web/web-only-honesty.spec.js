@@ -5,7 +5,7 @@
  * Verifies honesty of desktop-only features in the plain web browser vs desktop app:
  * - In plain browser (no desktop host):
  *     1. Screen Translator header button (#btnScreenTrans) is hidden.
- *     2. Screen Translator settings in Settings (#screenTransSettingsBlock) is hidden.
+ *     2. Screen reading (OCR) settings (#screenTransSettingsBlock) is visible with Persian model status, and launch controls (#btnTestScreenTrans) disabled with honesty notice.
  *     3. Screen tab primary capture button (#tabScreenLaunchBtn) is disabled with a visible notice (#screenBrowserBanner) in both EN and FA.
  *     4. Subtitles tab video-to-subtitles button (#subVideoBtn) is disabled with a visible helper note in both EN and FA.
  *     5. Python ASR helper settings show an explicit honesty notice (#helperHonestyNotice) in both EN and FA.
@@ -27,10 +27,16 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     // 1. Header button is hidden in browser
     await expect(page.locator('#btnScreenTrans')).toBeHidden();
 
-    // 2. Settings: Screen Translator block is hidden
+    // 2. Settings: Screen reading (OCR) section is visible, launch control disabled with notice
     await page.locator('#openSet').click();
     await activateSettingsTab(page, 'ocr');
-    await expect(page.locator('#screenTransSettingsBlock')).toBeHidden();
+    await expect(page.locator('#secOcr')).toBeVisible();
+    await expect(page.locator('#screenTransSettingsBlock')).toBeVisible();
+    await expect(page.locator('#stPersianModelCard')).toBeVisible();
+    await expect(page.locator('#btnTestScreenTrans')).toBeDisabled();
+    const btnTestTitle = await page.locator('#btnTestScreenTrans').getAttribute('title');
+    expect(btnTestTitle).toContain('Native screen capture requires');
+    await expect(page.locator('#stOcrStatusHint')).toContainText('Native screen capture requires the MAKAN Windows desktop app');
 
     // 3. Helper honesty notice in Settings
     const helperNotice = page.locator('#helperHonestyNotice');
@@ -70,8 +76,14 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await expect(page.locator('.sub-video-btn')).toBeDisabled();
     await expect(page.locator('.sub-video-note')).toContainText('نیاز به دستیار گفتار محلی دارد');
 
-    // Verify Helper notice in Persian
+    // Verify OCR settings & Helper notice in Persian
     await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
+    await expect(page.locator('#secOcr')).toBeVisible();
+    await expect(page.locator('#btnTestScreenTrans')).toBeDisabled();
+    const btnTestTitleFa = await page.locator('#btnTestScreenTrans').getAttribute('title');
+    expect(btnTestTitleFa).toContain('تصویربرداری بومی از صفحه');
+    await expect(page.locator('#stOcrStatusHint')).toContainText('تصویربرداری بومی از صفحه');
     await expect(page.locator('#helperHonestyNotice')).toContainText('دستیار گفتار پایتون نیاز به اجرای سرور کمکی محلی');
     await page.locator('#closeSet').click();
   });
