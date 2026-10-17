@@ -77,7 +77,7 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
     // Shows in-card note
     const note = inShadow(page, '.makan-card-note');
     await expect(note).toBeVisible({ timeout: 5000 });
-    await expect(note).toContainText(/Opened in MAKAN Translate|در MAKAN Translate باز شد/);
+    await expect(note).toHaveText('Opened in MAKAN Translate');
 
     const sw = await ext.worker();
     await expect.poll(async () => {
@@ -95,6 +95,24 @@ test.describe('Extension: Open in App via desktop app bridge', () => {
     expect(openReq.body.tgt).toBeDefined();
 
     // No new browser tab opened
+    await page.waitForTimeout(2000);
+    expect(ext.context.pages().length).toBe(initialPagesCount);
+
+    // Second case: Persian UI replaced by "در MAKAN Translate باز شد"
+    await ext.patchConfig({ ui: 'fa' });
+    await page.reload();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-result-text')).toBeVisible({ timeout: 15_000 });
+
+    const openBtnFa = inShadow(page, '#makanOpenApp');
+    await openBtnFa.click();
+
+    const noteFa = inShadow(page, '.makan-card-note');
+    await expect(noteFa).toBeVisible({ timeout: 5000 });
+    await expect(noteFa).toHaveText('در MAKAN Translate باز شد');
+
+    await page.waitForTimeout(2000);
     expect(ext.context.pages().length).toBe(initialPagesCount);
   });
 

@@ -519,19 +519,21 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   optOpenApp.onclick = async (e) => {
     e.preventDefault();
+    let resp = null;
     try {
-      const resp = await chrome.runtime.sendMessage({
+      resp = await chrome.runtime.sendMessage({
         action: 'open-in-app',
         text: '',
         src: cfg.src || 'auto',
         tgt: cfg.tgt || 'fa'
       });
-      if (resp && resp.via === 'exe') {
+    } catch {}
+
+    if (resp && resp.via === 'exe') {
+      try {
         toast((currentUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate');
-      } else {
-        window.open(optOpenApp.href, '_blank');
-      }
-    } catch {
+      } catch {}
+    } else {
       window.open(optOpenApp.href, '_blank');
     }
   };

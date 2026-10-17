@@ -490,7 +490,7 @@
     removeFloatBtn();
     removeCard();
 
-    if (!cfg) await refreshConfig();
+    await refreshConfig();
 
     const card = document.createElement('div');
     card.className = 'makan-card';
@@ -583,31 +583,36 @@
     openAppBtn.addEventListener('click', async e => {
       e.stopPropagation();
       e.preventDefault();
+      let resp = null;
       try {
-        const resp = await askBackground({
+        resp = await askBackground({
           action: 'open-in-app',
           text: (text || '').slice(0, 2000),
           src: curSrc,
           tgt: curTgt
         });
-        if (resp && resp.via === 'exe') {
+      } catch {}
+
+      if (resp && resp.via === 'exe') {
+        try {
+          const noteText = cfg?.ui === 'fa' ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate';
           let note = card.querySelector('.makan-card-note');
           if (!note) {
             note = document.createElement('div');
             note.className = 'makan-card-note';
+            note.textContent = noteText;
             const body = card.querySelector('#makanCardBody');
             if (body) body.prepend(note);
             else card.appendChild(note);
+          } else {
+            note.textContent = noteText;
           }
-          note.textContent = (curUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate';
           setTimeout(() => {
             card.classList.add('fading');
             setTimeout(() => removeCard(), 400);
           }, 1100);
-        } else {
-          window.open(openAppBtn.href, '_blank');
-        }
-      } catch {
+        } catch {}
+      } else {
         window.open(openAppBtn.href, '_blank');
       }
     });

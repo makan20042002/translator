@@ -245,14 +245,18 @@ document.addEventListener('DOMContentLoaded', async () => {
   pOpenWebApp.addEventListener('click', async (e) => {
     e.preventDefault();
     const t = (pInputText.value || '').trim();
+    let resp = null;
     try {
-      const resp = await chrome.runtime.sendMessage({
+      resp = await chrome.runtime.sendMessage({
         action: 'open-in-app',
         text: t.slice(0, 2000),
         src: pSrcLang.value || 'auto',
         tgt: pTgtLang.value || 'fa'
       });
-      if (resp && resp.via === 'exe') {
+    } catch {}
+
+    if (resp && resp.via === 'exe') {
+      try {
         const msg = document.getElementById('pOpenAppMsg');
         if (msg) {
           msg.textContent = (currentUi === 'fa' || cfg?.ui === 'fa') ? 'در MAKAN Translate باز شد' : 'Opened in MAKAN Translate';
@@ -260,10 +264,8 @@ document.addEventListener('DOMContentLoaded', async () => {
           clearTimeout(msg._timer);
           msg._timer = setTimeout(() => { msg.style.display = 'none'; }, 2500);
         }
-      } else {
-        window.open(pOpenWebApp.href, '_blank');
-      }
-    } catch {
+      } catch {}
+    } else {
       window.open(pOpenWebApp.href, '_blank');
     }
   });
