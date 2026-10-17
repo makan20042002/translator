@@ -79,6 +79,10 @@ test.describe('Web Subfolder Deployment (/translate/app/)', () => {
     // Verify no 404 or >= 400 responses occurred during load
     expect(httpFailures, `HTTP failure responses detected: ${httpFailures.join(', ')}`).toEqual([]);
 
+    // Verify asr-guard.js was requested under /translate/app/ and succeeded
+    const asrGuardReq = serverInfo.requests.find(r => r.pathname === PREFIX + 'asr-guard.js' || r.pathname.endsWith('/asr-guard.js'));
+    expect(asrGuardReq, 'asr-guard.js must be requested under subfolder prefix').toBeDefined();
+
     // Verify no console errors occurred
     expect(consoleErrors, `Console errors detected: ${consoleErrors.join(', ')}`).toEqual([]);
 

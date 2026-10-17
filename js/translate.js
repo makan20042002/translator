@@ -549,7 +549,10 @@ function guessLang(s){
 }
 let trWk=null,asrWk=null,rid=0;const pend={};
 const inWorker=new Set();                  // repos the workers already hold in memory
-const asrGuard=import('./asr-guard.js').catch(()=>null);
+const asrGuardUrl = (typeof document !== 'undefined' && document.currentScript?.src)
+  ? new URL('../asr-guard.js', document.currentScript.src).href
+  : '../asr-guard.js';
+const asrGuard = import(asrGuardUrl).catch(() => import('../asr-guard.js')).catch(() => null);
 
 function isFatalEngineError(err){
   const str=String(err?.message||err||'');
@@ -580,7 +583,7 @@ function terminateAiWorker(role,reason){
 function createAiWorker(role){
   const w=new Worker('ai-worker.js',{type:'module'});
   w.role=role;
-  w.onmessage=e=>{
+  w.onmessage=async e=>{
     const m=e.data;
     if(m.type==='progress'){onProg(m.p,m.repo);return}
     if(m.type==='asr'){onAsrProg(m);return}
@@ -595,6 +598,15 @@ function createAiWorker(role){
           if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
           if(typeof mcRender==='function')mcRender();
         }
+      }
+      if(p.cmd==='asr'&&m.res){
+        try{
+          const g=await asrGuard;
+          if(g&&typeof g.collapseRepeats==='function'){
+            if(typeof m.res==='string')m.res=g.collapseRepeats(m.res);
+            else if(m.res&&typeof m.res==='object'&&typeof m.res.text==='string')m.res.text=g.collapseRepeats(m.res.text);
+          }
+        }catch{}
       }
       p.res(m.res);
     }else{
@@ -649,6 +661,7 @@ function worker(role='translate'){
 }
 if(typeof window!=='undefined'){
   window.getAiWorkers=()=>({trWorker:trWk,asrWorker:asrWk,worker});
+  window.getAsrGuard=()=>asrGuard;
 }
 
 function getRoleForCmd(cmd,a){
