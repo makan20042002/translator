@@ -3,7 +3,7 @@
 A translator in two forms:
 
 * a **web app**: one web page (`index.html`) with Text, Subtitle, Document,
-  Voice, Compare, Glossary and History tabs;
+  Voice, Compare, Glossary, History, Screen, and Media tabs;
 * a **browser extension** for Chrome, Edge and Firefox: select text on any
   page, press the **M** button, and a small translation card appears.
 
@@ -55,6 +55,7 @@ Upload these, keeping the same names and folders:
 index.html
 css/                     ← all CSS files (base.css, layout.css, components.css, tabs.css)
 js/                      ← all JavaScript files (store.js, i18n.js, translate.js, ...)
+media/                   ← all Media Translate files (media-ui.js, media-worker.js, media.css, etc.)
 ai-worker.js
 asr-guard.js
 models-catalog.js

@@ -10,8 +10,8 @@ automated tests have confirmed by running them.
 The repository holds two things that share some code:
 
 1. **The web app**: a single web page (`index.html`) that you open in a
-   browser. It has seven tabs: Text, Subtitle, Document, Voice, Compare,
-   Glossary and History, plus an "Engines & keys" settings window.
+   browser. It has tabs: Text, Subtitle, Document, Voice, Compare,
+   Glossary, History, Screen, and Media, plus an "Engines & keys" settings window.
 2. **The browser extension** (`extension/` folder): adds a small "M" button
    when you select text on any web page, a right-click menu item, a toolbar
    popup, whole-page translation and an options page.
@@ -29,6 +29,7 @@ Neither has a build step for the app code itself. The only "build" is
 | `index.html` | The main HTML page for the web app: page layout and markup, loading modular styles from `css/` and scripts from `js/`. |
 | `css/` | Modular stylesheets: `base.css` (tokens, reset, nav), `layout.css` (panes, cards, grids), `components.css` (modal, settings, toasts), `tabs.css` (document and voice tabs). |
 | `js/` | Modular application logic (classic scripts): `store.js`, `i18n.js`, `translate.js`, `speech.js`, `text.js`, `subtitles.js`, `documents.js`, `voice.js`, `compare.js`, `settings.js`, `models.js`, `voice-picker.js`, `init.js`, `dictionary.js`, `idioms.js`, `screen.js`. |
+| `media/` | The Media Translate module: in-browser audio/video decoding, Whisper transcription, cue timing, subtitle translation and video preview export (`media-ui.js`, `media-worker.js`, `media.css`, etc.). |
 | `extension/engine.js` | Loaded by `index.html` (line 918) **and** by the extension. See section 5 for what the web app actually uses from it. |
 | `ai-worker.js` | A background worker for the "offline" features. It downloads the NLLB translation model and the Whisper speech model from Hugging Face (through the `cdn.jsdelivr.net` library `@huggingface/transformers`) and runs them in the browser. |
 | `models-catalog.js` | The list shown in Engines & keys → Offline (name, files, sizes, memory, speed, languages, one-line use for every offline model and voice). **Generated** by `tools/model-check/build-catalog.mjs` from Hugging Face API sizes and saved test runs; do not edit by hand. See `docs/MODELS.md`. |
@@ -213,7 +214,28 @@ Subtitle, Document, Compare and the Voice tab all use the same
 * **Ask AI**: sends your question to the first working AI engine and reads
   the answer aloud.
 
+### Web app, Media tab
+
+* **What it does**: Provides complete media transcription and subtitle translation. You can drop or browse audio and video files. The browser decodes the media locally, runs speech recognition with Whisper models, creates subtitle cues with millisecond timestamps, translates cues through the application's translation engines while strictly maintaining timing alignment, previews the video with synchronized subtitles, allows subtitle styling (font, size, color, background), and exports subtitles to SRT and VTT files.
+* **Which engines it uses**:
+  * **Speech recognition**: Uses Whisper models selected in the Model Hub (`Xenova/whisper-tiny`, `base`, `small`, or `whisper-large-v3-turbo`) loaded via Transformers.js (`@huggingface/transformers` pinned to 3.8.1).
+  * **Translation**: Uses the application's unified translation chain (`translateItems`), respecting user engine preferences and offline mode (when offline, only local offline engines such as NLLB or M2M-100 are called).
+* **Where its files are**: All modular media components live in `media/`:
+  - `media/media-ui.js`: Media tab DOM construction and event coordination.
+  - `media/media-file.js`: File selection, format validation, and audio track separation.
+  - `media/media-decode.js`: Client-side audio decoding to PCM.
+  - `media/media-asr.js`: Automatic speech recognition pipeline.
+  - `media/media-cues.js`: Subtitle cue generation, parsing, and timing adjustments.
+  - `media/media-export.js`: Serializers for SRT and WebVTT subtitle formats.
+  - `media/media-preview.js`: HTML5 media preview player with custom cue rendering.
+  - `media/media-worker.js`: Dedicated Web Worker for non-blocking processing.
+  - `media/media-i18n.js`: English and Persian localized translation dictionary.
+  - `media/media.css`: Scoped stylesheet (`.mt-*`) mapped to theme custom properties.
+  - `media/media-tab.html`: Reference template.
+* **Extension exclusion**: The browser extension does **not** include the Media module, preserving its small bundle size and fast load time.
+
 ### Extension
+
 
 1. You select text on a page. `content.js` notices the mouse release, and
    shows the **M** button just above the selection.
