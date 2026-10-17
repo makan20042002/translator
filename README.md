@@ -10,6 +10,7 @@ A translator in two forms:
 How the code fits together, where settings and keys are stored, and a list of
 known problems are in [`docs/OVERVIEW.md`](docs/OVERVIEW.md). What the
 automated tests found is in [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md).
+For capabilities, hardware requirements, and operational limits, see the [`User Guide`](docs/USER_GUIDE.md).
 
 ---
 

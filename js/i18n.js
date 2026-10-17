@@ -222,7 +222,83 @@ Object.assign(I18N.en,{
  screenTransOcrLang:'Windows OCR Language',screenTransTgtLang:'Default Target Language',
  screenTransAutoCopy:'Copy translated text automatically',screenTransSaveHist:'Save OCR translations to History',
  screenTransOcrModel:'OCR Recognition Model',screenTransOcrModelDl:'Download Model',screenTransReturnToApp:'Return to app after capture',
- testScreenTransBtn:'Capture Screen Region Now'
+ testScreenTransBtn:'Capture Screen Region Now',
+ helpGuideTitle:'What it can do, limits, and what computer you need',
+ helpGuideHtml:`<p>Complete capability reference, hardware guide, and operational limits for MAKAN Translate.</p>
+<h4>1. Capability &amp; Limits by Tab</h4>
+<ul>
+  <li><strong>Text:</strong> Instant translation across 99+ languages with AI fallback. Large texts batched. Works offline with NLLB/M2M or Ollama.</li>
+  <li><strong>Subtitle:</strong> Translates .srt and .vtt files preserving millisecond timestamps. Text format only (up to 10 MB).</li>
+  <li><strong>Document:</strong> Translates Word (.docx), PowerPoint (.pptx), Excel (.xlsx), PDF, Markdown, CSV, JSON. Up to 25 MB. Scanned image PDFs need OCR.</li>
+  <li><strong>Voice:</strong> Real-time microphone translation and voice read-aloud. Supports hands-free live conversation mode. Offline with Whisper &amp; Piper.</li>
+  <li><strong>Screen:</strong> Configures OCR language and reading mode. <em>Experimental in browser:</em> native screen capture requires the Windows desktop app.</li>
+  <li><strong>Media:</strong> Transcribes audio and video (.mp3, .mp4, .wav), generates subtitles, and customizes styles. In-browser memory limits apply to long files (over 30–40 min); long files and MKV/AVI need the Windows app with ffmpeg.</li>
+  <li><strong>Dictionary:</strong> Offline Wiktionary lookup (CC BY-SA), normalized search, and vocabulary export.</li>
+  <li><strong>Idioms:</strong> Curated idiom database works offline; generative reverse lookup needs an AI key or local Ollama.</li>
+  <li><strong>Compare:</strong> Translates side-by-side across multiple engines simultaneously.</li>
+  <li><strong>Glossary:</strong> Custom replacement rules enforced across all translations.</li>
+  <li><strong>History:</strong> Stores recent translations locally with search and CSV export.</li>
+  <li><strong>Games:</strong> <em>Experimental:</em> Interactive vocabulary flashcards and drills based on your saved words.</li>
+  <li><strong>Model Hub:</strong> Inspect, download, and manage on-device Whisper, NLLB, M2M, OPUS, and Piper models.</li>
+</ul>
+<h4>2. Which setup should I choose?</h4>
+<div style="overflow-x:auto">
+<table class="help-table" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">
+  <thead>
+    <tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:start;padding:6px">Setup</th>
+      <th style="text-align:start;padding:6px">Speech Model</th>
+      <th style="text-align:start;padding:6px">Translation Model / Engine</th>
+      <th style="text-align:start;padding:6px">Download Size</th>
+      <th style="text-align:start;padding:6px">What to Avoid</th>
+      <th style="text-align:start;padding:6px">Trade-Off</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:6px"><strong>Weak Laptop</strong><br>(4 GB RAM, no GPU)</td>
+      <td style="padding:6px"><strong>Whisper Tiny</strong><br>(42 MB download, 1000 MB RAM)</td>
+      <td style="padding:6px"><strong>OPUS-MT EN → AR</strong><br>(112 MB download, 1000 MB RAM) or Cloud engines</td>
+      <td style="padding:6px">~154 MB</td>
+      <td style="padding:6px">Avoid <strong>NLLB-200 600M (default)</strong> (870 MB download, 4.1 GB RAM), <strong>mBART-50 many-to-many</strong> (848 MB download, 3.4 GB RAM), and <strong>Whisper Large v3 Turbo</strong> (1.0 GB download, 3.3 GB RAM).</td>
+      <td style="padding:6px">Whisper Tiny is fast but weak in Persian. Small OPUS-MT language pairs are light but only exist for the pairs in the catalog. Online engines need almost no hardware but send text using your key.</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:6px"><strong>Normal Laptop</strong><br>(8 GB RAM)</td>
+      <td style="padding:6px"><strong>Whisper Small</strong><br>(240 MB download, 3.2 GB RAM) or <strong>Whisper Base</strong><br>(76 MB download, 1.4 GB RAM)</td>
+      <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB download, 4.1 GB RAM) or <strong>M2M-100 418M</strong><br>(610 MB download, 2.1 GB RAM)</td>
+      <td style="padding:6px">~1.1 GB</td>
+      <td style="padding:6px">Avoid running Whisper Large and NLLB simultaneously without closing other tabs.</td>
+      <td style="padding:6px">Whisper Small is the first size handling Persian, Arabic and Turkish properly. NLLB-200 needs several GB of RAM.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px"><strong>Strong PC</strong><br>(16 GB+ RAM / WebGPU)</td>
+      <td style="padding:6px"><strong>Whisper Large v3 Turbo</strong><br>(1.0 GB download, 3.3 GB RAM) or <strong>Whisper Small</strong></td>
+      <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB download, 4.1 GB RAM) or local Ollama</td>
+      <td style="padding:6px">~1.9 GB</td>
+      <td style="padding:6px">None.</td>
+      <td style="padding:6px">Whisper Large v3 Turbo provides top accuracy; runs fast with WebGPU or desktop GPU.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<h4>3. Minimum &amp; Recommended Hardware</h4>
+<ul>
+  <li><strong>Minimum:</strong> 4 GB RAM · 500 MB free disk space · Modern browser (Chrome 115+, Edge 115+, Firefox 115+) · WebGPU optional · Speed: speed not measured yet · Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+  <li><strong>Recommended:</strong> 8 GB – 16 GB+ RAM · 3 GB – 5 GB free disk space · Chrome/Edge with WebGPU enabled · Speed: speed not measured yet · Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+</ul>
+<h4>4. How to Use &amp; Tips for Weak Systems</h4>
+<p>Downloads from the Model Hub are saved into browser storage (transformers-cache) once and remain available offline. In the Media tab, long audio files are decoded in browser RAM; keep clips under 30–40 min on 8 GB systems. On weak systems, close other background tabs and apps, choose small models (Whisper Tiny / OPUS-MT), or use cloud engines.</p>
+<h4>5. Web Version vs Windows App vs Extension</h4>
+<ul>
+  <li><strong>Screen Translator:</strong> Windows app only (native OCR). Web app configuration only.</li>
+  <li><strong>Python Speech Helper:</strong> Available on Windows app or local helper server (127.0.0.1:8765).</li>
+  <li><strong>ffmpeg Support:</strong> Windows app only (handles MKV/AVI and unlimited video length).</li>
+  <li><strong>Open in App:</strong> Triggered from extension, received by Web App or Desktop App.</li>
+  <li><strong>Offline Models:</strong> Available in Web App and Windows App via browser cache storage.</li>
+</ul>
+<h4>6. Operational Limits &amp; Transparency</h4>
+<p>Unofficial Google web endpoints may stop working or be rate-limited without warning. Local Ollama on a hosted HTTPS page requires OLLAMA_ORIGINS="https://makanlab.tech" and browser permission. The Windows desktop app is self-built and not code-signed (SmartScreen prompt on first launch).</p>`
 });
 Object.assign(I18N.fa,{
  tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',tabAppearance:'ظاهر و تم',themeH:'تم رنگی',themeNote:'از بین ۷ تم طراحی‌شده انتخاب کنید. تغییرات فوراً اعمال می‌شوند.',
@@ -287,7 +363,83 @@ screenPrivacyLocal:'پردازش در همین رایانه انجام می‌ش
 screenNoCaptures:'هنوز تصویری در تاریخچه نیست.',
 resetOrder:'بازنشانی ترتیب',noKey:'بدون کلید',settingsAutoSaveMsg:'تنظیمات به‌طور خودکار ذخیره می‌شوند',settingsAutoSaveHint:'تنظیمات به‌طور خودکار ذخیره می‌شوند',savedNotice:'ذخیره شد',
 storageModelsUsed:'مدل‌های آفلاین:',storageSiteTotal:'فضای ذخیره‌سازی سایت:',storagePrivacyNote:'ذخیره‌سازی تماماً روی دستگاه',catAll:'همه مدل‌ها',catTranslate:'ترجمه',catSpeech:'تشخیص گفتار',catVoices:'صداها',catOcr:'نویسه‌خوان (OCR)',confirmDelete:'تأیید حذف',dlCancelled:'دانلود لغو شد',cancel:'لغو',
-wizardSkip:'بعداً',wizardStep1Title:'زبان خود را انتخاب کنید',wizardStep1Sub:'زبان اصلی برای رابط کاربری و ترجمه‌های پیش‌فرض را مشخص کنید.',wizardLangFaDesc:'رابط کاربری فارسی و راست‌به‌چپ',wizardBadgeRec:'پیشنهادی',wizardLangEnDesc:'رابط کاربری انگلیسی',wizardStep2Title:'روش ترجمه: سریع، هوشمند یا آفلاین',wizardStep2Sub:'روش پردازش ترجمه‌ها را با شفافیت کامل درباره حریم خصوصی و خروج داده انتخاب کنید.',wizardEngineOnlineTitle:'سریع',wizardEngineOnlineDesc:'ترجمه آنلاین پرسرعت و رایگان با گوگل و <bdi>MyMemory</bdi>؛ متن برای ترجمه به ارائه‌دهنده ابری ارسال می‌شود.',wizardBadgeOnline:'آنلاین',wizardEngineSmartTitle:'هوشمند',wizardEngineOllamaDesc:'ترجمه هوش مصنوعی با <bdi>Gemini</bdi>، <bdi>Groq</bdi> یا <bdi>OpenRouter</bdi> (با کلید شما) یا اجرای مدل‌های محلی با <bdi>Ollama</bdi>.',wizardBadgeSmart:'هوش مصنوعی',wizardEngineOfflineTitle:'آفلاین',wizardEngineOfflineDesc:'ترجمه درون مرورگر با مدل <bdi>NLLB</bdi>؛ پس از دریافت بسته مدل، پردازش محلی در مرورگر اجرا می‌شود.',wizardBadgeOffline:'آفلاین',wizardKeySectionTitle:'کلید هوش مصنوعی (اختیاری)',wizardKeySectionSub:'Gemini, Groq, OpenRouter',wizardKeySectionDesc:'برای ترجمه هوشمند می‌توانید یک کلید رایگان اضافه کنید. کلید تنها در همین مرورگر ذخیره شده و به هیچ سرور دیگری ارسال نمی‌شود.',wizardKeyInputPh:'کلید API را اینجا وارد کنید (اختیاری)',wizardKeySaved:'✓ ذخیره شد',wizardStep3Title:'دانلود مدل‌های آفلاین (اختیاری)',wizardStep3Sub:'دریافت مدل‌های ترجمه و گفتار برای استفاده کاملاً آفلاین اکنون، یا بعداً از مرکز مدل‌ها.',wizardPkgSkipTitle:'فعلاً بدون دانلود',wizardPkgSkipDesc:'راه‌اندازی فوری بدون دانلود؛ مدل‌های آفلاین را هر زمان می‌توانید از بخش تنظیمات دریافت کنید.',wizardPkgSkipBadge:'فوری',wizardPkgLightTitle:'مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi>',wizardPkgLightDesc:'مدل ترجمه <bdi>NLLB-200</bdi> برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.',wizardPkgFullTitle:'بسته کامل: ترجمه و گفتار',wizardPkgFullDesc:'ترجمه <bdi>NLLB</bdi> (حدود ۸۷۰ مگابایت) و تشخیص گفتار <bdi>Whisper Small</bdi> (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).',wizardStatusTitle:'وضعیت صدا و صفحه نمایش',wizardVoiceStatusLbl:'صدا و گفتار:',wizardScreenStatusLbl:'مترجم صفحه نمایش:',wizardVoiceReady:'آماده ✓',wizardVoiceLimited:'محدود',wizardVoiceNotReady:'آماده نیست',wizardScreenDesktop:'متصل به دسکتاپ ✓',wizardScreenBrowser:'محیط مرورگر وب',wizardStepHowTitle:'راهنمای کارکرد برنامه',wizardStepHowSub:'آشنایی کوتاه با بخش‌های اصلی، جریان داده‌ها و نحوه تنظیمات.',wizardHowTabsTitle:'بخش‌های اصلی برنامه',wizardHowTabsDesc:'متن برای ترجمه فوری، زیرنویس برای فایل‌های <bdi>srt</bdi> و <bdi>vtt</bdi>، اسناد برای فایل‌های اداری، صدا برای مکالمه، و صفحه برای ترجمه تصویر.',wizardHowModesTitle:'سریع در برابر هوشمند و آفلاین',wizardHowModesDesc:'سریع از سرورهای رایگان آنلاین استفاده می‌کند، هوشمند با هوش مصنوعی یا <bdi>Ollama</bdi> کار می‌کند، و آفلاین با <bdi>NLLB</bdi> در مرورگر اجرا می‌شود.',wizardHowDataTitle:'مسیر انتقال داده‌ها و حریم خصوصی',wizardHowDataDesc:'حالت آفلاین مدل‌ها را پس از دانلود درون مرورگر اجرا می‌کند؛ حالت‌های آنلاین و هوش مصنوعی متن را فقط به ارائه‌دهنده انتخابی شما ارسال می‌کنند.',wizardHowSettingsTitle:'تنظیمات و دسترسی مجدد',wizardHowSettingsDesc:'تمام گزینه‌ها، کلیدها و دانلود مدل‌ها در بخش تنظیمات در دسترس است؛ این راهنما را نیز هرزمان می‌توانید از تنظیمات مجدداً باز کنید.',wizardStep4Title:'همه‌چیز آماده است!',wizardStep4Sub:'مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.',wizardStep5Title:'همه‌چیز آماده است!',wizardStep5Sub:'مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.',wizardSumLangLbl:'زبان رابط کاربری:',wizardSumEngineLbl:'روش ترجمه:',wizardSumPrivacyLbl:'حریم خصوصی:',wizardSumKeyLbl:'کلید هوش مصنوعی:',wizardSumPkgLbl:'بسته آفلاین:',wizardSumStatusLbl:'صدا و صفحه:',wizardGoTextBtn:'ورود به بخش ترجمه متن →',continue:'ادامه',back:'بازگشت',getStarted:'شروع استفاده',openWizardBtn:'راهنمای راه‌اندازی'
+wizardSkip:'بعداً',wizardStep1Title:'زبان خود را انتخاب کنید',wizardStep1Sub:'زبان اصلی برای رابط کاربری و ترجمه‌های پیش‌فرض را مشخص کنید.',wizardLangFaDesc:'رابط کاربری فارسی و راست‌به‌چپ',wizardBadgeRec:'پیشنهادی',wizardLangEnDesc:'رابط کاربری انگلیسی',wizardStep2Title:'روش ترجمه: سریع، هوشمند یا آفلاین',wizardStep2Sub:'روش پردازش ترجمه‌ها را با شفافیت کامل درباره حریم خصوصی و خروج داده انتخاب کنید.',wizardEngineOnlineTitle:'سریع',wizardEngineOnlineDesc:'ترجمه آنلاین پرسرعت و رایگان با گوگل و <bdi>MyMemory</bdi>؛ متن برای ترجمه به ارائه‌دهنده ابری ارسال می‌شود.',wizardBadgeOnline:'آنلاین',wizardEngineSmartTitle:'هوشمند',wizardEngineOllamaDesc:'ترجمه هوش مصنوعی با <bdi>Gemini</bdi>، <bdi>Groq</bdi> یا <bdi>OpenRouter</bdi> (با کلید شما) یا اجرای مدل‌های محلی با <bdi>Ollama</bdi>.',wizardBadgeSmart:'هوش مصنوعی',wizardEngineOfflineTitle:'آفلاین',wizardEngineOfflineDesc:'ترجمه درون مرورگر با مدل <bdi>NLLB</bdi>؛ پس از دریافت بسته مدل، پردازش محلی در مرورگر اجرا می‌شود.',wizardBadgeOffline:'آفلاین',wizardKeySectionTitle:'کلید هوش مصنوعی (اختیاری)',wizardKeySectionSub:'Gemini, Groq, OpenRouter',wizardKeySectionDesc:'برای ترجمه هوشمند می‌توانید یک کلید رایگان اضافه کنید. کلید تنها در همین مرورگر ذخیره شده و به هیچ سرور دیگری ارسال نمی‌شود.',wizardKeyInputPh:'کلید API را اینجا وارد کنید (اختیاری)',wizardKeySaved:'✓ ذخیره شد',wizardStep3Title:'دانلود مدل‌های آفلاین (اختیاری)',wizardStep3Sub:'دریافت مدل‌های ترجمه و گفتار برای استفاده کاملاً آفلاین اکنون، یا بعداً از مرکز مدل‌ها.',wizardPkgSkipTitle:'فعلاً بدون دانلود',wizardPkgSkipDesc:'راه‌اندازی فوری بدون دانلود؛ مدل‌های آفلاین را هر زمان می‌توانید از بخش تنظیمات دریافت کنید.',wizardPkgSkipBadge:'فوری',wizardPkgLightTitle:'مدل ترجمه آفلاین <bdi>NLLB-200 600M</bdi>',wizardPkgLightDesc:'مدل ترجمه <bdi>NLLB-200</bdi> برای ۲۰۰ زبان (حدود ۸۷۰ مگابایت) از فهرست رسمی.',wizardPkgFullTitle:'بسته کامل: ترجمه و گفتار',wizardPkgFullDesc:'ترجمه <bdi>NLLB</bdi> (حدود ۸۷۰ مگابایت) و تشخیص گفتار <bdi>Whisper Small</bdi> (حدود ۲۴۰ مگابایت) (مجموعاً حدود ۱٫۱ گیگابایت).',wizardStatusTitle:'وضعیت صدا و صفحه نمایش',wizardVoiceStatusLbl:'صدا و گفتار:',wizardScreenStatusLbl:'مترجم صفحه نمایش:',wizardVoiceReady:'آماده ✓',wizardVoiceLimited:'محدود',wizardVoiceNotReady:'آماده نیست',wizardScreenDesktop:'متصل به دسکتاپ ✓',wizardScreenBrowser:'محیط مرورگر وب',wizardStepHowTitle:'راهنمای کارکرد برنامه',wizardStepHowSub:'آشنایی کوتاه با بخش‌های اصلی، جریان داده‌ها و نحوه تنظیمات.',wizardHowTabsTitle:'بخش‌های اصلی برنامه',wizardHowTabsDesc:'متن برای ترجمه فوری، زیرنویس برای فایل‌های <bdi>srt</bdi> و <bdi>vtt</bdi>، اسناد برای فایل‌های اداری، صدا برای مکالمه، و صفحه برای ترجمه تصویر.',wizardHowModesTitle:'سریع در برابر هوشمند و آفلاین',wizardHowModesDesc:'سریع از سرورهای رایگان آنلاین استفاده می‌کند، هوشمند با هوش مصنوعی یا <bdi>Ollama</bdi> کار می‌کند، و آفلاین با <bdi>NLLB</bdi> در مرورگر اجرا می‌شود.',wizardHowDataTitle:'مسیر انتقال داده‌ها و حریم خصوصی',wizardHowDataDesc:'حالت آفلاین مدل‌ها را پس از دانلود درون مرورگر اجرا می‌کند؛ حالت‌های آنلاین و هوش مصنوعی متن را فقط به ارائه‌دهنده انتخابی شما ارسال می‌کنند.',wizardHowSettingsTitle:'تنظیمات و دسترسی مجدد',wizardHowSettingsDesc:'تمام گزینه‌ها، کلیدها و دانلود مدل‌ها در بخش تنظیمات در دسترس است؛ این راهنما را نیز هرزمان می‌توانید از تنظیمات مجدداً باز کنید.',wizardStep4Title:'همه‌چیز آماده است!',wizardStep4Sub:'مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.',wizardStep5Title:'همه‌چیز آماده است!',wizardStep5Sub:'مترجم ماکان پیکربندی شد و آماده ترجمه متن‌های شماست.',wizardSumLangLbl:'زبان رابط کاربری:',wizardSumEngineLbl:'روش ترجمه:',wizardSumPrivacyLbl:'حریم خصوصی:',wizardSumKeyLbl:'کلید هوش مصنوعی:',wizardSumPkgLbl:'بسته آفلاین:',wizardSumStatusLbl:'صدا و صفحه:',wizardGoTextBtn:'ورود به بخش ترجمه متن →',continue:'ادامه',back:'بازگشت',getStarted:'شروع استفاده',openWizardBtn:'راهنمای راه‌اندازی',
+helpGuideTitle:'قابلیت‌ها، محدودیت‌ها و سخت‌افزار مورد نیاز',
+helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی‌های سخت‌افزاری و محدودیت‌های کاری مترجم ماکان.</p>
+<h4>۱. قابلیت‌ها و محدودیت‌ها در هر بخش</h4>
+<ul>
+  <li><strong>متن (Text):</strong> ترجمه بلادرنگ بیش از ۹۹ زبان با زنجیره پشتیبان هوش مصنوعی. متن‌های طولانی به صورت دسته‌ای ارسال می‌شوند. کاملاً آفلاین با NLLB یا M2M و Ollama.</li>
+  <li><strong>زیرنویس (Subtitle):</strong> ترجمه فایل‌های srt و vtt با حفظ دقیق زمان‌بندی میلی‌ثانیه‌ای تا سقف ۱۰ مگابایت.</li>
+  <li><strong>اسناد (Document):</strong> ترجمه اسناد ورد، پاورپوینت، اکسل، PDF، مارک‌داون، CSV و JSON با حفظ قالب‌بندی. فایل‌های تصویری اسکن‌شده نیاز به OCR دارند.</li>
+  <li><strong>صدا (Voice):</strong> تشخیص گفتار زنده با میکروفون و خواندن صوتی ترجمه. حالت مکالمه زنده دوطرفه. عملکرد آفلاین با مدل‌های Whisper و صداهای Piper.</li>
+  <li><strong>صفحه (Screen):</strong> تنظیمات زبان و موتور نویسه‌خوان. <em>در مرورگر آزمایشی است:</em> تصویربرداری مستقیم از صفحه به برنامه ویندوز MAKAN نیاز دارد.</li>
+  <li><strong>رسانه (Media):</strong> پیاده‌سازی متن فایل‌های صوتی و تصویری (mp3, mp4, wav)، ساخت زیرنویس و سفارشی‌سازی سبک. فایل‌های طولانی (بیش از ۳۰ تا ۴۰ دقیقه) در مرورگر به حافظه زیادی نیاز دارند و فرمت‌های MKV/AVI نیاز به برنامه ویندوز با ffmpeg دارند.</li>
+  <li><strong>فرهنگ لغت (Dictionary):</strong> جستجوی سریع کلمات از داده‌های ویکی‌واژه (CC BY-SA)، ذخیره واژه‌های من و خروجی CSV کاملاً آفلاین.</li>
+  <li><strong>اصطلاحات (Idioms):</strong> بانک اصطلاحات آفلاین؛ جستجوی معکوس معنایی نیاز به کلید هوش مصنوعی دارد.</li>
+  <li><strong>مقایسه (Compare):</strong> مقایسه همزمان نتایج چند موتور ترجمه کنار یکدیگر.</li>
+  <li><strong>واژه‌نامه (Glossary):</strong> تعریف کلمات اختصاصی و اعمال همگانی در تمام ترجمه‌ها.</li>
+  <li><strong>تاریخچه (History):</strong> ثبت محلی ترجمه‌های اخیر در مرورگر با قابلیت جستجو و خروجی CSV.</li>
+  <li><strong>بازی‌ها (Games):</strong> <em>آزمایشی:</em> تمرین واژگان و فلش‌کارت بر پایه لغات ذخیره‌شده.</li>
+  <li><strong>مرکز مدل‌ها (Model Hub):</strong> مشاهده، دانلود و مدیریت مدل‌های Whisper، NLLB، M2M، OPUS و صداهای Piper در حافظه مرورگر.</li>
+</ul>
+<h4>۲. کدام پیکربندی برای رایانه من مناسب است؟</h4>
+<div style="overflow-x:auto">
+<table class="help-table" style="width:100%;border-collapse:collapse;margin:8px 0;font-size:12px">
+  <thead>
+    <tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:start;padding:6px">سیستم</th>
+      <th style="text-align:start;padding:6px">مدل گفتار پیشنهادی</th>
+      <th style="text-align:start;padding:6px">مدل یا موتور ترجمه پیشنهادی</th>
+      <th style="text-align:start;padding:6px">حجم دانلود</th>
+      <th style="text-align:start;padding:6px">موارد پرهیز</th>
+      <th style="text-align:start;padding:6px">مزایا و محدودیت‌ها</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:6px"><strong>لپ‌تاپ ضعیف</strong><br>(۴ گیگابایت رم، بدون کارت گرافیک)</td>
+      <td style="padding:6px"><strong>Whisper Tiny</strong><br>(42 MB دانلود، 1000 MB رم)</td>
+      <td style="padding:6px"><strong>OPUS-MT EN → AR</strong><br>(112 MB دانلود، 1000 MB رم) یا موتورهای ابری</td>
+      <td style="padding:6px">حدود 154 MB</td>
+      <td style="padding:6px">پرهیز از <strong>NLLB-200 600M (default)</strong> (حجم 870 MB، رم 4.1 GB)، <strong>mBART-50 many-to-many</strong> (حجم 848 MB، رم 3.4 GB) و <strong>Whisper Large v3 Turbo</strong> (حجم 1.0 GB، رم 3.3 GB).</td>
+      <td style="padding:6px">مدل Whisper Tiny سریع است اما در فارسی ضعیف است. مدل‌های OPUS-MT فقط برای جفت‌های موجود در کاتالوگ هستند. موتورهای آنلاین به سخت‌افزار نیازی ندارند اما متن را با کلید شما ارسال می‌کنند.</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)">
+      <td style="padding:6px"><strong>لپ‌تاپ معمولی</strong><br>(۸ گیگابایت رم)</td>
+      <td style="padding:6px"><strong>Whisper Small</strong><br>(240 MB دانلود، 3.2 GB رم) یا <strong>Whisper Base</strong><br>(76 MB دانلود، 1.4 GB رم)</td>
+      <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB دانلود، 4.1 GB رم) یا <strong>M2M-100 418M</strong><br>(610 MB دانلود، 2.1 GB رم)</td>
+      <td style="padding:6px">حدود 1.1 GB</td>
+      <td style="padding:6px">پرهیز از اجرای همزمان Whisper Large و NLLB بدون بستن تب‌های سنگین مرورگر.</td>
+      <td style="padding:6px">مدل Whisper Small اولین اندازه‌ای است که فارسی، عربی و ترکی را به درستی تشخیص می‌دهد. NLLB-200 به چند گیگابایت رم نیاز دارد.</td>
+    </tr>
+    <tr>
+      <td style="padding:6px"><strong>رایانه قدرتمند</strong><br>(۱۶ گیگابایت رم به بالا / WebGPU)</td>
+      <td style="padding:6px"><strong>Whisper Large v3 Turbo</strong><br>(1.0 GB دانلود، 3.3 GB رم) یا <strong>Whisper Small</strong></td>
+      <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB دانلود، 4.1 GB رم) یا Ollama محلی</td>
+      <td style="padding:6px">حدود 1.9 GB</td>
+      <td style="padding:6px">بدون محدودیت خاص.</td>
+      <td style="padding:6px">مدل Whisper Large v3 Turbo بالاترین دقت را فراهم می‌کند؛ با WebGPU یا کارت گرافیک مجزا بسیار سریع است.</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+<h4>۳. حداقل و سخت‌افزار پیشنهادی</h4>
+<ul>
+  <li><strong>حداقل سخت‌افزار:</strong> ۴ گیگابایت رم · ۵۰۰ مگابایت فضای خالی دیسک · مرورگرهای مدرن (Chrome 115+, Edge 115+, Firefox 115+) · پشتیبانی از WebGPU اختیاری · سرعت: speed not measured yet · خط ثبت: Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+  <li><strong>سخت‌افزار پیشنهادی:</strong> ۸ تا ۱۶ گیگابایت رم به بالا · ۳ تا ۵ گیگابایت فضای دیسک · کروم یا اج با قابلیت WebGPU · پشتیبانی از WebGPU شدیداً توصیه می‌شود · سرعت: speed not measured yet · خط ثبت: Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+</ul>
+<h4>۴. نحوه استفاده و نکاتی برای سیستم‌های ضعیف</h4>
+<p>مدل‌ها از مرکز مدل‌ها یک‌بار در حافظه مرورگر دانلود شده و برای همیشه آفلاین می‌مانند. در بخش رسانه، فایل‌های صوتی به طور کامل در رم مرورگر باز می‌شوند؛ برای سیستم‌های ۸ گیگابایتی فایل‌ها را زیر ۳۰ تا ۴۰ دقیقه نگه دارید. در سیستم‌های ضعیف‌تر، تب‌ها و برنامه‌های اضافی را ببندید، کلیپ‌های کوتاه ارسال کنید، یا از مدل‌های سبک (مانند Whisper Tiny یا OPUS-MT) و موتورهای ابری استفاده نمایید.</p>
+<h4>۵. نسخه وب در برابر برنامه ویندوز و افزونه</h4>
+<ul>
+  <li><strong>مترجم صفحه (Screen):</strong> فقط برنامه ویندوز با OCR داخلی. نسخه وب فقط پیکربندی است.</li>
+  <li><strong>دستیار گفتار پایتون:</strong> در برنامه ویندوز یا با سرور کمکی محلی (127.0.0.1:8765).</li>
+  <li><strong>پشتیبانی از ffmpeg:</strong> فقط در برنامه ویندوز برای فایل‌های MKV/AVI و ویدئوهای بسیار طولانی.</li>
+  <li><strong>باز کردن در برنامه (Open in App):</strong> فعال‌سازی از افزونه به مقصد برنامه وب یا ویندوز.</li>
+  <li><strong>مدل‌های آفلاین:</strong> در نسخه وب و برنامه ویندوز از طریق حافظه ماندگار مرورگر فعال است.</li>
+</ul>
+<h4>۶. محدودیت‌ها و شفافیت فنی</h4>
+<p>نقطه پایانی غیررسمی گوگل ممکن است بدون اطلاع مسدود یا محدود شود. برای Ollama در صفحه وب میزبانی‌شده، تنظیم متغیر OLLAMA_ORIGINS="https://makanlab.tech" و اجازه دسترسی به شبکه محلی در مرورگر ضروری است. برنامه ویندوز بدون امضای دیجیتال تجاری است (هشدار SmartScreen در اولین اجرا ظاهر می‌شود).</p>`
 });
 const ensureMediaI18n = () => {
   if (typeof window !== 'undefined' && window.MediaTranslate && window.MediaTranslate.i18n) {
