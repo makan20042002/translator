@@ -229,6 +229,7 @@
   color: var(--warn, #f5b942);
 }
 
+.mt-asr-device,
 .mt-asr-detected,
 .mt-asr-cues {
   margin: 12px 0 0;

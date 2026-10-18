@@ -183,11 +183,22 @@
       var lang = o.language || null;
       var device = null;
       var gpuNote = '';
+      var threads = 1;
+      var crossOriginIsolated = false;
       var done = 0;
       var loaded = false;
 
       function snapshot() {
-        var snap = { segments: segments.slice(), lang: lang, device: device, windows: plan.length, windowsDone: done, partial: true };
+        var snap = {
+          segments: segments.slice(),
+          lang: lang,
+          device: device,
+          threads: threads,
+          crossOriginIsolated: crossOriginIsolated,
+          windows: plan.length,
+          windowsDone: done,
+          partial: true
+        };
         if (gpuNote) snap.gpuNote = gpuNote;
         return snap;
       }
@@ -215,8 +226,15 @@
                 });
                 device = (lr && lr.device) || device;
                 gpuNote = (lr && lr.gpuNote) || '';
+                threads = (lr && typeof lr.threads === 'number') ? lr.threads : threads;
+                crossOriginIsolated = (lr && typeof lr.crossOriginIsolated === 'boolean') ? lr.crossOriginIsolated : false;
                 loaded = true;
-                if (typeof o.onModelReady === 'function') o.onModelReady();
+                if (typeof o.onModelReady === 'function') o.onModelReady({
+                  device: device,
+                  gpuNote: gpuNote,
+                  threads: threads,
+                  crossOriginIsolated: crossOriginIsolated
+                });
               }
               var audio = samples.slice(w.start, w.end); // a copy: the original stays for a retry
               report('asr', wi / plan.length, wi);

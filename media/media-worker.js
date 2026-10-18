@@ -180,6 +180,7 @@ self.onmessage = async ({ data }) => {
       res = {
         device: devices[spec.repo] || devices[spec.repo + '_wasm'] || 'wasm',
         threads: pickThreads(),
+        crossOriginIsolated: Boolean(self.crossOriginIsolated),
         gpuNote: spec.gpu ? gpuNotes[spec.repo] || '' : ''
       };
     } else if (cmd === 'asr') {

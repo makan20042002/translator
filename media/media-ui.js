@@ -192,6 +192,7 @@
     var asrFill = $('.mt-asr-fill');
     var asrProgressText = $('.mt-asr-progress-text');
     var asrDetectedEl = $('.mt-asr-detected');
+    var asrDeviceEl = $('.mt-asr-device');
     var asrOkEl = $('.mt-asr-ok');
     var asrErrEl = $('.mt-asr-error');
     var asrTextEl = $('.mt-asr-text');
@@ -234,8 +235,8 @@
     // Transcription state. status: idle | preparing | loading | running | ready | cancelled | error
     var asr = {
       status: 'idle', fraction: 0, window: 0, windows: 0, loadFraction: null, errorKey: null,
-      segments: [], cues: [], lang: null, device: null, modelName: null, windowsDone: 0,
-      ctrl: null, run: 0, ctl: null
+      segments: [], cues: [], lang: null, device: null, threads: null, crossOriginIsolated: false,
+      gpuNote: '', modelName: null, windowsDone: 0, ctrl: null, run: 0, ctl: null
     };
     // Translation state. status: idle | running | ready | cancelled | error
     var tr = {
@@ -410,6 +411,31 @@
         asrProgress.hidden = true;
       }
 
+      if (asrDeviceEl) {
+        if (asr.device) {
+          var devLine = '';
+          if (asr.device === 'webgpu') {
+            devLine = host.t('mediaAsrRunningGpu');
+          } else {
+            var th = asr.threads || 1;
+            devLine = th === 1
+              ? host.t('mediaAsrRunningCpuOne')
+              : fmt(host.t('mediaAsrRunningCpu'), { threads: th });
+            if (th === 1 && !asr.crossOriginIsolated) {
+              devLine += ' \u00b7 ' + host.t('mediaAsrCpuSlowNote');
+            }
+            if (asr.gpuNote) {
+              devLine += ' \u00b7 ' + fmt(host.t('mediaAsrGpuFallback'), { reason: asr.gpuNote });
+            }
+          }
+          asrDeviceEl.textContent = devLine;
+          asrDeviceEl.hidden = false;
+        } else {
+          asrDeviceEl.textContent = '';
+          asrDeviceEl.hidden = true;
+        }
+      }
+
       asrDetectedEl.hidden = !(asr.lang && (asr.status === 'ready' || asr.status === 'cancelled') && !asrLang.value);
       asrDetectedEl.textContent = asrDetectedEl.hidden ? '' : fmt(host.t('mediaAsrDetected'), { lang: langName(asr.lang) });
 
@@ -465,6 +491,8 @@
       pvVersion += 1;
       asr.lang = null;
       asr.device = null;
+      asr.threads = null;
+      asr.crossOriginIsolated = false;
       asr.gpuNote = '';
       asr.modelName = null;
       asr.windowsDone = 0;
@@ -503,7 +531,14 @@
         language: asrLang.value || null,
         signal: ctrl.signal,
         windowSec: lim.asrWindowSec,
-        onModelReady: function () {
+        onModelReady: function (meta) {
+          if (meta) {
+            asr.device = meta.device || asr.device;
+            asr.threads = (typeof meta.threads === 'number') ? meta.threads : asr.threads;
+            asr.crossOriginIsolated = (typeof meta.crossOriginIsolated === 'boolean') ? meta.crossOriginIsolated : asr.crossOriginIsolated;
+            asr.gpuNote = meta.gpuNote || asr.gpuNote || '';
+            render();
+          }
           if (typeof host.onModelUsed === 'function') {
             try { host.onModelUsed(ch.repo); } catch (e) { /* the host's problem, not ours */ }
           }
@@ -528,6 +563,8 @@
           applySegments(res.segments);
           asr.lang = res.lang;
           asr.device = res.device;
+          asr.threads = (typeof res.threads === 'number') ? res.threads : asr.threads;
+          asr.crossOriginIsolated = (typeof res.crossOriginIsolated === 'boolean') ? res.crossOriginIsolated : asr.crossOriginIsolated;
           asr.gpuNote = res.gpuNote || '';
           asr.windows = res.windows;
           asr.windowsDone = res.windowsDone;
@@ -542,6 +579,8 @@
             applySegments(part.segments);
             asr.lang = part.lang;
             asr.device = part.device;
+            asr.threads = (typeof part.threads === 'number') ? part.threads : asr.threads;
+            asr.crossOriginIsolated = (typeof part.crossOriginIsolated === 'boolean') ? part.crossOriginIsolated : asr.crossOriginIsolated;
             asr.gpuNote = part.gpuNote || '';
             asr.windows = part.windows;
             asr.windowsDone = part.windowsDone;
