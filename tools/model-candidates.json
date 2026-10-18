@@ -1,0 +1,118 @@
+[
+  {
+    "id": "asr-large-v3",
+    "job": "listen",
+    "kind": "whisper",
+    "key": "large-v3",
+    "repo": "onnx-community/whisper-large-v3",
+    "name": "Whisper Large v3",
+    "verified": false,
+    "note": "name unverified, run tools/verify-model-catalog.js",
+    "files": [
+      [
+        "tokenizer.json",
+        2480000
+      ],
+      [
+        "config.json",
+        2500
+      ],
+      [
+        "onnx/encoder_model.onnx",
+        1200000000
+      ],
+      [
+        "onnx/decoder_model_merged.onnx",
+        1800000000
+      ]
+    ],
+    "bytes": 3002482500,
+    "memMB": 4000
+  },
+  {
+    "id": "asr-distil-large-v3",
+    "job": "listen",
+    "kind": "whisper",
+    "key": "distil-large-v3",
+    "repo": "distil-whisper/distil-large-v3-onnx",
+    "name": "Distil-Whisper Large v3 (English)",
+    "verified": false,
+    "note": "name unverified, run tools/verify-model-catalog.js",
+    "files": [
+      [
+        "tokenizer.json",
+        2480000
+      ],
+      [
+        "config.json",
+        2500
+      ],
+      [
+        "onnx/encoder_model.onnx",
+        650000000
+      ],
+      [
+        "onnx/decoder_model_merged.onnx",
+        850000000
+      ]
+    ],
+    "bytes": 1502482500,
+    "memMB": 2500
+  },
+  {
+    "id": "asr-medium",
+    "job": "listen",
+    "kind": "whisper",
+    "key": "medium",
+    "repo": "onnx-community/whisper-medium",
+    "name": "Whisper Medium",
+    "verified": false,
+    "note": "name unverified, run tools/verify-model-catalog.js",
+    "files": [
+      [
+        "tokenizer.json",
+        2480000
+      ],
+      [
+        "config.json",
+        2500
+      ],
+      [
+        "onnx/encoder_model.onnx",
+        600000000
+      ],
+      [
+        "onnx/decoder_model_merged.onnx",
+        900000000
+      ]
+    ],
+    "bytes": 1502482500,
+    "memMB": 2500
+  },
+  {
+    "id": "llm-qwen25-05b-instruct",
+    "job": "translate",
+    "kind": "qwen",
+    "key": "qwen2.5-0.5b",
+    "repo": "onnx-community/Qwen2.5-0.5B-Instruct",
+    "name": "Qwen 2.5 0.5B Instruct ONNX",
+    "verified": false,
+    "note": "name unverified, run tools/verify-model-catalog.js",
+    "files": [
+      [
+        "tokenizer.json",
+        7000000
+      ],
+      [
+        "config.json",
+        1500
+      ],
+      [
+        "onnx/model_quantized.onnx",
+        450000000
+      ]
+    ],
+    "bytes": 457001500,
+    "memMB": 1200
+  }
+]
