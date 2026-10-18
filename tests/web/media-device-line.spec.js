@@ -113,8 +113,7 @@ test.describe('Media tab: Whisper device and thread indicator line (ITEM 2)', ()
     const langBtn = page.locator('#uiLang');
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
-    await expect(deviceEl).toContainText('WebGPU');
-    await expect(deviceEl).toContainText('پردازنده گرافیکی');
+    await expect(deviceEl).toHaveText('محل اجرا: پردازنده گرافیکی (WebGPU)');
 
     // Switch back to English
     await mouseClick(page, langBtn);
@@ -206,8 +205,7 @@ test.describe('Media tab: Whisper device and thread indicator line (ITEM 2)', ()
     const langBtn = page.locator('#uiLang');
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
-    await expect(deviceEl).toContainText('پردازنده (CPU)');
-    await expect(deviceEl).toContainText('۴ رشته');
+    await expect(deviceEl).toHaveText('محل اجرا: پردازنده (CPU)، 4 رشته پردازشی');
 
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
@@ -298,7 +296,7 @@ test.describe('Media tab: Whisper device and thread indicator line (ITEM 2)', ()
     const langBtn = page.locator('#uiLang');
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
-    await expect(deviceEl).toContainText('۱ رشته');
+    await expect(deviceEl).toContainText('محل اجرا: پردازنده (CPU)، ۱ رشته پردازشی');
     await expect(deviceEl).toContainText('کند: این صفحه فقط می‌تواند از یک رشته پردازنده استفاده کند.');
 
     await mouseClick(page, langBtn);
@@ -390,8 +388,8 @@ test.describe('Media tab: Whisper device and thread indicator line (ITEM 2)', ()
     const langBtn = page.locator('#uiLang');
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
-    await expect(deviceEl).toContainText('پردازنده (CPU)');
-    await expect(deviceEl).toContainText('WebGPU is not available here');
+    await expect(deviceEl).toContainText('محل اجرا: پردازنده (CPU)، 4 رشته پردازشی');
+    await expect(deviceEl).toContainText('پردازنده گرافیکی ناموفق بود (WebGPU is not available here)، بازگشت به پردازنده.');
 
     await mouseClick(page, langBtn);
     await expect(page.locator('html')).toHaveAttribute('lang', 'en');
