@@ -43,11 +43,8 @@ function updateEmptyState() {
 }
 
 function usableAiEngine() {
-  return (cfg.eng.gemini.key && !sessionBlocked.has('gemini')) ||
-         (cfg.eng.groq.key && !sessionBlocked.has('groq')) ||
-         (cfg.eng.openrouter.key && !sessionBlocked.has('openrouter')) ||
-         (cfg.eng.ollama.on && cfg.eng.ollama.model) ||
-         (cfg.eng.custom.on && cfg.eng.custom.model);
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
+  return cfg.order.some(isReady);
 }
 
 function updateAskAiView() {

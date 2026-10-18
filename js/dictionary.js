@@ -107,7 +107,7 @@ async function dictExplain(word,box,btn){
   }catch(e){out.textContent=e&&e.message&&!/noAi/.test(e.message)?scrubKeys(e.message):L('dictNoAi')}
   if(btn)btn.disabled=false;
 }
-const aiAvailable=()=>cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+const aiAvailable=()=>cfg.order.some(id=>(typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false)));
 
 // ---- the Dictionary tab ----
 async function dictSearch(){

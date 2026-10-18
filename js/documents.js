@@ -764,10 +764,12 @@ function refreshOllamaModelsForDoc(){
   ollamaFetchPending = true;
   fetchOllamaModelsSafely().then(models => {
     cachedOllamaModels = (Array.isArray(models) && models.length > 0) ? models : (models ? [] : false);
+    if(typeof ENG !== 'undefined') ENG.cachedOllamaModels = cachedOllamaModels;
     buildDocEngineOptions();
     updateDocEngineInfo();
   }).catch(() => {
     cachedOllamaModels = false;
+    if(typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     buildDocEngineOptions();
     updateDocEngineInfo();
   }).finally(() => {
@@ -1039,12 +1041,13 @@ async function detectSubjectAndTerms(d, token){
   const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
   let isAi = false;
   let engId = 'auto';
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
   if(baseEngine === 'auto'){
-    const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
-    isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
-    engId = firstUsable || 'auto';
+    const firstReady = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(isReady) : null;
+    isAi = Boolean(firstReady);
+    engId = firstReady || 'auto';
   }else{
-    isAi = Boolean(ENG[baseEngine]?.ai);
+    isAi = Boolean(isReady(baseEngine));
     engId = baseEngine;
   }
   if(!isAi){
@@ -1139,8 +1142,8 @@ $('docAddToGlossaryBtn').onclick=()=>{
 async function reviewDocTermsInContext(){
   const valid=getDocTerms();
   if(!valid.length){toast(L('noTermsToReview')||'No key terms detected to review','warn');return}
-  const engId=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
-  const isAi=ENG[engId]?.ai||(engId==='auto'&&usableAiEngine());
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
+  const isAi=isReady(engId)||(engId==='auto'&&cfg.order.some(isReady));
   if(!isAi){toast(L('docEngineNoticeText')||'Terminology review requires an AI engine','warn');return}
 
   $('docSubjAnalyzing').hidden=false;
@@ -2393,11 +2396,12 @@ function updateDocEngineNoticeFromPicker(){
   const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
   let isAi = false;
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
   if(baseEngine === 'auto'){
-    const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
-    isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
+    const firstReady = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(isReady) : null;
+    isAi = Boolean(firstReady);
   }else{
-    isAi = Boolean(ENG[baseEngine]?.ai);
+    isAi = Boolean(isReady(baseEngine));
   }
   const noticeEl=$('docEngineNotice');
   const subjCard=$('docSubjectCard');

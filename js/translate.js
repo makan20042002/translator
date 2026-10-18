@@ -206,6 +206,37 @@ function isLocalAddress(url){
   }
 }
 
+const isAiEngineReady=id=>{
+  if(!id||!ENG[id]||!ENG[id].ai)return false;
+  if(typeof usable==='function'&&!usable(id))return false;
+  const e=cfg.eng?.[id]||{};
+  if(ENG[id].key&&!e.key)return false;
+  if(id==='ollama'){
+    const cached=(typeof ENG!=='undefined'&&typeof ENG.cachedOllamaModels!=='undefined')
+      ?ENG.cachedOllamaModels
+      :null;
+    const conn=engineConnStatus?.ollama?.code;
+    if(conn==='works')return true;
+    if(conn==='localDown'||conn==='netBlocked')return false;
+    if(Array.isArray(cached)&&cached.length>0)return true;
+    return false;
+  }
+  if(id==='custom'){
+    if(!e.base||!e.model)return false;
+    const isLocal=typeof isLocalAddress==='function'?isLocalAddress(e.base):/\/\/(localhost|127\.0\.0\.1|\[::1\])/.test(e.base);
+    if(isLocal){
+      const conn=engineConnStatus?.custom?.code;
+      if(conn==='works')return true;
+      return false;
+    }
+    return true;
+  }
+  if(!e.model)return false;
+  return true;
+};
+ENG.isAiEngineReady=isAiEngineReady;
+ENG.isAiReady=isAiEngineReady;
+
 async function checkEngineConn(id){
   const d=ENG[id],e=cfg.eng[id];
   if(!d)return {code:'err',text:'unknown'};
@@ -1161,7 +1192,7 @@ async function eAIChat(id,messages,o){
 }
 async function chat(messages,o={}){
   const chain=(o.engine&&o.engine!=='auto'&&ENG[o.engine]?.ai?[o.engine]:cfg.order)
-    .filter(id=>ENG[id]?.ai&&usable(id)&&(!isOff()||(id==='ollama'||(id==='custom'&&isLocalUrl(cfg.eng[id].base)))));
+    .filter(id=>isAiEngineReady(id)&&(!isOff()||(id==='ollama'||(id==='custom'&&isLocalUrl(cfg.eng[id].base)))));
   if(!chain.length)throw new Error(L('noAiEngine'));
   let lastErr=null;
   for(let i=0;i<chain.length;i++){

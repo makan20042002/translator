@@ -72,21 +72,22 @@ async function fetchOllamaModels(){
   }
 
   let models=await tryTags(host);
-  if(models!==null)return models;
+  if(models!==null){if(typeof ENG!=='undefined')ENG.cachedOllamaModels=models;return models;}
   models=await tryV1(v1base);
-  if(models!==null)return models;
+  if(models!==null){if(typeof ENG!=='undefined')ENG.cachedOllamaModels=models;return models;}
 
   const altHost=getAltUrl(host);
   const altV1=getAltUrl(v1base);
   if(!hadTimeout&&altHost){
     models=await tryTags(altHost);
-    if(models!==null)return models;
+    if(models!==null){if(typeof ENG!=='undefined')ENG.cachedOllamaModels=models;return models;}
     if(altV1){
       models=await tryV1(altV1);
-      if(models!==null)return models;
+      if(models!==null){if(typeof ENG!=='undefined')ENG.cachedOllamaModels=models;return models;}
     }
   }
 
+  if(typeof ENG!=='undefined')ENG.cachedOllamaModels=false;
   throw new Error('Ollama unreachable');
 }
 let ollamaPullAbort=null;

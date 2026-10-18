@@ -1,5 +1,6 @@
 /* ---------- Finglish (Persian in Latin letters) ---------- */
-const aiChainNow=()=>cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+const isReadyAi=id=>(typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
+const aiChainNow=()=>cfg.order.filter(isReadyAi);
 // Converts Finglish to Persian script with one AI request. { kind: 'no' | 'needs-ai' | 'ok', persian, engine }
 async function finglishStep(text,signal,src){
   src=src||$('src').value;
@@ -55,8 +56,8 @@ function getSmartEngineChain(){
 }
 function getAiEngineChain(){
   const cur=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
-  if(cur&&cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
-  const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
+  if(cur&&cur!=='auto'&&isReadyAi(cur))return [cur];
+  const aiList=cfg.order.filter(isReadyAi);
   if(aiList.length)return aiList;
   if(isOff())return ['ollama'];
   return ['gemini'];
@@ -76,7 +77,7 @@ function mountTextEnginePicker(){
 function getDefaultTransMode(){
   const saved=store.get('tMode',null);
   if(saved&&['both','fast','smart'].includes(saved))return saved;
-  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  const hasAi=cfg.order.some(isReadyAi);
   return hasAi?'both':'fast';
 }
 async function saveToMemory(params){
@@ -119,7 +120,7 @@ async function doText(){
   $('tCopy').addEventListener('click',copyBtnClick,{once:true});
 
   const mode=$('tMode')?.value||getDefaultTransMode();
-  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  const hasAi=cfg.order.some(isReadyAi);
 
   // Look up memory before calling any engine
   const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
@@ -427,7 +428,7 @@ if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
   if(!text.trim()||!corrected.trim())return;
 
   const mode=$('tMode')?.value||getDefaultTransMode();
-  const hasAi=cfg.order.some(id=>ENG[id]?.ai&&usable(id));
+  const hasAi=cfg.order.some(isReadyAi);
   const memMode=(mode==='fast'||(mode==='both'&&!hasAi))?'fast':'smart';
 
   if(typeof TranslationMemory!=='undefined'){

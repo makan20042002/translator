@@ -85,7 +85,8 @@ async function saveSubCueCorrection(i){
 
   const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
-  const subMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
+  const subMemMode=(firstEng&&isReady(firstEng))?'smart':'fast';
   const subStyle=$('subStyle')?.value||'film';
   const srcLang=$('src').value==='finglish'?'auto':$('src').value;
   const tgtLang=$('tgt').value;
@@ -202,7 +203,8 @@ async function doSubs(onlyEmpty){
 
   const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
-  const subMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
+  const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
+  const subMemMode=(firstEng&&isReady(firstEng))?'smart':'fast';
   const subStyle=$('subStyle')?.value||'film';
   const srcLang=$('src').value==='finglish'?'auto':$('src').value;
   const tgtLang=$('tgt').value;
