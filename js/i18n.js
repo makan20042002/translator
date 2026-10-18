@@ -299,7 +299,12 @@ Object.assign(I18N.en,{
   <li><strong>Offline Models:</strong> Available in Web App and Windows App via browser cache storage.</li>
 </ul>
 <h4>6. Operational Limits &amp; Transparency</h4>
-<p>Unofficial Google web endpoints may stop working or be rate-limited without warning. Local Ollama on a hosted HTTPS page requires OLLAMA_ORIGINS="https://makanlab.tech" and browser permission. The Windows desktop app is self-built and not code-signed (SmartScreen prompt on first launch).</p>`
+<p>Unofficial Google web endpoints may stop working or be rate-limited without warning. Local Ollama on a hosted HTTPS page requires OLLAMA_ORIGINS="https://makanlab.tech" and browser permission. The Windows desktop app is self-built and not code-signed (SmartScreen prompt on first launch).</p>
+<h4>7. Bug Reports &amp; Support</h4>
+<p>If you encounter an issue, use the <strong>Report a bug</strong> button in the Help or About window. Nothing is sent automatically by the app. Your own default email program sends the message, allowing you to inspect and edit every word before sending. You can also copy the report to your clipboard.</p>
+<p><strong>Support email:</strong> makan20042002@gmail.com</p>
+<p><strong>What the report contains:</strong> app version, interface language, operating system and browser version, active tab, translation mode, names of enabled translation engines, offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 error messages (with any keys, tokens, or queries redacted).</p>
+<p><strong>What the report NEVER contains:</strong> API keys or authorization tokens, custom server URLs, your source or translated text, file names or paths, and translation history.</p>`
 });
 Object.assign(I18N.fa,{
  tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',tabAppearance:'ظاهر و تم',themeH:'تم رنگی',themeNote:'از بین ۷ تم طراحی‌شده انتخاب کنید. تغییرات فوراً اعمال می‌شوند.',
@@ -440,7 +445,12 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
   <li><strong>مدل‌های آفلاین:</strong> در نسخه وب و برنامه ویندوز از طریق حافظه ماندگار مرورگر فعال است.</li>
 </ul>
 <h4>۶. محدودیت‌ها و شفافیت فنی</h4>
-<p>نقطه پایانی غیررسمی گوگل ممکن است بدون اطلاع مسدود یا محدود شود. برای Ollama در صفحه وب میزبانی‌شده، تنظیم متغیر OLLAMA_ORIGINS="https://makanlab.tech" و اجازه دسترسی به شبکه محلی در مرورگر ضروری است. برنامه ویندوز بدون امضای دیجیتال تجاری است (هشدار SmartScreen در اولین اجرا ظاهر می‌شود).</p>`
+<p>نقطه پایانی غیررسمی گوگل ممکن است بدون اطلاع مسدود یا محدود شود. برای Ollama در صفحه وب میزبانی‌شده، تنظیم متغیر OLLAMA_ORIGINS="https://makanlab.tech" و اجازه دسترسی به شبکه محلی در مرورگر ضروری است. برنامه ویندوز بدون امضای دیجیتال تجاری است (هشدار SmartScreen در اولین اجرا ظاهر می‌شود).</p>
+<h4>۷. گزارش باگ و پشتیبانی</h4>
+<p>در صورت بروز هرگونه مشکل، می‌توانید از دکمه <strong>گزارش باگ</strong> در پنجره راهنما یا درباره استفاده کنید. هیچ داده‌ای به صورت خودکار توسط برنامه ارسال نمی‌شود؛ برنامه ایمیل پیش‌فرض خودِ شما پیام را باز می‌کند تا پیش از ارسال بتوانید تمامی متن را بررسی و ویرایش نمایید. همچنین امکان کپی متن گزارش در کلیپ‌بورد فراهم است.</p>
+<p><strong>ایمیل پشتیبانی:</strong> makan20042002@gmail.com</p>
+<p><strong>اطلاعات موجود در گزارش:</strong> نسخه برنامه، زبان رابط کاربری، سیستم‌عامل و نسخه مرورگر، تب فعال، حالت ترجمه، نام موتورهای فعال، وضعیت حالت آفلاین، نام مدل‌های آفلاین دانلودشده، وضعیت WebGPU، مشخص بودن اجرا در برنامه ویندوز، و حداکثر ۵ خطای اخیر رخ‌داده (با سانسور کامل هرگونه کلید، توکن یا آدرس سرور).</p>
+<p><strong>اطلاعاتی که هرگز ارسال نمی‌شوند:</strong> کلیدهای API یا توکن‌های امنیتی، آدرس سرورهای سفارشی، متن مبدأ یا ترجمه‌شده شما، نام و مسیر فایل‌ها، و تاریخچه ترجمه‌ها.</p>`
 });
 const ensureMediaI18n = () => {
   if (typeof window !== 'undefined' && window.MediaTranslate && window.MediaTranslate.i18n) {

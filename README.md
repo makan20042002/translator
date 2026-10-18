@@ -167,3 +167,19 @@ The key is only put into the test browser; it is not printed or saved.
   how to try it by hand);
 * Microsoft Word opening the translated `.docx` (LibreOffice is used instead
   when it is installed).
+
+---
+
+## Bug Reports & Diagnostics
+
+If you run into an issue or unexpected behavior:
+* In the **web app**: click **Report a bug** in the About window or at the top of the Help window.
+* In the **browser extension**: click **Report a bug** in the Options page (About section) or the link in the popup footer.
+* In the **Windows desktop app**: click **Report a bug** in the Help or About window.
+
+### Privacy Guarantees
+* **Nothing is sent by the app**: The application contains no background telemetry, tracking, or automated error reporting.
+* **Your own email program sends the message**: Clicking "Send by email" opens a draft in your system's default email client addressed to `makan20042002@gmail.com`. You can inspect, edit, or cancel the draft before sending. You can also copy the report to your clipboard.
+* **What the report contains**: App/extension version, interface language, operating system and browser version, active tab, enabled engine names (never keys or custom URLs), offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 in-memory error messages (with any keys, tokens, or queries strictly redacted).
+* **What the report NEVER contains**: API keys or authorization tokens, custom server URLs, user source or translated text, file names or paths, and translation history.
+

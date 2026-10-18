@@ -78,3 +78,23 @@ For Firefox submission and Mozilla Add-on Policies:
 - **Justification**: User-selected text or visible webpage paragraphs are read strictly upon user request (click, context menu, or shortcut) and forwarded to the user's chosen translation provider to produce translated text.
 - **Identity**: `makan-translate@makanlab.tech`
 - **Strict Min Version**: `142.0` (Ensures full support for data collection declarations on both Desktop and Android)
+
+---
+
+## 5. Bug Reports & Diagnostics
+
+MAKAN Translate provides a user-initiated **Report a bug** feature in both the extension options page and the popup footer:
+
+- **User-Sent Only**: Nothing is transmitted automatically or in the background. The extension has zero telemetry and does not log or send background reports to any analytics server. When you choose to report a bug, your system's default email client opens a pre-composed draft addressed to `makan20042002@gmail.com`. You retain complete control to review, edit, or cancel the draft before sending. You can also copy the report text to your clipboard.
+- **What the Report Contains**:
+  - Extension version (from manifest)
+  - Browser and operating system platform (user agent)
+  - Enabled translation engine names (e.g. Google, Gemini, Groq)
+  - App address and Web App URL host status (reported as default host or "custom" without exposing private local ports or addresses)
+  - Up to the last 5 in-memory errors recorded in the extension's service worker ring buffer, with all keys, Bearer tokens, emails, and URL query strings strictly redacted.
+- **What the Report NEVER Contains**:
+  - API keys, secrets, or bearer tokens
+  - Custom server URLs or hostnames
+  - Selected text, translated text, or page content
+  - Browsing history, visited URLs, file names or paths
+
