@@ -52,7 +52,7 @@ test.describe('Prefix Server Fresh Build & Subfolder Integrity', () => {
       const buildInfo = JSON.parse(buildInfoRes.data.toString('utf8'));
       expect(Array.isArray(buildInfo.files)).toBe(true);
 
-      const trEntry = buildInfo.files.find(f => f.file === 'js/translate.js');
+      const trEntry = buildInfo.files.find(f => f.path === 'js/translate.js');
       expect(trEntry).toBeDefined();
 
       const expectedSha256 = crypto.createHash('sha256').update(repoTranslateBytes).digest('hex');
