@@ -113,3 +113,11 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .engine-picker-model-select option:disabled{color:var(--muted)}
 .engine-picker-hub-link{color:var(--accent);text-decoration:none;font-size:12px;cursor:pointer;align-self:center;margin-bottom:6px}
 .engine-picker-hub-link:hover{text-decoration:underline}
+@media(max-width:480px){
+  .engine-picker-select{min-width:0;width:100%}
+  .engine-picker-model-select{min-width:0;width:100%}
+  .engine-picker-main-row{width:100%}
+  .engine-picker-label{flex:1 1 auto;min-width:0}
+  .engine-picker-sub-row{max-width:100%;word-break:break-word}
+  .engine-picker-using{min-width:0;word-break:break-word}
+}

@@ -808,6 +808,13 @@ function showDocEngineNotReady(msg){
   toast(msg, 'warn', 7000);
 }
 
+function getDocChosenEngine(){
+  const explicit = (typeof $ === 'function' && $('dEngineSel')?.value) || (typeof store !== 'undefined' && store.get('doc_engine', '')) || '';
+  if(explicit) return explicit;
+  const shared = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  return shared !== 'auto' ? shared : '';
+}
+
 async function checkDocEngineReady(docChosen){
   let engId = docChosen;
   let modelName = '';
@@ -893,7 +900,7 @@ let docHasAnyTimeout = false;
 let currentDocEngine = '';
 
 function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons = new Map()){
-  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  const docChosen = getDocChosenEngine();
   const attempted = [];
   const seenEngines = new Set();
 
@@ -990,9 +997,9 @@ function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons =
 }
 
 function getDocEngineChain(){
-  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   if(curEngine && curEngine !== 'auto'){
-    return [curEngine];
+    return [curEngine.startsWith('ollama:') ? 'ollama' : curEngine];
   }
   if(isOff()){
     return ['nllb','chrome','ollama'].filter(usable);
@@ -1010,13 +1017,14 @@ let docAnalysisCtl = null;
 async function detectSubjectAndTerms(d, token){
   if(typeof token !== 'undefined' && token !== docLoadToken) return;
   if(docUiState === 'translating' || docUiState === 'error') return;
-  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
   let isAi = false;
-  if(curEngine === 'auto'){
+  if(baseEngine === 'auto'){
     const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
     isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
   }else{
-    isAi = Boolean(ENG[curEngine]?.ai);
+    isAi = Boolean(ENG[baseEngine]?.ai);
   }
   if(!isAi){
     if(typeof token === 'undefined' || token === docLoadToken){
@@ -1524,7 +1532,8 @@ $('dGo').onclick=async()=>{
     await docLoadingPromise;
   }
   if(!doc)return;
-  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const docChosen = getDocChosenEngine();
+  const curEngine = docChosen || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   if(curEngine && curEngine !== 'auto'){
     const check = await checkDocEngineReady(curEngine);
     if(!check.ready){
@@ -1720,7 +1729,7 @@ $('dGo').onclick=async()=>{
     const triedEngines=new Set();
     try{
       const neededTexts=neededPieces.map(p=>p.text);
-      chain = (curEngine && curEngine !== 'auto') ? [curEngine] : readyChain;
+      chain = (curEngine && curEngine !== 'auto') ? [curEngine.startsWith('ollama:') ? 'ollama' : curEngine] : readyChain;
       if(chain.length){
         triedEngines.add(chain[0]);
         currentDocEngine = chain[0];
@@ -2247,7 +2256,7 @@ function updateDocEngineInfo(){
     buildDocEngineOptions();
   }
 
-  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
+  const docChosen = getDocChosenEngine();
   const curEng=$('engine')?.value||'auto';
   const modeVal=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   const off=isOff();
@@ -2356,13 +2365,14 @@ function mountDocEnginePicker(){
 }
 
 function updateDocEngineNoticeFromPicker(){
-  const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
-  let isAi=false;
-  if(curEngine==='auto'){
-    const firstUsable=(typeof cfg!=='undefined'&&cfg.order)?cfg.order.find(usable):null;
-    isAi=Boolean(firstUsable&&ENG[firstUsable]?.ai);
+  const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
+  let isAi = false;
+  if(baseEngine === 'auto'){
+    const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
+    isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
   }else{
-    isAi=Boolean(ENG[curEngine]?.ai);
+    isAi = Boolean(ENG[baseEngine]?.ai);
   }
   const noticeEl=$('docEngineNotice');
   const subjCard=$('docSubjectCard');

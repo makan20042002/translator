@@ -2569,6 +2569,13 @@ html[lang="fa"] .cue-tm-badge {
   flex-wrap: wrap;
   width: 100%;
 }
+@media (max-width: 640px) {
+  .doc-header-top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+}
 .doc-header-titles {
   display: flex;
   flex-direction: column;
