@@ -117,9 +117,9 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
 
     // Third-party notice assertions
     const thirdPartyContent = fs.readFileSync(path.join(ROOT, 'docs', 'THIRD_PARTY.md'), 'utf8');
-    expect(thirdPartyContent).toContain('licence: Apache-2.0 (original OpenAI model; repo tag not shown)');
+    expect(thirdPartyContent).toContain('**Licence**: Apache-2.0 (original OpenAI model; repo tag not shown)');
     expect(thirdPartyContent).toContain('distil-whisper/distil-large-v3');
-    expect(thirdPartyContent).toContain('MIT');
+    expect(thirdPartyContent).toContain('**Licence**: MIT');
   });
 
   test('Hub lists both with GPU download size (2.9 GB for Large v3, 731 MB for Distil) when WebGPU is mocked present', async ({ app }) => {
