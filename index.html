@@ -138,9 +138,9 @@
         </select>
       </div>
       <div class="grp" id="tEngineGrp">
-        <label for="engine" data-t="engine">Engine</label>
-        <select id="engine"></select>
-        <span class="hint offline-model-hint" id="tOfflineModelHint"></span>
+        <div id="textEnginePickerHost" class="text-engine-picker-host"></div>
+        <select id="engine" style="display:none" aria-hidden="true"></select>
+        <span class="hint offline-model-hint" id="tOfflineModelHint" style="display:none"></span>
       </div>
       <div class="grp" id="tToneGrp">
         <label for="tone" data-t="tone">Tone</label>
@@ -401,11 +401,12 @@
           <p class="doc-page-sub" data-t="pageDocSub">Translate Word, PowerPoint, Excel, text, Markdown, CSV and JSON files.</p>
         </div>
         <div class="doc-header-controls">
-          <div class="doc-engine-picker-wrap">
+          <div id="docEnginePickerHost" class="doc-engine-picker-host"></div>
+          <div class="doc-engine-picker-wrap" style="display:none" aria-hidden="true">
             <label for="dEngineSel" class="doc-engine-sel-label" data-t="dTranslateWith">Translate with</label>
             <select id="dEngineSel" class="doc-engine-sel" aria-label="Translate with"></select>
           </div>
-          <div class="doc-engine-line" id="docEngineLine">
+          <div class="doc-engine-line" id="docEngineLine" style="display:none" aria-hidden="true">
             <span class="doc-engine-icon" aria-hidden="true">
               <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v4"/><path d="m4.93 4.93 2.83 2.83"/><path d="M2 12h4"/><path d="m4.93 19.07 2.83-2.83"/><path d="M12 18v4"/><path d="m19.07 19.07-2.83-2.83"/><path d="M18 12h4"/><path d="m19.07 4.93-2.83 2.83"/></svg>
             </span>

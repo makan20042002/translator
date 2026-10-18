@@ -333,6 +333,8 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
   if(b.dataset.tab==='models'){if(typeof renderModelHub==='function')renderModelHub();if(typeof mcScan==='function')mcScan().then(()=>{if(typeof renderModelHub==='function')renderModelHub();});}
   if(b.dataset.tab==='sub')updateSubEngineNotice();
+  if(b.dataset.tab==='doc'&&typeof updateDocEngineNoticeFromPicker==='function')updateDocEngineNoticeFromPicker();
+  if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();
   if(b.dataset.tab==='media'&&typeof window.MediaTranslate?.ensureMounted==='function')window.MediaTranslate.ensureMounted();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
 });
@@ -421,7 +423,10 @@ function boot(){
   if($('vLiveVoiceSpeed'))$('vLiveVoiceSpeed').value=store.get('liveVoiceSpeed','fast');
   if($('subStyle'))$('subStyle').value=store.get('subStyle','film');
   if($('subFamily'))$('subFamily').checked=store.get('subFamily',false);
+  if(typeof mountTextEnginePicker==='function')mountTextEnginePicker();
+  if(typeof mountDocEnginePicker==='function')mountDocEnginePicker();
   updateSubEngineNotice();
+  if(typeof updateDocEngineNoticeFromPicker==='function')updateDocEngineNoticeFromPicker();
   if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();
   if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
   const rawParams = (location.hash && location.hash.length > 1)

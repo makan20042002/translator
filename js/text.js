@@ -46,7 +46,7 @@ function getFastChain(){
   return chain.length?chain:['google','mymemory'];
 }
 function getSmartEngineChain(){
-  const cur=$('engine')?.value||'auto';
+  const cur=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   if(cur&&cur!=='auto'&&usable(cur))return [cur];
   const chain=cfg.order.filter(usable);
   if(chain.length)return chain;
@@ -54,12 +54,24 @@ function getSmartEngineChain(){
   return ['google'];
 }
 function getAiEngineChain(){
-  const cur=$('engine')?.value||'auto';
+  const cur=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   if(cur&&cur!=='auto'&&ENG[cur]?.ai&&usable(cur))return [cur];
   const aiList=cfg.order.filter(id=>ENG[id]?.ai&&usable(id));
   if(aiList.length)return aiList;
   if(isOff())return ['ollama'];
   return ['gemini'];
+}
+function mountTextEnginePicker(){
+  const host=document.getElementById('textEnginePickerHost');
+  if(host&&typeof ENG!=='undefined'&&typeof ENG.mountEnginePicker==='function'){
+    ENG.mountEnginePicker(host,{
+      context:'text',
+      getLangs:()=>({
+        src:$('src')?.value||'en',
+        tgt:$('tgt')?.value||'fa'
+      })
+    });
+  }
 }
 function getDefaultTransMode(){
   const saved=store.get('tMode',null);
@@ -171,6 +183,38 @@ async function doText(){
         busy([$('tGo')],$('tStop'),false);return;
       }
       lines=fgPersian.split('\n');srcOverride='fa';
+    }
+    const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
+    if(curEngine&&curEngine!=='auto'){
+      if(!usable(curEngine)){
+        $('tOut').value='';
+        const reason=(typeof why==='function'?why(curEngine):'')||L('noEngine');
+        $('tMeta').textContent=reason;
+        busy([$('tGo')],$('tStop'),false);
+        return;
+      }
+      const r=await translateItems(lines,opts({
+        chain:[curEngine],
+        engine:curEngine,
+        signal:tCtl.signal,
+        onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`
+      }));
+      const res=r.out.join('\n');$('tOut').value=res;
+      $('tMeta').textContent=`${L('via')} ${r.used} · ${((performance.now()-t0)/1000).toFixed(1)}s`;
+      const h=store.get('hist',[]);h.unshift({ts:Date.now(),src:$('src').value,tgt:$('tgt').value,e:r.used,i:text.slice(0,4000),o:res.slice(0,4000)});store.set('hist',h.slice(0,60));
+      saveToMemory({text,translatedText:res,lines,out:r.out,src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),tgt:$('tgt').value,modeClass:ENG[curEngine]?.ai?'smart':'fast',tone:$('tone')?.value||'',subject:$('tSubject')?.value?.trim()||''});
+      if($('src')?.value==='auto'){
+        const detected=r.detectedSrc||(typeof detectRealLanguage==='function'?detectRealLanguage(text):null);
+        if(detected){
+          window.MakanLangPickers?.text?.setDetected(detected);
+          window.MakanLangPickers?.subtitles?.setDetected(detected);
+          window.MakanLangPickers?.documents?.setDetected(detected);
+        }
+      }
+      busy([$('tGo')],$('tStop'),false);
+      updateStatusChip();
+      renderRecentTranslations();
+      return;
     }
     if(mode==='fast'||(mode==='both'&&!hasAi)){
       const r=await translateItems(lines,opts({chain:getFastChain(),signal:tCtl.signal,onProgress:(a,b)=>$('tMeta').textContent=`${a}/${b}`}));

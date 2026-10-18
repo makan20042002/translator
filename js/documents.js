@@ -990,23 +990,19 @@ function buildHonestFailureMessage(chain, triedEngines, err, preSkippedReasons =
 }
 
 function getDocEngineChain(){
-  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
-  if(docChosen){
-    if(docChosen.startsWith('ollama:')) return ['ollama'];
-    return [docChosen];
-  }
-  const cur=$('engine')?.value||'auto';
-  if(cur&&cur!=='auto'){
-    return [cur];
+  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  if(curEngine && curEngine !== 'auto'){
+    return [curEngine];
   }
   if(isOff()){
-    return ['nllb','chrome','ollama'];
+    return ['nllb','chrome','ollama'].filter(usable);
   }
   const mode=$('tMode')?.value||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   if(mode==='fast'){
-    return ['chrome','google','mymemory','nllb'];
+    const fastChain = ['chrome','google','mymemory','nllb'].filter(usable);
+    if(fastChain.length) return fastChain;
   }
-  return (typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order).slice();
+  return (typeof getSmartEngineChain==='function'?getSmartEngineChain():cfg.order.filter(usable)).slice();
 }
 
 let docAnalysisCtl = null;
@@ -1014,15 +1010,13 @@ let docAnalysisCtl = null;
 async function detectSubjectAndTerms(d, token){
   if(typeof token !== 'undefined' && token !== docLoadToken) return;
   if(docUiState === 'translating' || docUiState === 'error') return;
-  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
-  let engId = $('engine')?.value || 'auto';
+  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   let isAi = false;
-  if(docChosen){
-    const chosenBase = docChosen.startsWith('ollama:') ? 'ollama' : docChosen;
-    engId = chosenBase;
-    isAi = !!ENG[chosenBase]?.ai;
+  if(curEngine === 'auto'){
+    const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
+    isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
   }else{
-    isAi = ENG[engId]?.ai || (engId === 'auto' && usableAiEngine());
+    isAi = Boolean(ENG[curEngine]?.ai);
   }
   if(!isAi){
     if(typeof token === 'undefined' || token === docLoadToken){
@@ -1116,7 +1110,7 @@ $('docAddToGlossaryBtn').onclick=()=>{
 async function reviewDocTermsInContext(){
   const valid=getDocTerms();
   if(!valid.length){toast(L('noTermsToReview')||'No key terms detected to review','warn');return}
-  const engId=$('engine').value;
+  const engId=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const isAi=ENG[engId]?.ai||(engId==='auto'&&usableAiEngine());
   if(!isAi){toast(L('docEngineNoticeText')||'Terminology review requires an AI engine','warn');return}
 
@@ -1530,9 +1524,9 @@ $('dGo').onclick=async()=>{
     await docLoadingPromise;
   }
   if(!doc)return;
-  const docChosen = $('dEngineSel')?.value ?? store.get('doc_engine', '');
-  if(docChosen){
-    const check = await checkDocEngineReady(docChosen);
+  const curEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  if(curEngine && curEngine !== 'auto'){
+    const check = await checkDocEngineReady(curEngine);
     if(!check.ready){
       docUiState = 'error';
       updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
@@ -1558,7 +1552,7 @@ $('dGo').onclick=async()=>{
     }
   }
 
-  if(!docChosen && readyChain.length === 0){
+  if(curEngine === 'auto' && readyChain.length === 0){
     docUiState = 'error';
     updateDocStatus('error', ui === 'fa' ? 'خطا' : 'Error');
     $('dBar').style.width = '0%';
@@ -1627,9 +1621,9 @@ $('dGo').onclick=async()=>{
       includeNotes:!!$('docNotes')?.checked
     };
 
-    const curEngine=$('engine')?.value||'auto';
+    const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
     const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
-    const docMemEngine = docChosen ? docChosen : (firstEng || 'auto');
+    const docMemEngine = (curEngine && curEngine !== 'auto') ? curEngine : (firstEng || 'auto');
     const docMemMode = `doc:${docMemEngine}`;
     const srcLang=$('src').value==='finglish'?'auto':$('src').value;
     const tgtLang=$('tgt').value;
@@ -1726,7 +1720,7 @@ $('dGo').onclick=async()=>{
     const triedEngines=new Set();
     try{
       const neededTexts=neededPieces.map(p=>p.text);
-      chain = docChosen ? [docChosen.startsWith('ollama:') ? 'ollama' : docChosen] : readyChain;
+      chain = (curEngine && curEngine !== 'auto') ? [curEngine] : readyChain;
       if(chain.length){
         triedEngines.add(chain[0]);
         currentDocEngine = chain[0];
@@ -2347,7 +2341,46 @@ if($('offBtn')) $('offBtn').addEventListener('click', () => {
 });
 window.addEventListener('online', updateDocEngineInfo);
 window.addEventListener('offline', updateDocEngineInfo);
+function mountDocEnginePicker(){
+  const host=document.getElementById('docEnginePickerHost');
+  if(host&&typeof ENG!=='undefined'&&typeof ENG.mountEnginePicker==='function'){
+    ENG.mountEnginePicker(host,{
+      context:'documents',
+      getLangs:()=>({
+        src:$('docSrc')?.value||'en',
+        tgt:$('docTgt')?.value||'fa'
+      })
+    });
+  }
+  updateDocEngineNoticeFromPicker();
+}
+
+function updateDocEngineNoticeFromPicker(){
+  const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
+  let isAi=false;
+  if(curEngine==='auto'){
+    const firstUsable=(typeof cfg!=='undefined'&&cfg.order)?cfg.order.find(usable):null;
+    isAi=Boolean(firstUsable&&ENG[firstUsable]?.ai);
+  }else{
+    isAi=Boolean(ENG[curEngine]?.ai);
+  }
+  const noticeEl=$('docEngineNotice');
+  const subjCard=$('docSubjectCard');
+  if(noticeEl){
+    if(!isAi){
+      noticeEl.hidden=false;
+      if(subjCard)subjCard.hidden=true;
+    }else{
+      noticeEl.hidden=true;
+      if(doc&&docUiState!=='translating'&&docUiState!=='error'){
+        if(subjCard)subjCard.hidden=false;
+      }
+    }
+  }
+}
+
 function onDocTabOpen(){
+  mountDocEnginePicker();
   buildDocEngineOptions();
   updateDocEngineInfo();
   refreshOllamaModelsForDoc();
@@ -2365,10 +2398,12 @@ if(docTabEl && typeof MutationObserver !== 'undefined'){
   obs.observe(docTabEl, { attributes: true });
 }
 if(document.readyState!=='loading'){
+  mountDocEnginePicker();
   initDocEnginePicker();
   updateDocEngineInfo();
 }else{
   document.addEventListener('DOMContentLoaded', ()=>{
+    mountDocEnginePicker();
     initDocEnginePicker();
     updateDocEngineInfo();
   });
@@ -2377,5 +2412,7 @@ if(typeof window!=='undefined'){
   window.getDocEngineDisplayName=getDocEngineDisplayName;
   window.buildHonestFailureMessage=buildHonestFailureMessage;
   window.buildDocEngineOptions=buildDocEngineOptions;
+  window.mountDocEnginePicker=mountDocEnginePicker;
+  window.updateDocEngineNoticeFromPicker=updateDocEngineNoticeFromPicker;
 }
 

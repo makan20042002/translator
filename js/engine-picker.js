@@ -174,9 +174,18 @@
       if (typeof store !== 'undefined') {
         store.set('engine', val);
       }
+      if (typeof $ === 'function') {
+        const engEl = $('engine');
+        if (engEl && engEl !== select) engEl.value = val;
+        const dEng = $('dEngineSel');
+        if (dEng && dEng !== select) dEng.value = (val === 'auto' ? '' : val);
+      }
       updateAllPickers();
       if (typeof updateSubEngineNotice === 'function') {
         updateSubEngineNotice();
+      }
+      if (typeof updateDocEngineNoticeFromPicker === 'function') {
+        updateDocEngineNoticeFromPicker();
       }
     };
 
