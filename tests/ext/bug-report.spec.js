@@ -111,7 +111,7 @@ test.describe('Extension: Bug Report & Diagnostics (ITEM 2)', () => {
         gemini: { on: true, key: FAKE_KEY },
         custom: { on: true, base: CUSTOM_SERVER }
       },
-      appUrl: 'http://127.0.0.1:9999' // non-default app URL should become 'custom'
+      appUrl: 'http://127.0.0.1:8080' // non-default allowed app URL should become 'custom'
     });
 
     const options = await ext.context.newPage();

@@ -247,11 +247,11 @@ test.describe('Web App: Bug Report Dialog & Diagnostics (ITEM 1)', () => {
     expect(clipboardText).toContain('Should complete without network timeout');
     expect(clipboardText).toContain('App Version: 1.0.0');
 
-    // Compare with mailto body (when decoded)
+    // Compare with mailto body (when decoded), normalizing CRLF to LF
     const href = await page.locator('#bugSendEmail').getAttribute('href');
     const parsed = new URL(href);
-    const mailBody = parsed.searchParams.get('body');
-    expect(clipboardText).toBe(mailBody);
+    const mailBody = parsed.searchParams.get('body') || '';
+    expect(clipboardText.replace(/\r\n/g, '\n')).toBe(mailBody.replace(/\r\n/g, '\n'));
 
     await page.keyboard.press('Escape');
   });
