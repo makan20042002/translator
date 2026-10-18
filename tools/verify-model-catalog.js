@@ -386,6 +386,24 @@ const SELFTFEST_FIXTURES = {
         name: 'Whisper Tiny',
         bytes: 79677901,
         files: [['config.json', 2248], ['onnx/encoder_model_quantized.onnx', 23200850]]
+      },
+      {
+        repo: 'onnx-community/whisper-large-v3-ONNX',
+        name: 'Whisper Large v3',
+        bytes: 1825000000,
+        files: [
+          ['onnx/encoder_model_quantized.onnx', 645000000],
+          ['onnx/decoder_model_merged_quantized.onnx', 1180000000]
+        ]
+      },
+      {
+        repo: 'distil-whisper/distil-large-v3',
+        name: 'Whisper Distil Large v3 (English only, fast)',
+        bytes: 767000000,
+        files: [
+          ['onnx/encoder_model_quantized.onnx', 645000000],
+          ['onnx/decoder_model_merged_quantized.onnx', 122000000]
+        ]
       }
     ],
     candidates: [
@@ -411,6 +429,20 @@ const SELFTFEST_FIXTURES = {
         license: 'apache-2.0',
         realBytes: 3000000000,
         files: ['config.json']
+      },
+      'onnx-community/whisper-large-v3-ONNX': {
+        status: 'EXISTS',
+        exists: true,
+        license: 'apache-2.0',
+        realBytes: 1825000000,
+        files: ['onnx/encoder_model_quantized.onnx', 'onnx/decoder_model_merged_quantized.onnx']
+      },
+      'distil-whisper/distil-large-v3': {
+        status: 'EXISTS',
+        exists: true,
+        license: 'mit',
+        realBytes: 767000000,
+        files: ['onnx/encoder_model_quantized.onnx', 'onnx/decoder_model_merged_quantized.onnx']
       }
     }
   },
