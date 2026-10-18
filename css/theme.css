@@ -6551,6 +6551,20 @@ body:has(#tab-voice.on) .speak-notice,
   color: var(--warning-text);
 }
 
+:root:not([data-theme="makan-lab"]) .engine-picker-keys-link,
+:root:not([data-theme="makan-lab"]) .engine-picker-hub-link {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+:root:not([data-theme="makan-lab"]) .engine-picker-using {
+  color: var(--text);
+}
+
+:root:not([data-theme="makan-lab"]) .engine-picker-test-btn {
+  color: var(--text);
+}
+
 [data-theme="platinum-blue"] .bar label:not(.lang-picker-lbl),
 [data-theme="platinum-blue"] .trans-bar label:not(.switch-lbl):not(.lang-picker-lbl),
 [data-theme="platinum-blue"] .topbar-engine-lbl,
