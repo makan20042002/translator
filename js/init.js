@@ -385,7 +385,7 @@ if($('sidebarBackdrop'))$('sidebarBackdrop').onclick=()=>{
 $('src').onchange=()=>{store.set('src',$('src').value);voiceLabels();if(typeof updateCardLangNames==='function')updateCardLangNames();if(typeof updateOfflineModelHints==='function')updateOfflineModelHints()};
 $('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs();if(typeof updateCardLangNames==='function'){updateCardLangNames();updateTargetCardDirection();updateListenButtonState()}if(typeof updateOfflineModelHints==='function')updateOfflineModelHints()};
 if($('engine'))$('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice();if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();};
-if($('tMode'))$('tMode').onchange=()=>store.set('tMode',$('tMode').value);
+if($('tMode'))$('tMode').onchange=()=>{store.set('tMode',$('tMode').value);if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();};
 $('tone').onchange=()=>store.set('tone',$('tone').value);
 if($('subStyle'))$('subStyle').onchange=()=>{store.set('subStyle',$('subStyle').value);updateSubEngineNotice()};
 if($('subFamily'))$('subFamily').onchange=()=>{store.set('subFamily',$('subFamily').checked)};

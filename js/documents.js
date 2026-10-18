@@ -1024,7 +1024,7 @@ function getDocEngineChain(){
   if(isOff()){
     return ['nllb','chrome','ollama'].filter(usable);
   }
-  const mode=(typeof store!=='undefined'&&store.get('tMode',null))||(typeof getDefaultTransMode==='function'?getDefaultTransMode():($('tMode')?.value||'fast'));
+  const mode=$('tMode')?.value||(typeof store!=='undefined'&&store.get('tMode',null))||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   if(mode==='fast'){
     const fastChain = ['chrome','google','mymemory','nllb'].filter(usable);
     if(fastChain.length) return fastChain;
@@ -2282,7 +2282,7 @@ function updateDocEngineInfo(){
 
   const docChosen = getDocChosenEngine();
   const curEng=$('engine')?.value||'auto';
-  const modeVal=(typeof store!=='undefined'&&store.get('tMode',null))||(typeof getDefaultTransMode==='function'?getDefaultTransMode():($('tMode')?.value||'fast'));
+  const modeVal=$('tMode')?.value||(typeof store!=='undefined'&&store.get('tMode',null))||(typeof getDefaultTransMode==='function'?getDefaultTransMode():'fast');
   const off=isOff();
   const chain=getDocEngineChain();
   const primaryId=(typeof usable==='function'?chain.find(usable):null)||chain[0]||'google';
