@@ -288,9 +288,9 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     await expect(picker).toBeVisible();
 
     // Switch to FA
-    await page.evaluate(() => {
-      if (typeof setUiLang === 'function') setUiLang('fa');
-    });
+    await mouseClick(page, page.locator('#uiLang'));
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
 
     // Verify RTL direction
     const dir = await page.locator('html').getAttribute('dir');
