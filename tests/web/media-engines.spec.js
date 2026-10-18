@@ -131,6 +131,7 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
   test.describe('offline NLLB model translation', () => {
     test.use({
       appOptions: {
+        serviceWorkers: 'block',
         seed: {
           cfg: {
             ...onlyEngines(['nllb', 'google']),

@@ -91,6 +91,16 @@ const row = (page, id) => page.locator(`[data-mdl="${id}"]`);
 /** Intercept ai-worker.js with a tiny fake worker matching the real message protocol */
 async function fakeAiWorker(target, options = {}) {
   const context = (typeof target.context === 'function' ? target.context() : target);
+  if (typeof target.evaluate === 'function') {
+    await target.evaluate(async () => {
+      if (typeof navigator !== 'undefined' && 'serviceWorker' in navigator) {
+        try {
+          const regs = await navigator.serviceWorker.getRegistrations();
+          for (const reg of regs) await reg.unregister();
+        } catch (_) {}
+      }
+    }).catch(() => {});
+  }
   const prefix = options.prefix ?? '[fa] ';
   const workerRequests = [];
   await context.route('**/ai-worker.js', route => {

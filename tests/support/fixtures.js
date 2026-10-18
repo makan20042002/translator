@@ -77,7 +77,16 @@ const test = base.test.extend({
   appOptions: [{}, { option: true }],
 
   app: async ({ webBrowser, stub, appOptions }, use) => {
-    const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
+    const contextOptions = {
+      acceptDownloads: true,
+      viewport: { width: 1280, height: 900 }
+    };
+    if (appOptions.serviceWorkers) {
+      contextOptions.serviceWorkers = appOptions.serviceWorkers;
+    } else if (appOptions.blockServiceWorkers) {
+      contextOptions.serviceWorkers = 'block';
+    }
+    const context = await webBrowser.newContext(contextOptions);
     await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });
     await context.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => route.abort());
     if (appOptions.seed) await context.addInitScript(seedScript(appOptions.seed));
