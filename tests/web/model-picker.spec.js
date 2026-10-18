@@ -145,12 +145,19 @@ test.describe('Model-level Picker (ITEM 3)', () => {
   test('offline: choosing M2M in the picker changes Hub choice and host.getTranslateChoice, not-downloaded models disabled', async ({ app, files }) => {
     const { page, errors } = app;
 
-    // Mock MC.cache so NLLB and M2M are ready, but mBART is not
+    // Seed NLLB and M2M so they are ready, but mBART is not
     await page.evaluate(() => {
-      window.mcCache = {
-        'Xenova/nllb-200-distilled-600M': { bytes: 600000000, files: new Map() },
-        'Xenova/m2m100_418M': { bytes: 418000000, files: new Map() }
-      };
+      const cat = self.MODEL_CATALOG?.models || [];
+      const nllb = cat.find(m => m.id === 'tr-nllb-600');
+      const m2m = cat.find(m => m.id === 'tr-m2m100-418');
+      const d = store.get('mdl', {});
+      if (nllb) d[nllb.id] = { at: Date.now(), files: nllb.files.map(f => f[0]) };
+      if (m2m) d[m2m.id] = { at: Date.now(), files: m2m.files.map(f => f[0]) };
+      store.set('mdl', d);
+      store.set('nllb', true);
+      if (!mcCache) mcCache = {};
+      if (nllb) mcCache[nllb.repo] = { bytes: 600000000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
+      if (m2m) mcCache[m2m.repo] = { bytes: 418000000, files: new Map(m2m.files.map(f => [f[0], f[1]])) };
       if (typeof mcRender === 'function') mcRender();
       if (typeof ENG !== 'undefined' && typeof ENG.updateEnginePickers === 'function') {
         ENG.updateEnginePickers();
@@ -212,9 +219,13 @@ test.describe('Model-level Picker (ITEM 3)', () => {
 
     // Fake audio file and mock cache with Tiny ready, base/small/turbo unready
     await page.evaluate(() => {
-      window.mcCache = {
-        'onnx-community/whisper-tiny': { bytes: 75000000, files: new Map() }
-      };
+      const cat = self.MODEL_CATALOG?.models || [];
+      const tiny = cat.find(m => m.key === 'tiny' || m.id === 'asr-tiny');
+      const d = store.get('mdl', {});
+      if (tiny) d[tiny.id] = { at: Date.now(), files: tiny.files.map(f => f[0]) };
+      store.set('mdl', d);
+      if (!mcCache) mcCache = {};
+      if (tiny) mcCache[tiny.repo] = { bytes: 75000000, files: new Map(tiny.files.map(f => [f[0], f[1]])) };
       if (typeof mcRender === 'function') mcRender();
     });
 
