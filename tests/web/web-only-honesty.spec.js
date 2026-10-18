@@ -248,7 +248,14 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.evaluate(() => {
       const card = document.querySelector('.mt-pv');
       if (window.MediaTranslate?.preview && card && window.MediaTranslate.host) {
-        const pv = window.MediaTranslate.preview.create({ card, host: window.MediaTranslate.host });
+        const container = document.createElement('div');
+        container.id = 'test-pv-isolated-container';
+        const clone = card.cloneNode(true);
+        clone.hidden = false;
+        container.appendChild(clone);
+        document.body.appendChild(container);
+
+        const pv = window.MediaTranslate.preview.create({ card: clone, host: window.MediaTranslate.host });
         pv.update({
           visible: true,
           cues: [{ s: 0, e: 1, o: 'Hello', t: 'سلام' }],
@@ -258,7 +265,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
         });
       }
     });
-    await expect(page.locator('.mt-pv-nextrow')).toBeVisible();
+    await expect(page.locator('#test-pv-isolated-container .mt-pv-nextrow')).toBeVisible();
 
     await context.close();
   });
