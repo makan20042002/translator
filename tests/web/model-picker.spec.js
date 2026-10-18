@@ -6,6 +6,7 @@
  */
 
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
+const { fakeDownloaded } = require('../support/model-helpers');
 
 function createTestWav(durationSec = 0.25, sampleRate = 16000) {
   const numSamples = Math.floor(durationSec * sampleRate);
@@ -146,7 +147,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     const { page, errors } = app;
 
     // Seed NLLB and M2M so they are ready, but mBART is not
-    await page.evaluate(() => {
+    const modelData = await page.evaluate(() => {
       const cat = self.MODEL_CATALOG?.models || [];
       const nllb = cat.find(m => m.id === 'tr-nllb-600');
       const m2m = cat.find(m => m.id === 'tr-m2m100-418');
@@ -155,9 +156,15 @@ test.describe('Model-level Picker (ITEM 3)', () => {
       if (m2m) d[m2m.id] = { at: Date.now(), files: m2m.files.map(f => f[0]) };
       store.set('mdl', d);
       store.set('nllb', true);
-      if (!mcCache) mcCache = {};
-      if (nllb) mcCache[nllb.repo] = { bytes: 600000000, files: new Map(nllb.files.map(f => [f[0], f[1]])) };
-      if (m2m) mcCache[m2m.repo] = { bytes: 418000000, files: new Map(m2m.files.map(f => [f[0], f[1]])) };
+      return {
+        nllb: nllb ? { repo: nllb.repo, files: nllb.files } : null,
+        m2m: m2m ? { repo: m2m.repo, files: m2m.files } : null
+      };
+    });
+    if (modelData.nllb) await fakeDownloaded(page, modelData.nllb.repo, modelData.nllb.files);
+    if (modelData.m2m) await fakeDownloaded(page, modelData.m2m.repo, modelData.m2m.files);
+    await page.evaluate(async () => {
+      if (typeof mcScan === 'function') await mcScan();
       if (typeof mcRender === 'function') mcRender();
       if (typeof ENG !== 'undefined' && typeof ENG.updateEnginePickers === 'function') {
         ENG.updateEnginePickers();

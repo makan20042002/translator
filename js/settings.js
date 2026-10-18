@@ -709,6 +709,8 @@ function switchSettingsTab(targetSecId) {
 
   if (targetSecId === 'secDict') {
     renderDictSettingsTab();
+  } else if (targetSecId === 'secTrModels' || targetSecId === 'secVoiceModels') {
+    if (typeof mcRender === 'function') mcRender();
   }
 }
 
