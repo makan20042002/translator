@@ -66,7 +66,9 @@ After uploading, open your browser and verify every item in this checklist:
 
 Your build output includes two server configuration files:
 - `.htaccess` (active by default): handles HTTPS redirect, compression, MIME types for `.wasm`, `.onnx`, `.webmanifest`, and safe cache rules.
-- `.htaccess.threads-optional` (inactive): contains `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: require-corp`.
+- `.htaccess.threads-optional` (inactive): contains `Cross-Origin-Opener-Policy: same-origin` and `Cross-Origin-Embedder-Policy: credentialless` (or `require-corp`).
+
+Plainly stated: On `makanlab.tech`, Whisper uses only one CPU thread unless the optional `.htaccess.threads-optional` headers are enabled (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: credentialless`). Without these headers, `crossOriginIsolated` is `false`, restricting CPU execution to 1 thread. The MAKAN Windows desktop app enables these headers automatically on its local server, so multi-core CPU transcription works out of the box in the desktop app.
 
 ### What is faster with it:
 `media/media-worker.js` checks `self.crossOriginIsolated`. When enabled by COOP/COEP headers:
@@ -74,8 +76,8 @@ Your build output includes two server configuration files:
 - Whisper CPU transcription in the Media tab and Voice tab processes audio noticeably faster on multi-core computers.
 
 ### What could break:
-- COEP (`require-corp`) requires **every** resource loaded from another website to explicitly send a `Cross-Origin-Resource-Policy` header.
-- If Hugging Face or third-party CDNs omit this header, model downloads or assets might be blocked by the browser.
+- COEP requires cross-origin resources to be compatible (e.g. `credentialless` allows cross-origin loads without credentials, while `require-corp` requires explicit CORP headers).
+- If Hugging Face or third-party CDNs omit compatible headers, model downloads or assets might be blocked by the browser.
 - **Rule**: Untested on the real host. Do NOT activate this on production until you have tested it in a staging folder on your hosting server.
 
 ---

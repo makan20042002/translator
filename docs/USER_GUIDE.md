@@ -42,6 +42,7 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
 - **What it can do**: Transcribes and translates audio and video files (`.mp3`, `.mp4`, `.wav`, `.webm`, `.m4a`), generates synchronized subtitles, offers customizable subtitle styling (fonts, colors, sizes, backgrounds), and exports to `.srt`, `.vtt`, `.ass`, and `.txt`.
 - **What it cannot do**: In browser mode, cannot decode proprietary video formats (such as MKV or AVI) that HTML5 Web Audio cannot decode.
 - **Limits**: In browser mode, files are decoded entirely in RAM via Web Audio API. Recommended file duration: up to 30–40 minutes on laptops with 8 GB RAM. Files exceeding memory limits require the Windows desktop app with ffmpeg.
+- **CPU Multi-threading Note**: On `makanlab.tech`, Whisper runs on a single CPU thread unless the optional `.htaccess.threads-optional` headers are enabled (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: credentialless`). The MAKAN Windows desktop app enables these headers automatically on its local server, enabling multi-core CPU transcription.
 - **Online / Offline**: Speech recognition and translation run completely offline using in-browser Whisper models.
 
 ### 7. Dictionary (`dict`)
@@ -170,4 +171,4 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
   `OLLAMA_ORIGINS="https://makanlab.tech" ollama serve`
   Modern browsers will display a "Local Network Access" permission prompt that you must accept.
 - **Windows SmartScreen**: The Windows desktop application is built independently and is not code-signed with an expensive EV certificate. Windows SmartScreen may show an "Unknown Publisher" prompt on first run (click *More info* → *Run anyway*).
-- **Hosting Environment**: The hosted web application runs in standard static hosting environments. Multi-threaded WASM (`crossOriginIsolated`) requires specific headers that must be validated on the host before activation.
+- **Hosting Environment and Multi-Threading**: The hosted web application at `https://makanlab.tech` runs in a standard static hosting environment where `crossOriginIsolated` is `false` by default. As a result, Whisper uses only one CPU thread on `makanlab.tech` unless the optional `.htaccess.threads-optional` headers are enabled (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: credentialless`). In contrast, the MAKAN Windows desktop application enables cross-origin isolation headers automatically on its local server, unlocking multi-threaded CPU Whisper performance.
