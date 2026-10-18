@@ -228,7 +228,7 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
           },
           engine: 'nllb',
           nllb: true,
-          mdl: { 'tr-nllb-600': { at: Date.now(), files: [] } }
+          mdl: { 'tr-nllb-600': { at: Date.now(), files: ['config.json'] } }
         }
       }
     });
@@ -236,8 +236,26 @@ test.describe('Web app: Media speech and translation engines (ITEM 2)', () => {
     test('the NLLB non-commercial licence note appears in getTranslateChoice', async ({ app }) => {
       const { page } = app;
 
+      // Seed storage cache so mcReady recognizes NLLB files
+      await page.evaluate(async () => {
+        const c = await caches.open('transformers-cache');
+        await c.put(
+          'https://huggingface.co/Xenova/nllb-200-distilled-600M/resolve/main/config.json',
+          new Response('{}', { headers: { 'content-length': '873' } })
+        );
+        if (typeof mcScan === 'function') await mcScan();
+        if (typeof fillEngines === 'function') fillEngines();
+      });
+
       await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
       await expect(page.locator('#tab-media')).toBeVisible();
+
+      // Wait for real condition: NLLB is ready and selected as choice
+      await page.waitForFunction(() => {
+        return typeof trAnyReady === 'function' && trAnyReady() &&
+               typeof window.MediaTranslate?.host?.getTranslateChoice === 'function' &&
+               window.MediaTranslate.host.getTranslateChoice()?.id === 'nllb';
+      });
 
       const choice = await page.evaluate(() => {
         return window.MediaTranslate.host.getTranslateChoice();
