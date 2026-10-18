@@ -82,13 +82,103 @@ const isOff=()=>cfg.offline||!navigator.onLine;
 const offCapable=id=>!!ENG[id]?.off||(id==='custom'&&isLocalUrl(cfg.eng?.[id]?.base));
 let glossary=store.get('gls',[]);
 const lim=id=>id==='ollama'?{items:8,chars:1500}:(ENG[id].ai?{items:50,chars:5000}:{items:ENG[id].items,chars:ENG[id].chars});
+const chromeCode=c=>({'zh-CN':'zh','zh-TW':'zh-Hant'}[c]||c);
+const chromeUnavailableSessionPairs=new Set();
+let chromeProbeFailedSession=false;
+
+function isChromeSessionUnavailable(src,tgt){
+  if(chromeProbeFailedSession)return true;
+  if(src&&tgt){
+    const s=chromeCode(src),t=chromeCode(tgt);
+    if(chromeUnavailableSessionPairs.has(`${s}->${t}`))return true;
+  }
+  return false;
+}
+
+function getEngineStatus(id,opts={}){
+  if(!id||!ENG[id]){
+    return {usable:false,state:'not-here',reason:'notHere'};
+  }
+  if(id==='chrome'){
+    if(typeof window!=='undefined'&&window.makanDesktop?.isDesktop===true){
+      return {usable:false,state:'not-here',reason:'notHere'};
+    }
+    if(!('Translator' in self)||typeof self.Translator!=='object'||!self.Translator){
+      return {usable:false,state:'not-here',reason:'notHere'};
+    }
+    if(isChromeSessionUnavailable(opts.src,opts.tgt)){
+      return {usable:false,state:'not-here',reason:'notHere'};
+    }
+  }
+  if(isOff()&&!offCapable(id)){
+    return {usable:false,state:'offline-blocked',reason:'offlineBlocked'};
+  }
+  if(id==='nllb'&&!trAnyReady()){
+    return {usable:false,state:'not-downloaded',reason:'needDl'};
+  }
+  const e=cfg.eng?.[id]||{};
+  if(ENG[id].key&&!e.key){
+    return {usable:false,state:'needs-key',reason:'needKey'};
+  }
+  if(id==='custom'&&!e.base){
+    return {usable:false,state:'needs-key',reason:'needUrl'};
+  }
+  if(ENG[id].ai&&!e.model&&id!=='ollama'){
+    return {usable:false,state:'needs-key',reason:'needModel'};
+  }
+  const isEnabled=e.on!==false;
+  const isSessionBlocked=sessionBlocked.has(id);
+  const isUsable=Boolean(isEnabled&&!isSessionBlocked);
+  return {
+    usable:isUsable,
+    state:'ready',
+    reason:isSessionBlocked?'netBlocked':(isEnabled?'ready':'disabled')
+  };
+}
+ENG.getStatus=getEngineStatus;
+ENG.getEngineStatus=getEngineStatus;
+
+async function probeChromeAvailability(src='en',tgt='fa',timeoutMs){
+  if(typeof window!=='undefined'&&window.makanDesktop?.isDesktop===true){
+    chromeProbeFailedSession=true;
+    return false;
+  }
+  if(!('Translator' in self)||typeof self.Translator?.availability!=='function'){
+    chromeProbeFailedSession=true;
+    return false;
+  }
+  if(chromeProbeFailedSession)return false;
+  const s=chromeCode(src),t=chromeCode(tgt);
+  const pairKey=`${s}->${t}`;
+  if(chromeUnavailableSessionPairs.has(pairKey))return false;
+  const ms=timeoutMs??(typeof window!=='undefined'&&window.__chromeAvailTimeoutMs?window.__chromeAvailTimeoutMs:2000);
+  try{
+    const res=await withTimeout(
+      self.Translator.availability({sourceLanguage:s,targetLanguage:t}),
+      ms,
+      null,
+      'Translator availability timed out'
+    );
+    if(res==='available'||res==='readily'){
+      return true;
+    }
+    chromeUnavailableSessionPairs.add(pairKey);
+    return false;
+  }catch(err){
+    chromeProbeFailedSession=true;
+    chromeUnavailableSessionPairs.add(pairKey);
+    return false;
+  }
+}
+ENG.probeChrome=probeChromeAvailability;
+
 function why(id){
   if(!id||!ENG[id]||!cfg.eng?.[id])return 'unknown';
   const e=cfg.eng[id];
   if(ENG[id].key&&!e.key)return L('needKey');
   if(id==='custom'&&!e.base)return L('needUrl');
-  if(ENG[id].ai&&!e.model)return L('needModel');
-  if(id==='chrome'&&!('Translator' in self))return L('notHere');
+  if(ENG[id].ai&&!e.model&&id!=='ollama')return L('needModel');
+  if(id==='chrome'&&(typeof window!=='undefined'&&window.makanDesktop?.isDesktop===true||!('Translator' in self)||isChromeSessionUnavailable()))return L('notHere');
   if(id==='nllb'&&!trAnyReady())return L('needDl');
   return '';
 }
@@ -452,20 +542,17 @@ async function eMyMemory(items,src,tgt,signal,opt){
   }
   return out;
 }
-const chromeCode=c=>({'zh-CN':'zh','zh-TW':'zh-Hant'}[c]||c);
 async function eChrome(items,src,tgt,signal,opts={}){
   if(signal?.aborted) throw new DOMException('Aborted','AbortError');
   const isDoc = !!opts.forDocument;
   const reqTimeout = opts.timeout ?? (typeof window !== 'undefined' && window.__docTimeoutMs ? window.__docTimeoutMs : 20000);
   const availTimeout = opts.chromeAvailTimeoutMs ?? (typeof window !== 'undefined' && window.__chromeAvailTimeoutMs ? window.__chromeAvailTimeoutMs : 2000);
 
-  if(isDoc){
-    if(!('Translator' in self) || typeof self.Translator?.availability !== 'function'){
-      const err = new Error('on-device translator is not available');
-      err.silent = true;
-      err.isChromeSkip = true;
-      throw err;
-    }
+  if(!('Translator' in self) || typeof self.Translator?.availability !== 'function'){
+    const err = new Error('on-device translator is not available');
+    err.silent = true;
+    err.isChromeSkip = true;
+    throw err;
   }
 
   if(src==='auto'){
@@ -500,53 +587,45 @@ async function eChrome(items,src,tgt,signal,opts={}){
   tgt = chromeCode(tgt);
   if(src === tgt) return items.slice();
 
-  if(isDoc){
-    let avail;
-    try {
-      avail = await withTimeout(
-        Translator.availability({sourceLanguage:src, targetLanguage:tgt}),
-        availTimeout,
-        signal,
-        'on-device availability check timed out'
-      );
-    } catch(e) {
-      if(e.name === 'AbortError' || signal?.aborted) throw e;
-      const err = new Error('language pair not ready on-device');
-      err.silent = true;
-      err.isChromeSkip = true;
-      throw err;
-    }
-    if(avail !== 'available' && avail !== 'readily'){
-      const err = new Error('language pair not ready on-device (' + avail + ')');
-      err.silent = true;
-      err.isChromeSkip = true;
-      throw err;
-    }
-    const tr = await withTimeout(
-      Translator.create({sourceLanguage:src, targetLanguage:tgt}),
-      reqTimeout,
+  let avail;
+  try {
+    avail = await withTimeout(
+      Translator.availability({sourceLanguage:src, targetLanguage:tgt}),
+      availTimeout,
       signal,
-      `${ENG.chrome.name} did not answer`
+      'on-device availability check timed out'
     );
-    const out = [];
-    for(const s of items){
-      if(signal?.aborted) throw new DOMException('Aborted','AbortError');
-      out.push(await withTimeout(
-        tr.translate(s),
-        reqTimeout,
-        signal,
-        `${ENG.chrome.name} did not answer`
-      ));
-    }
-    return out;
+  } catch(e) {
+    if(e.name === 'AbortError' || signal?.aborted) throw e;
+    chromeProbeFailedSession = true;
+    chromeUnavailableSessionPairs.add(`${src}->${tgt}`);
+    const err = new Error('language pair not ready on-device');
+    err.silent = true;
+    err.isChromeSkip = true;
+    throw err;
   }
-
-  if(await Translator.availability({sourceLanguage:src,targetLanguage:tgt})==='unavailable')throw new Error('language pair not available on-device');
-  const tr = await Translator.create({sourceLanguage:src,targetLanguage:tgt});
+  if(avail !== 'available' && avail !== 'readily'){
+    chromeUnavailableSessionPairs.add(`${src}->${tgt}`);
+    const err = new Error('language pair not ready on-device (' + avail + ')');
+    err.silent = true;
+    err.isChromeSkip = true;
+    throw err;
+  }
+  const tr = await withTimeout(
+    Translator.create({sourceLanguage:src, targetLanguage:tgt}),
+    reqTimeout,
+    signal,
+    `${ENG.chrome.name} did not answer`
+  );
   const out = [];
   for(const s of items){
     if(signal?.aborted) throw new DOMException('Aborted','AbortError');
-    out.push(await tr.translate(s));
+    out.push(await withTimeout(
+      tr.translate(s),
+      reqTimeout,
+      signal,
+      `${ENG.chrome.name} did not answer`
+    ));
   }
   return out;
 }
@@ -1188,6 +1267,7 @@ async function translateItems(items,o){
     segments: items.length,
     batches: Math.max(1, Math.ceil(todo.length / (firstLm.items || 1)))
   });
+  let chromeSkipNoticeShown=false;
   while(pos<todo.length){
     if(o.signal?.aborted)throw new DOMException('Aborted','AbortError');
     const id=chain[ci],lm=lim(id);
@@ -1329,6 +1409,12 @@ async function translateItems(items,o){
         if(ci+1<chain.length){
           ci++;
           o.onEngineChange?.(chain[ci]);
+          if(!chromeSkipNoticeShown){
+            chromeSkipNoticeShown=true;
+            o.onStatus?.(ui==='fa'
+              ?`${ENG[id].name} در دسترس نیست؛ استفاده از ${ENG[chain[ci]].name}`
+              :`${ENG[id].name} unavailable; using ${ENG[chain[ci]].name}`);
+          }
           continue;
         }else{
           throw new Error(ENG[id].name+': '+(ui==='fa'?'مدل ترجمه روی دستگاه در دسترس نیست':'on-device translator is not available'));
@@ -1403,7 +1489,7 @@ let srcOverride=null;
 const opts=extra=>Object.assign({
   src:srcOverride||($('src').value==='finglish'?'auto':$('src').value),
   tgt:$('tgt').value,
-  engine:$('engine').value,
+  engine:$('engine')?.value||(typeof store!=='undefined'?store.get('engine','auto'):'auto'),
   tone:$('tone').value,
   subStyle:$('subStyle')?.value||'film',
   familyFriendly:!!$('subFamily')?.checked,
