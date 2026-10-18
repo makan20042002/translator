@@ -785,8 +785,9 @@ if (document.readyState === 'loading') {
     }
   });
 
-  // Handle "Open in App" button from floating overlay
-  window.makanDesktop.onLoadTranslationInput(({ text, src, tgt }) => {
+  // Handle "Open in App" button from floating overlay and extension bridge
+  window.makanDesktop.onLoadTranslationInput((payload) => {
+    const { text, src, tgt } = payload || {};
     if ($('tIn')) {
       $('tIn').value = text || '';
       if (src && src !== 'auto') $('src').value = src;
