@@ -6,27 +6,7 @@
  */
 
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
-const { fakeAiWorker } = require('../support/model-helpers');
-
-function createTestWav(durationSec = 0.25, sampleRate = 16000) {
-  const numSamples = Math.floor(durationSec * sampleRate);
-  const dataSize = numSamples * 2;
-  const buf = Buffer.alloc(44 + dataSize);
-  buf.write('RIFF', 0);
-  buf.writeUInt32LE(36 + dataSize, 4);
-  buf.write('WAVE', 8);
-  buf.write('fmt ', 12);
-  buf.writeUInt32LE(16, 16);
-  buf.writeUInt16LE(1, 20); // PCM
-  buf.writeUInt16LE(1, 22); // mono
-  buf.writeUInt32LE(sampleRate, 24);
-  buf.writeUInt32LE(sampleRate * 2, 28);
-  buf.writeUInt16LE(2, 32);
-  buf.writeUInt16LE(16, 34);
-  buf.write('data', 36);
-  buf.writeUInt32LE(dataSize, 40);
-  return buf;
-}
+const { fakeAiWorker, fakeMediaTranscription, createTestWav } = require('../support/model-helpers');
 
 test.describe('Engine Picker Component (ITEM 2)', () => {
 
@@ -45,51 +25,18 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
 
     // 2. Media tab (load audio fixture and transcribe with fake worker so media picker is unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
-    await page.evaluate(() => {
-      window.MediaTranslate.host.getWhisperChoice = () => ({
-        repo: 'Xenova/whisper-tiny',
-        name: 'Whisper Tiny',
-        memMB: 500,
-        ready: true,
-        gpu: false
-      });
-      window.MediaTranslate.host.engine = {
-        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
-        workerFactory: function () {
-          const self = {
-            onmessage: null,
-            onerror: null,
-            postMessage: function (data) {
-              const { id, cmd } = data || {};
-              setTimeout(() => {
-                if (!self.onmessage) return;
-                if (cmd === 'init') {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                } else if (cmd === 'load') {
-                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
-                } else if (cmd === 'asr') {
-                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
-                } else {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                }
-              }, 10);
-            },
-            terminate: function () {}
-          };
-          return self;
-        }
-      };
-    });
+    await fakeMediaTranscription(page);
     const fileInput = page.locator('#tab-media .mt-file-input');
     await fileInput.setInputFiles({
       name: 'sample.wav',
       mimeType: 'audio/wav',
-      buffer: createTestWav(0.2, 16000)
+      buffer: createTestWav(3.0, 16000)
     });
     const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtn).toBeVisible();
     await mouseClick(page, transcribeBtn);
     await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
+    await expect(page.locator('#tab-media .mt-tr')).toBeVisible();
 
     const mediaHost = page.locator('.mt-engine-picker-host .engine-picker');
     await expect(mediaHost).toBeVisible();
@@ -151,51 +98,18 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
 
     // Check Media tab shows google
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
-    await page.evaluate(() => {
-      window.MediaTranslate.host.getWhisperChoice = () => ({
-        repo: 'Xenova/whisper-tiny',
-        name: 'Whisper Tiny',
-        memMB: 500,
-        ready: true,
-        gpu: false
-      });
-      window.MediaTranslate.host.engine = {
-        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
-        workerFactory: function () {
-          const self = {
-            onmessage: null,
-            onerror: null,
-            postMessage: function (data) {
-              const { id, cmd } = data || {};
-              setTimeout(() => {
-                if (!self.onmessage) return;
-                if (cmd === 'init') {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                } else if (cmd === 'load') {
-                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
-                } else if (cmd === 'asr') {
-                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
-                } else {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                }
-              }, 10);
-            },
-            terminate: function () {}
-          };
-          return self;
-        }
-      };
-    });
+    await fakeMediaTranscription(page);
     const fileInput = page.locator('#tab-media .mt-file-input');
     await fileInput.setInputFiles({
       name: 'sample.wav',
       mimeType: 'audio/wav',
-      buffer: createTestWav(0.2, 16000)
+      buffer: createTestWav(3.0, 16000)
     });
     const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtn).toBeVisible();
     await mouseClick(page, transcribeBtn);
     await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
+    await expect(page.locator('#tab-media .mt-tr')).toBeVisible();
 
     const mediaSelect = page.locator('.mt-engine-picker-host .engine-picker-select');
     await expect(mediaSelect).toBeVisible();
@@ -210,51 +124,18 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     await expect(page.locator('#subEnginePickerHost .engine-picker-select')).toHaveValue('google');
 
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
-    await page.evaluate(() => {
-      window.MediaTranslate.host.getWhisperChoice = () => ({
-        repo: 'Xenova/whisper-tiny',
-        name: 'Whisper Tiny',
-        memMB: 500,
-        ready: true,
-        gpu: false
-      });
-      window.MediaTranslate.host.engine = {
-        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
-        workerFactory: function () {
-          const self = {
-            onmessage: null,
-            onerror: null,
-            postMessage: function (data) {
-              const { id, cmd } = data || {};
-              setTimeout(() => {
-                if (!self.onmessage) return;
-                if (cmd === 'init') {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                } else if (cmd === 'load') {
-                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
-                } else if (cmd === 'asr') {
-                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
-                } else {
-                  self.onmessage({ data: { id, ok: true, res: true } });
-                }
-              }, 10);
-            },
-            terminate: function () {}
-          };
-          return self;
-        }
-      };
-    });
+    await fakeMediaTranscription(page);
     const fileInputReload = page.locator('#tab-media .mt-file-input');
     await fileInputReload.setInputFiles({
       name: 'sample.wav',
       mimeType: 'audio/wav',
-      buffer: createTestWav(0.2, 16000)
+      buffer: createTestWav(3.0, 16000)
     });
     const transcribeBtnReload = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtnReload).toBeVisible();
     await mouseClick(page, transcribeBtnReload);
     await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
+    await expect(page.locator('#tab-media .mt-tr')).toBeVisible();
 
     await expect(page.locator('.mt-engine-picker-host .engine-picker-select')).toHaveValue('google');
   });

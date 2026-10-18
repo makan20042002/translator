@@ -140,10 +140,98 @@ async function fakeAiWorker(target, options = {}) {
   };
 }
 
+/**
+ * Creates a valid 16 kHz mono PCM WAV Buffer of given duration with a non-silent sine tone.
+ */
+function createTestWav(durationSec = 3.0, sampleRate = 16000) {
+  const numSamples = Math.floor(durationSec * sampleRate);
+  const dataSize = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write('WAVE', 8);
+  buf.write('fmt ', 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(dataSize, 40);
+  for (let i = 0; i < numSamples; i++) {
+    const val = Math.round(Math.sin(2 * Math.PI * 440 * i / sampleRate) * 8000);
+    buf.writeInt16LE(val, 44 + i * 2);
+  }
+  return buf;
+}
+
+/**
+ * Configures window.MediaTranslate.host with getWhisperChoice, translateCues,
+ * and a fake speech worker returning realistic chunks so subtitle cues and the
+ * translation card (.mt-tr) are produced.
+ */
+async function fakeMediaTranscription(page) {
+  await page.evaluate(() => {
+    window.MediaTranslate = window.MediaTranslate || {};
+    window.MediaTranslate.host = window.MediaTranslate.host || {};
+    window.MediaTranslate.host.getWhisperChoice = () => ({
+      repo: 'Xenova/whisper-tiny',
+      name: 'Whisper Tiny',
+      memMB: 500,
+      ready: true,
+      gpu: false
+    });
+    if (typeof window.MediaTranslate.host.translateCues !== 'function') {
+      window.MediaTranslate.host.translateCues = async (cues) => cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: '[fa] ' + (c.o || '') }));
+    }
+    window.MediaTranslate.host.engine = {
+      libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
+      workerFactory: function () {
+        const self = {
+          onmessage: null,
+          onerror: null,
+          postMessage: function (data) {
+            const { id, cmd } = data || {};
+            setTimeout(() => {
+              if (!self.onmessage) return;
+              if (cmd === 'init') {
+                self.onmessage({ data: { id, ok: true, res: true } });
+              } else if (cmd === 'load') {
+                self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
+              } else if (cmd === 'asr') {
+                self.onmessage({
+                  data: {
+                    id,
+                    ok: true,
+                    res: {
+                      text: 'Hello world. Welcome to the media translator test.',
+                      chunks: [
+                        { text: 'Hello world.', timestamp: [0.0, 1.5] },
+                        { text: 'Welcome to the media translator test.', timestamp: [1.5, 3.0] }
+                      ],
+                      lang: 'en'
+                    }
+                  }
+                });
+              } else {
+                self.onmessage({ data: { id, ok: true, res: true } });
+              }
+            }, 10);
+          },
+          terminate: function () {}
+        };
+        return self;
+      }
+    };
+  });
+}
+
 if (typeof global !== 'undefined') {
   global.activateSettingsTab = activateSettingsTab;
   global.openSettings = openSettings;
 }
 
-module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row, fakeAiWorker };
+module.exports = { CACHE, mb, fakeDownloaded, cacheKeys, openSettings, activateSettingsTab, row, fakeAiWorker, createTestWav, fakeMediaTranscription };
 
