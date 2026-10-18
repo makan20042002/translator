@@ -314,9 +314,9 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     expect(modelText).toContain('مدل');
 
     // Switch back to EN
-    await page.evaluate(() => {
-      if (typeof setUiLang === 'function') setUiLang('en');
-    });
+    await mouseClick(page, page.locator('#uiLang'));
+    await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
     const dirEn = await page.locator('html').getAttribute('dir');
     expect(dirEn).toBe('ltr');
 
