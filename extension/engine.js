@@ -71,14 +71,12 @@ const ENG = {
 const BUG_REPORT_EMAIL = 'makan20042002@gmail.com';
 ENG.BUG_REPORT_EMAIL = BUG_REPORT_EMAIL;
 
+// Single application version constant for web app
+const APP_VERSION = '1.0.0';
+ENG.VERSION = APP_VERSION;
+
 function getAppVersion() {
-  try {
-    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
-      const v = chrome.runtime.getManifest().version;
-      if (v) return v;
-    }
-  } catch (_) {}
-  return '1.0.0';
+  return APP_VERSION;
 }
 ENG.getAppVersion = getAppVersion;
 

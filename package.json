@@ -1,6 +1,6 @@
 {
   "name": "makan-translate-dev",
-  "version": "0.0.0",
+  "version": "1.0.0",
   "private": true,
   "description": "Development-only tooling for MAKAN Translate (tests, lint). Nothing the web app or extension loads depends on this file.",
   "scripts": {

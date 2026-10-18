@@ -61,7 +61,7 @@
   }
 
   function buildDiagnosticsLines() {
-    var version = (typeof ENG !== 'undefined' && ENG.getAppVersion && ENG.getAppVersion()) || '1.0.0';
+    var version = ENG.getAppVersion();
     var lang = (document.documentElement && document.documentElement.lang) || 'en';
     var ua = (typeof navigator !== 'undefined' && navigator.userAgent) || 'unknown';
 
@@ -123,7 +123,7 @@
   }
 
   function buildReportText(forMailto) {
-    var version = (typeof ENG !== 'undefined' && ENG.getAppVersion && ENG.getAppVersion()) || '1.0.0';
+    var version = ENG.getAppVersion();
     var whatH = document.getElementById('bugWhatHappened');
     var whatE = document.getElementById('bugWhatExpected');
     var happened = (whatH && whatH.value.trim()) || '';
@@ -195,7 +195,7 @@
     }
     var sendLink = document.getElementById('bugSendEmail');
     if (sendLink) {
-      var version = (typeof ENG !== 'undefined' && ENG.getAppVersion && ENG.getAppVersion()) || '1.0.0';
+      var version = ENG.getAppVersion();
       var email = (typeof ENG !== 'undefined' && ENG.BUG_REPORT_EMAIL) || 'makan20042002@gmail.com';
       var subject = 'MAKAN Translate bug report v' + version;
       sendLink.href = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(res.report);
