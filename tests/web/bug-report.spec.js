@@ -160,9 +160,9 @@ test.describe('Web App: Bug Report Dialog & Diagnostics (ITEM 1)', () => {
   test('error messages containing fake Bearer tokens and API keys are redacted in diagnostics', async ({ app }) => {
     const { page } = app;
 
-    // Simulate an uncaught error containing a Bearer token, query string, and email
+    // Simulate an uncaught error containing a Bearer token, keys (Google, sk-proj-, gsk_), query string, and email
     await page.evaluate(() => {
-      const fakeMsg = 'AuthFailure: Bearer secret-token-xyz123 rejected with AIzaSyFAKEKEY000000000000000000000000000 at http://api.internal/v1?token=querysecret&user=leak@example.com';
+      const fakeMsg = 'AuthFailure: Bearer secret-token-xyz123 rejected with AIzaSyFAKEKEY000000000000000000000000000 and sk-proj-FAKEPROJKEY00000000000000000000 and gsk_FAKEGROQKEY00000000000000000000 at http://api.internal/v1?token=querysecret&user=leak@example.com';
       window.dispatchEvent(new ErrorEvent('error', { message: fakeMsg }));
     });
 
@@ -172,12 +172,15 @@ test.describe('Web App: Bug Report Dialog & Diagnostics (ITEM 1)', () => {
     const previewText = await page.locator('#bugDiagPreview').textContent();
     expect(previewText).toContain('Bearer [REDACTED_TOKEN]');
     expect(previewText).toContain('[REDACTED_KEY]');
-    expect(previewText).toContain('[REDACTED_QUERY]');
-    expect(previewText).toContain('[REDACTED_EMAIL]');
+    expect(previewText).toContain('[REDACTED_URL]');
+    expect(previewText).not.toContain('[REDACTED_KEY]0');
 
-    // Ensure raw secrets are NOT present
+    // Ensure raw secrets and raw URL / query value are NOT present
     expect(previewText).not.toContain('secret-token-xyz123');
     expect(previewText).not.toContain('AIzaSyFAKEKEY000000000000000000000000000');
+    expect(previewText).not.toContain('sk-proj-FAKEPROJKEY00000000000000000000');
+    expect(previewText).not.toContain('gsk_FAKEGROQKEY00000000000000000000');
+    expect(previewText).not.toContain('http://api.internal');
     expect(previewText).not.toContain('querysecret');
     expect(previewText).not.toContain('leak@example.com');
 

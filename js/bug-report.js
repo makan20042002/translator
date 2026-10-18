@@ -31,14 +31,14 @@
     if (typeof str !== 'string') return '';
     var s = str;
     s = s.replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED_TOKEN]');
-    s = s.replace(/(?:AIza[0-9A-Za-z_-]{35}|(?:sk|gsk)_[a-zA-Z0-9_-]{20,})/g, '[REDACTED_KEY]');
+    s = s.replace(/(?:AIza[0-9A-Za-z_-]{20,}|(?:sk-(?:proj-|ant-|or-)?|(?:sk|gsk)_)[a-zA-Z0-9_-]{20,})/g, '[REDACTED_KEY]');
     s = s.replace(/\b[a-zA-Z0-9_-]{32,}\b/g, function (m) {
       if (/[0-9]/.test(m) && /[a-zA-Z]/.test(m)) return '[REDACTED_KEY]';
       return m;
     });
+    s = s.replace(/https?:\/\/[^\s"'<>]+/gi, '[REDACTED_URL]');
     s = s.replace(/[?&][^=\s&]+=[^&\s]*/g, '[REDACTED_QUERY]');
     s = s.replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, '[REDACTED_EMAIL]');
-    s = s.replace(/https?:\/\/[^\s"'<>]+/gi, '[REDACTED_URL]');
     return s;
   }
 

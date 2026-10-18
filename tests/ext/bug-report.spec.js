@@ -151,7 +151,7 @@ test.describe('Extension: Bug Report & Diagnostics (ITEM 2)', () => {
     // Seed error in background/storage
     await ext.context.serviceWorkers()[0]?.evaluate(() => {
       if (typeof recordBgError === 'function') {
-        recordBgError('Failed with Bearer secret-token-123456 and AIzaSyFAKEKEY000000000000000000000000000?query=leak');
+        recordBgError('Failed with Bearer secret-token-123456 and AIzaSyFAKEKEY000000000000000000000000000 and sk-proj-FAKEPROJKEY00000000000000000000 and gsk_FAKEGROQKEY00000000000000000000 at http://api.internal/v1?query=leak');
       }
     });
 
@@ -178,8 +178,15 @@ test.describe('Extension: Bug Report & Diagnostics (ITEM 2)', () => {
     const parsed = new URL(mailtoTarget);
     const body = parsed.searchParams.get('body');
     expect(body).toContain('Bearer [REDACTED_TOKEN]');
+    expect(body).toContain('[REDACTED_KEY]');
+    expect(body).toContain('[REDACTED_URL]');
+    expect(body).not.toContain('[REDACTED_KEY]0');
     expect(body).not.toContain('secret-token-123456');
     expect(body).not.toContain('AIzaSyFAKEKEY000000000000000000000000000');
+    expect(body).not.toContain('sk-proj-FAKEPROJKEY00000000000000000000');
+    expect(body).not.toContain('gsk_FAKEGROQKEY00000000000000000000');
+    expect(body).not.toContain('http://api.internal');
+    expect(body).not.toContain('query=leak');
 
     await options.close();
   });
