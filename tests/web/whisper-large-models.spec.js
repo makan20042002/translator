@@ -331,16 +331,26 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await expect(page.locator('#tab-media')).toBeVisible();
 
     await page.evaluate(() => {
-      const distilModel = window.MODEL_CATALOG.models.find(m => m.id === 'asr-distil-large-v3');
-      window.MediaTranslate.host.getWhisperChoice = () => ({
-        key: distilModel.key,
-        id: distilModel.id,
-        repo: distilModel.repo,
-        name: distilModel.name,
-        memMB: distilModel.memMB,
-        ready: true,
-        gpu: null
-      });
+      let currentKey = 'distil-large-v3';
+      const models = window.MODEL_CATALOG?.models || [];
+      window.MediaTranslate.host.getWhisperChoice = () => {
+        const m = models.find(x => x.key === currentKey || x.id === currentKey) || models.find(x => x.id === 'asr-distil-large-v3');
+        return {
+          key: m?.key || currentKey,
+          id: m?.id || currentKey,
+          repo: m?.repo,
+          name: m?.name,
+          memMB: m?.memMB,
+          ready: true,
+          gpu: m?.gpu || null
+        };
+      };
+      window.MediaTranslate.host.setWhisperChoice = (key) => {
+        currentKey = key;
+        if (typeof window.cfg !== 'undefined') window.cfg.whisper = key;
+        const asrLang = document.querySelector('#tab-media .mt-asr-lang');
+        if (asrLang) asrLang.dispatchEvent(new Event('change'));
+      };
     });
 
     const wavBuffer = createTestWav(0.2, 16000);
@@ -355,7 +365,11 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     const switchTurboBtn = page.locator('#tab-media .mt-asr-switch-turbo');
     const asrLang = page.locator('#tab-media .mt-asr-lang');
 
-    // Default is English or Auto: select FA
+    // With distil model, notice is hidden when language is 'en'
+    await asrLang.selectOption('en');
+    await expect(noticeEl).toBeHidden();
+
+    // Select non-English language FA: notice appears with switch to Turbo button
     await asrLang.selectOption('fa');
     await expect(noticeEl).toBeVisible();
     await expect(noticeEl).toContainText('This model is English only');
@@ -368,9 +382,8 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     const newChoice = await page.evaluate(() => window.MediaTranslate.host.getWhisperChoice());
     expect(newChoice.key).toBe('large-v3-turbo');
 
-    // Switch back to distil model with language EN: notice should stay hidden
+    // Switch back to distil model with language EN: notice stays hidden
     await page.evaluate(() => {
-      const distilModel = window.MODEL_CATALOG.models.find(m => m.id === 'asr-distil-large-v3');
       window.MediaTranslate.host.setWhisperChoice('distil-large-v3');
     });
     await asrLang.selectOption('en');
