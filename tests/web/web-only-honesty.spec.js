@@ -88,6 +88,46 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     await page.locator('#closeSet').click();
   });
 
+  test('disabled-button tooltips in web mode update dynamically when switching interface language (EN -> FA -> EN)', async ({ app }) => {
+    const { page } = app;
+
+    const launchBtn = page.locator('#tabScreenLaunchBtn');
+    const testBtn = page.locator('#btnTestScreenTrans');
+
+    // 1. Initial English state
+    await page.locator('#tabs button[data-tab="screen"]').click();
+    await expect(launchBtn).toBeDisabled();
+    expect(await launchBtn.getAttribute('title')).toContain('Native screen capture requires');
+
+    await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
+    await expect(testBtn).toBeDisabled();
+    expect(await testBtn.getAttribute('title')).toContain('Native screen capture requires');
+    await page.locator('#closeSet').click();
+
+    // 2. Switch to Persian via real #uiLang button
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
+
+    expect(await launchBtn.getAttribute('title')).toContain('تصویربرداری بومی از صفحه');
+
+    await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
+    expect(await testBtn.getAttribute('title')).toContain('تصویربرداری بومی از صفحه');
+    await page.locator('#closeSet').click();
+
+    // 3. Switch back to English via real #uiLang button
+    await page.locator('#uiLang').click();
+    await expect(page.locator('html')).toHaveAttribute('lang', 'en');
+
+    expect(await launchBtn.getAttribute('title')).toContain('Native screen capture requires');
+
+    await page.locator('#openSet').click();
+    await activateSettingsTab(page, 'ocr');
+    expect(await testBtn.getAttribute('title')).toContain('Native screen capture requires');
+    await page.locator('#closeSet').click();
+  });
+
   test('with real-shaped desktop host fixture (what exe preload exposes today), Media filesystem/ffmpeg controls stay hidden', async ({ webBrowser, stub }) => {
     const context = await webBrowser.newContext({ acceptDownloads: true, viewport: { width: 1280, height: 900 } });
     await context.grantPermissions(['microphone', 'clipboard-read', 'clipboard-write'], { origin: stub.appOrigin });

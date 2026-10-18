@@ -499,6 +499,27 @@ if (document.readyState === 'loading') {
   initScreenWebUI();
 }
 
+// Re-apply disabled-button tooltips whenever interface language changes without adding new window global
+(function hookScreenI18n() {
+  function updateScreenBrowserTitles() {
+    if (window.makanDesktop?.isDesktop) return;
+    const launchBtn = $('tabScreenLaunchBtn');
+    if (launchBtn) launchBtn.setAttribute('title', L('screenBrowserNotice'));
+    const btnTest = $('btnTestScreenTrans');
+    if (btnTest) btnTest.setAttribute('title', L('screenBrowserNotice'));
+  }
+
+  const prevApplyI18n = typeof applyI18n === 'function' ? applyI18n : (typeof window !== 'undefined' ? window.applyI18n : null);
+  if (typeof prevApplyI18n === 'function') {
+    const wrapped = function() {
+      prevApplyI18n.apply(this, arguments);
+      updateScreenBrowserTitles();
+    };
+    if (typeof window !== 'undefined') window.applyI18n = wrapped;
+    applyI18n = wrapped;
+  }
+})();
+
 /* ---------- MAKAN SCREEN TRANSLATOR (DESKTOP INTEGRATION) ---------- */
 (async function initScreenTranslatorDesktop() {
   if (!window.makanDesktop?.isDesktop) return;
