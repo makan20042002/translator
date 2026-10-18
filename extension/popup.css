@@ -473,9 +473,42 @@ input:checked + .p-slider:before {
 /* Footer */
 .p-footer {
   display: flex;
-  align-items: center;
-  justify-content: center;
+  flex-direction: column;
   padding-top: 10px;
+  gap: 6px;
+}
+
+.p-open-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  padding-top: 2px;
+}
+
+.p-open-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.p-open-title {
+  font-weight: 600;
+}
+
+.p-open-desc {
+  font-size: 10.5px;
+  color: var(--muted);
+  line-height: 1.35;
+  padding-inline-start: 18px;
+}
+
+.p-footer-sub {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  width: 100%;
+  padding-top: 2px;
 }
 
 .p-link {
@@ -486,6 +519,7 @@ input:checked + .p-slider:before {
   align-items: center;
   gap: 5px;
   transition: color 0.15s ease;
+  width: fit-content;
 }
 
 .p-link:hover {

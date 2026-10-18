@@ -379,6 +379,21 @@
   flex: 1;
 }
 
+.makan-open-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 8px 12px 10px;
+  border-top: 1px solid var(--border);
+  background: rgba(255, 255, 255, 0.02);
+}
+
+.makan-open-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
 .makan-open-app-btn {
   color: var(--accent);
   text-decoration: none;
@@ -386,14 +401,26 @@
   font-weight: 600;
   display: inline-flex;
   align-items: center;
-  gap: 4px;
-  padding: 4px 8px;
-  border-radius: 6px;
+  gap: 6px;
+  padding: 2px 4px;
+  border-radius: 4px;
+  width: fit-content;
 }
 
 .makan-open-app-btn:hover {
   background: var(--accent-dim);
   text-decoration: none;
+}
+
+.makan-open-title {
+  font-weight: 600;
+}
+
+.makan-open-desc {
+  font-size: 11px;
+  color: var(--muted);
+  line-height: 1.35;
+  padding-inline-start: 18px;
 }
 
 /* Full Page Translation Floating Top Banner */

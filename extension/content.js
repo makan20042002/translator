@@ -501,6 +501,7 @@
     let curSrc = cfg?.src || 'auto';
     let curTgt = cfg?.tgt || 'fa';
     let detectedLang = isRtlText(text) ? 'fa' : 'en';
+    const isFa = cfg?.ui === 'fa';
     const isSingleWord = isWord || (!text.includes(' ') && text.length <= 32);
 
     const hasAiAvailable = !!cfg?.hasAi;
@@ -549,11 +550,22 @@
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
           <span>Swap</span>
         </button>
-        <span class="makan-sp"></span>
-        <a class="makan-open-app-btn" id="makanOpenApp" target="_blank" title="Open in full MAKAN Translate web app">
-          <span>Open in App</span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        </a>
+      </div>
+      <div class="makan-open-options">
+        <div class="makan-open-item">
+          <a class="makan-open-app-btn" id="makanOpenApp" target="_blank" title="${isFa ? 'باز کردن در برنامه ویندوز: تمام امکانات، OCR، مدل‌های آفلاین' : 'Open in Windows app: all features, OCR, offline models'}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            <span class="makan-open-title">${isFa ? 'باز کردن در برنامه ویندوز' : 'Open in Windows app'}</span>
+          </a>
+          <span class="makan-open-desc">${isFa ? 'تمام امکانات، OCR، مدل‌های آفلاین' : 'all features, OCR, offline models'}</span>
+        </div>
+        <div class="makan-open-item">
+          <a class="makan-open-app-btn" id="makanOpenBrowser" target="_blank" title="${isFa ? 'باز کردن در مرورگر: باز کردن برنامه تحت وب (makanlab.tech)، استفاده از مرورگر (مترجم داخلی کروم در کروم)' : 'Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)'}">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+            <span class="makan-open-title">${isFa ? 'باز کردن در مرورگر' : 'Open in browser'}</span>
+          </a>
+          <span class="makan-open-desc">${isFa ? 'باز کردن برنامه تحت وب (makanlab.tech)، استفاده از مرورگر (مترجم داخلی کروم در کروم)' : 'opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)'}</span>
+        </div>
       </div>
     `;
 
@@ -578,6 +590,8 @@
 
     // Hook web app link
     const openAppBtn = card.querySelector('#makanOpenApp');
+    const openBrowserBtn = card.querySelector('#makanOpenBrowser');
+
     openAppBtn.addEventListener('pointerdown', e => e.stopPropagation());
     openAppBtn.addEventListener('mousedown', e => e.stopPropagation());
     openAppBtn.addEventListener('click', async e => {
@@ -617,13 +631,25 @@
       }
     });
 
+    if (openBrowserBtn) {
+      openBrowserBtn.addEventListener('pointerdown', e => e.stopPropagation());
+      openBrowserBtn.addEventListener('mousedown', e => e.stopPropagation());
+      openBrowserBtn.addEventListener('click', e => {
+        e.stopPropagation();
+        e.preventDefault();
+        window.open(openBrowserBtn.href, '_blank');
+      });
+    }
+
     function updateAppUrl(sourceText, sLang, tLang) {
       const appBase = cfg?.webAppUrl || 'http://localhost:8080';
       const p = new URLSearchParams();
       p.set('text', (sourceText || '').slice(0, 2000));
       p.set('src', sLang || 'auto');
       p.set('tgt', tLang || 'fa');
-      openAppBtn.href = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      const fullUrl = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      openAppBtn.href = fullUrl;
+      if (openBrowserBtn) openBrowserBtn.href = fullUrl;
     }
     updateAppUrl(text, curSrc, curTgt);
 

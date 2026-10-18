@@ -8,6 +8,7 @@ const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, cl
 const path = require('path');
 const fs = require('fs');
 const { OcrService } = require('./ocr-service');
+const { buildBrowserUrl } = require('./overlay-url');
 
 class ScreenTranslatorManager {
   constructor(mainWindow, options = {}) {
@@ -216,24 +217,13 @@ class ScreenTranslatorManager {
       console.log('[ScreenTranslator] Received screen-trans:open-in-browser IPC');
       const FIXED_PORT = 50505;
       const ALLOWED_ORIGIN = `http://127.0.0.1:${FIXED_PORT}`;
-      let targetUrl = ALLOWED_ORIGIN;
-      if (payload && typeof payload === 'object') {
-        const params = new URLSearchParams();
-        if (typeof payload.text === 'string' && payload.text.trim()) {
-          params.set('text', payload.text.trim().slice(0, 4000));
-        }
-        if (typeof payload.src === 'string' && /^[a-zA-Z-]{2,10}$/.test(payload.src)) {
-          params.set('src', payload.src);
-        }
-        if (typeof payload.tgt === 'string' && /^[a-zA-Z-]{2,10}$/.test(payload.tgt)) {
-          params.set('tgt', payload.tgt);
-        }
-        const qs = params.toString();
-        if (qs) targetUrl = `${ALLOWED_ORIGIN}/?${qs}`;
-      }
+      const targetUrl = buildBrowserUrl(payload, 'https://makanlab.tech/');
       try {
         const parsed = new URL(targetUrl);
-        if (parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === String(FIXED_PORT)) {
+        if (parsed.protocol === 'https:' && (parsed.hostname === 'makanlab.tech' || parsed.hostname.endsWith('.makanlab.tech'))) {
+          console.log('[ScreenTranslator] Opening allow-listed URL in external browser:', targetUrl);
+          shell.openExternal(targetUrl);
+        } else if (parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === String(FIXED_PORT)) {
           console.log('[ScreenTranslator] Opening allow-listed URL in external browser:', targetUrl);
           shell.openExternal(targetUrl);
         } else {

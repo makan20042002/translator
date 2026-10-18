@@ -37,7 +37,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       subEngines: 'Engines are tried from top to bottom. If a provider hits rate limits or fails, the next available engine takes over seamlessly.',
       btnCheckConn: 'Check Connections',
       checkingConn: 'Testing connections…',
-      openApp: 'Open Web App',
+      openApp: 'Open in Windows app',
+      openAppDesc: 'all features, OCR, offline models',
+      openBrowser: 'Open in browser',
+      openBrowserDesc: 'opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)',
       keyPh: 'API Key',
       modelPh: 'Model Name',
       basePh: 'Base URL',
@@ -88,7 +91,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       subEngines: 'موتورها از بالا به پایین امتحان می‌شوند. در صورت بروز محدودیت نرخ (429) یا خطا، موتور بعدی به طور خودکار جایگزین می‌شود.',
       btnCheckConn: 'بررسی اتصال‌ها',
       checkingConn: 'در حال بررسی اتصال‌ها…',
-      openApp: 'باز کردن نسخه وب',
+      openApp: 'باز کردن در برنامه ویندوز',
+      openAppDesc: 'تمام امکانات، OCR، مدل‌های آفلاین',
+      openBrowser: 'باز کردن در مرورگر',
+      openBrowserDesc: 'باز کردن برنامه تحت وب (makanlab.tech)، استفاده از مرورگر (مترجم داخلی کروم در کروم)',
       keyPh: 'کلید API',
       modelPh: 'نام مدل',
       basePh: 'آدرس سرور',
@@ -149,6 +155,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const btnCheckConnText = document.getElementById('btnCheckConnText');
   const optEngineList = document.getElementById('optEngineList');
   const optOpenApp = document.getElementById('optOpenApp');
+  const optOpenBrowser = document.getElementById('optOpenBrowser');
   const modalPasteOv = document.getElementById('modalPasteOv');
   const modalPasteArea = document.getElementById('modalPasteArea');
   const modalPasteCancel = document.getElementById('modalPasteCancel');
@@ -309,6 +316,15 @@ document.addEventListener('DOMContentLoaded', async () => {
     subEngines.textContent = I18N[lang].subEngines;
     btnCheckConnText.textContent = I18N[lang].btnCheckConn;
     optOpenApp.querySelector('span').textContent = I18N[lang].openApp;
+    if (optOpenBrowser) optOpenBrowser.querySelector('span').textContent = I18N[lang].openBrowser;
+    const lblChoiceAppTitle = document.getElementById('lblChoiceAppTitle');
+    if (lblChoiceAppTitle) lblChoiceAppTitle.textContent = I18N[lang].openApp;
+    const lblChoiceAppDesc = document.getElementById('lblChoiceAppDesc');
+    if (lblChoiceAppDesc) lblChoiceAppDesc.textContent = I18N[lang].openAppDesc;
+    const lblChoiceBrowserTitle = document.getElementById('lblChoiceBrowserTitle');
+    if (lblChoiceBrowserTitle) lblChoiceBrowserTitle.textContent = I18N[lang].openBrowser;
+    const lblChoiceBrowserDesc = document.getElementById('lblChoiceBrowserDesc');
+    if (lblChoiceBrowserDesc) lblChoiceBrowserDesc.textContent = I18N[lang].openBrowserDesc;
 
     if (secSiteCheck) secSiteCheck.textContent = I18N[lang].secSiteCheck;
     renderDictPacks();
@@ -341,6 +357,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   chkDictLookup.checked = cfg.dictLookup !== false;
   chkShowVulgar.checked = cfg.showVulgar === true;
   optOpenApp.href = cfg.webAppUrl || 'http://localhost:8080';
+  if (optOpenBrowser) optOpenBrowser.href = cfg.webAppUrl || 'http://localhost:8080';
 
   applyUi(currentUi);
 
@@ -513,9 +530,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     }
     cfg.webAppUrl = checked;
     optOpenApp.href = cfg.webAppUrl;
+    if (optOpenBrowser) optOpenBrowser.href = cfg.webAppUrl;
     saveAndNotify();
     toast(I18N[currentUi].saved);
   };
+
+  if (optOpenBrowser) {
+    optOpenBrowser.onclick = (e) => {
+      e.preventDefault();
+      window.open(optOpenBrowser.href, '_blank');
+    };
+  }
 
   optOpenApp.onclick = async (e) => {
     e.preventDefault();

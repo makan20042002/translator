@@ -15,9 +15,13 @@
       </div>
       <div class="opt-sp"></div>
       <button class="opt-btn ghost" id="optLangToggle">فارسی</button>
-      <a href="http://localhost:8080" target="_blank" class="opt-btn" id="optOpenApp">
+      <a href="http://localhost:8080" target="_blank" class="opt-btn" id="optOpenApp" title="Open in Windows app: all features, OCR, offline models">
         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        <span>Open Web App</span>
+        <span>Open in Windows app</span>
+      </a>
+      <a href="http://localhost:8080" target="_blank" class="opt-btn ghost" id="optOpenBrowser" title="Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span>Open in browser</span>
       </a>
     </div>
   </div>
@@ -122,6 +126,16 @@
         <div class="opt-field">
           <label for="txtWebAppUrl" id="lblWebAppUrl">Web App URL:</label>
           <input type="text" id="txtWebAppUrl" value="http://localhost:8080" placeholder="http://localhost:8080">
+        </div>
+        <div class="opt-open-choices" style="grid-column: 1 / -1; margin-top: 6px; padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px; background: rgba(255, 255, 255, 0.02); display: flex; flex-direction: column; gap: 8px;">
+          <div class="opt-open-choice-row" style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 12.5px; font-weight: 600; color: var(--accent);"><span id="lblChoiceAppTitle">Open in Windows app</span></div>
+            <div style="font-size: 11.5px; color: var(--muted); line-height: 1.4;" id="lblChoiceAppDesc">all features, OCR, offline models</div>
+          </div>
+          <div class="opt-open-choice-row" style="display: flex; flex-direction: column; gap: 2px;">
+            <div style="font-size: 12.5px; font-weight: 600; color: var(--accent);"><span id="lblChoiceBrowserTitle">Open in browser</span></div>
+            <div style="font-size: 11.5px; color: var(--muted); line-height: 1.4;" id="lblChoiceBrowserDesc">opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)</div>
+          </div>
         </div>
       </div>
       <div style="margin-top:14px">

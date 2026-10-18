@@ -30,7 +30,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       translating: 'Translating…',
       fgSpelling: 'Persian spelling', fgCopy: 'Copy', fgVia: 'Finglish → Persian', fgOpt: 'Finglish · Persian in Latin letters',
       fgNeedsAi: 'Finglish (Persian written in Latin letters) needs an AI engine. Add a free Gemini or Groq key in Options.',
-      openApp: 'Open full Web App',
+      openApp: 'Open in Windows app',
+      openAppDesc: 'all features, OCR, offline models',
+      openBrowser: 'Open in browser',
+      openBrowserDesc: 'opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)',
       copied: 'Copied!'
     },
     fa: {
@@ -54,7 +57,10 @@ document.addEventListener('DOMContentLoaded', async () => {
       translating: 'در حال ترجمه…',
       fgSpelling: 'املای فارسی', fgCopy: 'کپی', fgVia: 'فینگلیش ← فارسی', fgOpt: 'فینگلیش · فارسی با حروف لاتین',
       fgNeedsAi: 'فینگلیش (فارسی با حروف لاتین) به یک موتور هوش مصنوعی نیاز دارد. در تنظیمات یک کلید رایگان Gemini یا Groq اضافه کنید.',
-      openApp: 'باز کردن وب‌اپلیکیشن کامل',
+      openApp: 'باز کردن در برنامه ویندوز',
+      openAppDesc: 'تمام امکانات، OCR، مدل‌های آفلاین',
+      openBrowser: 'باز کردن در مرورگر',
+      openBrowserDesc: 'باز کردن برنامه تحت وب (makanlab.tech)، استفاده از مرورگر (مترجم داخلی کروم در کروم)',
       copied: 'کپی شد!'
     }
   };
@@ -81,6 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   const pCopyBtn = document.getElementById('pCopyBtn');
   const pSpeakBtn = document.getElementById('pSpeakBtn');
   const pOpenWebApp = document.getElementById('pOpenWebApp');
+  const pOpenBrowser = document.getElementById('pOpenBrowser');
 
   // Load active tab info
   try {
@@ -176,7 +183,18 @@ document.addEventListener('DOMContentLoaded', async () => {
     pClearBtn.textContent = I18N[lang].clear;
     pTransBtn.textContent = I18N[lang].translate;
     pPageTransText.textContent = I18N[lang].translatePage;
-    pOpenWebApp.querySelector('span').textContent = I18N[lang].openApp;
+    if (pOpenWebApp) {
+      const sp = pOpenWebApp.querySelector('span');
+      if (sp) sp.textContent = I18N[lang].openApp;
+    }
+    const pOpenAppDesc = document.getElementById('pOpenAppDesc');
+    if (pOpenAppDesc) pOpenAppDesc.textContent = I18N[lang].openAppDesc;
+    if (pOpenBrowser) {
+      const sp = pOpenBrowser.querySelector('span');
+      if (sp) sp.textContent = I18N[lang].openBrowser;
+    }
+    const pOpenBrowserDesc = document.getElementById('pOpenBrowserDesc');
+    if (pOpenBrowserDesc) pOpenBrowserDesc.textContent = I18N[lang].openBrowserDesc;
     updateSiteLabel();
   }
 
@@ -225,22 +243,32 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Set web app link
   const appBase = cfg.webAppUrl || 'http://localhost:8080';
   function updateOpenWebAppHref(inputText) {
-    if (!pOpenWebApp) return;
+    if (!pOpenWebApp && !pOpenBrowser) return;
     const t = (inputText != null ? inputText : pInputText.value || '').trim();
     if (t) {
       const p = new URLSearchParams();
       p.set('text', t.slice(0, 2000));
       p.set('src', pSrcLang.value || 'auto');
       p.set('tgt', pTgtLang.value || 'fa');
-      pOpenWebApp.href = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      const targetHref = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      if (pOpenWebApp) pOpenWebApp.href = targetHref;
+      if (pOpenBrowser) pOpenBrowser.href = targetHref;
     } else {
-      pOpenWebApp.href = appBase;
+      if (pOpenWebApp) pOpenWebApp.href = appBase;
+      if (pOpenBrowser) pOpenBrowser.href = appBase;
     }
   }
   updateOpenWebAppHref();
   pInputText.addEventListener('input', () => updateOpenWebAppHref());
   pSrcLang.addEventListener('change', () => updateOpenWebAppHref());
   pTgtLang.addEventListener('change', () => updateOpenWebAppHref());
+
+  if (pOpenBrowser) {
+    pOpenBrowser.addEventListener('click', (e) => {
+      e.preventDefault();
+      window.open(pOpenBrowser.href, '_blank');
+    });
+  }
 
   pOpenWebApp.addEventListener('click', async (e) => {
     e.preventDefault();

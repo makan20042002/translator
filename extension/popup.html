@@ -110,11 +110,23 @@
   </div>
 
   <div class="p-footer">
-    <div style="display:flex;align-items:center;justify-content:space-between;width:100%">
-      <a href="http://localhost:8080" target="_blank" class="p-link" id="pOpenWebApp">
-        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-        <span>Open full Web App</span>
-      </a>
+    <div class="p-open-options">
+      <div class="p-open-item">
+        <a href="http://localhost:8080" target="_blank" class="p-link" id="pOpenWebApp">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+          <span class="p-open-title">Open in Windows app</span>
+        </a>
+        <div class="p-open-desc" id="pOpenAppDesc">all features, OCR, offline models</div>
+      </div>
+      <div class="p-open-item">
+        <a href="http://localhost:8080" target="_blank" class="p-link" id="pOpenBrowser">
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+          <span class="p-open-title">Open in browser</span>
+        </a>
+        <div class="p-open-desc" id="pOpenBrowserDesc">opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)</div>
+      </div>
+    </div>
+    <div class="p-footer-sub">
       <a href="#" class="p-link" id="pReportBugLink" style="font-size:11px">Report a bug</a>
     </div>
     <div id="pOpenAppMsg" class="p-open-app-msg" style="display:none; color:#ffbe53; font-size:11px; margin-top:4px; text-align:center;"></div>

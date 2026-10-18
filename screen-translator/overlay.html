@@ -504,7 +504,8 @@
       <div class="error-guidance" id="errorGuidance" style="display: none;"></div>
       <div style="margin-top: 8px; display: flex; gap: 8px;">
         <button class="btn no-drag" id="btnErrorRetry" style="padding: 3px 10px; font-size: 11px;">Retry</button>
-        <button class="btn-open-app no-drag" id="btnErrorOpenApp" style="padding: 3px 10px; font-size: 11px;">Open in browser</button>
+        <button class="btn-open-app no-drag" id="btnErrorOpenApp" style="padding: 3px 10px; font-size: 11px;" title="Open in Windows app: all features, OCR, offline models">Open in Windows app</button>
+        <button class="btn-open-app no-drag" id="btnErrorOpenBrowser" style="padding: 3px 10px; font-size: 11px;" title="Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)">Open in browser</button>
       </div>
     </div>
 
@@ -546,9 +547,14 @@
       <span>Zone</span>
     </button>
 
-    <button class="btn-open-app no-drag" id="btnOpenInApp" title="Open in browser (http://127.0.0.1:50505)">
-      <span>Open in browser</span>
+    <button class="btn-open-app no-drag" id="btnOpenInApp" title="Open in Windows app: all features, OCR, offline models">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      <span>Open in Windows app</span>
+    </button>
+
+    <button class="btn-open-app no-drag" id="btnOpenBrowser" title="Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+      <span>Open in browser</span>
     </button>
 
     <button class="btn-footer-close no-drag" id="btnFooterClose" title="Close (Esc)">
@@ -587,8 +593,10 @@
   const btnCopyOrig = document.getElementById('btnCopyOrig');
   const btnRetry = document.getElementById('btnRetry');
   const btnOpenInApp = document.getElementById('btnOpenInApp');
+  const btnOpenBrowser = document.getElementById('btnOpenBrowser');
   const btnErrorRetry = document.getElementById('btnErrorRetry');
   const btnErrorOpenApp = document.getElementById('btnErrorOpenApp');
+  const btnErrorOpenBrowser = document.getElementById('btnErrorOpenBrowser');
   const originalPreview = document.getElementById('originalPreview');
   const ocrLangLabel = document.getElementById('ocrLangLabel');
 
@@ -654,14 +662,23 @@
     triggerTranslate();
   };
 
-  btnOpenInApp.onclick = () => {
-    const payload = { text: rawOcrText, src: sourceLang, tgt: targetLang };
-    if (window.makanOverlay?.openInBrowser) {
-      window.makanOverlay.openInBrowser(payload);
-    } else if (window.makanOverlay?.openInMainApp) {
-      window.makanOverlay.openInMainApp(payload);
-    }
-  };
+  if (btnOpenInApp) {
+    btnOpenInApp.onclick = () => {
+      const payload = { text: rawOcrText, src: sourceLang, tgt: targetLang };
+      if (window.makanOverlay?.openInMainApp) {
+        window.makanOverlay.openInMainApp(payload);
+      }
+    };
+  }
+
+  if (btnOpenBrowser) {
+    btnOpenBrowser.onclick = () => {
+      const payload = { text: rawOcrText, src: sourceLang, tgt: targetLang };
+      if (window.makanOverlay?.openInBrowser) {
+        window.makanOverlay.openInBrowser(payload);
+      }
+    };
+  }
 
   if (btnErrorRetry) {
     btnErrorRetry.onclick = () => triggerTranslate();
@@ -669,10 +686,16 @@
   if (btnErrorOpenApp) {
     btnErrorOpenApp.onclick = () => {
       const payload = { text: rawOcrText, src: sourceLang, tgt: targetLang };
+      if (window.makanOverlay?.openInMainApp) {
+        window.makanOverlay.openInMainApp(payload);
+      }
+    };
+  }
+  if (btnErrorOpenBrowser) {
+    btnErrorOpenBrowser.onclick = () => {
+      const payload = { text: rawOcrText, src: sourceLang, tgt: targetLang };
       if (window.makanOverlay?.openInBrowser) {
         window.makanOverlay.openInBrowser(payload);
-      } else if (window.makanOverlay?.openInMainApp) {
-        window.makanOverlay.openInMainApp(payload);
       }
     };
   }
