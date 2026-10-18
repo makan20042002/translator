@@ -396,16 +396,21 @@ function chromiumNetworkArgs(stub) {
   const appPort = stub?.appPort || (stub?.appOrigin ? new URL(stub.appOrigin).port : null);
   const providerPort = stub?.providerPort;
   const bypassEntries = ['<-loopback>'];
+  const allowedPorts = [];
   if (appPort) {
     bypassEntries.push(`127.0.0.1:${appPort}`, `localhost:${appPort}`, `[::1]:${appPort}`);
+    allowedPorts.push(appPort);
   }
   if (providerPort) {
     bypassEntries.push(`127.0.0.1:${providerPort}`, `localhost:${providerPort}`, `[::1]:${providerPort}`);
+    allowedPorts.push(providerPort);
   }
+  const extraArgs = allowedPorts.length ? [`--explicitly-allowed-ports=${allowedPorts.join(',')}`] : [];
   return [
     `--proxy-server=${stub.proxyUrl}`,
     `--proxy-bypass-list=${bypassEntries.join(';')}`,
     '--ignore-certificate-errors',
+    ...extraArgs,
     // Stop Chromium's own background services from making noise in the logs.
     '--disable-background-networking', '--disable-component-update', '--no-first-run', '--no-default-browser-check'
   ];

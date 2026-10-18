@@ -1620,6 +1620,10 @@ if (root) {
   if (!root.ENG) root.ENG = ENG;
   if (!root.DEF_ORDER) root.DEF_ORDER = DEF_ORDER;
   if (!root.DEFAULT_CFG) root.DEFAULT_CFG = DEFAULT_CFG;
+  root.getAppVersion = getAppVersion;
+  root.redactDiagnosticsText = redactDiagnosticsText;
+  root.BUG_REPORT_EMAIL = BUG_REPORT_EMAIL;
+  root.APP_VERSION = APP_VERSION;
   root.loadConfig = loadConfig;
   root.sanitizeConfig = sanitizeConfig;
   root.geminiModelOrder = geminiModelOrder;
