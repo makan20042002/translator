@@ -17,7 +17,7 @@ const TOOL_PATH = path.join(REPO_ROOT, 'tools', 'verify-model-catalog.js');
 const CATALOG_PATH = path.join(REPO_ROOT, 'models-catalog.js');
 const CANDIDATES_PATH = path.join(REPO_ROOT, 'tools', 'model-candidates.json');
 
-const { loadRealCatalog, loadCandidates } = require('../../tools/verify-model-catalog');
+const { loadRealCatalog, loadCandidates, buildModelApiUrl, buildResolveUrl, verifyRepoMock, SELFTFEST_FIXTURES } = require('../../tools/verify-model-catalog');
 const { buildWeb } = require('../../tools/build-web');
 
 test('tools/verify-model-catalog.js --offline-selftest reports all good on good fixtures and exits 0', () => {
@@ -108,3 +108,64 @@ test('tools/verify-model-catalog.js and tools/model-candidates.json are NOT in t
     try { fs.rmSync(tempOut, { recursive: true, force: true }); } catch (_) {}
   }
 });
+
+test('URL builder produces correct model API and file resolve URLs preserving slashes', () => {
+  const apiUrl = buildModelApiUrl('Xenova/whisper-tiny');
+  assert.strictEqual(apiUrl, 'https://huggingface.co/api/models/Xenova/whisper-tiny');
+  assert.ok(!apiUrl.includes('%2F'), 'URL must not contain %2F');
+
+  const resolveUrl = buildResolveUrl('onnx-community/whisper-large-v3-turbo', 'onnx/encoder_model_fp16.onnx');
+  assert.strictEqual(
+    resolveUrl,
+    'https://huggingface.co/onnx-community/whisper-large-v3-turbo/resolve/main/onnx/encoder_model_fp16.onnx'
+  );
+});
+
+test('tools/verify-model-catalog.js --offline-selftest: 404 reports not found and exits 1', () => {
+  const res = spawnSync(process.execPath, [TOOL_PATH, '--offline-selftest', '--fixture=missing-repo'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+
+  assert.strictEqual(res.status, 1, `Expected exit 1 for 404/not found, got ${res.status}`);
+  assert.match(res.stdout, /NOT FOUND/);
+  assert.match(res.stdout, /nonexistent-org\/missing-model-repo/);
+});
+
+test('tools/verify-model-catalog.js --offline-selftest: network error reports unreachable, exits 2, and lists no missing files', () => {
+  const res = spawnSync(process.execPath, [TOOL_PATH, '--offline-selftest', '--fixture=unreachable-repo'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+
+  assert.strictEqual(res.status, 2, `Expected exit 2 for unreachable network error, got ${res.status}. Output: ${res.stdout}\n${res.stderr}`);
+  assert.match(res.stdout, /UNREACHABLE/);
+  assert.match(res.stdout, /1 repos could not be reached \(network\); run again with internet or a VPN/);
+  assert.doesNotMatch(res.stdout, /NOT FOUND/);
+  assert.doesNotMatch(res.stdout, /MISSING/);
+
+  // Also verify via mock function directly: no missing files listed for unreachable
+  const mockResult = verifyRepoMock(
+    SELFTFEST_FIXTURES.unreachableRepo.catalog[0],
+    SELFTFEST_FIXTURES.unreachableRepo.mockHF
+  );
+  assert.strictEqual(mockResult.status, 'UNREACHABLE');
+  assert.strictEqual(mockResult.exists, false);
+  assert.deepStrictEqual(mockResult.missingFiles, []);
+});
+
+test('tools/verify-model-catalog.js table displays all three states (EXISTS, NOT FOUND, UNREACHABLE)', () => {
+  const res = spawnSync(process.execPath, [TOOL_PATH, '--offline-selftest', '--fixture=three-states'], {
+    cwd: REPO_ROOT,
+    encoding: 'utf8'
+  });
+
+  assert.match(res.stdout, /EXISTS/);
+  assert.match(res.stdout, /NOT FOUND/);
+  assert.match(res.stdout, /UNREACHABLE/);
+  assert.match(res.stdout, /good-org\/good-model/);
+  assert.match(res.stdout, /missing-org\/missing-model/);
+  assert.match(res.stdout, /down-org\/down-model/);
+  assert.strictEqual(res.status, 1, 'Real missing model causes exit 1');
+});
+
