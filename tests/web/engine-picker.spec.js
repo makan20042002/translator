@@ -8,13 +8,34 @@
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
 const { fakeAiWorker } = require('../support/model-helpers');
 
+function createTestWav(durationSec = 0.25, sampleRate = 16000) {
+  const numSamples = Math.floor(durationSec * sampleRate);
+  const dataSize = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write('WAVE', 8);
+  buf.write('fmt ', 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(dataSize, 40);
+  return buf;
+}
+
 test.describe('Engine Picker Component (ITEM 2)', () => {
 
-  test('picker exists in Subtitle and Media with options, using line, and keys link', async ({ app }) => {
+  test('picker exists in Subtitle and Media with options, using line, and keys link', async ({ app, files }) => {
     const { page, errors } = app;
 
-    // 1. Subtitle tab
+    // 1. Subtitle tab (load subtitle file first so file workspace and picker are unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const subHost = page.locator('#subEnginePickerHost .engine-picker');
     await expect(subHost).toBeVisible();
     await expect(subHost.locator('.engine-picker-select')).toBeVisible();
@@ -22,8 +43,46 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     await expect(subHost.locator('.engine-picker-using')).toBeVisible();
     await expect(subHost.locator('.engine-picker-keys-link')).toBeVisible();
 
-    // 2. Media tab
+    // 2. Media tab (load audio fixture and transcribe with fake worker so media picker is unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await page.evaluate(() => {
+      window.MediaTranslate.host.engine = {
+        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
+        workerFactory: function () {
+          const self = {
+            onmessage: null,
+            onerror: null,
+            postMessage: function (data) {
+              const { id, cmd } = data || {};
+              setTimeout(() => {
+                if (!self.onmessage) return;
+                if (cmd === 'init') {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                } else if (cmd === 'load') {
+                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
+                } else if (cmd === 'asr') {
+                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
+                } else {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                }
+              }, 10);
+            },
+            terminate: function () {}
+          };
+          return self;
+        }
+      };
+    });
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'sample.wav',
+      mimeType: 'audio/wav',
+      buffer: createTestWav(0.2, 16000)
+    });
+    const transcribeBtn = page.locator('#tab-media .mt-transcribe');
+    await expect(transcribeBtn).toBeVisible();
+    await mouseClick(page, transcribeBtn);
+
     const mediaHost = page.locator('.mt-engine-picker-host .engine-picker');
     await expect(mediaHost).toBeVisible();
     await expect(mediaHost.locator('.engine-picker-select')).toBeVisible();
@@ -34,20 +93,23 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('options and states are right with a seeded Gemini key, with no key, and NLLB states', async ({ app }) => {
+  test('options and states are right with a seeded Gemini key, with no key, and NLLB states', async ({ app, files }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const select = page.locator('#subEnginePickerHost .engine-picker-select');
 
     // Without Gemini key and without NLLB download
     const geminiOptNoKey = select.locator('option[value="gemini"]');
-    await expect(geminiOptNoKey).toBeDisabled();
+    await expect(geminiOptNoKey).toHaveAttribute('disabled', '');
+    expect(await geminiOptNoKey.evaluate(el => el.disabled)).toBe(true);
     const geminiTextNoKey = await geminiOptNoKey.textContent();
     expect(geminiTextNoKey).toContain('needs a key');
 
     const nllbOptNoDl = select.locator('option[value="nllb"]');
-    await expect(nllbOptNoDl).toBeDisabled();
+    await expect(nllbOptNoDl).toHaveAttribute('disabled', '');
+    expect(await nllbOptNoDl.evaluate(el => el.disabled)).toBe(true);
     const nllbTextNoDl = await nllbOptNoDl.textContent();
     expect(nllbTextNoDl).toContain('not downloaded');
 
@@ -63,23 +125,64 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     });
 
     const geminiOptWithKey = select.locator('option[value="gemini"]');
-    await expect(geminiOptWithKey).toBeEnabled();
+    await expect(geminiOptWithKey).not.toHaveAttribute('disabled');
+    expect(await geminiOptWithKey.evaluate(el => !el.disabled)).toBe(true);
     const geminiTextWithKey = await geminiOptWithKey.textContent();
     expect(geminiTextWithKey).toContain('ready');
   });
 
-  test('choosing google in Subtitle shows the same choice in Media and survives a reload', async ({ app }) => {
+  test('choosing google in Subtitle shows the same choice in Media and survives a reload', async ({ app, files }) => {
     const { page } = app;
 
     // Choose google in Subtitle
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const subSelect = page.locator('#subEnginePickerHost .engine-picker-select');
     await subSelect.selectOption('google');
     await expect(subSelect).toHaveValue('google');
 
     // Check Media tab shows google
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await page.evaluate(() => {
+      window.MediaTranslate.host.engine = {
+        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
+        workerFactory: function () {
+          const self = {
+            onmessage: null,
+            onerror: null,
+            postMessage: function (data) {
+              const { id, cmd } = data || {};
+              setTimeout(() => {
+                if (!self.onmessage) return;
+                if (cmd === 'init') {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                } else if (cmd === 'load') {
+                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
+                } else if (cmd === 'asr') {
+                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
+                } else {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                }
+              }, 10);
+            },
+            terminate: function () {}
+          };
+          return self;
+        }
+      };
+    });
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'sample.wav',
+      mimeType: 'audio/wav',
+      buffer: createTestWav(0.2, 16000)
+    });
+    const transcribeBtn = page.locator('#tab-media .mt-transcribe');
+    await expect(transcribeBtn).toBeVisible();
+    await mouseClick(page, transcribeBtn);
+
     const mediaSelect = page.locator('.mt-engine-picker-host .engine-picker-select');
+    await expect(mediaSelect).toBeVisible();
     await expect(mediaSelect).toHaveValue('google');
 
     // Reload page and verify persistence
@@ -87,9 +190,48 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     await expect(page.locator('#tabs button').first()).toBeVisible();
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     await expect(page.locator('#subEnginePickerHost .engine-picker-select')).toHaveValue('google');
 
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await page.evaluate(() => {
+      window.MediaTranslate.host.engine = {
+        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
+        workerFactory: function () {
+          const self = {
+            onmessage: null,
+            onerror: null,
+            postMessage: function (data) {
+              const { id, cmd } = data || {};
+              setTimeout(() => {
+                if (!self.onmessage) return;
+                if (cmd === 'init') {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                } else if (cmd === 'load') {
+                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
+                } else if (cmd === 'asr') {
+                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
+                } else {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                }
+              }, 10);
+            },
+            terminate: function () {}
+          };
+          return self;
+        }
+      };
+    });
+    const fileInputReload = page.locator('#tab-media .mt-file-input');
+    await fileInputReload.setInputFiles({
+      name: 'sample.wav',
+      mimeType: 'audio/wav',
+      buffer: createTestWav(0.2, 16000)
+    });
+    const transcribeBtnReload = page.locator('#tab-media .mt-transcribe');
+    await expect(transcribeBtnReload).toBeVisible();
+    await mouseClick(page, transcribeBtnReload);
+
     await expect(page.locator('.mt-engine-picker-host .engine-picker-select')).toHaveValue('google');
   });
 
@@ -97,11 +239,11 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     const { page, stub } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
-    const subSelect = page.locator('#subEnginePickerHost .engine-picker-select');
-    await subSelect.selectOption('google');
-
     await chooseFile(page, page.locator('#sDrop'), files.srt);
     await expect(page.locator('#sWork')).toBeVisible();
+
+    const subSelect = page.locator('#subEnginePickerHost .engine-picker-select');
+    await subSelect.selectOption('google');
 
     stub.clearLog();
     await mouseClick(page, page.locator('#sGo'));
@@ -113,13 +255,15 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     expect(stub.calls('api.mymemory.translated.net')).toHaveLength(0);
   });
 
-  test('unusable engine option is disabled and cannot be picked', async ({ app }) => {
+  test('unusable engine option is disabled and cannot be picked', async ({ app, files }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const select = page.locator('#subEnginePickerHost .engine-picker-select');
     const geminiOpt = select.locator('option[value="gemini"]');
-    await expect(geminiOpt).toBeDisabled();
+    await expect(geminiOpt).toHaveAttribute('disabled', '');
+    expect(await geminiOpt.evaluate(el => el.disabled)).toBe(true);
 
     // Selecting disabled option is rejected by browser
     const canSelect = await page.evaluate(() => {
@@ -186,11 +330,12 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     });
   });
 
-  test('EN and FA strings display properly on picker elements', async ({ app }) => {
+  test('EN and FA strings display properly on picker elements', async ({ app, files }) => {
     const { page } = app;
 
     // EN mode
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const subHost = page.locator('#subEnginePickerHost .engine-picker');
     await expect(subHost.locator('.engine-picker-label-text')).toHaveText('Translate with');
     await expect(subHost.locator('.engine-picker-select option[value="auto"]')).toContainText('Auto (your order in Settings)');
@@ -206,12 +351,13 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     await expect(subHost.locator('.engine-picker-keys-link')).toHaveText('دریافت مدل‌ها / کلیدها');
   });
 
-  test('RTL layout has no overflow at 360 px and 1280 px', async ({ app }) => {
+  test('RTL layout has no overflow at 360 px and 1280 px', async ({ app, files }) => {
     const { page } = app;
 
     // Switch to Persian RTL
     await page.locator('#uiLang').click();
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
 
     // Check at 1280 px
     await page.setViewportSize({ width: 1280, height: 900 });

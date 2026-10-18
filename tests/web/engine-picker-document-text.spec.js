@@ -7,6 +7,26 @@
 
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
 
+function createTestWav(durationSec = 0.25, sampleRate = 16000) {
+  const numSamples = Math.floor(durationSec * sampleRate);
+  const dataSize = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write('WAVE', 8);
+  buf.write('fmt ', 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(dataSize, 40);
+  return buf;
+}
+
 test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
 
   test('picker exists and is in sync in Text, Document, Subtitle, and Media and survives reload', async ({ app, files }) => {
@@ -31,8 +51,46 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     const subHost = page.locator('#subEnginePickerHost .engine-picker');
     await expect(subHost).toBeVisible();
 
-    // 4. Check Media tab
+    // 4. Check Media tab (load audio fixture and transcribe with fake worker so media picker is unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await page.evaluate(() => {
+      window.MediaTranslate.host.engine = {
+        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
+        workerFactory: function () {
+          const self = {
+            onmessage: null,
+            onerror: null,
+            postMessage: function (data) {
+              const { id, cmd } = data || {};
+              setTimeout(() => {
+                if (!self.onmessage) return;
+                if (cmd === 'init') {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                } else if (cmd === 'load') {
+                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
+                } else if (cmd === 'asr') {
+                  self.onmessage({ data: { id, ok: true, res: { text: 'ok', chunks: [{ text: 'ok', timestamp: [0, 0.2] }], lang: 'en' } } });
+                } else {
+                  self.onmessage({ data: { id, ok: true, res: true } });
+                }
+              }, 10);
+            },
+            terminate: function () {}
+          };
+          return self;
+        }
+      };
+    });
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'sample.wav',
+      mimeType: 'audio/wav',
+      buffer: createTestWav(0.2, 16000)
+    });
+    const transcribeBtn = page.locator('#tab-media .mt-transcribe');
+    await expect(transcribeBtn).toBeVisible();
+    await mouseClick(page, transcribeBtn);
+
     const mediaHost = page.locator('.mt-engine-picker-host .engine-picker');
     await expect(mediaHost).toBeVisible();
 

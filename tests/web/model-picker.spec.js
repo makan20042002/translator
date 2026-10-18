@@ -5,11 +5,31 @@
  * ITEM 3: Model-level picker next to the engine picker and Media speech model selector.
  */
 
-const { test, expect, mouseClick, onlyEngines } = require('../support/fixtures');
+const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
+
+function createTestWav(durationSec = 0.25, sampleRate = 16000) {
+  const numSamples = Math.floor(durationSec * sampleRate);
+  const dataSize = numSamples * 2;
+  const buf = Buffer.alloc(44 + dataSize);
+  buf.write('RIFF', 0);
+  buf.writeUInt32LE(36 + dataSize, 4);
+  buf.write('WAVE', 8);
+  buf.write('fmt ', 12);
+  buf.writeUInt32LE(16, 16);
+  buf.writeUInt16LE(1, 20); // PCM
+  buf.writeUInt16LE(1, 22); // mono
+  buf.writeUInt32LE(sampleRate, 24);
+  buf.writeUInt32LE(sampleRate * 2, 28);
+  buf.writeUInt16LE(2, 32);
+  buf.writeUInt16LE(16, 34);
+  buf.write('data', 36);
+  buf.writeUInt32LE(dataSize, 40);
+  return buf;
+}
 
 test.describe('Model-level Picker (ITEM 3)', () => {
 
-  test('Gemini model change in the picker equals the value in Settings and survives reload', async ({ app }) => {
+  test('Gemini model change in the picker equals the value in Settings and survives reload', async ({ app, files }) => {
     const { page, errors } = app;
 
     // Seed Gemini key so Gemini is usable
@@ -26,6 +46,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
 
     // Go to Subtitle tab
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     await expect(picker).toBeVisible();
 
@@ -52,6 +73,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     // Reload page and verify it survives reload
     await page.reload();
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const pickerReloaded = page.locator('#subEnginePickerHost .engine-picker');
     const modelSelectReloaded = pickerReloaded.locator('.engine-picker-model-select');
     await expect(modelSelectReloaded).toBeVisible();
@@ -60,7 +82,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('Ollama list from stubbed /api/tags fills the select, and unreachable Ollama shows "not running"', async ({ app }) => {
+  test('Ollama list from stubbed /api/tags fills the select, and unreachable Ollama shows "not running"', async ({ app, files }) => {
     const { page, errors } = app;
 
     // Stub Ollama API on network level
@@ -85,6 +107,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const engineSelect = picker.locator('.engine-picker-select');
     await engineSelect.selectOption('ollama');
@@ -107,7 +130,8 @@ test.describe('Model-level Picker (ITEM 3)', () => {
 
     await expect(modelSelect.locator('option')).toHaveCount(1);
     const notRunningOpt = modelSelect.locator('option').first();
-    await expect(notRunningOpt).toBeDisabled();
+    await expect(notRunningOpt).toHaveAttribute('disabled', '');
+    expect(await notRunningOpt.evaluate(el => el.disabled)).toBe(true);
     const optText = await notRunningOpt.textContent();
     expect(optText.toLowerCase()).toContain('not running');
 
@@ -118,7 +142,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('offline: choosing M2M in the picker changes Hub choice and host.getTranslateChoice, not-downloaded models disabled', async ({ app }) => {
+  test('offline: choosing M2M in the picker changes Hub choice and host.getTranslateChoice, not-downloaded models disabled', async ({ app, files }) => {
     const { page, errors } = app;
 
     // Mock MC.cache so NLLB and M2M are ready, but mBART is not
@@ -134,6 +158,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const engineSelect = picker.locator('.engine-picker-select');
     await engineSelect.selectOption('nllb');
@@ -146,9 +171,10 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     const m2mOpt = modelSelect.locator('option[value="tr-m2m100-418"]');
     const mbartOpt = modelSelect.locator('option[value="tr-mbart50-large"]');
 
-    await expect(nllbOpt).toBeEnabled();
-    await expect(m2mOpt).toBeEnabled();
-    await expect(mbartOpt).toBeDisabled();
+    await expect(nllbOpt).not.toHaveAttribute('disabled');
+    await expect(m2mOpt).not.toHaveAttribute('disabled');
+    await expect(mbartOpt).toHaveAttribute('disabled', '');
+    expect(await mbartOpt.evaluate(el => el.disabled)).toBe(true);
 
     // Licence note check for NLLB
     const nllbText = await nllbOpt.textContent();
@@ -195,16 +221,13 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await expect(page.locator('#tab-media')).toBeVisible();
 
-    // Supply a mock file so transcribe card opens
-    await page.evaluate(() => {
-      const file = new File(['fake audio binary'], 'test-audio.mp3', { type: 'audio/mp3' });
-      const dt = new DataTransfer();
-      dt.items.add(file);
-      const input = document.querySelector('.mt-file-input');
-      if (input) {
-        input.files = dt.files;
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      }
+    // Supply a valid wav file so transcribe card opens
+    const wavBuffer = createTestWav(0.2, 16000);
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'sample.wav',
+      mimeType: 'audio/wav',
+      buffer: wavBuffer
     });
 
     const asrCard = page.locator('.mt-asr');
@@ -218,9 +241,11 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     const smallOpt = speechSel.locator('option[value="small"]');
     const turboOpt = speechSel.locator('option[value="large-v3-turbo"]');
 
-    await expect(tinyOpt).toBeEnabled();
-    await expect(smallOpt).toBeDisabled();
-    await expect(turboOpt).toBeDisabled();
+    await expect(tinyOpt).not.toHaveAttribute('disabled');
+    await expect(smallOpt).toHaveAttribute('disabled', '');
+    await expect(turboOpt).toHaveAttribute('disabled', '');
+    expect(await smallOpt.evaluate(el => el.disabled)).toBe(true);
+    expect(await turboOpt.evaluate(el => el.disabled)).toBe(true);
 
     // Get link to Hub should be visible because there are unready sizes
     const hubLink = asrCard.locator('.mt-asr-model-hub-link');
@@ -239,7 +264,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     expect(errors).toEqual([]);
   });
 
-  test('picker UI works with EN and FA strings, RTL at 360px and 1280px', async ({ app }) => {
+  test('picker UI works with EN and FA strings, RTL at 360px and 1280px', async ({ app, files }) => {
     const { page, errors } = app;
 
     // Set viewport to 1280px
@@ -247,6 +272,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
 
     // Open Subtitle tab
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     await expect(picker).toBeVisible();
 
