@@ -5,7 +5,7 @@ This list was written from what the code uses. Where a licence was not checked i
 ## Used by the app at run time
 | Part | What for | Licence |
 |---|---|---|
-| Whisper (OpenAI) models: Tiny, Base, Small via `Xenova/whisper-*`, Large v3 Turbo via `onnx-community/whisper-large-v3-turbo` | speech to text | MIT (Whisper). The converted ONNX copies on Hugging Face: check each model page |
+| Whisper (OpenAI) models: Tiny, Base, Small via `Xenova/whisper-*`, Large v3 Turbo via `onnx-community/whisper-large-v3-turbo`, Large v3 via `onnx-community/whisper-large-v3-ONNX`, Distil Large v3 via `distil-whisper/distil-large-v3` | speech to text | MIT (Whisper). The converted ONNX copies on Hugging Face: check each model page |
 | Transformers.js (`@huggingface/transformers` 3.8.1, loaded from jsDelivr) | runs the models in the browser | Apache-2.0 |
 | NLLB-200 distilled 600M (`Xenova/nllb-200-distilled-600M`) | offline translation | CC BY-NC 4.0, NON-COMMERCIAL use only |
 | M2M-100 418M (`Xenova/m2m100_418M`) | offline translation | MIT |

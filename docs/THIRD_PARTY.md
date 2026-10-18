@@ -32,16 +32,24 @@ This repository bundles and vendors the following third-party software:
 - **Link**: https://github.com/rastikerdar/vazirmatn
 
 ## Whisper Models (OpenAI)
-- **Project**: Whisper Speech Recognition Models (Tiny, Base, Small via `Xenova/whisper-*`, Large v3 Turbo via `onnx-community/whisper-large-v3-turbo`)
+- **Project**: Whisper Speech Recognition Models (Tiny, Base, Small via `Xenova/whisper-*`, Large v3 Turbo via `onnx-community/whisper-large-v3-turbo`, Large v3 via `onnx-community/whisper-large-v3-ONNX`, Distil Large v3 via `distil-whisper/distil-large-v3`)
 - **Licence**: MIT (Whisper). Converted ONNX checkpoints on Hugging Face (see respective model cards).
 - **Link**: https://github.com/openai/whisper
 - **Usage**: Transcribing speech to text in the Voice tab and Media tab.
 
-## Distil-Whisper Large v3 (English Only)
-- **Project**: Whisper Distil Large v3 (`distil-whisper/distil-large-v3`)
+### Whisper Large v3 (Full)
+- **Name**: Whisper Large v3
+- **Repository**: `onnx-community/whisper-large-v3-ONNX`
+- **Licence**: Apache-2.0 (original OpenAI model; repo tag not shown)
+- **Source**: https://huggingface.co/onnx-community/whisper-large-v3-ONNX
+- **Usage**: High-accuracy speech recognition across 99 languages in the Voice and Media tabs.
+
+### Whisper Distil Large v3 (English Only, Fast)
+- **Name**: Whisper Distil Large v3 (English only, fast)
+- **Repository**: `distil-whisper/distil-large-v3`
 - **Licence**: MIT
-- **Link**: https://huggingface.co/distil-whisper/distil-large-v3
-- **Usage**: Lightweight English-only speech recognition in the Voice tab and Media tab.
+- **Source**: https://huggingface.co/distil-whisper/distil-large-v3
+- **Usage**: Lightweight English-only speech recognition in the Voice and Media tabs.
 
 ## Transformers.js
 - **Project**: Transformers.js (`@huggingface/transformers` 3.8.1)
