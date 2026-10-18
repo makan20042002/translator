@@ -278,7 +278,7 @@ Object.assign(I18N.en,{
     </tr>
     <tr>
       <td style="padding:6px"><strong>Strong PC</strong><br>(16 GB+ RAM / WebGPU)</td>
-      <td style="padding:6px"><strong>Whisper Large v3 Turbo</strong><br>(1.0 GB download, 3.3 GB RAM) or <strong>Whisper Small</strong></td>
+      <td style="padding:6px"><strong>Whisper Large v3</strong> (most accurate, needs about 3 GB download on the graphics card path, slower than Turbo on the processor), <strong>Whisper Large v3 Turbo</strong><br>(1.0 GB download, 3.3 GB RAM) or <strong>Whisper Small</strong></td>
       <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB download, 4.1 GB RAM) or local Ollama</td>
       <td style="padding:6px">~1.9 GB</td>
       <td style="padding:6px">None.</td>
@@ -547,7 +547,7 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
     </tr>
     <tr>
       <td style="padding:6px"><strong>رایانه قدرتمند</strong><br>(۱۶ گیگابایت رم به بالا / WebGPU)</td>
-      <td style="padding:6px"><strong>Whisper Large v3 Turbo</strong><br>(1.0 GB دانلود، 3.3 GB رم) یا <strong>Whisper Small</strong></td>
+      <td style="padding:6px"><strong>Whisper Large v3</strong> (دقیق‌ترین، در مسیر کارت گرافیک به حدود ۳ گیگابایت دانلود نیاز دارد، روی پردازنده کندتر از Turbo است)، <strong>Whisper Large v3 Turbo</strong><br>(1.0 GB دانلود، 3.3 GB رم) یا <strong>Whisper Small</strong></td>
       <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB دانلود، 4.1 GB رم) یا Ollama محلی</td>
       <td style="padding:6px">حدود 1.9 GB</td>
       <td style="padding:6px">بدون محدودیت خاص.</td>

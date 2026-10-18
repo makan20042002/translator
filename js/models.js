@@ -447,7 +447,7 @@ function renderModelHub(){
 
 function checkHeavyModelHint(m){
   if(!m)return;
-  const isHeavy=(m.memMB&&m.memMB>=3000)||m.id==='asr-large-v3-turbo'||m.key==='large-v3-turbo';
+  const isHeavy=(m.memMB&&m.memMB>=3000)||m.id==='asr-large-v3-turbo'||m.key==='large-v3-turbo'||m.id==='asr-large-v3'||m.key==='large-v3';
   if(isHeavy){
     const hint=L('heavyModelHint')||'This model requires several GB of free memory. A smaller model is more reliable on devices with limited RAM.';
     if(typeof toast==='function')toast(hint,'warn',7000);

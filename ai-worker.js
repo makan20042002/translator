@@ -7,9 +7,12 @@ env.allowLocalModels = false;            // models come from the Hugging Face hu
 const DEFAULT_TR = { repo: 'Xenova/nllb-200-distilled-600M', kind: 'nllb' };
 const OLD_GPU = { encoder_model: 'fp32', decoder_model_merged: 'q4' };
 const TURBO_GPU = { encoder_model: 'fp16', decoder_model_merged: 'q4' };
-const defaultAsr = name => name === 'large-v3-turbo'
-  ? { repo: 'onnx-community/whisper-large-v3-turbo', gpu: TURBO_GPU }
-  : { repo: 'Xenova/whisper-' + name, gpu: name === 'base' || name === 'small' ? OLD_GPU : null };
+const LARGE_V3_GPU = { encoder_model: 'fp16', decoder_model_merged: 'fp16' };
+const defaultAsr = name => {
+  if (name === 'large-v3-turbo') return { repo: 'onnx-community/whisper-large-v3-turbo', gpu: TURBO_GPU };
+  if (name === 'large-v3') return { repo: 'onnx-community/whisper-large-v3-ONNX', gpu: LARGE_V3_GPU };
+  return { repo: 'Xenova/whisper-' + name, gpu: name === 'base' || name === 'small' ? OLD_GPU : null };
+};
 
 const loaded = {};
 const REPO_OK = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;     // owner/name only, nothing else is ever fetched

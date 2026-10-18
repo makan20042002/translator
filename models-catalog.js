@@ -292,6 +292,52 @@ self.MODEL_CATALOG = {
    "webgpu": "optional"
   },
   {
+   "repo": "onnx-community/whisper-large-v3-ONNX",
+   "name": "Whisper Large v3",
+   "rec": true,
+   "gpu": {
+    "encoder_model": "fp16",
+    "decoder_model_merged": "fp16"
+   },
+   "gpuVerified": false,
+   "good": {
+    "en": "Best accuracy, slower than Turbo.",
+    "fa": "بهترین دقت، کندتر از Turbo."
+   },
+   "langs": {
+    "en": "99 languages (Persian, Arabic, Turkish, German, French, Spanish, Russian and more)",
+    "fa": "۹۹ زبان (فارسی، عربی، ترکی، آلمانی، فرانسوی، اسپانیایی، روسی و ...)"
+   },
+   "id": "asr-large-v3",
+   "key": "large-v3",
+   "kind": "whisper",
+   "job": "listen",
+   "files": [
+    [
+     "onnx/encoder_model_quantized.onnx",
+     645000000
+    ],
+    [
+     "onnx/decoder_model_merged_quantized.onnx",
+     1180000000
+    ]
+   ],
+   "bytes": 1825000000,
+   "memMB": 4000,
+   "gpuBytes": 3090000000,
+   "gpuFiles": [
+    [
+     "onnx/encoder_model_fp16.onnx",
+     1270000000
+    ],
+    [
+     "onnx/decoder_model_merged_fp16.onnx",
+     1820000000
+    ]
+   ],
+   "webgpu": "optional"
+  },
+  {
    "id": "tr-nllb-600",
    "kind": "nllb",
    "repo": "Xenova/nllb-200-distilled-600M",
