@@ -9,7 +9,7 @@ const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../suppor
 
 test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
 
-  test('picker exists and is in sync in Text, Document, Subtitle, and Media and survives reload', async ({ app }) => {
+  test('picker exists and is in sync in Text, Document, Subtitle, and Media and survives reload', async ({ app, files }) => {
     const { page, errors } = app;
 
     // 1. Check existence in Text tab
@@ -25,8 +25,9 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     await expect(docHost.locator('.engine-picker-select')).toBeVisible();
     await expect(docHost.locator('.engine-picker-test-btn')).toBeVisible();
 
-    // 3. Check Subtitle tab
+    // 3. Check Subtitle tab (load subtitle file first so file workspace and picker are unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const subHost = page.locator('#subEnginePickerHost .engine-picker');
     await expect(subHost).toBeVisible();
 
@@ -73,17 +74,13 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
 
     await expect(page.locator('#tOut')).not.toHaveValue('', { timeout: 15_000 });
 
-    const requests = stub.getLog();
     // Verify google request was made
-    const googleReqs = requests.filter(r => r.url.includes('translate.googleapis.com'));
-    expect(googleReqs.length).toBeGreaterThan(0);
+    const googleCalls = stub.calls('translate.googleapis.com').concat(stub.calls('clients5.google.com'));
+    expect(googleCalls.length).toBeGreaterThan(0);
 
     // Verify no requests were made to Gemini or MyMemory
-    const geminiReqs = requests.filter(r => r.url.includes('generativelanguage.googleapis.com'));
-    expect(geminiReqs.length).toBe(0);
-
-    const mymemoryReqs = requests.filter(r => r.url.includes('api.mymemory.translated.net'));
-    expect(mymemoryReqs.length).toBe(0);
+    expect(stub.calls('generativelanguage.googleapis.com')).toHaveLength(0);
+    expect(stub.calls('api.mymemory.translated.net')).toHaveLength(0);
   });
 
   test('Document tab translates with chosen engine only and shows notice for non-AI engine', async ({ app, files, stub }) => {
@@ -95,27 +92,27 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     // Pick google (non-AI engine)
     await docPicker.selectOption('google');
 
-    // Notice that notes and subject-aware translation need an AI engine is visible
-    const notice = page.locator('#docEngineNotice');
-    await expect(notice).toBeVisible();
-
     stub.clearLog();
 
     // Translate small .txt file
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await expect(page.locator('#dWork')).toBeVisible();
+
+    // Notice that notes and subject-aware translation need an AI engine is visible once file workspace is open
+    const notice = page.locator('#docEngineNotice');
+    await expect(notice).toBeVisible();
+
     await mouseClick(page, page.locator('#dGo'));
 
     await expect(page.locator('#dSave')).toBeEnabled({ timeout: 25_000 });
     await expect(page.locator('#dProgText')).toContainText(/Done|تمام شد/i);
 
     // Verify only google was requested
-    const requests = stub.getLog();
-    const googleReqs = requests.filter(r => r.url.includes('translate.googleapis.com'));
-    expect(googleReqs.length).toBeGreaterThan(0);
+    const googleCalls = stub.calls('translate.googleapis.com').concat(stub.calls('clients5.google.com'));
+    expect(googleCalls.length).toBeGreaterThan(0);
 
-    const otherAiReqs = requests.filter(r => r.url.includes('generativelanguage.googleapis.com') || r.url.includes('api.anthropic.com'));
-    expect(otherAiReqs.length).toBe(0);
+    expect(stub.calls('generativelanguage.googleapis.com')).toHaveLength(0);
+    expect(stub.calls('api.anthropic.com')).toHaveLength(0);
 
     // Now test with small docx
     stub.clearLog();
@@ -125,8 +122,7 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     await mouseClick(page, page.locator('#dGo'));
 
     await expect(page.locator('#dSave')).toBeEnabled({ timeout: 25_000 });
-    const docxRequests = stub.getLog();
-    const docxGoogle = docxRequests.filter(r => r.url.includes('translate.googleapis.com'));
+    const docxGoogle = stub.calls('translate.googleapis.com').concat(stub.calls('clients5.google.com'));
     expect(docxGoogle.length).toBeGreaterThan(0);
   });
 

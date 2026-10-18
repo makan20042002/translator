@@ -46,9 +46,8 @@ test.describe('App boot and tabs stability: no page errors', () => {
         const docPicker = page.locator('#docEnginePickerHost .engine-picker');
         await expect(docPicker, 'Document tab engine picker should be mounted').toBeVisible();
         const docEngineText = page.locator('#docEngineText');
-        await expect(docEngineText).toBeVisible();
-        const docText = await docEngineText.textContent();
-        expect(docText).not.toContain('??');
+        await expect(docEngineText).not.toHaveText('');
+        await expect(docEngineText).not.toContainText('??');
       } else if (tabName === 'cmp') {
         const checks = page.locator('#cmpEngines .eng-check');
         const count = await checks.count();
@@ -100,7 +99,6 @@ test.describe('App boot and tabs stability: no page errors', () => {
     await expect(pickerSelect).toBeVisible();
 
     const engineText = page.locator('#docEngineText');
-    await expect(engineText).toBeVisible();
     await expect(engineText).not.toHaveText('');
     await expect(engineText).not.toContainText('??');
 
