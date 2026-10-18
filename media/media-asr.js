@@ -251,6 +251,8 @@
                 segments.push({ s: offset + t0, e: offset + Math.max(t0, t1), text: text });
               });
               if (!lang && res.lang) lang = res.lang;
+              if (res.device) device = res.device;
+              if (res.gpuNote) gpuNote = res.gpuNote;
               done = wi + 1;
               report('asr', done / plan.length, Math.min(wi + 1, plan.length - 1));
               break;

@@ -11,7 +11,7 @@ export const WHISPER = [
     good: { en: 'First size that handles Persian, Arabic and Turkish properly. The best balance of accuracy and waiting time for most people.', fa: 'اولین اندازه‌ای که فارسی، عربی و ترکی را درست تشخیص می‌دهد. برای بیشتر کاربران بهترین تعادل دقت و زمان انتظار.' } },
   { key: 'medium', repo: 'Xenova/whisper-medium', name: 'Whisper Medium', rec: true, gpu: null,
     good: { en: 'More accurate than Small, but slow and heavy on memory. Use it when Small makes mistakes.', fa: 'دقیق‌تر از Small ولی کند و پرمصرف از نظر حافظه. وقتی Small اشتباه می‌کند.' } },
-  { key: 'large-v3-turbo', repo: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper Large v3 Turbo', rec: true, gpu: null,
+  { key: 'large-v3-turbo', repo: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper Large v3 Turbo', rec: true, gpu: 'turbo',
     good: { en: 'Best accuracy offered here. Large download, and slow without WebGPU: best for short clips when Small makes mistakes.', fa: 'بهترین دقت در این فهرست. دانلود بزرگ و بدون WebGPU کند است: برای کلیپ‌های کوتاه، وقتی Small اشتباه می‌کند.' } }
 ].map(m => ({ ...m, langs: WHISPER_LANGS }));
 

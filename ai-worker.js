@@ -6,11 +6,17 @@ env.allowLocalModels = false;            // models come from the Hugging Face hu
 // Used when the page does not say which model it wants (older pages): the original two models.
 const DEFAULT_TR = { repo: 'Xenova/nllb-200-distilled-600M', kind: 'nllb' };
 const OLD_GPU = { encoder_model: 'fp32', decoder_model_merged: 'q4' };
-const defaultAsr = name => ({ repo: 'Xenova/whisper-' + name, gpu: name === 'base' || name === 'small' ? OLD_GPU : null });
+const TURBO_GPU = { encoder_model: 'fp16', decoder_model_merged: 'q4' };
+const defaultAsr = name => name === 'large-v3-turbo'
+  ? { repo: 'onnx-community/whisper-large-v3-turbo', gpu: TURBO_GPU }
+  : { repo: 'Xenova/whisper-' + name, gpu: name === 'base' || name === 'small' ? OLD_GPU : null };
 
 const loaded = {};
 const REPO_OK = /^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/;     // owner/name only, nothing else is ever fetched
 const checkRepo = spec => { if (!spec || !REPO_OK.test(spec.repo)) throw new Error('unknown model'); return spec; };
+function gpuRepo(spec) {
+  return typeof spec.gpuRepo === 'string' && REPO_OK.test(spec.gpuRepo) ? spec.gpuRepo : spec.repo;
+}
 const progress = (p, repo) => postMessage({ type: 'progress', p, repo });
 
 async function evictExcept(keepRepo) {
@@ -45,9 +51,9 @@ const getAsr = async (spec, forceWasm = false) => {
 
   if (!forceWasm && spec.gpu) {
     try {
-      return (loaded[key] = await pipeline('automatic-speech-recognition', model, {
+      return (loaded[key] = await pipeline('automatic-speech-recognition', gpuRepo(spec), {
         device: 'webgpu',
-        dtype: spec.gpu,
+        dtype: typeof spec.gpu === 'boolean' ? 'fp32' : spec.gpu,
         progress_callback: p => progress(p, model)
       }));
     } catch (gpuErr) {

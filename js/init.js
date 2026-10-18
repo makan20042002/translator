@@ -40,12 +40,15 @@
   function getMediaWhisperChoice() {
     const m = (typeof asrModel === 'function') ? asrModel() : null;
     if (!m) return null;
+    const hasGpu = Boolean(m.gpu || m.webgpu === 'optional');
     return {
       repo: m.repo,
       name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
       memMB: m.memMB || 1000,
       ready: (typeof mcReady === 'function') ? mcReady(m) : false,
-      gpu: getMediaWhisperGpu(m)
+      gpu: getMediaWhisperGpu(m) ? (m.gpu || true) : false,
+      gpuVariant: m.gpu || null,
+      hasGpuVariant: hasGpu
     };
   }
 

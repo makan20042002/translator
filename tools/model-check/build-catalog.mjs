@@ -62,7 +62,17 @@ for (const w of WHISPER) {
     const sz = await sizes(w.repo);
     const small = e.files.filter(([f]) => !f.endsWith('.onnx'));
     e.gpu = { encoder_model: 'fp32', decoder_model_merged: 'q4' };
-    e.gpuBytes = small.reduce((a, [, b]) => a + b, 0) + OLD_GPU.reduce((a, f) => a + sz[f], 0);
+    e.gpuBytes = small.reduce((a, [, b]) => a + b, 0) + OLD_GPU.reduce((a, f) => a + (sz[f] || 0), 0);
+    e.gpuFiles = [...small, ...OLD_GPU.map(f => [f, sz[f] || 0])];
+    e.webgpu = 'optional';
+  } else if (w.gpu === 'turbo') {
+    const sz = await sizes(w.repo);
+    const small = e.files.filter(([f]) => !f.endsWith('.onnx'));
+    const TURBO_GPU = ['onnx/encoder_model_fp16.onnx', 'onnx/decoder_model_merged_q4.onnx'];
+    e.gpu = { encoder_model: 'fp16', decoder_model_merged: 'q4' };
+    e.gpuVerified = false;
+    e.gpuBytes = small.reduce((a, [, b]) => a + b, 0) + TURBO_GPU.reduce((a, f) => a + (sz[f] || 0), 0);
+    e.gpuFiles = [...small, ...TURBO_GPU.map(f => [f, sz[f] || 0])];
     e.webgpu = 'optional';
   } else { e.gpu = null; e.webgpu = 'none'; }
   delete e.memBy; models.push(e);

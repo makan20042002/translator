@@ -523,7 +523,8 @@
         var eng = host.engine || {};
         asr.ctl = ASR.create({ libUrl: eng.libUrl, workerFactory: eng.workerFactory });
       }
-      var spec = { repo: ch.repo, gpu: ch.gpu || null, gpuRepo: ch.gpuRepo || null };
+      var specGpu = ch.gpu || (ch.hasGpuVariant ? (ch.gpuVariant || true) : null);
+      var spec = { repo: ch.repo, gpu: specGpu || null, gpuRepo: ch.gpuRepo || null };
       var samples = dec.result.samples;
       asr.ctl.run({
         samples: samples,
@@ -536,7 +537,15 @@
             asr.device = meta.device || asr.device;
             asr.threads = (typeof meta.threads === 'number') ? meta.threads : asr.threads;
             asr.crossOriginIsolated = (typeof meta.crossOriginIsolated === 'boolean') ? meta.crossOriginIsolated : asr.crossOriginIsolated;
-            asr.gpuNote = meta.gpuNote || asr.gpuNote || '';
+            var note = meta.gpuNote || asr.gpuNote || '';
+            if (!note && asr.device !== 'webgpu' && (ch.hasGpuVariant || ch.gpuVariant || ch.gpu)) {
+              if (ch.gpuFilesReady === false) {
+                note = (host.getLang && host.getLang() === 'fa') ? 'فایل‌های GPU دانلود نشده‌اند' : 'GPU files not downloaded';
+              } else if (!self.navigator || !self.navigator.gpu) {
+                note = 'WebGPU is not available here';
+              }
+            }
+            asr.gpuNote = note;
             render();
           }
           if (typeof host.onModelUsed === 'function') {
@@ -565,7 +574,7 @@
           asr.device = res.device;
           asr.threads = (typeof res.threads === 'number') ? res.threads : asr.threads;
           asr.crossOriginIsolated = (typeof res.crossOriginIsolated === 'boolean') ? res.crossOriginIsolated : asr.crossOriginIsolated;
-          asr.gpuNote = res.gpuNote || '';
+          asr.gpuNote = (res && res.gpuNote) || asr.gpuNote || '';
           asr.windows = res.windows;
           asr.windowsDone = res.windowsDone;
           asr.status = 'ready';
@@ -581,7 +590,7 @@
             asr.device = part.device;
             asr.threads = (typeof part.threads === 'number') ? part.threads : asr.threads;
             asr.crossOriginIsolated = (typeof part.crossOriginIsolated === 'boolean') ? part.crossOriginIsolated : asr.crossOriginIsolated;
-            asr.gpuNote = part.gpuNote || '';
+            asr.gpuNote = (part && part.gpuNote) || asr.gpuNote || '';
             asr.windows = part.windows;
             asr.windowsDone = part.windowsDone;
           }

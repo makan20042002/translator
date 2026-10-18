@@ -205,7 +205,11 @@ self.MODEL_CATALOG = {
    "repo": "onnx-community/whisper-large-v3-turbo",
    "name": "Whisper Large v3 Turbo",
    "rec": true,
-   "gpu": null,
+   "gpu": {
+    "encoder_model": "fp16",
+    "decoder_model_merged": "q4"
+   },
+   "gpuVerified": false,
    "good": {
     "en": "Best accuracy offered here. Large download, and slow without WebGPU: best for short clips when Small makes mistakes.",
     "fa": "بهترین دقت در این فهرست. دانلود بزرگ و بدون WebGPU کند است: برای کلیپ‌های کوتاه، وقتی Small اشتباه می‌کند."
@@ -254,7 +258,38 @@ self.MODEL_CATALOG = {
    "ran": {
     "downloadedMB": 1037
    },
-   "webgpu": "none"
+   "gpuBytes": 1611258854,
+   "gpuFiles": [
+    [
+     "tokenizer.json",
+     2480617
+    ],
+    [
+     "config.json",
+     1332
+    ],
+    [
+     "preprocessor_config.json",
+     340
+    ],
+    [
+     "generation_config.json",
+     3897
+    ],
+    [
+     "tokenizer_config.json",
+     282843
+    ],
+    [
+     "onnx/encoder_model_fp16.onnx",
+     1274342603
+    ],
+    [
+     "onnx/decoder_model_merged_q4.onnx",
+     334147222
+    ]
+   ],
+   "webgpu": "optional"
   },
   {
    "id": "tr-nllb-600",

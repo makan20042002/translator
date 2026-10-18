@@ -43,7 +43,11 @@ function mcReady(m){
   if(!rec&&!mcLegacy(m))return false;
   if(mcCache===null)return true;           // storage could not be read: trust the saved flag
   const r=mcCache[m.repo];
-  return !!r&&(!rec||rec.files.every(f=>r.files.has(f)));
+  if(!r||(rec&&!rec.files.every(f=>r.files.has(f))))return false;
+  if(typeof hasWebGpu!=='undefined'&&hasWebGpu&&m.gpu&&m.gpuFiles&&m.gpuFiles.length){
+    if(!m.gpuFiles.every(f=>r.files.has(f[0])))return false;
+  }
+  return true;
 }
 // What this model takes up in browser storage (a voice shares its repository with other voices, so only its own files count).
 const mcBytes=m=>{const r=mcCache?.[m.repo];if(!r)return 0;return m.kind==='piper'?m.files.reduce((a,f)=>a+(r.files.get(f[0])||0),0):r.bytes};

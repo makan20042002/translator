@@ -221,7 +221,9 @@ self.onmessage = async ({ data }) => {
             c && c.timestamp && c.timestamp[1] != null ? c.timestamp[1] : null
           ]
         })),
-        lang: lang || null
+        lang: lang || null,
+        device: devices[spec.repo] || devices[spec.repo + '_wasm'] || 'wasm',
+        gpuNote: spec.gpu ? gpuNotes[spec.repo] || '' : ''
       };
       post({ type: 'asr', id, frac: 1 });
     } else if (cmd === 'unload') {
