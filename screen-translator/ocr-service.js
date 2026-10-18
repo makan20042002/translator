@@ -10,6 +10,15 @@ const fs = require('fs');
 const path = require('path');
 const { spawn, execFile } = require('child_process');
 
+function buildPythonEnv(extraEnv = {}) {
+  return {
+    ...process.env,
+    PYTHONUTF8: '1',
+    PYTHONIOENCODING: 'utf-8',
+    ...extraEnv
+  };
+}
+
 class OcrService {
   constructor(options = {}) {
     this.rootDir = options.rootDir || path.resolve(__dirname, '..');
@@ -107,7 +116,7 @@ class OcrService {
     if (rapidBridge) {
       try {
         const out = await new Promise((resolve) => {
-          execFile('python', [rapidBridge, '--test'], { encoding: 'utf8', timeout: 4000 }, (err, stdout) => {
+          execFile('python', [rapidBridge, '--test'], { encoding: 'utf8', timeout: 4000, env: buildPythonEnv() }, (err, stdout) => {
             if (err) return resolve('');
             resolve(stdout || '');
           });
@@ -390,7 +399,7 @@ class OcrService {
         }
       }
 
-      const proc = spawn('python', args, { stdio: ['pipe', 'pipe', 'pipe'] });
+      const proc = spawn('python', args, { stdio: ['pipe', 'pipe', 'pipe'], env: buildPythonEnv() });
       let stdout = '';
       let stderr = '';
 
@@ -426,4 +435,4 @@ class OcrService {
   }
 }
 
-module.exports = { OcrService };
+module.exports = { OcrService, buildPythonEnv };

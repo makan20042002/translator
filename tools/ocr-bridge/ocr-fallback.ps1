@@ -4,6 +4,9 @@ param(
     [switch]$ListLanguages
 )
 
+[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+$OutputEncoding = [System.Text.Encoding]::UTF8
+
 [Windows.Media.Ocr.OcrEngine, Windows.Foundation, ContentType = WindowsRuntime] | Out-Null
 [Windows.Globalization.Language, Windows.Foundation, ContentType = WindowsRuntime] | Out-Null
 

@@ -10,6 +10,23 @@ import json
 import io
 import re
 
+# Force UTF-8 encoding on standard streams if supported
+if hasattr(sys.stdout, 'reconfigure'):
+    try:
+        sys.stdout.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if hasattr(sys.stderr, 'reconfigure'):
+    try:
+        sys.stderr.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+if hasattr(sys.stdin, 'reconfigure'):
+    try:
+        sys.stdin.reconfigure(encoding='utf-8', errors='replace')
+    except Exception:
+        pass
+
 def is_arabic_script(text):
     if not text:
         return False
@@ -38,10 +55,10 @@ def main():
     if len(sys.argv) > 1 and sys.argv[1] == '--test':
         try:
             from rapidocr_onnxruntime import RapidOCR
-            print(json.dumps({"ok": True, "available": True, "engine": "rapidocr-onnx"}))
+            print(json.dumps({"ok": True, "available": True, "engine": "rapidocr-onnx"}, ensure_ascii=True))
             return
         except Exception as e:
-            print(json.dumps({"ok": False, "available": False, "error": str(e)}))
+            print(json.dumps({"ok": False, "available": False, "error": str(e)}, ensure_ascii=True))
             return
 
     # Parse arguments
@@ -98,7 +115,7 @@ def main():
             "modelNotDownloaded": True,
             "modelId": "ocr-rapid-arabic",
             "installationGuidance": "Open Engines & keys > Offline > OCR & Screen Reading, and click Download next to 'RapidOCR Arabic & Persian (PP-OCRv3)'."
-        }))
+        }, ensure_ascii=True))
         return
 
     # Initialize RapidOCR engine
@@ -112,7 +129,7 @@ def main():
             ocr_kwargs['Rec'] = rec_conf
         engine = RapidOCR(**ocr_kwargs)
     except Exception as e:
-        print(json.dumps({"ok": False, "error": f"RapidOCR/ONNX initialization failed: {e}"}))
+        print(json.dumps({"ok": False, "error": f"RapidOCR/ONNX initialization failed: {e}"}, ensure_ascii=True))
         return
 
     # Read image input
@@ -121,27 +138,27 @@ def main():
         try:
             img_data = sys.stdin.buffer.read()
         except Exception as e:
-            print(json.dumps({"ok": False, "error": f"Failed to read image from stdin: {e}"}))
+            print(json.dumps({"ok": False, "error": f"Failed to read image from stdin: {e}"}, ensure_ascii=True))
             return
     elif img_path:
         if not os.path.exists(img_path):
-            print(json.dumps({"ok": False, "error": f"Image file not found: {img_path}"}))
+            print(json.dumps({"ok": False, "error": f"Image file not found: {img_path}"}, ensure_ascii=True))
             return
         try:
             with open(img_path, 'rb') as f:
                 img_data = f.read()
         except Exception as e:
-            print(json.dumps({"ok": False, "error": f"Failed to read image file: {e}"}))
+            print(json.dumps({"ok": False, "error": f"Failed to read image file: {e}"}, ensure_ascii=True))
             return
 
     if not img_data or len(img_data) == 0:
-        print(json.dumps({"ok": True, "text": "", "lines": [], "engine": "rapidocr"}))
+        print(json.dumps({"ok": True, "text": "", "lines": [], "engine": "rapidocr"}, ensure_ascii=True))
         return
 
     try:
         result, elapse = engine(img_data)
         if not result:
-            print(json.dumps({"ok": True, "text": "", "lines": [], "engine": "rapidocr", "elapse": elapse}))
+            print(json.dumps({"ok": True, "text": "", "lines": [], "engine": "rapidocr", "elapse": elapse}, ensure_ascii=True))
             return
 
         lines = []
@@ -171,9 +188,9 @@ def main():
             "language": lang if lang != 'auto' else ('fa' if is_arabic_script(full_text) else 'en'),
             "isRtl": is_arabic_script(full_text),
             "elapse": elapse
-        }, ensure_ascii=False))
+        }, ensure_ascii=True))
     except Exception as e:
-        print(json.dumps({"ok": False, "error": f"RapidOCR recognition failed: {e}"}))
+        print(json.dumps({"ok": False, "error": f"RapidOCR recognition failed: {e}"}, ensure_ascii=True))
 
 if __name__ == '__main__':
     main()
