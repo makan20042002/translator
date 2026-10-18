@@ -345,4 +345,33 @@ test.describe('Web App: Bug Report Dialog & Diagnostics (ITEM 1)', () => {
     await expect(creditsBox).toBeHidden();
   });
 
+  test('mock window.makanDesktop without isDesktop gives Windows Desktop App: no, and with isDesktop: true gives yes', async ({ app }) => {
+    const { page } = app;
+
+    // 1. Injected mock without isDesktop === true gives 'no'
+    await page.evaluate(() => {
+      window.makanDesktop = { someOtherHelper: () => {} };
+    });
+
+    await mouseClick(page, page.locator('#creditsBtn'));
+    await mouseClick(page, page.locator('#aboutBugReportBtn'));
+
+    const previewWithout = await page.locator('#bugDiagPreview').textContent();
+    expect(previewWithout).toContain('Windows Desktop App: no');
+
+    await page.keyboard.press('Escape');
+
+    // 2. Injected mock with isDesktop === true gives 'yes'
+    await page.evaluate(() => {
+      window.makanDesktop = { isDesktop: true };
+    });
+
+    await mouseClick(page, page.locator('#aboutBugReportBtn'));
+    const previewWith = await page.locator('#bugDiagPreview').textContent();
+    expect(previewWith).toContain('Windows Desktop App: yes');
+
+    await page.keyboard.press('Escape');
+    await page.keyboard.press('Escape');
+  });
+
 });

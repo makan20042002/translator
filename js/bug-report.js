@@ -106,7 +106,7 @@
     if (downloaded.length === 0) downloaded.push('none');
 
     var hasWebGpu = (typeof navigator !== 'undefined' && !!navigator.gpu) ? 'yes' : 'no';
-    var isDesktop = (typeof window !== 'undefined' && !!window.makanDesktop) ? 'yes' : 'no';
+    var isDesktop = (typeof window !== 'undefined' && window.makanDesktop && window.makanDesktop.isDesktop === true) ? 'yes' : 'no';
 
     return [
       'App Version: ' + version,
