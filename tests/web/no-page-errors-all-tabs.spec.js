@@ -49,7 +49,7 @@ test.describe('App boot and tabs stability: no page errors', () => {
         await expect(docEngineText).not.toHaveText('');
         await expect(docEngineText).not.toContainText('??');
       } else if (tabName === 'cmp') {
-        const checks = page.locator('#cmpEngines .eng-check');
+        const checks = page.locator('#cEng input[type=checkbox]');
         const count = await checks.count();
         expect(count, 'Compare tab should build engine checkboxes').toBeGreaterThan(0);
       }
