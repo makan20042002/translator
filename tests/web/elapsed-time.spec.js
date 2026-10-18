@@ -1,29 +1,7 @@
 'use strict';
 
 const { test, expect, mouseClick } = require('../support/fixtures');
-
-/**
- * Creates a valid 16 kHz mono PCM WAV Buffer of given duration.
- */
-function createTestWav(durationSec = 0.25, sampleRate = 16000) {
-  const numSamples = Math.floor(durationSec * sampleRate);
-  const dataSize = numSamples * 2;
-  const buf = Buffer.alloc(44 + dataSize);
-  buf.write('RIFF', 0);
-  buf.writeUInt32LE(36 + dataSize, 4);
-  buf.write('WAVE', 8);
-  buf.write('fmt ', 12);
-  buf.writeUInt32LE(16, 16);
-  buf.writeUInt16LE(1, 20); // PCM
-  buf.writeUInt16LE(1, 22); // mono
-  buf.writeUInt32LE(sampleRate, 24);
-  buf.writeUInt32LE(sampleRate * 2, 28);
-  buf.writeUInt16LE(2, 32);
-  buf.writeUInt16LE(16, 34);
-  buf.write('data', 36);
-  buf.writeUInt32LE(dataSize, 40);
-  return buf;
-}
+const { fakeMediaTranscription, createTestWav } = require('../support/model-helpers');
 
 test.describe('Elapsed time formatting and done message indicators (ITEM 2)', () => {
 
@@ -169,6 +147,8 @@ test.describe('Elapsed time formatting and done message indicators (ITEM 2)', ()
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await expect(page.locator('#tab-media')).toBeVisible();
 
+    await fakeMediaTranscription(page);
+
     await page.evaluate(() => {
       let fakeTime = 2000000;
       Date.now = () => fakeTime;
@@ -176,56 +156,12 @@ test.describe('Elapsed time formatting and done message indicators (ITEM 2)', ()
       // Mock translateCues on host to advance clock by 61 seconds
       window.MediaTranslate.host.translateCues = async (cues, opts) => {
         fakeTime += 61000;
-        opts.onInfo?.({ name: 'Google', kind: 'online', model: '' });
+        opts?.onInfo?.({ name: 'Google', kind: 'online', model: '' });
         return cues.map(c => ({ s: c.s, e: c.e, o: c.o, t: 'Translated text' }));
       };
     });
 
-    // Provide existing cues so Translation card is shown
-    await page.evaluate(() => {
-      const handle = window.__mtHandle; // or trigger through dummy cues
-      // Trigger transcription to populate cues
-      window.MediaTranslate.host.getWhisperChoice = () => ({
-        repo: 'Xenova/whisper-tiny',
-        name: 'Whisper Tiny',
-        memMB: 500,
-        ready: true,
-        gpu: false
-      });
-      window.MediaTranslate.host.engine = {
-        libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
-        workerFactory: function () {
-          const self = {
-            onmessage: null,
-            onerror: null,
-            postMessage: function (data) {
-              const { id, cmd } = data || {};
-              setTimeout(() => {
-                if (!self.onmessage) return;
-                if (cmd === 'init' || cmd === 'load') {
-                  self.onmessage({ data: { id, ok: true, res: { device: 'wasm', threads: 1 } } });
-                } else if (cmd === 'asr') {
-                  self.onmessage({
-                    data: {
-                      id, ok: true,
-                      res: {
-                        text: 'Line 1',
-                        chunks: [{ text: 'Line 1', timestamp: [0, 0.2] }],
-                        lang: 'en'
-                      }
-                    }
-                  });
-                }
-              }, 10);
-            },
-            terminate: function () {}
-          };
-          return self;
-        }
-      };
-    });
-
-    const wavBuffer = createTestWav(0.2, 16000);
+    const wavBuffer = createTestWav(3.0, 16000);
     const fileInput = page.locator('#tab-media .mt-file-input');
     await fileInput.setInputFiles({
       name: 'sample-tr-timer.wav',
@@ -238,13 +174,13 @@ test.describe('Elapsed time formatting and done message indicators (ITEM 2)', ()
     await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
 
     // Now start translation
-    const trCard = page.locator('#tab-media .mt-tr-card');
+    const trCard = page.locator('#tab-media .mt-tr');
     await expect(trCard).toBeVisible();
 
     const trTgtSel = page.locator('#tab-media .mt-tr-tgt');
     await trTgtSel.selectOption('fa');
 
-    const translateBtn = page.locator('#tab-media .mt-tr-start');
+    const translateBtn = page.locator('#tab-media .mt-translate');
     await expect(translateBtn).toBeEnabled();
     await mouseClick(page, translateBtn);
 
