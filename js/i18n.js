@@ -310,7 +310,128 @@ Object.assign(I18N.en,{
 <p><strong>What the report contains:</strong> app version, interface language, operating system and browser version, active tab, translation mode, names of enabled translation engines, offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 error messages (with any keys, tokens, or queries redacted).</p>
 <p><strong>What the report NEVER contains:</strong> API keys or authorization tokens, custom server URLs, your source or translated text, file names or paths, and translation history.</p>
 <h4>8. Choosing the translation engine</h4>
-<p>In the Subtitle and Media tabs, you can select between <strong>Auto</strong> (tries your configured engine chain from Settings with silent fallback on failure) or <strong>a specific engine</strong> (translates only with that engine, displaying plain error reasons without fallback). Each engine displays its status: <em>ready</em>, <em>needs a key</em>, <em>not downloaded</em>, or <em>offline mode blocks it</em>. Chrome on-device translation is not supported in the Windows desktop app (Electron) and is honestly omitted from the auto chain. Click <strong>Test</strong> to translate a sample sentence with your chosen engine to verify connectivity and measure latency without affecting your history.</p>`
+<p>In the Subtitle and Media tabs, you can select between <strong>Auto</strong> (tries your configured engine chain from Settings with silent fallback on failure) or <strong>a specific engine</strong> (translates only with that engine, displaying plain error reasons without fallback). Each engine displays its status: <em>ready</em>, <em>needs a key</em>, <em>not downloaded</em>, or <em>offline mode blocks it</em>. Chrome on-device translation is not supported in the Windows desktop app (Electron) and is honestly omitted from the auto chain. Click <strong>Test</strong> to translate a sample sentence with your chosen engine to verify connectivity and measure latency without affecting your history.</p>
+<h4>9. Where each engine works</h4>
+<div class="table-scroll-wrap" style="overflow-x:auto;max-width:100%;margin:10px 0;">
+<table class="help-table engine-matrix-table" style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0;">
+  <thead>
+    <tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:start;padding:6px;color:var(--text)">Engine</th>
+      <th style="text-align:center;padding:6px;color:var(--text)">Web app in Chrome</th>
+      <th style="text-align:center;padding:6px;color:var(--text)">Web app in Edge</th>
+      <th style="text-align:center;padding:6px;color:var(--text)">Web app in Firefox or Safari</th>
+      <th style="text-align:center;padding:6px;color:var(--text)">Windows app</th>
+      <th style="text-align:center;padding:6px;color:var(--text)">Extension</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="gemini">
+      <td style="padding:6px;color:var(--text)"><strong>Gemini</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="openrouter">
+      <td style="padding:6px;color:var(--text)"><strong>OpenRouter</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="mistral">
+      <td style="padding:6px;color:var(--text)"><strong>Mistral</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="cerebras">
+      <td style="padding:6px;color:var(--text)"><strong>Cerebras</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="openai">
+      <td style="padding:6px;color:var(--text)"><strong>OpenAI</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="claude">
+      <td style="padding:6px;color:var(--text)"><strong>Claude</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">needs key</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">needs key</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="ollama">
+      <td style="padding:6px;color:var(--text)"><strong>Ollama</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs OLLAMA_ORIGINS">needs OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs OLLAMA_ORIGINS">needs OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs OLLAMA_ORIGINS">needs OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">yes</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="custom">
+      <td style="padding:6px;color:var(--text)"><strong>LM Studio / custom</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">yes</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="chrome">
+      <td style="padding:6px;color:var(--text)"><strong>Chrome on-device</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="not verified">not verified</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="no">no</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="no">no</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">no</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="google">
+      <td style="padding:6px;color:var(--text)"><strong>Google web</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">yes</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="mymemory">
+      <td style="padding:6px;color:var(--text)"><strong>MyMemory</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">yes</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">yes</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="nllb">
+      <td style="padding:6px;color:var(--text)"><strong>NLLB / M2M / mBART / OPUS-MT offline</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">no</td>
+    </tr>
+    <tr data-engine="whisper">
+      <td style="padding:6px;color:var(--text)"><strong>Whisper</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="firefox" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs download">needs download</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">no</td>
+    </tr>
+  </tbody>
+</table>
+</div>`
 });
 Object.assign(I18N.fa,{
  tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',tabAppearance:'ظاهر و تم',themeH:'تم رنگی',themeNote:'از بین ۷ تم طراحی‌شده انتخاب کنید. تغییرات فوراً اعمال می‌شوند.',
@@ -458,7 +579,129 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
 <p><strong>اطلاعات موجود در گزارش:</strong> نسخه برنامه، زبان رابط کاربری، سیستم‌عامل و نسخه مرورگر، تب فعال، حالت ترجمه، نام موتورهای فعال، وضعیت حالت آفلاین، نام مدل‌های آفلاین دانلودشده، وضعیت WebGPU، مشخص بودن اجرا در برنامه ویندوز، و حداکثر ۵ خطای اخیر رخ‌داده (با سانسور کامل هرگونه کلید، توکن یا آدرس سرور).</p>
 <p><strong>اطلاعاتی که هرگز ارسال نمی‌شوند:</strong> کلیدهای API یا توکن‌های امنیتی، آدرس سرورهای سفارشی، متن مبدأ یا ترجمه‌شده شما، نام و مسیر فایل‌ها، و تاریخچه ترجمه‌ها.</p>
 <h4>۸. انتخاب موتور ترجمه</h4>
-<p>در تب‌های زیرنویس و رسانه می‌توانید بین <strong>خودکار (Auto)</strong> (بررسی موتورها به ترتیب تنظیمات شما با جایگزینی خودکار در صورت خطا) یا <strong>یک موتور خاص</strong> (ترجمه فقط با همان موتور و نمایش مستقیم علت خطا بدون تغییر خودکار) انتخاب کنید. هر موتور وضعیت خود را نشان می‌دهد: <em>آماده</em>، <em>کلید لازم دارد</em>، <em>دانلود نشده</em>، یا <em>حالت آفلاین مانع آن است</em>. مترجم روی دستگاه کروم در برنامه ویندوز (Electron) پشتیبانی نمی‌شود و صادقانه از زنجیره خودکار حذف می‌گردد. با زدن دکمه <strong>آزمایش</strong> می‌توانید یک جمله نمونه را بدون تغییر تاریخچه آزمایش کرده و زمان پاسخ‌دهی را مشاهده نمایید.</p>`
+<p>در تب‌های متن، اسناد، زیرنویس و رسانه می‌توانید بین <strong>خودکار (Auto)</strong> (بررسی موتورها به ترتیب تنظیمات شما با جایگزینی خودکار در صورت خطا) یا <strong>یک موتور خاص</strong> (ترجمه فقط با همان موتور و نمایش مستقیم علت خطا بدون تغییر خودکار) انتخاب کنید. هر موتور وضعیت خود را نشان می‌دهد: <em>آماده</em>، <em>کلید لازم دارد</em>، <em>دانلود نشده</em>، یا <em>حالت آفلاین مانع آن است</em>. مترجم روی دستگاه کروم در برنامه ویندوز (Electron) پشتیبانی نمی‌شود و صادقانه از زنجیره خودکار حذف می‌گردد. با زدن دکمه <strong>آزمایش</strong> می‌توانید یک جمله نمونه را بدون تغییر تاریخچه آزمایش کرده و زمان پاسخ‌دهی را مشاهده نمایید.</p>
+<h4>۹. جدول سازگاری موتورهای ترجمه</h4>
+<p>راهنمای دسترسی به هر موتور در محیط‌های مختلف کاربری. ارزش‌ها مستقیماً بر اساس قوانین واقعی سیستم تعیین شده‌اند.</p>
+<div class="table-scroll-wrap" style="overflow-x:auto;max-width:100%;margin:8px 0;-webkit-overflow-scrolling:touch">
+<table class="help-table" style="width:100%;border-collapse:collapse;font-size:12px;min-width:540px;color:var(--text)">
+  <thead>
+    <tr style="border-bottom:1px solid var(--border)">
+      <th style="text-align:start;padding:6px">موتور</th>
+      <th style="text-align:center;padding:6px">وب در Chrome</th>
+      <th style="text-align:center;padding:6px">وب در Edge</th>
+      <th style="text-align:center;padding:6px">وب در Firefox / Safari</th>
+      <th style="text-align:center;padding:6px">برنامه ویندوز</th>
+      <th style="text-align:center;padding:6px">افزونه مرورگر</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="gemini">
+      <td style="padding:6px"><strong>Gemini</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="openrouter">
+      <td style="padding:6px"><strong>OpenRouter</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="mistral">
+      <td style="padding:6px"><strong>Mistral</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="cerebras">
+      <td style="padding:6px"><strong>Cerebras</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="openai">
+      <td style="padding:6px"><strong>OpenAI</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="claude">
+      <td style="padding:6px"><strong>Claude</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs key">نیاز به کلید (needs key)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="needs key">نیاز به کلید (needs key)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="ollama">
+      <td style="padding:6px"><strong>Ollama</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs OLLAMA_ORIGINS">نیاز به OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs OLLAMA_ORIGINS">نیاز به OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs OLLAMA_ORIGINS">نیاز به OLLAMA_ORIGINS</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">بله (yes)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="custom">
+      <td style="padding:6px"><strong>LM Studio / سرور سفارشی</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">بله (yes)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="chrome">
+      <td style="padding:6px"><strong>Chrome روی دستگاه (Translator API)</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="not verified">تأیید نشده (not verified)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="no">خیر (no)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="no">خیر (no)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">خیر (no)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="google">
+      <td style="padding:6px"><strong>Google وب</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">بله (yes)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="mymemory">
+      <td style="padding:6px"><strong>MyMemory</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="yes">بله (yes)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="yes">بله (yes)</td>
+    </tr>
+    <tr style="border-bottom:1px solid var(--border2)" data-engine="nllb">
+      <td style="padding:6px"><strong>مدل‌های محلی NLLB / M2M / mBART / OPUS-MT</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">خیر (no)</td>
+    </tr>
+    <tr data-engine="whisper">
+      <td style="padding:6px"><strong>Whisper (تشخیص گفتار)</strong></td>
+      <td style="padding:6px;text-align:center" data-col="chrome" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="edge" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="other-browsers" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="windows" data-value="needs download">نیاز به دانلود (needs download)</td>
+      <td style="padding:6px;text-align:center" data-col="ext" data-value="no">خیر (no)</td>
+    </tr>
+  </tbody>
+</table>
+</div>`
 });
 const ensureMediaI18n = () => {
   if (typeof window !== 'undefined' && window.MediaTranslate && window.MediaTranslate.i18n) {

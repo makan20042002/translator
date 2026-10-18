@@ -242,12 +242,136 @@
 
     <!-- Toast Notifications Container -->
     <div class="opt-toasts" id="optToasts"></div>
-    <!-- Dictionary pairs that are not inside the extension: downloaded from the web app's address on demand -->
-    <div class="opt-card" id="cardDictPacks">
-      <h2 id="secDictPacks">More dictionaries</h2>
-      <p class="opt-sub" id="dictPacksNote"></p>
-      <div id="dictPackRows"></div>
+    <!-- Engine Compatibility Matrix (Short Version) -->
+    <div class="opt-card" id="cardEngineMatrix">
+      <div class="opt-card-head">
+        <div>
+          <h2 id="secEngineMatrix">Where Each Engine Works</h2>
+          <p class="opt-sub" id="subEngineMatrix">Compatibility reference across MAKAN environments (Web App, Windows App, Extension).</p>
+        </div>
+      </div>
+      <div style="overflow-x:auto;max-width:100%;margin-top:12px;">
+        <table class="opt-table" id="tableEngineMatrix" style="width:100%;border-collapse:collapse;font-size:12px;min-width:540px;color:var(--text)">
+          <thead>
+            <tr style="border-bottom:1px solid var(--border);text-align:left;">
+              <th style="padding:6px 8px;">Engine</th>
+              <th style="padding:6px 8px;text-align:center;">Web (Chrome)</th>
+              <th style="padding:6px 8px;text-align:center;">Web (Edge)</th>
+              <th style="padding:6px 8px;text-align:center;">Web (Firefox/Safari)</th>
+              <th style="padding:6px 8px;text-align:center;">Windows App</th>
+              <th style="padding:6px 8px;text-align:center;">Extension</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="gemini">
+              <td style="padding:6px 8px;"><strong>Gemini</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="openrouter">
+              <td style="padding:6px 8px;"><strong>OpenRouter</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="mistral">
+              <td style="padding:6px 8px;"><strong>Mistral</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="cerebras">
+              <td style="padding:6px 8px;"><strong>Cerebras</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="openai">
+              <td style="padding:6px 8px;"><strong>OpenAI</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="claude">
+              <td style="padding:6px 8px;"><strong>Claude</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+              <td style="padding:6px 8px;text-align:center;">needs key</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="ollama">
+              <td style="padding:6px 8px;"><strong>Ollama</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs OLLAMA_ORIGINS</td>
+              <td style="padding:6px 8px;text-align:center;">needs OLLAMA_ORIGINS</td>
+              <td style="padding:6px 8px;text-align:center;">needs OLLAMA_ORIGINS</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="custom">
+              <td style="padding:6px 8px;"><strong>LM Studio / custom</strong></td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="chrome">
+              <td style="padding:6px 8px;"><strong>Chrome on-device</strong></td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">not verified</td>
+              <td style="padding:6px 8px;text-align:center;">no</td>
+              <td style="padding:6px 8px;text-align:center;">no</td>
+              <td style="padding:6px 8px;text-align:center;">no</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="google">
+              <td style="padding:6px 8px;"><strong>Google web</strong></td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="mymemory">
+              <td style="padding:6px 8px;"><strong>MyMemory</strong></td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+              <td style="padding:6px 8px;text-align:center;">yes</td>
+            </tr>
+            <tr style="border-bottom:1px solid var(--border2);" data-engine="nllb">
+              <td style="padding:6px 8px;"><strong>NLLB / M2M / mBART / OPUS-MT</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">no</td>
+            </tr>
+            <tr data-engine="whisper">
+              <td style="padding:6px 8px;"><strong>Whisper</strong></td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">needs download</td>
+              <td style="padding:6px 8px;text-align:center;">no</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
+
     <!-- Credits for the offline dictionary data -->
     <div class="opt-card" id="cardCredits">
       <h2 id="secCredits">About &amp; credits</h2>

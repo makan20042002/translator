@@ -193,3 +193,24 @@ In the **Subtitle** and **Media** tabs, the engine picker allows you to decide e
 - **Using the Test Button**:
   - The **Test** button next to the picker quickly verifies your selected engine by translating a sample sentence ("Hello, how are you?") to the active target language. It displays the translation and response time in seconds, or reports the plain failure reason. Testing never modifies your translation history or glossary, and can be cancelled at any time by clicking again.
 
+---
+
+## 8. Where Each Engine Works
+
+| Engine | Web app in Chrome | Web app in Edge | Web app in Firefox or Safari | Windows app | Extension |
+| :--- | :---: | :---: | :---: | :---: | :---: |
+| **Gemini** | needs key | needs key | needs key | needs key | needs key |
+| **OpenRouter** | needs key | needs key | needs key | needs key | needs key |
+| **Mistral** | needs key | needs key | needs key | needs key | needs key |
+| **Cerebras** | needs key | needs key | needs key | needs key | needs key |
+| **OpenAI** | needs key | needs key | needs key | needs key | needs key |
+| **Claude** | needs key | needs key | needs key | needs key | needs key |
+| **Ollama** | needs OLLAMA_ORIGINS | needs OLLAMA_ORIGINS | needs OLLAMA_ORIGINS | yes | yes |
+| **LM Studio / custom** | yes | yes | yes | yes | yes |
+| **Chrome on-device** | yes | not verified | no | no | no |
+| **Google web** | yes | yes | yes | yes | yes |
+| **MyMemory** | yes | yes | yes | yes | yes |
+| **NLLB / M2M / mBART / OPUS-MT offline** | needs download | needs download | needs download | needs download | no |
+| **Whisper** | needs download | needs download | needs download | needs download | no |
+
+

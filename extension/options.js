@@ -64,7 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblVoiceFa: 'Persian Voice (فارسی):',
       lblVoiceEn: 'English Voice:',
       btnTestVoice: 'Test Voice',
-      testingVoice: 'Speaking test…'
+      testingVoice: 'Speaking test…',
+      secEngineMatrix: 'Where Each Engine Works',
+      subEngineMatrix: 'Compatibility reference across MAKAN environments (Web App, Windows App, Extension).'
     },
     fa: {
       dir: 'rtl',
@@ -118,7 +120,9 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblVoiceFa: 'صدای زبان فارسی:',
       lblVoiceEn: 'صدای زبان انگلیسی:',
       btnTestVoice: 'تست صدا',
-      testingVoice: 'در حال پخش تست…'
+      testingVoice: 'در حال پخش تست…',
+      secEngineMatrix: 'جدول سازگاری موتورهای ترجمه',
+      subEngineMatrix: 'راهنمای پشتیبانی موتورها در محیط‌های مختلف (نسخه وب، برنامه ویندوز، افزونه).'
     }
   };
 
@@ -339,6 +343,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (lblVoiceFa) lblVoiceFa.textContent = I18N[lang].lblVoiceFa;
     if (lblVoiceEn) lblVoiceEn.textContent = I18N[lang].lblVoiceEn;
     if (btnTestVoiceText) btnTestVoiceText.textContent = I18N[lang].btnTestVoice;
+    const secEngineMatrix = document.getElementById('secEngineMatrix');
+    const subEngineMatrix = document.getElementById('subEngineMatrix');
+    if (secEngineMatrix) secEngineMatrix.textContent = I18N[lang].secEngineMatrix;
+    if (subEngineMatrix) subEngineMatrix.textContent = I18N[lang].subEngineMatrix;
   }
 
   // Populate Languages Dropdown
