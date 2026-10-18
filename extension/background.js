@@ -30,6 +30,24 @@ let firefoxStreamAbortController = null;
 let currentPlaybackQueue = null;
 let pendingChunkResolve = null;
 
+// In-memory ring buffer for last 5 background error messages (diagnostics)
+const bgErrorRing = [];
+function recordBgError(err) {
+  if (!err) return;
+  const msg = typeof err === 'string' ? err : (err.message || String(err));
+  const redact = (typeof ENG !== 'undefined' && ENG.redactDiagnosticsText) || (s => s);
+  const clean = redact(msg).trim();
+  if (!clean) return;
+  const time = new Date().toTimeString().slice(0, 8);
+  bgErrorRing.push('[' + time + '] ' + clean);
+  if (bgErrorRing.length > 5) bgErrorRing.shift();
+}
+
+if (typeof self !== 'undefined') {
+  self.addEventListener('error', e => recordBgError(e.message || e.error));
+  self.addEventListener('unhandledrejection', e => recordBgError(e.reason));
+}
+
 function broadcastTtsState(payload) {
   try {
     chrome.runtime.sendMessage({ target: 'makan-ui', action: 'tts-state-update', ...payload }).catch(() => {});
@@ -521,6 +539,10 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
 
     if (req.action === 'get-public-config') {
       return { ok: true, cfg: publicConfig(cfg) };
+    }
+
+    if (req.action === 'get-recent-errors') {
+      return { ok: true, errors: bgErrorRing.slice() };
     }
 
     if (req.action === 'open-in-app') {

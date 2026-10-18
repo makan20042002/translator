@@ -956,6 +956,139 @@ document.addEventListener('DOMContentLoaded', async () => {
     catch { toast('Could not copy automatically; the report is shown in the console.', 'warn'); console.log(text); }
   };
 
+  // Bug report helper for extension
+  function getAppAddressHost(raw) {
+    const val = String(raw || 'http://127.0.0.1:50505').trim().replace(/\/+$/, '');
+    if (val === 'http://127.0.0.1:50505' || val === '127.0.0.1:50505') {
+      return '127.0.0.1:50505';
+    }
+    return 'custom';
+  }
+
+  function getWebAppUrlHost(raw) {
+    const val = String(raw || 'http://localhost:8080').trim().replace(/\/+$/, '');
+    if (val === 'http://localhost:8080' || val === 'localhost:8080') {
+      return 'localhost:8080';
+    }
+    return 'custom';
+  }
+
+  async function getExtensionErrors() {
+    try {
+      const res = await chrome.runtime.sendMessage({ action: 'get-recent-errors' });
+      if (res && res.ok && Array.isArray(res.errors) && res.errors.length > 0) {
+        return res.errors;
+      }
+    } catch (_) {}
+    try {
+      const st = await chrome.storage.local.get('makan_last_errors');
+      const lastErr = st && st.makan_last_errors;
+      if (lastErr && typeof lastErr === 'object') {
+        const list = [];
+        const redact = (typeof ENG !== 'undefined' && ENG.redactDiagnosticsText) || (s => s);
+        for (const [id, e] of Object.entries(lastErr)) {
+          if (e && e.reason) {
+            list.push(`[${id}] ${redact(e.reason)}`);
+          }
+        }
+        return list.slice(-5);
+      }
+    } catch (_) {}
+    return [];
+  }
+
+  async function buildExtensionBugReport() {
+    let version = '?';
+    try { version = chrome.runtime.getManifest().version; } catch (_) {}
+    if (!version || version === '?') version = (typeof ENG !== 'undefined' && ENG.getAppVersion && ENG.getAppVersion()) || '1.0.0';
+
+    const ua = navigator.userAgent;
+
+    const enabledEngines = [];
+    for (const id of (cfg.order || [])) {
+      const e = (cfg.eng || {})[id] || {};
+      if (e.on !== false) {
+        const info = (typeof ENG !== 'undefined' && ENG[id]) || {};
+        enabledEngines.push(info.name || id);
+      }
+    }
+    if (enabledEngines.length === 0) enabledEngines.push('none');
+
+    const appAddrHost = getAppAddressHost(cfg.appUrl || cfg.appAddress);
+    const webAppHost = getWebAppUrlHost(cfg.webAppUrl);
+
+    const errors = await getExtensionErrors();
+
+    function assemble(errList, isTrunc) {
+      const lines = [];
+      lines.push('MAKAN Translate Bug Report v' + version + ' (Extension)');
+      lines.push('');
+      lines.push('Diagnostics:');
+      lines.push('- Extension Version: ' + version);
+      lines.push('- Browser / OS: ' + ua);
+      lines.push('- Enabled Engines: ' + enabledEngines.join(', '));
+      lines.push('- App Address Host: ' + appAddrHost);
+      lines.push('- Web App URL Host: ' + webAppHost);
+      lines.push('- Recent Errors (last ' + errList.length + '):');
+      if (isTrunc) {
+        lines.push('  [Diagnostics truncated to fit email client limit]');
+      }
+      if (errList.length === 0) {
+        lines.push('  (none recorded)');
+      } else {
+        for (let j = 0; j < errList.length; j++) {
+          lines.push('  ' + (j + 1) + '. ' + errList[j]);
+        }
+      }
+      return lines.join('\n');
+    }
+
+    const errCopy = errors.slice();
+    let isTrunc = false;
+    while (errCopy.length > 0 && assemble(errCopy, isTrunc).length >= 1750) {
+      errCopy.shift();
+      isTrunc = true;
+    }
+    let report = assemble(errCopy, isTrunc);
+    if (report.length > 1780) {
+      report = report.slice(0, 1720) + '\n[Diagnostics truncated to fit email client limit]';
+    }
+    return { version, report };
+  }
+
+  const btnReportBug = document.getElementById('btnReportBug');
+  if (btnReportBug) {
+    btnReportBug.onclick = async () => {
+      const { version, report } = await buildExtensionBugReport();
+      const email = (typeof ENG !== 'undefined' && ENG.BUG_REPORT_EMAIL) || 'makan20042002@gmail.com';
+      const subject = 'MAKAN Translate bug report v' + version;
+      const mailtoUrl = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(report);
+
+      let opened = false;
+      try {
+        const a = document.createElement('a');
+        a.href = mailtoUrl;
+        a.rel = 'noopener';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        opened = true;
+      } catch (_) {}
+
+      if (!opened) {
+        try {
+          if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+            chrome.tabs.create({ url: mailtoUrl });
+            opened = true;
+          }
+        } catch (_) {}
+      }
+
+      toast('Opening email client for bug report...', 'ok');
+    };
+  }
+
   const btnResetSettings = document.getElementById('btnResetSettings');
   let resetArmed = null;
   btnResetSettings.onclick = async () => {

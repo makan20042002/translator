@@ -812,4 +812,109 @@ document.addEventListener('DOMContentLoaded', async () => {
     chrome.tabs.sendMessage(activeTabId, { action: 'page-translate-toggle' }).catch(() => {});
     window.close(); // Close popup so user sees page translation
   };
+
+  // Report a bug link
+  const pReportBugLink = document.getElementById('pReportBugLink');
+  if (pReportBugLink) {
+    pReportBugLink.onclick = async (e) => {
+      e.preventDefault();
+      let version = '?';
+      try { version = chrome.runtime.getManifest().version; } catch (_) {}
+      if (!version || version === '?') version = (typeof ENG !== 'undefined' && ENG.getAppVersion && ENG.getAppVersion()) || '1.0.0';
+
+      const ua = navigator.userAgent;
+
+      const enabledEngines = [];
+      for (const id of (cfg.order || [])) {
+        const engCfg = (cfg.eng || {})[id] || {};
+        if (engCfg.on !== false) {
+          const info = (typeof ENG !== 'undefined' && ENG[id]) || {};
+          enabledEngines.push(info.name || id);
+        }
+      }
+      if (enabledEngines.length === 0) enabledEngines.push('none');
+
+      const appVal = String(cfg.appUrl || cfg.appAddress || 'http://127.0.0.1:50505').trim().replace(/\/+$/, '');
+      const appAddrHost = (appVal === 'http://127.0.0.1:50505' || appVal === '127.0.0.1:50505') ? '127.0.0.1:50505' : 'custom';
+
+      const webVal = String(cfg.webAppUrl || 'http://localhost:8080').trim().replace(/\/+$/, '');
+      const webAppHost = (webVal === 'http://localhost:8080' || webVal === 'localhost:8080') ? 'localhost:8080' : 'custom';
+
+      let errors = [];
+      try {
+        const res = await chrome.runtime.sendMessage({ action: 'get-recent-errors' });
+        if (res && res.ok && Array.isArray(res.errors)) errors = res.errors;
+      } catch (_) {}
+      if (!errors.length) {
+        try {
+          const st = await chrome.storage.local.get('makan_last_errors');
+          const lastErr = st && st.makan_last_errors;
+          if (lastErr && typeof lastErr === 'object') {
+            const redact = (typeof ENG !== 'undefined' && ENG.redactDiagnosticsText) || (s => s);
+            for (const [id, errObj] of Object.entries(lastErr)) {
+              if (errObj && errObj.reason) errors.push(`[${id}] ${redact(errObj.reason)}`);
+            }
+            errors = errors.slice(-5);
+          }
+        } catch (_) {}
+      }
+
+      function assemble(errList, isTrunc) {
+        const lines = [];
+        lines.push('MAKAN Translate Bug Report v' + version + ' (Extension)');
+        lines.push('');
+        lines.push('Diagnostics:');
+        lines.push('- Extension Version: ' + version);
+        lines.push('- Browser / OS: ' + ua);
+        lines.push('- Enabled Engines: ' + enabledEngines.join(', '));
+        lines.push('- App Address Host: ' + appAddrHost);
+        lines.push('- Web App URL Host: ' + webAppHost);
+        lines.push('- Recent Errors (last ' + errList.length + '):');
+        if (isTrunc) lines.push('  [Diagnostics truncated to fit email client limit]');
+        if (errList.length === 0) {
+          lines.push('  (none recorded)');
+        } else {
+          for (let j = 0; j < errList.length; j++) {
+            lines.push('  ' + (j + 1) + '. ' + errList[j]);
+          }
+        }
+        return lines.join('\n');
+      }
+
+      const errCopy = errors.slice();
+      let isTrunc = false;
+      while (errCopy.length > 0 && assemble(errCopy, isTrunc).length >= 1750) {
+        errCopy.shift();
+        isTrunc = true;
+      }
+      let report = assemble(errCopy, isTrunc);
+      if (report.length > 1780) {
+        report = report.slice(0, 1720) + '\n[Diagnostics truncated to fit email client limit]';
+      }
+
+      const email = (typeof ENG !== 'undefined' && ENG.BUG_REPORT_EMAIL) || 'makan20042002@gmail.com';
+      const subject = 'MAKAN Translate bug report v' + version;
+      const mailtoUrl = 'mailto:' + email + '?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(report);
+
+      let opened = false;
+      try {
+        const a = document.createElement('a');
+        a.href = mailtoUrl;
+        a.rel = 'noopener';
+        a.target = '_blank';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        opened = true;
+      } catch (_) {}
+
+      if (!opened) {
+        try {
+          if (typeof chrome !== 'undefined' && chrome.tabs && chrome.tabs.create) {
+            chrome.tabs.create({ url: mailtoUrl });
+          }
+        } catch (_) {}
+      }
+    };
+  }
 });
