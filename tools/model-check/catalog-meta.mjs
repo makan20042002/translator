@@ -14,8 +14,11 @@ export const WHISPER = [
   { key: 'large-v3-turbo', repo: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper Large v3 Turbo', rec: true, gpu: 'turbo',
     good: { en: 'Best accuracy offered here. Large download, and slow without WebGPU: best for short clips when Small makes mistakes.', fa: 'بهترین دقت در این فهرست. دانلود بزرگ و بدون WebGPU کند است: برای کلیپ‌های کوتاه، وقتی Small اشتباه می‌کند.' } },
   { key: 'large-v3', repo: 'onnx-community/whisper-large-v3-ONNX', name: 'Whisper Large v3', rec: true, gpu: 'large-v3',
-    good: { en: 'Best accuracy, slower than Turbo.', fa: 'بهترین دقت، کندتر از Turbo.' } }
-].map(m => ({ ...m, langs: WHISPER_LANGS }));
+    good: { en: 'Best accuracy, slower than Turbo.', fa: 'بهترین دقت، کندتر از Turbo.' } },
+  { key: 'distil-large-v3', repo: 'distil-whisper/distil-large-v3', name: 'Whisper Distil Large v3 (English only, fast)', rec: false, gpu: null,
+    langs: { en: 'English only', fa: 'فقط انگلیسی' },
+    good: { en: 'Fast and lightweight large model, English only.', fa: 'مدل بزرگ سریع و سبک، فقط برای زبان انگلیسی.' } }
+].map(m => ({ ...m, langs: m.langs || WHISPER_LANGS }));
 
 export const TRANSLATE = [
   { id: 'tr-nllb-600', kind: 'nllb', repo: 'Xenova/nllb-200-distilled-600M', name: 'NLLB-200 600M (default)',

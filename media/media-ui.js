@@ -202,6 +202,8 @@
     var asrModelHubLink = $('.mt-asr-model-hub-link');
     var asrModelEl = $('.mt-asr-model');
     var asrWarnEl = $('.mt-asr-warn');
+    var asrEnglishOnlyEl = $('.mt-asr-english-only');
+    var asrSwitchTurboBtn = $('.mt-asr-switch-turbo');
     var asrBtn = $('.mt-transcribe');
     var asrCancelBtn = $('.mt-asr-cancel');
     var asrHubBtn = $('.mt-asr-hub');
@@ -431,6 +433,14 @@
       var heavy = !!ch && ch.memMB >= 3000;
       asrWarnEl.hidden = !heavy;
       asrWarnEl.textContent = heavy ? fmt(host.t('mediaAsrHeavy'), { gb: (ch.memMB / 1000).toFixed(1) }) : '';
+      var isDistil = !!ch && (ch.key === 'distil-large-v3' || ch.id === 'asr-distil-large-v3');
+      var langVal = (asrLang && asrLang.value) || '';
+      var userPickedNonEn = !!(langVal && langVal !== 'en');
+      var autoDetectedNonEn = !langVal && !!(asr.lang && asr.lang !== 'en');
+      var showEnglishOnly = isDistil && (userPickedNonEn || autoDetectedNonEn);
+      if (asrEnglishOnlyEl) {
+        asrEnglishOnlyEl.hidden = !showEnglishOnly;
+      }
       asrLang.disabled = busy;
       asrBtn.hidden = busy;
       asrBtn.disabled = !ch;
@@ -1085,6 +1095,21 @@
     on(asrBtn, 'click', startTranscribe);
     on(asrCancelBtn, 'click', cancelAsr);
     on(asrHubBtn, 'click', function () { if (typeof host.openModelHub === 'function') host.openModelHub(); });
+    if (asrLang) {
+      on(asrLang, 'change', function () {
+        renderAsr();
+      });
+    }
+    if (asrSwitchTurboBtn) {
+      on(asrSwitchTurboBtn, 'click', function (e) {
+        e.preventDefault();
+        if (typeof host.setWhisperChoice === 'function') {
+          host.setWhisperChoice('large-v3-turbo');
+        }
+        if (asrModelSel) asrModelSel.value = 'large-v3-turbo';
+        render();
+      });
+    }
     if (asrModelSel) {
       on(asrModelSel, 'change', function () {
         if (typeof host.setWhisperChoice === 'function') {

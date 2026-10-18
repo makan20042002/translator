@@ -37,6 +37,12 @@ This repository bundles and vendors the following third-party software:
 - **Link**: https://github.com/openai/whisper
 - **Usage**: Transcribing speech to text in the Voice tab and Media tab.
 
+## Distil-Whisper Large v3 (English Only)
+- **Project**: Whisper Distil Large v3 (`distil-whisper/distil-large-v3`)
+- **Licence**: MIT
+- **Link**: https://huggingface.co/distil-whisper/distil-large-v3
+- **Usage**: Lightweight English-only speech recognition in the Voice tab and Media tab.
+
 ## Transformers.js
 - **Project**: Transformers.js (`@huggingface/transformers` 3.8.1)
 - **Licence**: Apache License 2.0

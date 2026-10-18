@@ -34,7 +34,7 @@
     "job": "listen",
     "kind": "whisper",
     "key": "distil-large-v3",
-    "repo": "distil-whisper/distil-large-v3",
+    "repo": "distil-whisper/distil-large-v3-onnx",
     "name": "Distil-Whisper Large v3 (English)",
     "verified": false,
     "note": "name unverified, run tools/verify-model-catalog.js",

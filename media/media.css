@@ -247,6 +247,23 @@
   color: var(--warn, #f5b942);
 }
 
+.mt-asr-english-only {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin: 0 0 8px;
+  padding: 8px 12px;
+  border: 1px solid var(--warn, #f5b942);
+  border-radius: 10px;
+  color: var(--warn, #f5b942);
+}
+
+.mt-asr-english-only[hidden] {
+  display: none;
+}
+
 .mt-asr-device,
 .mt-asr-detected,
 .mt-asr-cues {

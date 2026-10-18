@@ -338,6 +338,37 @@ self.MODEL_CATALOG = {
    "webgpu": "optional"
   },
   {
+   "repo": "distil-whisper/distil-large-v3",
+   "name": "Whisper Distil Large v3 (English only, fast)",
+   "rec": false,
+   "gpu": null,
+   "good": {
+    "en": "Fast and lightweight large model, English only.",
+    "fa": "مدل بزرگ سریع و سبک، فقط برای زبان انگلیسی."
+   },
+   "langs": {
+    "en": "English only",
+    "fa": "فقط انگلیسی"
+   },
+   "id": "asr-distil-large-v3",
+   "key": "distil-large-v3",
+   "kind": "whisper",
+   "job": "listen",
+   "files": [
+    [
+     "onnx/encoder_model_quantized.onnx",
+     645000000
+    ],
+    [
+     "onnx/decoder_model_merged_quantized.onnx",
+     122000000
+    ]
+   ],
+   "bytes": 767000000,
+   "memMB": 2500,
+   "webgpu": "none"
+  },
+  {
    "id": "tr-nllb-600",
    "kind": "nllb",
    "repo": "Xenova/nllb-200-distilled-600M",

@@ -63,6 +63,8 @@
       mediaAsrNoModel: 'No speech model is chosen. Choose one in Model Hub.',
       mediaAsrHeavy:
         'This model needs about {gb} GB of memory. On a computer with little memory it can fail. If it does, choose a smaller model in Model Hub.',
+      mediaAsrEnglishOnly: 'This model is English only.',
+      mediaSwitchTurbo: 'Switch to Turbo',
       mediaAsrStart: 'Transcribe',
       mediaAsrOpenHub: 'Open Model Hub',
       mediaAsrLoading: 'Loading model…',
@@ -248,6 +250,8 @@
       mediaAsrNoModel: 'هیچ مدل گفتاری انتخاب نشده است. یکی را در مرکز مدل‌ها انتخاب کنید.',
       mediaAsrHeavy:
         'این مدل حدود {gb} گیگابایت حافظه لازم دارد. روی رایانه‌ای با حافظه کم ممکن است شکست بخورد. در آن صورت در مرکز مدل‌ها مدل کوچک‌تری انتخاب کنید.',
+      mediaAsrEnglishOnly: 'این مدل فقط برای زبان انگلیسی است.',
+      mediaSwitchTurbo: 'تغییر به مدل Turbo',
       mediaAsrStart: 'شروع تبدیل',
       mediaAsrOpenHub: 'باز کردن مرکز مدل‌ها',
       mediaAsrLoading: 'در حال بارگذاری مدل…',

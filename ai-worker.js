@@ -11,6 +11,7 @@ const LARGE_V3_GPU = { encoder_model: 'fp16', decoder_model_merged: 'fp16' };
 const defaultAsr = name => {
   if (name === 'large-v3-turbo') return { repo: 'onnx-community/whisper-large-v3-turbo', gpu: TURBO_GPU };
   if (name === 'large-v3') return { repo: 'onnx-community/whisper-large-v3-ONNX', gpu: LARGE_V3_GPU };
+  if (name === 'distil-large-v3') return { repo: 'distil-whisper/distil-large-v3', gpu: null };
   return { repo: 'Xenova/whisper-' + name, gpu: name === 'base' || name === 'small' ? OLD_GPU : null };
 };
 
