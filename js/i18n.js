@@ -282,15 +282,15 @@ Object.assign(I18N.en,{
       <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB download, 4.1 GB RAM) or local Ollama</td>
       <td style="padding:6px">~1.9 GB</td>
       <td style="padding:6px">None.</td>
-      <td style="padding:6px">Whisper Large v3 Turbo provides top accuracy; runs fast with WebGPU or desktop GPU.</td>
+      <td style="padding:6px">Whisper Large v3 Turbo provides top accuracy; tries the graphics card first and falls back to the processor when WebGPU is not available.</td>
     </tr>
   </tbody>
 </table>
 </div>
 <h4>3. Minimum &amp; Recommended Hardware</h4>
 <ul>
-  <li><strong>Minimum:</strong> 4 GB RAM · 500 MB free disk space · Modern browser (Chrome 115+, Edge 115+, Firefox 115+) · WebGPU optional · Speed: speed not measured yet · Measured on: [Placeholder - to be filled after timing on test PCs]</li>
-  <li><strong>Recommended:</strong> 8 GB – 16 GB+ RAM · 3 GB – 5 GB free disk space · Chrome/Edge with WebGPU enabled · Speed: speed not measured yet · Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+  <li><strong>Minimum:</strong> 4 GB RAM · 500 MB free disk space · Modern browser (Chrome 115+, Edge 115+, Firefox 115+) · WebGPU optional · Speed: speed not measured yet · Measured on: Not measured yet: the Media tab shows how long each run took</li>
+  <li><strong>Recommended:</strong> 8 GB – 16 GB+ RAM · 3 GB – 5 GB free disk space · Chrome/Edge with WebGPU enabled · Speed: speed not measured yet · Measured on: Not measured yet: the Media tab shows how long each run took</li>
 </ul>
 <h4>4. How to Use &amp; Tips for Weak Systems</h4>
 <p>Downloads from the Model Hub are saved into browser storage (transformers-cache) once and remain available offline. In the Media tab, long audio files are decoded in browser RAM; keep clips under 30–40 min on 8 GB systems. On weak systems, close other background tabs and apps, choose small models (Whisper Tiny / OPUS-MT), or use cloud engines.</p>
@@ -310,7 +310,7 @@ Object.assign(I18N.en,{
 <p><strong>What the report contains:</strong> app version, interface language, operating system and browser version, active tab, translation mode, names of enabled translation engines, offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 error messages (with any keys, tokens, or queries redacted).</p>
 <p><strong>What the report NEVER contains:</strong> API keys or authorization tokens, custom server URLs, your source or translated text, file names or paths, and translation history.</p>
 <h4>8. Choosing the translation engine</h4>
-<p>In the Subtitle and Media tabs, you can select between <strong>Auto</strong> (tries your configured engine chain from Settings with silent fallback on failure) or <strong>a specific engine</strong> (translates only with that engine, displaying plain error reasons without fallback). Each engine displays its status: <em>ready</em>, <em>needs a key</em>, <em>not downloaded</em>, or <em>offline mode blocks it</em>. Chrome on-device translation is not supported in the Windows desktop app (Electron) and is honestly omitted from the auto chain. Click <strong>Test</strong> to translate a sample sentence with your chosen engine to verify connectivity and measure latency without affecting your history.</p>
+<p>In the Text, Subtitle, Document and Media tabs, you can select between <strong>Auto</strong> (tries your configured engine chain from Settings with silent fallback on failure) or <strong>a specific engine</strong> (translates only with that engine, displaying plain error reasons without fallback). When an engine has multiple models, a <strong>Model</strong> selector appears next to it (API models, Ollama/custom models, or downloaded offline models). Each engine displays its status: <em>ready</em>, <em>needs a key</em>, <em>not downloaded</em>, or <em>offline mode blocks it</em>. The Media tab also includes a <strong>Speech model</strong> selector for downloaded Whisper sizes. After completing, the Media and Subtitle tabs report the exact elapsed time (e.g. <em>Done in 12 s</em>). Chrome on-device translation is not supported in the Windows desktop app (Electron) and is honestly omitted from the auto chain. Click <strong>Test</strong> to translate a sample sentence with your chosen engine to verify connectivity and measure latency without affecting your history.</p>
 <h4>9. Where each engine works</h4>
 <div class="table-scroll-wrap" style="overflow-x:auto;max-width:100%;margin:10px 0;">
 <table class="help-table engine-matrix-table" style="width:100%;border-collapse:collapse;font-size:12px;margin:4px 0;">
@@ -551,15 +551,15 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
       <td style="padding:6px"><strong>NLLB-200 600M (default)</strong><br>(870 MB دانلود، 4.1 GB رم) یا Ollama محلی</td>
       <td style="padding:6px">حدود 1.9 GB</td>
       <td style="padding:6px">بدون محدودیت خاص.</td>
-      <td style="padding:6px">مدل Whisper Large v3 Turbo بالاترین دقت را فراهم می‌کند؛ با WebGPU یا کارت گرافیک مجزا بسیار سریع است.</td>
+      <td style="padding:6px">مدل Whisper Large v3 Turbo بالاترین دقت را فراهم می‌کند؛ ابتدا از کارت گرافیک استفاده می‌کند و در صورت عدم پشتیبانی WebGPU به پردازنده برمی‌گردد.</td>
     </tr>
   </tbody>
 </table>
 </div>
 <h4>۳. حداقل و سخت‌افزار پیشنهادی</h4>
 <ul>
-  <li><strong>حداقل سخت‌افزار:</strong> ۴ گیگابایت رم · ۵۰۰ مگابایت فضای خالی دیسک · مرورگرهای مدرن (Chrome 115+, Edge 115+, Firefox 115+) · پشتیبانی از WebGPU اختیاری · سرعت: speed not measured yet · خط ثبت: Measured on: [Placeholder - to be filled after timing on test PCs]</li>
-  <li><strong>سخت‌افزار پیشنهادی:</strong> ۸ تا ۱۶ گیگابایت رم به بالا · ۳ تا ۵ گیگابایت فضای دیسک · کروم یا اج با قابلیت WebGPU · پشتیبانی از WebGPU شدیداً توصیه می‌شود · سرعت: speed not measured yet · خط ثبت: Measured on: [Placeholder - to be filled after timing on test PCs]</li>
+  <li><strong>حداقل سخت‌افزار:</strong> ۴ گیگابایت رم · ۵۰۰ مگابایت فضای خالی دیسک · مرورگرهای مدرن (Chrome 115+, Edge 115+, Firefox 115+) · پشتیبانی از WebGPU اختیاری · سرعت: speed not measured yet · خط ثبت: Measured on: Not measured yet: the Media tab shows how long each run took</li>
+  <li><strong>سخت‌افزار پیشنهادی:</strong> ۸ تا ۱۶ گیگابایت رم به بالا · ۳ تا ۵ گیگابایت فضای دیسک · کروم یا اج با قابلیت WebGPU · پشتیبانی از WebGPU شدیداً توصیه می‌شود · سرعت: speed not measured yet · خط ثبت: Measured on: Not measured yet: the Media tab shows how long each run took</li>
 </ul>
 <h4>۴. نحوه استفاده و نکاتی برای سیستم‌های ضعیف</h4>
 <p>مدل‌ها از مرکز مدل‌ها یک‌بار در حافظه مرورگر دانلود شده و برای همیشه آفلاین می‌مانند. در بخش رسانه، فایل‌های صوتی به طور کامل در رم مرورگر باز می‌شوند؛ برای سیستم‌های ۸ گیگابایتی فایل‌ها را زیر ۳۰ تا ۴۰ دقیقه نگه دارید. در سیستم‌های ضعیف‌تر، تب‌ها و برنامه‌های اضافی را ببندید، کلیپ‌های کوتاه ارسال کنید، یا از مدل‌های سبک (مانند Whisper Tiny یا OPUS-MT) و موتورهای ابری استفاده نمایید.</p>
@@ -579,7 +579,7 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
 <p><strong>اطلاعات موجود در گزارش:</strong> نسخه برنامه، زبان رابط کاربری، سیستم‌عامل و نسخه مرورگر، تب فعال، حالت ترجمه، نام موتورهای فعال، وضعیت حالت آفلاین، نام مدل‌های آفلاین دانلودشده، وضعیت WebGPU، مشخص بودن اجرا در برنامه ویندوز، و حداکثر ۵ خطای اخیر رخ‌داده (با سانسور کامل هرگونه کلید، توکن یا آدرس سرور).</p>
 <p><strong>اطلاعاتی که هرگز ارسال نمی‌شوند:</strong> کلیدهای API یا توکن‌های امنیتی، آدرس سرورهای سفارشی، متن مبدأ یا ترجمه‌شده شما، نام و مسیر فایل‌ها، و تاریخچه ترجمه‌ها.</p>
 <h4>۸. انتخاب موتور ترجمه</h4>
-<p>در تب‌های متن، اسناد، زیرنویس و رسانه می‌توانید بین <strong>خودکار (Auto)</strong> (بررسی موتورها به ترتیب تنظیمات شما با جایگزینی خودکار در صورت خطا) یا <strong>یک موتور خاص</strong> (ترجمه فقط با همان موتور و نمایش مستقیم علت خطا بدون تغییر خودکار) انتخاب کنید. هر موتور وضعیت خود را نشان می‌دهد: <em>آماده</em>، <em>کلید لازم دارد</em>، <em>دانلود نشده</em>، یا <em>حالت آفلاین مانع آن است</em>. مترجم روی دستگاه کروم در برنامه ویندوز (Electron) پشتیبانی نمی‌شود و صادقانه از زنجیره خودکار حذف می‌گردد. با زدن دکمه <strong>آزمایش</strong> می‌توانید یک جمله نمونه را بدون تغییر تاریخچه آزمایش کرده و زمان پاسخ‌دهی را مشاهده نمایید.</p>
+<p>در تب‌های متن، اسناد، زیرنویس و رسانه می‌توانید بین <strong>خودکار (Auto)</strong> (بررسی موتورها به ترتیب تنظیمات شما با جایگزینی خودکار در صورت خطا) یا <strong>یک موتور خاص</strong> (ترجمه فقط با همان موتور و نمایش مستقیم علت خطا بدون تغییر خودکار) انتخاب کنید. در صورت وجود چند مدل برای یک موتور، یک انتخابگر <strong>مدل</strong> در کنار آن ظاهر می‌شود (مدل‌های ابری، مدل‌های Ollama و سرورهای سفارشی، یا مدل‌های آفلاین دانلودشده). هر موتور وضعیت خود را نشان می‌دهد: <em>آماده</em>، <em>کلید لازم دارد</em>، <em>دانلود نشده</em>، یا <em>حالت آفلاین مانع آن است</em>. در کارت تبدیل گفتار بخش رسانه نیز یک انتخابگر <strong>مدل گفتار</strong> برای اندازه‌های دانلودشده Whisper وجود دارد. پس از اتمام کار، تب‌های رسانه و زیرنویس زمان سپری‌شده دقیق را گزارش می‌کنند (مانند <em>انجام شد در 12 ثانیه</em>). مترجم روی دستگاه کروم در برنامه ویندوز (Electron) پشتیبانی نمی‌شود و صادقانه از زنجیره خودکار حذف می‌گردد. با زدن دکمه <strong>آزمایش</strong> می‌توانید یک جمله نمونه را بدون تغییر تاریخچه آزمایش کرده و زمان پاسخ‌دهی را مشاهده نمایید.</p>
 <h4>۹. جدول سازگاری موتورهای ترجمه</h4>
 <p>راهنمای دسترسی به هر موتور در محیط‌های مختلف کاربری. ارزش‌ها مستقیماً بر اساس قوانین واقعی سیستم تعیین شده‌اند.</p>
 <div class="table-scroll-wrap" style="overflow-x:auto;max-width:100%;margin:8px 0;-webkit-overflow-scrolling:touch">
