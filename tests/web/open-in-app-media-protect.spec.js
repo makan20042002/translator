@@ -97,10 +97,11 @@ test.describe('Open in App protects Media tab work without unmounting or reloadi
       buffer: tinyWav
     });
 
-    const fileCard = mediaSection.locator('.mt-file-card');
-    await expect(fileCard).toBeVisible();
-    const fileName = mediaSection.locator('.mt-file-name');
+    const infoCard = mediaSection.locator('.mt-info');
+    await expect(infoCard).toBeVisible();
+    const fileName = infoCard.locator('.mt-info-name');
     await expect(fileName).toHaveText('protected-recording.wav');
+    await expect(infoCard.locator('.mt-info-size')).toBeVisible();
 
     // Verify initial mount count is exactly 1
     const initialMountCount = await page.evaluate(() => window.__mediaMountCount || 1);
@@ -130,8 +131,8 @@ test.describe('Open in App protects Media tab work without unmounting or reloadi
     await expect(mediaSection).toBeVisible();
 
     // 6. Assert Media state is still completely intact:
-    // File card is still visible, file name unchanged, and mount ran exactly once (no remount)
-    await expect(fileCard).toBeVisible();
+    // Info block is still visible, file name unchanged, and mount ran exactly once (no remount)
+    await expect(infoCard).toBeVisible();
     await expect(fileName).toHaveText('protected-recording.wav');
     await expect(rootMounts).toHaveCount(1);
 
