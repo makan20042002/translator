@@ -10,22 +10,28 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
           cfg: onlyEngines(['google', 'mymemory', 'ollama', 'nllb']),
           src: 'en',
           tgt: 'fa',
-          doc_engine: 'mymemory'
+          engine: 'mymemory'
         }
       }
     });
 
     test('seeded doc_engine survives page load, document tab open, and late model refresh', async ({ app }) => {
       const { page } = app;
+      // After load, shared store engine is mymemory
+      const storedAfterLoad = await page.evaluate(() => store.get('engine', ''));
+      expect(storedAfterLoad).toBe('mymemory');
+
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+      const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+      await expect(picker).toHaveValue('mymemory');
 
       // Wait 2 seconds so any late model-list refresh can run
       await page.waitForTimeout(2000);
 
-      const picker = page.locator('#dEngineSel');
       await expect(picker).toHaveValue('mymemory');
 
-      const stored = await page.evaluate(() => store.get('doc_engine', ''));
+      const stored = await page.evaluate(() => store.get('engine', ''));
       expect(stored).toBe('mymemory');
     });
   });
