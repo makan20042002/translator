@@ -195,8 +195,8 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await expect(distilOpt).toHaveCount(1);
 
     // Both should be disabled when not downloaded
-    await expect(largeOpt).toBeDisabled();
-    await expect(distilOpt).toBeDisabled();
+    await expect(largeOpt).toHaveAttribute('disabled', '');
+    await expect(distilOpt).toHaveAttribute('disabled', '');
 
     // Verify Get link is visible when unready models exist
     const hubLink = page.locator('#tab-media .mt-asr-model-hub-link');
