@@ -46,6 +46,13 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     // 2. Media tab (load audio fixture and transcribe with fake worker so media picker is unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await page.evaluate(() => {
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        repo: 'Xenova/whisper-tiny',
+        name: 'Whisper Tiny',
+        memMB: 500,
+        ready: true,
+        gpu: false
+      });
       window.MediaTranslate.host.engine = {
         libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
         workerFactory: function () {
@@ -82,6 +89,7 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtn).toBeVisible();
     await mouseClick(page, transcribeBtn);
+    await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
 
     const mediaHost = page.locator('.mt-engine-picker-host .engine-picker');
     await expect(mediaHost).toBeVisible();
@@ -144,6 +152,13 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     // Check Media tab shows google
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await page.evaluate(() => {
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        repo: 'Xenova/whisper-tiny',
+        name: 'Whisper Tiny',
+        memMB: 500,
+        ready: true,
+        gpu: false
+      });
       window.MediaTranslate.host.engine = {
         libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
         workerFactory: function () {
@@ -180,6 +195,7 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtn).toBeVisible();
     await mouseClick(page, transcribeBtn);
+    await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
 
     const mediaSelect = page.locator('.mt-engine-picker-host .engine-picker-select');
     await expect(mediaSelect).toBeVisible();
@@ -195,6 +211,13 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
 
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await page.evaluate(() => {
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        repo: 'Xenova/whisper-tiny',
+        name: 'Whisper Tiny',
+        memMB: 500,
+        ready: true,
+        gpu: false
+      });
       window.MediaTranslate.host.engine = {
         libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
         workerFactory: function () {
@@ -231,6 +254,7 @@ test.describe('Engine Picker Component (ITEM 2)', () => {
     const transcribeBtnReload = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtnReload).toBeVisible();
     await mouseClick(page, transcribeBtnReload);
+    await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
 
     await expect(page.locator('.mt-engine-picker-host .engine-picker-select')).toHaveValue('google');
   });

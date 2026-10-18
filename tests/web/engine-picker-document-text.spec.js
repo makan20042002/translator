@@ -54,6 +54,13 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     // 4. Check Media tab (load audio fixture and transcribe with fake worker so media picker is unhidden)
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await page.evaluate(() => {
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        repo: 'Xenova/whisper-tiny',
+        name: 'Whisper Tiny',
+        memMB: 500,
+        ready: true,
+        gpu: false
+      });
       window.MediaTranslate.host.engine = {
         libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
         workerFactory: function () {
@@ -90,6 +97,7 @@ test.describe('Engine Picker in Document and Text (ITEM 2)', () => {
     const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await expect(transcribeBtn).toBeVisible();
     await mouseClick(page, transcribeBtn);
+    await expect(page.locator('#tab-media .mt-asr-ok')).toBeVisible();
 
     const mediaHost = page.locator('.mt-engine-picker-host .engine-picker');
     await expect(mediaHost).toBeVisible();
