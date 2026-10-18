@@ -363,32 +363,46 @@ test.describe('Whisper Large v3 Turbo on GPU with safe fallback (ITEM 1)', () =>
     await expect(deviceEl).toContainText('device lost or out of memory');
   });
 
-  test('Hub size for Turbo shows the GPU size when GPU is available', async ({ app }) => {
+  test('Hub size for Turbo shows the GPU size (1.5 GB) when WebGPU is available', async ({ app }) => {
     const { page } = app;
+
+    await page.addInitScript(() => {
+      Object.defineProperty(navigator, 'gpu', {
+        configurable: true,
+        get: () => ({ requestAdapter: async () => ({}) })
+      });
+    });
+    await page.reload();
 
     // Navigate to Models / Hub tab
     await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
     await expect(page.locator('#tab-models')).toBeVisible();
 
-    const sizes = await page.evaluate(async () => {
-      const turbo = window.MODEL_CATALOG.models.find(m => m.id === 'asr-large-v3-turbo');
-      const card = document.querySelector(`.hub-model-card[data-hub-mdl="asr-large-v3-turbo"]`);
-      const meta = card ? card.querySelector('.hub-model-meta')?.textContent : '';
+    const cardMeta = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3-turbo"] .hub-model-meta');
+    await expect(cardMeta).toBeVisible();
+    await expect(cardMeta).toContainText('Download: 1.5 GB');
+  });
 
-      return {
-        hasWebGpu: window.hasWebGpu,
-        turboGpuBytes: turbo?.gpuBytes,
-        turboBytes: turbo?.bytes,
-        cardMeta: meta
-      };
+  test('Hub size for Turbo shows the CPU size (1.0 GB) when WebGPU is unavailable', async ({ app }) => {
+    const { page } = app;
+
+    await page.addInitScript(() => {
+      try { delete Navigator.prototype.gpu; } catch (_) {}
+      try { delete navigator.gpu; } catch (_) {}
+      Object.defineProperty(navigator, 'gpu', {
+        configurable: true,
+        get: () => undefined
+      });
     });
+    await page.reload();
 
-    // When hasWebGpu is true (default in Chromium test environment), dlSize uses gpuBytes (1.5 GB)
-    if (sizes.hasWebGpu) {
-      expect(sizes.cardMeta).toContain('1.5 GB');
-    } else {
-      expect(sizes.cardMeta).toContain('1.0 GB');
-    }
+    // Navigate to Models / Hub tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    await expect(page.locator('#tab-models')).toBeVisible();
+
+    const cardMeta = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3-turbo"] .hub-model-meta');
+    await expect(cardMeta).toBeVisible();
+    await expect(cardMeta).toContainText('Download: 1.0 GB');
   });
 
   test('theme contrast >= 4.5 in light themes, makan-lab unchanged, and RTL layout at 360 and 1280 px', async ({ app }) => {
