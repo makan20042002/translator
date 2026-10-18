@@ -176,7 +176,7 @@ test.describe('Model-level Picker (ITEM 3)', () => {
     // Check options: NLLB and M2M should be enabled, mBART should be disabled
     const nllbOpt = modelSelect.locator('option[value="tr-nllb-600"]');
     const m2mOpt = modelSelect.locator('option[value="tr-m2m100-418"]');
-    const mbartOpt = modelSelect.locator('option[value="tr-mbart50-large"]');
+    const mbartOpt = modelSelect.locator('option[value="tr-mbart50"]');
 
     await expect(nllbOpt).not.toHaveAttribute('disabled');
     await expect(m2mOpt).not.toHaveAttribute('disabled');
