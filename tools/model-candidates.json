@@ -34,29 +34,21 @@
     "job": "listen",
     "kind": "whisper",
     "key": "distil-large-v3",
-    "repo": "distil-whisper/distil-large-v3-onnx",
+    "repo": "distil-whisper/distil-large-v3",
     "name": "Distil-Whisper Large v3 (English)",
     "verified": false,
     "note": "name unverified, run tools/verify-model-catalog.js",
     "files": [
       [
-        "tokenizer.json",
-        2480000
+        "onnx/encoder_model_quantized.onnx",
+        645000000
       ],
       [
-        "config.json",
-        2500
-      ],
-      [
-        "onnx/encoder_model.onnx",
-        650000000
-      ],
-      [
-        "onnx/decoder_model_merged.onnx",
-        850000000
+        "onnx/decoder_model_merged_quantized.onnx",
+        122000000
       ]
     ],
-    "bytes": 1502482500,
+    "bytes": 767000000,
     "memMB": 2500
   },
   {
