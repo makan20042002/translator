@@ -298,4 +298,48 @@ test.describe('Web App: Bug Report Dialog & Diagnostics (ITEM 1)', () => {
     await mouseClick(page, page.locator('#creditsClose'));
   });
 
+  test('Escape closes only the bug dialog on first press and closes About or Help on second press', async ({ app }) => {
+    const { page } = app;
+
+    // 1. Test with About window
+    await mouseClick(page, page.locator('#creditsBtn'));
+    const creditsBox = page.locator('#creditsBox');
+    await expect(creditsBox).toBeVisible();
+
+    const aboutBugBtn = page.locator('#aboutBugReportBtn');
+    await mouseClick(page, aboutBugBtn);
+    const modal = page.locator('#bugReportModal');
+    await expect(modal).toBeVisible();
+
+    // First Escape: closes only bug dialog, About stays visible, focus returns to #aboutBugReportBtn
+    await page.keyboard.press('Escape');
+    await expect(modal).toBeHidden();
+    await expect(creditsBox).toBeVisible();
+    const activeAfterFirstEsc = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+    expect(activeAfterFirstEsc).toBe('aboutBugReportBtn');
+
+    // Second Escape: closes About
+    await page.keyboard.press('Escape');
+    await expect(creditsBox).toBeHidden();
+
+    // 2. Test with Help section inside About/Help
+    await mouseClick(page, page.locator('#creditsBtn'));
+    await expect(creditsBox).toBeVisible();
+
+    const helpBugBtn = page.locator('#helpBugReportBtn');
+    await mouseClick(page, helpBugBtn);
+    await expect(modal).toBeVisible();
+
+    // First Escape: closes only bug dialog, Help/credits stays visible, focus returns to #helpBugReportBtn
+    await page.keyboard.press('Escape');
+    await expect(modal).toBeHidden();
+    await expect(creditsBox).toBeVisible();
+    const activeAfterHelpEsc = await page.evaluate(() => document.activeElement ? document.activeElement.id : null);
+    expect(activeAfterHelpEsc).toBe('helpBugReportBtn');
+
+    // Second Escape: closes Help/credits
+    await page.keyboard.press('Escape');
+    await expect(creditsBox).toBeHidden();
+  });
+
 });

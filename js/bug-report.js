@@ -288,13 +288,17 @@
     }
   });
 
-  // Focus trap and Escape listener
+  // Focus trap and Escape listener (capture phase to intercept before global handlers)
   document.addEventListener('keydown', function (e) {
     var modal = document.getElementById('bugReportModal');
     if (!modal || modal.hidden) return;
 
     if (e.key === 'Escape') {
       e.preventDefault();
+      e.stopPropagation();
+      if (typeof e.stopImmediatePropagation === 'function') {
+        e.stopImmediatePropagation();
+      }
       closeBugReportModal();
       return;
     }
@@ -320,5 +324,5 @@
         }
       }
     }
-  });
+  }, true);
 })();
