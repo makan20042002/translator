@@ -12,19 +12,26 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
     await expect(page.locator('#dDrop')).toBeVisible();
     await expect(page.locator('#dWork')).toBeHidden();
 
-    const picker = page.locator('#dEngineSel');
-    await expect(picker, '#dEngineSel should be visible before file is loaded').toBeVisible();
+    const pickerHost = page.locator('#docEnginePickerHost .engine-picker');
+    await expect(pickerHost, 'picker should be visible before file is loaded').toBeVisible();
 
-    const label = page.locator('label[for="dEngineSel"]');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await expect(picker).toBeVisible();
+
+    const label = page.locator('#docEnginePickerHost .engine-picker-label');
     await expect(label).toBeVisible();
     await expect(label).toHaveText(/Translate with/i);
 
-    // Default option is "Same as Text tab" with empty value
-    await expect(picker).toHaveValue('');
+    // Default option in shared picker is "auto" (follows Text tab engine and order)
+    await expect(picker).toHaveValue('auto');
     const firstOption = picker.locator('option').first();
-    await expect(firstOption).toHaveText(/Same as Text tab/i);
+    await expect(firstOption).toHaveValue('auto');
+    await expect(firstOption).toHaveText(/Auto/i);
 
-    // Engine line shows Text tab engine and mode
+    // Engine line / picker using line shows Text tab engine and mode
+    const usingLine = page.locator('#docEnginePickerHost .engine-picker-using');
+    await expect(usingLine).toContainText('Google Translate');
+
     const engineText = page.locator('#docEngineText');
     await expect(engineText).toContainText('Google Translate');
     await expect(engineText).toContainText('Fast');
@@ -50,7 +57,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
     await picker.selectOption('google');
 
     stub.clearLog();
@@ -91,10 +98,12 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
-    // Wait for option to appear
-    await expect(picker.locator('option[value="ollama:llama3:latest"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:llama3:latest');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await picker.selectOption('ollama');
+
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator('option[value="llama3:latest"]')).toBeAttached({ timeout: 5000 });
+    await modelPicker.selectOption('llama3:latest');
 
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
@@ -116,7 +125,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
     await picker.selectOption('ollama');
 
     stub.clearLog();
@@ -145,7 +154,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
     await picker.selectOption('nllb');
 
     stub.clearLog();
@@ -165,38 +174,43 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
     await picker.selectOption('mymemory');
     await expect(picker).toHaveValue('mymemory');
 
     // Reload the page
     await page.reload();
 
-    // Verify Text tab engine and mode are unchanged
+    // Verify Text tab reflects the shared chosen engine and mode remains fast
     await expect(page.locator('#tabs button[data-tab="text"]')).toBeVisible();
-    await expect(page.locator('#engine')).toHaveValue('auto');
+    // Shared engine picker syncs choice across tabs
+    await expect(page.locator('#textEnginePickerHost .engine-picker-select')).toHaveValue('mymemory');
     await expect(page.locator('#tMode')).toHaveValue('fast');
 
     // Go to Document tab and verify picker restored
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(page.locator('#dEngineSel')).toHaveValue('mymemory');
+    await expect(page.locator('#docEnginePickerHost .engine-picker-select')).toHaveValue('mymemory');
   });
 
   test('the engine line follows the picker dynamically', async ({ app }) => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    const usingLine = page.locator('#docEnginePickerHost .engine-picker-using');
     const engineText = page.locator('#docEngineText');
 
     await picker.selectOption('mymemory');
+    await expect(usingLine).toContainText('MyMemory');
     await expect(engineText).toContainText('MyMemory');
 
     await picker.selectOption('google');
+    await expect(usingLine).toContainText('Google Translate');
     await expect(engineText).toContainText('Google Translate');
 
-    // Reset to "Same as Text tab"
-    await picker.selectOption('');
+    // Reset to "auto" (shared picker follows Text tab engine and order)
+    await picker.selectOption('auto');
+    await expect(usingLine).toContainText('Google Translate');
     await page.evaluate(() => {
       const modeSel = document.getElementById('tMode');
       if (modeSel) {
@@ -251,7 +265,7 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
       }
       await page.setViewportSize({ width: 360, height: 740 });
 
-      const pickerBox = await page.locator('#dEngineSel').boundingBox();
+      const pickerBox = await page.locator('#docEnginePickerHost .engine-picker-select').boundingBox();
       expect(pickerBox).not.toBeNull();
       expect(pickerBox.x).toBeGreaterThanOrEqual(0);
       expect(pickerBox.x + pickerBox.width).toBeLessThanOrEqual(361);

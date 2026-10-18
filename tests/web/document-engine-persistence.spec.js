@@ -37,7 +37,7 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
           cfg: onlyEngines(['google', 'mymemory', 'ollama', 'nllb']),
           src: 'en',
           tgt: 'fa',
-          doc_engine: 'google'
+          engine: 'google'
         }
       }
     });
@@ -46,7 +46,7 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
       const { page } = app;
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-      const picker = page.locator('#dEngineSel');
+      const picker = page.locator('#docEnginePickerHost .engine-picker-select');
       await expect(picker).toHaveValue('google');
 
       // Switch interface language to Persian and back
@@ -58,12 +58,12 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
       await expect(page.locator('html')).toHaveAttribute('dir', 'ltr');
       await expect(page.locator('html')).toHaveAttribute('lang', 'en');
 
-      // Click on #dEngineSel (model refresh)
+      // Click on engine picker (model refresh)
       await mouseClick(page, picker);
       await page.waitForTimeout(500);
 
       await expect(picker).toHaveValue('google');
-      const stored = await page.evaluate(() => store.get('doc_engine', ''));
+      const stored = await page.evaluate(() => store.get('engine', ''));
       expect(stored).toBe('google');
     });
   });
@@ -83,11 +83,11 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
       const { page } = app;
       await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-      const picker = page.locator('#dEngineSel');
+      const picker = page.locator('#docEnginePickerHost .engine-picker-select');
       await picker.selectOption('mymemory');
       await expect(picker).toHaveValue('mymemory');
 
-      const storedBeforeReload = await page.evaluate(() => store.get('doc_engine', ''));
+      const storedBeforeReload = await page.evaluate(() => store.get('engine', ''));
       expect(storedBeforeReload).toBe('mymemory');
 
       // Reload the page
@@ -98,7 +98,7 @@ test.describe('Document tab engine picker persistence across reloads and rebuild
 
       // Value restored
       await expect(picker).toHaveValue('mymemory');
-      const storedAfterReload = await page.evaluate(() => store.get('doc_engine', ''));
+      const storedAfterReload = await page.evaluate(() => store.get('engine', ''));
       expect(storedAfterReload).toBe('mymemory');
     });
   });

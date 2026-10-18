@@ -11,8 +11,11 @@ test.describe('Web app: Document tab engine line and safety', () => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const engineLine = page.locator('#docEngineLine');
-    await expect(engineLine, '#docEngineLine should be visible on Document tab').toBeVisible();
+    const engineLine = page.locator('#docEnginePickerHost .engine-picker');
+    await expect(engineLine, 'engine picker should be visible on Document tab').toBeVisible();
+
+    const usingLine = page.locator('#docEnginePickerHost .engine-picker-using');
+    await expect(usingLine).toContainText('Google Translate');
 
     const engineText = page.locator('#docEngineText');
     await expect(engineText).toContainText('Google Translate');
@@ -46,8 +49,8 @@ test.describe('Web app: Document tab engine line and safety', () => {
     await mouseClick(page, offBtn);
     await expect(engineText).toContainText('Online');
 
-    // Open Settings from the button
-    const openBtn = page.locator('#docOpenEngineSettings');
+    // Open Settings from the button/link
+    const openBtn = page.locator('#docEnginePickerHost .engine-picker-keys-link');
     await expect(openBtn).toBeVisible();
     await mouseClick(page, openBtn);
 
