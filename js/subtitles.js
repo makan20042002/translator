@@ -195,6 +195,7 @@ async function doSubs(onlyEmpty){
     else{units.push(ls.join(' '));map.push([i,0,1])}});
   const parts={};
   sCtl=new AbortController();busy([$('sGo'),$('sRest')],$('sStop'),true);
+  const subT0=Date.now();
   $('cues').querySelectorAll('.cue.error').forEach(el=>el.classList.remove('error'));
   if($('sStatusChip'))$('sStatusChip').className='sub-status-chip translating';
   if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'در حال ترجمه':'Translating';
@@ -258,7 +259,12 @@ async function doSubs(onlyEmpty){
     if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
     const memCues=cues.filter(c=>c.fromMemory).length;
     const memMsg=`${memCues} ${L('lines')||'lines'} ${L('fromMemory')||'from memory'}`;
-    toast(`${L('done')} · ${memMsg}`,'ok');
+    const subElapsed=Math.max(0,Math.round((Date.now()-subT0)/1000));
+    const subTimeStr=(typeof MediaTranslate!=='undefined'&&typeof MediaTranslate.formatElapsedTime==='function')
+      ? MediaTranslate.formatElapsedTime(subElapsed,ui)
+      : `${subElapsed} s`;
+    const doneText=ui==='fa'?`انجام شد در ${subTimeStr}`:`Done in ${subTimeStr}`;
+    toast(`${doneText} · ${memMsg}`,'ok');
     sInfo();
     return;
   }
@@ -335,7 +341,12 @@ async function doSubs(onlyEmpty){
       updateSubProg(100);
       const memCues=cues.filter(c=>c.fromMemory).length;
       const memMsg=memCues?` (${memCues} ${L('fromMemory')||'lines from memory'})`:'';
-      toast(`${L('done')} · ${r.used}${memMsg}`,'ok');
+      const subElapsed=Math.max(0,Math.round((Date.now()-subT0)/1000));
+      const subTimeStr=(typeof MediaTranslate!=='undefined'&&typeof MediaTranslate.formatElapsedTime==='function')
+        ? MediaTranslate.formatElapsedTime(subElapsed,ui)
+        : `${subElapsed} s`;
+      const doneText=ui==='fa'?`انجام شد در ${subTimeStr}`:`Done in ${subTimeStr}`;
+      toast(`${doneText} · ${r.used}${memMsg}`,'ok');
       if($('sStatusChip'))$('sStatusChip').className='sub-status-chip idle';
       if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'آماده':'Ready';
     }

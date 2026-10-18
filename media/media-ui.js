@@ -35,6 +35,21 @@
   'use strict';
   var MT = (window.MediaTranslate = window.MediaTranslate || {});
 
+  function formatElapsedTime(sec, lang) {
+    var s = Math.max(0, Math.round(Number(sec) || 0));
+    var isFa = (lang === 'fa');
+    if (s < 60) {
+      return isFa ? s + ' ثانیه' : s + ' s';
+    }
+    var m = Math.floor(s / 60);
+    var rem = s % 60;
+    if (rem === 0) {
+      return isFa ? m + ' دقیقه' : m + ' min';
+    }
+    return isFa ? m + ' دقیقه و ' + rem + ' ثانیه' : m + ' min ' + rem + ' s';
+  }
+  MT.formatElapsedTime = formatElapsedTime;
+
   // Folder this script was loaded from, so the module finds media-tab.html and media.css
   // no matter where the host app puts the folder.
   var script = document.currentScript;
@@ -236,12 +251,14 @@
     var asr = {
       status: 'idle', fraction: 0, window: 0, windows: 0, loadFraction: null, errorKey: null,
       segments: [], cues: [], lang: null, device: null, threads: null, crossOriginIsolated: false,
-      gpuNote: '', modelName: null, windowsDone: 0, ctrl: null, run: 0, ctl: null
+      gpuNote: '', modelName: null, windowsDone: 0, ctrl: null, run: 0, ctl: null,
+      startedAt: null, elapsedTime: null
     };
     // Translation state. status: idle | running | ready | cancelled | error
     var tr = {
       status: 'idle', stage: null, fraction: 0, loadFraction: null, done: 0, total: 0,
-      errorKey: null, info: null, ctrl: null, run: 0, srcTouched: false, srcUsed: null, tgtUsed: null
+      errorKey: null, info: null, ctrl: null, run: 0, srcTouched: false, srcUsed: null, tgtUsed: null,
+      startedAt: null, elapsedTime: null
     };
     function desktopAvailable() {
       return !!host.desktop && typeof host.desktop.extractAudio === 'function' && typeof host.desktop.ffmpeg === 'function';
@@ -443,9 +460,13 @@
       asrOkEl.hidden = !(done || (asr.status === 'error' && asr.segments.length > 0));
       if (!asrOkEl.hidden) {
         var okKey = asr.status === 'ready' ? 'mediaAsrDone' : asr.segments.length > 0 ? 'mediaAsrPartial' : 'mediaAsrCancelled';
+        var timeStr = (asr.status === 'ready' && asr.elapsedTime != null)
+          ? formatElapsedTime(asr.elapsedTime, host.getLang && host.getLang())
+          : '';
         asrOkEl.textContent = fmt(host.t(okKey), {
           count: asr.segments.length, done: asr.windowsDone, n: asr.windows,
-          name: asr.modelName || '', device: asr.device || ''
+          name: asr.modelName || '', device: asr.device || '',
+          time: timeStr
         });
         if (asr.gpuNote) asrOkEl.textContent += ' ' + fmt(host.t('mediaAsrGpuNote'), { reason: asr.gpuNote });
       } else {
@@ -496,12 +517,16 @@
       asr.gpuNote = '';
       asr.modelName = null;
       asr.windowsDone = 0;
+      asr.startedAt = null;
+      asr.elapsedTime = null;
     }
 
     function startTranscribe() {
       if (!asrAvailable() || !state.info || asrBusy() || dec.status === 'running') return;
       var ch = host.getWhisperChoice();
       resetAsr();
+      asr.startedAt = Date.now();
+      asr.elapsedTime = null;
       if (!ch) { asr.status = 'error'; asr.errorKey = 'mediaAsrNoModel'; render(); return; }
       if (ch.ready === false) { render(); return; } // the card shows the "not downloaded" message
       asr.modelName = ch.name;
@@ -569,6 +594,7 @@
         function (res) {
           if (unmounted || mine !== asr.run) return;
           asr.ctrl = null;
+          asr.elapsedTime = asr.startedAt ? Math.max(0, Math.round((Date.now() - asr.startedAt) / 1000)) : null;
           applySegments(res.segments);
           asr.lang = res.lang;
           asr.device = res.device;
@@ -583,6 +609,7 @@
         function (err) {
           if (unmounted || mine !== asr.run) return;
           asr.ctrl = null;
+          asr.elapsedTime = null;
           var part = err && err.partial;
           if (part) {
             applySegments(part.segments);
@@ -661,6 +688,8 @@
       tr.srcTouched = false;
       tr.srcUsed = null;
       tr.tgtUsed = null;
+      tr.startedAt = null;
+      tr.elapsedTime = null;
     }
 
     function ensureOption(sel, code) {
@@ -759,7 +788,15 @@
       trOkEl.hidden = !(finished && (tr.status !== 'error' || c.done > 0) && tr.info);
       if (!trOkEl.hidden) {
         var okKey = tr.status === 'ready' ? 'mediaTrDone' : c.done > 0 ? 'mediaTrPartial' : 'mediaTrCancelled';
-        trOkEl.textContent = fmt(host.t(okKey), { count: c.done, total: c.total, engine: engineLabel(tr.info) });
+        var trTimeStr = (tr.status === 'ready' && tr.elapsedTime != null)
+          ? formatElapsedTime(tr.elapsedTime, host.getLang && host.getLang())
+          : '';
+        trOkEl.textContent = fmt(host.t(okKey), {
+          count: c.done,
+          total: c.total,
+          engine: engineLabel(tr.info),
+          time: trTimeStr
+        });
       } else if (finished && tr.status === 'cancelled') {
         trOkEl.hidden = false;
         trOkEl.textContent = host.t('mediaTrCancelled');
@@ -794,6 +831,8 @@
       tr.srcTouched = touched;
       tr.srcUsed = src;
       tr.tgtUsed = tgt;
+      tr.startedAt = Date.now();
+      tr.elapsedTime = null;
       var mine = tr.run;
       var ctrl = new AbortController();
       tr.ctrl = ctrl;
@@ -835,6 +874,7 @@
         function (res) {
           if (unmounted || mine !== tr.run) return;
           tr.ctrl = null;
+          tr.elapsedTime = tr.startedAt ? Math.max(0, Math.round((Date.now() - tr.startedAt) / 1000)) : null;
           applyTranslated(res);
           if (!tr.info) tr.info = { name: ch ? ch.name : '', kind: ch ? ch.kind : 'offline', model: ch ? ch.model : '' };
           tr.status = 'ready';
@@ -843,6 +883,7 @@
         function (err) {
           if (unmounted || mine !== tr.run) return;
           tr.ctrl = null;
+          tr.elapsedTime = null;
           applyTranslated(err && err.partial); // what was finished before the stop is kept
           if (!tr.info) tr.info = { name: ch ? ch.name : '', kind: ch ? ch.kind : 'offline', model: ch ? ch.model : '' };
           if (err && err.code === 'aborted') {
