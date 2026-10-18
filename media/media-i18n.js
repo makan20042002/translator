@@ -54,6 +54,10 @@
 
       mediaAsrTitle: 'Transcribe',
       mediaAsrLang: 'Spoken language',
+      mediaAsrSpeechModel: 'Speech model',
+      mediaAsrGetModel: 'Get',
+      mediaReady: 'ready',
+      mediaNotDownloaded: 'not downloaded',
       mediaAsrAuto: 'Detect automatically',
       mediaAsrModel: 'Model: {name}',
       mediaAsrNoModel: 'No speech model is chosen. Choose one in Model Hub.',
@@ -235,6 +239,10 @@
 
       mediaAsrTitle: 'تبدیل گفتار به متن',
       mediaAsrLang: 'زبان گفتار',
+      mediaAsrSpeechModel: 'مدل گفتار',
+      mediaAsrGetModel: 'دریافت',
+      mediaReady: 'آماده',
+      mediaNotDownloaded: 'دانلود نشده',
       mediaAsrAuto: 'تشخیص خودکار',
       mediaAsrModel: 'مدل: {name}',
       mediaAsrNoModel: 'هیچ مدل گفتاری انتخاب نشده است. یکی را در مرکز مدل‌ها انتخاب کنید.',

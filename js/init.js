@@ -42,6 +42,7 @@
     if (!m) return null;
     const hasGpu = Boolean(m.gpu || m.webgpu === 'optional');
     return {
+      key: m.key,
       repo: m.repo,
       name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
       memMB: m.memMB || 1000,
@@ -69,7 +70,13 @@
       const s = (typeof $ === 'function' && $('src')?.value) || 'en';
       const t = (typeof $ === 'function' && $('tgt')?.value) || 'fa';
       const m = (typeof pickTr === 'function') ? pickTr(s, t) : null;
-      model = m ? ((typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo)) : 'NLLB-200 600M';
+      if (m) {
+        model = (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo);
+      } else if (typeof cfg !== 'undefined' && cfg.trModel && cfg.trModel !== 'auto' && typeof MC !== 'undefined' && MC.models) {
+        const direct = MC.models.find(x => x.id === cfg.trModel);
+        if (direct) model = (typeof mcText === 'function') ? mcText(direct.name) : (direct.name || direct.repo);
+      }
+      if (!model) model = 'NLLB-200 600M';
     }
 
     const ready = (typeof why === 'function' ? !why(id) : true) && (!isOff() || isOffline);
@@ -85,8 +92,13 @@
     };
 
     if (id === 'nllb') {
-      res.licence = 'CC BY-NC 4.0';
-      res.licenceNote = 'Non-commercial use only (CC BY-NC 4.0)';
+      if (/nllb/i.test(model)) {
+        res.licence = 'CC BY-NC 4.0';
+        res.licenceNote = 'Non-commercial use only (CC BY-NC 4.0)';
+      } else {
+        res.licence = 'MIT';
+        res.licenceNote = '';
+      }
     } else if (id === 'ollama') {
       res.licence = 'MIT';
     }
@@ -226,6 +238,24 @@
       return { code, name };
     }) : []),
     getWhisperChoice: getMediaWhisperChoice,
+    listWhisperModels: () => {
+      const models = (typeof MC !== 'undefined' && MC.models) ? MC.models.filter(m => m.kind === 'whisper') : [];
+      return models.map(m => ({
+        key: m.key,
+        repo: m.repo,
+        name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
+        ready: (typeof mcReady === 'function') ? mcReady(m) : false,
+        size: (typeof mcSize === 'function' && m.bytes) ? mcSize(m.bytes) : '',
+        bytes: m.bytes
+      }));
+    },
+    setWhisperChoice: (key) => {
+      if (typeof cfg !== 'undefined') {
+        cfg.whisper = key;
+        if (typeof saveCfg === 'function') saveCfg();
+        if (typeof mcRender === 'function') mcRender();
+      }
+    },
     engine: { libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1' },
     onModelUsed: repo => { if (typeof recordModelUse === 'function') recordModelUse(repo); },
     openModelHub: () => {

@@ -205,7 +205,8 @@
   color: var(--muted, #8aa0bd);
 }
 
-.mt-asr-lang {
+.mt-asr-lang,
+.mt-asr-model-select {
   min-width: 12rem;
   max-width: 100%;
   padding: 8px 12px;
@@ -216,9 +217,26 @@
   font: inherit;
 }
 
-.mt-asr-lang:focus-visible {
+.mt-asr-lang:focus-visible,
+.mt-asr-model-select:focus-visible {
   outline: 3px solid var(--accent, #08a8ff);
   outline-offset: 2px;
+}
+
+.mt-asr-model-select option:disabled {
+  color: var(--muted);
+}
+
+.mt-asr-model-hub-link {
+  color: var(--accent);
+  text-decoration: none;
+  font-size: 13px;
+  cursor: pointer;
+  align-self: center;
+}
+
+.mt-asr-model-hub-link:hover {
+  text-decoration: underline;
 }
 
 .mt-asr-warn {

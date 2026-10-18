@@ -198,6 +198,8 @@
     var asrCuesEl = $('.mt-asr-cues');
     var asrCard = $('.mt-asr');
     var asrLang = $('.mt-asr-lang');
+    var asrModelSel = $('.mt-asr-model-select');
+    var asrModelHubLink = $('.mt-asr-model-hub-link');
     var asrModelEl = $('.mt-asr-model');
     var asrWarnEl = $('.mt-asr-warn');
     var asrBtn = $('.mt-transcribe');
@@ -402,6 +404,30 @@
       var ch = host.getWhisperChoice();
       var busy = asrBusy();
       asrModelEl.textContent = ch ? fmt(host.t('mediaAsrModel'), { name: ch.name }) : host.t('mediaAsrNoModel');
+      if (asrModelSel && typeof host.listWhisperModels === 'function') {
+        var wModels = host.listWhisperModels() || [];
+        asrModelSel.innerHTML = '';
+        var hasUnready = false;
+        for (var mi = 0; mi < wModels.length; mi++) {
+          var wm = wModels[mi];
+          var opt = document.createElement('option');
+          opt.value = wm.key;
+          var readyStr = wm.ready ? (host.t('mediaReady') || 'ready') : (host.t('mediaNotDownloaded') || 'not downloaded');
+          opt.textContent = wm.name + (wm.size ? ' (' + wm.size + ')' : '') + ' — ' + readyStr;
+          if (!wm.ready) {
+            opt.disabled = true;
+            hasUnready = true;
+          }
+          asrModelSel.appendChild(opt);
+        }
+        if (ch && ch.key) {
+          asrModelSel.value = ch.key;
+        }
+        if (asrModelHubLink) {
+          asrModelHubLink.hidden = !hasUnready;
+        }
+        asrModelSel.disabled = busy;
+      }
       var heavy = !!ch && ch.memMB >= 3000;
       asrWarnEl.hidden = !heavy;
       asrWarnEl.textContent = heavy ? fmt(host.t('mediaAsrHeavy'), { gb: (ch.memMB / 1000).toFixed(1) }) : '';
@@ -1059,6 +1085,20 @@
     on(asrBtn, 'click', startTranscribe);
     on(asrCancelBtn, 'click', cancelAsr);
     on(asrHubBtn, 'click', function () { if (typeof host.openModelHub === 'function') host.openModelHub(); });
+    if (asrModelSel) {
+      on(asrModelSel, 'change', function () {
+        if (typeof host.setWhisperChoice === 'function') {
+          host.setWhisperChoice(asrModelSel.value);
+        }
+        render();
+      });
+    }
+    if (asrModelHubLink) {
+      on(asrModelHubLink, 'click', function (e) {
+        e.preventDefault();
+        if (typeof host.openModelHub === 'function') host.openModelHub();
+      });
+    }
     on(trBtn, 'click', startTranslate);
     on(trCancelBtn, 'click', cancelTranslate);
     on(trHubBtn, 'click', function () { if (typeof host.openModelHub === 'function') host.openModelHub(); });
