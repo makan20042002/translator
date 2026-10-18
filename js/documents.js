@@ -646,14 +646,37 @@ function getDocEngineStatus(id, isOllamaModel = false){
   return L('docStatusReady') || 'Ready';
 }
 
+function migrateDocEngineAtStartup(){
+  if(typeof store === 'undefined') return;
+  const legacyDocEngine = store.get('doc_engine', '');
+  if(!legacyDocEngine) return;
+  const currentSharedEngine = store.get('engine', 'auto');
+  if(currentSharedEngine === 'auto'){
+    if(legacyDocEngine.startsWith('ollama:')){
+      const m = legacyDocEngine.slice(7);
+      if(typeof cfg !== 'undefined' && cfg.eng?.ollama){
+        cfg.eng.ollama.model = m;
+        if(typeof saveCfg === 'function') saveCfg();
+      }
+      store.set('engine', 'ollama');
+    }else{
+      store.set('engine', legacyDocEngine);
+    }
+  }
+  store.set('doc_engine', '');
+  try{
+    if(typeof localStorage !== 'undefined') localStorage.removeItem('mkt_doc_engine');
+  }catch{}
+}
+migrateDocEngineAtStartup();
+
 function buildDocEngineOptions(){
   const sel = $('dEngineSel');
   if(!sel) return;
   isRebuildingDocPicker = true;
   try{
-    const saved = store.get('doc_engine', '');
-    const currentVal = (sel.value && sel.value !== '') ? sel.value : saved;
-    const targetVal = saved || currentVal;
+    const currentShared = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+    const targetVal = currentShared !== 'auto' ? currentShared : '';
     const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : (typeof DEF_ORDER !== 'undefined' ? DEF_ORDER : Object.keys(ENG));
 
     const items = [];
@@ -774,7 +797,6 @@ function initDocEnginePicker(){
   buildDocEngineOptions();
   sel.addEventListener('change', () => {
     if(isRebuildingDocPicker) return;
-    store.set('doc_engine', sel.value);
     updateDocEngineInfo();
     resetDocErrorStatus();
     if(doc) detectSubjectAndTerms(doc);
@@ -809,8 +831,6 @@ function showDocEngineNotReady(msg){
 }
 
 function getDocChosenEngine(){
-  const explicit = (typeof $ === 'function' && $('dEngineSel')?.value) || (typeof store !== 'undefined' && store.get('doc_engine', '')) || '';
-  if(explicit) return explicit;
   const shared = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   return shared !== 'auto' ? shared : '';
 }
@@ -1020,11 +1040,14 @@ async function detectSubjectAndTerms(d, token){
   const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
   const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
   let isAi = false;
+  let engId = 'auto';
   if(baseEngine === 'auto'){
     const firstUsable = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(usable) : null;
     isAi = Boolean(firstUsable && ENG[firstUsable]?.ai);
+    engId = firstUsable || 'auto';
   }else{
     isAi = Boolean(ENG[baseEngine]?.ai);
+    engId = baseEngine;
   }
   if(!isAi){
     if(typeof token === 'undefined' || token === docLoadToken){
@@ -2353,13 +2376,17 @@ window.addEventListener('offline', updateDocEngineInfo);
 function mountDocEnginePicker(){
   const host=document.getElementById('docEnginePickerHost');
   if(host&&typeof ENG!=='undefined'&&typeof ENG.mountEnginePicker==='function'){
-    ENG.mountEnginePicker(host,{
-      context:'documents',
-      getLangs:()=>({
-        src:$('docSrc')?.value||'en',
-        tgt:$('docTgt')?.value||'fa'
-      })
-    });
+    if(!host.querySelector('.engine-picker')){
+      ENG.mountEnginePicker(host,{
+        context:'documents',
+        getLangs:()=>({
+          src:$('docSrc')?.value||'en',
+          tgt:$('docTgt')?.value||'fa'
+        })
+      });
+    }else if(typeof ENG.updateEnginePickers==='function'){
+      ENG.updateEnginePickers();
+    }
   }
   updateDocEngineNoticeFromPicker();
 }
@@ -2387,6 +2414,7 @@ function updateDocEngineNoticeFromPicker(){
       }
     }
   }
+  if(typeof updateDocEngineInfo==='function') updateDocEngineInfo();
 }
 
 function onDocTabOpen(){
@@ -2408,11 +2436,13 @@ if(docTabEl && typeof MutationObserver !== 'undefined'){
   obs.observe(docTabEl, { attributes: true });
 }
 if(document.readyState!=='loading'){
+  migrateDocEngineAtStartup();
   mountDocEnginePicker();
   initDocEnginePicker();
   updateDocEngineInfo();
 }else{
   document.addEventListener('DOMContentLoaded', ()=>{
+    migrateDocEngineAtStartup();
     mountDocEnginePicker();
     initDocEnginePicker();
     updateDocEngineInfo();
