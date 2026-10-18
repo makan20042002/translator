@@ -390,13 +390,12 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await expect(noticeEl).toBeHidden();
   });
 
-  test('Running-on line shows the GPU or CPU reason like Turbo', async ({ app }) => {
+  test('Running-on line shows GPU (WebGPU) when GPU execution succeeds', async ({ app }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
     await expect(page.locator('#tab-media')).toBeVisible();
 
-    // 1. GPU run
     await page.evaluate(() => {
       const largeModel = window.MODEL_CATALOG.models.find(m => m.id === 'asr-large-v3');
       window.MediaTranslate.host.getWhisperChoice = () => ({
@@ -444,7 +443,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     const wavBuffer = createTestWav(0.2, 16000);
     const fileInput = page.locator('#tab-media .mt-file-input');
     await fileInput.setInputFiles({
-      name: 'running-device-check.wav',
+      name: 'running-device-check-gpu.wav',
       mimeType: 'audio/wav',
       buffer: wavBuffer
     });
@@ -455,9 +454,24 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     const deviceEl = page.locator('#tab-media .mt-asr-device');
     await expect(deviceEl).toBeVisible();
     await expect(deviceEl).toContainText('GPU (WebGPU)');
+  });
 
-    // 2. CPU fallback run
+  test('Running-on line shows CPU fallback reason when WebGPU adapter fails', async ({ app }) => {
+    const { page } = app;
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await expect(page.locator('#tab-media')).toBeVisible();
+
     await page.evaluate(() => {
+      const largeModel = window.MODEL_CATALOG.models.find(m => m.id === 'asr-large-v3');
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        key: largeModel.key,
+        repo: largeModel.repo,
+        name: largeModel.name,
+        memMB: largeModel.memMB,
+        ready: true,
+        gpu: true
+      });
       window.MediaTranslate.host.engine = {
         libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1',
         workerFactory: function () {
@@ -492,7 +506,18 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
       };
     });
 
+    const wavBuffer = createTestWav(0.2, 16000);
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'running-device-check-cpu.wav',
+      mimeType: 'audio/wav',
+      buffer: wavBuffer
+    });
+
+    const transcribeBtn = page.locator('#tab-media .mt-transcribe');
     await mouseClick(page, transcribeBtn);
+
+    const deviceEl = page.locator('#tab-media .mt-asr-device');
     await expect(deviceEl).toBeVisible();
     await expect(deviceEl).toContainText('Failed to create WebGPU adapter');
   });
