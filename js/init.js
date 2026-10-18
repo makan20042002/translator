@@ -50,7 +50,7 @@
   }
 
   function getMediaTranslateChoice() {
-    const chosen = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+    const chosen = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
     let id = chosen === 'auto' ? ((typeof cfg !== 'undefined' && cfg.order ? cfg.order.find(usable) : null) || 'nllb') : chosen;
     if (typeof isOff === 'function' && isOff()) {
       if (chosen !== 'auto' && typeof offCapable === 'function' && !offCapable(chosen)) {
@@ -109,13 +109,13 @@
     }
 
     try {
-      const activeEngine = (typeof $ === 'function' && $('engine')?.value) || 'auto';
+      const activeEngine = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
       let chain;
       if (activeEngine === 'auto') {
         chain = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.filter(usable) : [];
       } else {
         if (typeof usable === 'function' && !usable(activeEngine)) {
-          const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : L('noEngine')) : 'Engine unavailable');
+          const err = new Error(typeof L === 'function' ? (isOff() ? L('noOff') : (why(activeEngine) || L('noEngine'))) : 'Engine unavailable');
           throw err;
         }
         chain = [activeEngine];
@@ -231,6 +231,34 @@
     },
     translateCues: mediaTranslateCues,
     getTranslateChoice: getMediaTranslateChoice,
+    getEngineChoice: () => (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto'),
+    setEngineChoice: (val) => {
+      if (typeof store !== 'undefined') store.set('engine', val);
+      if (typeof ENG !== 'undefined' && typeof ENG.updateEnginePickers === 'function') {
+        ENG.updateEnginePickers();
+      }
+    },
+    listEngines: () => {
+      const order = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order : [];
+      return order.map(id => ({
+        id,
+        name: (typeof ENG !== 'undefined' && ENG[id]?.name) || id,
+        status: (typeof ENG !== 'undefined' && typeof ENG.getStatus === 'function')
+          ? ENG.getStatus(id)
+          : { state: 'ready', usable: true }
+      }));
+    },
+    mountEnginePicker: (container, opts) => {
+      if (typeof ENG !== 'undefined' && typeof ENG.mountEnginePicker === 'function') {
+        return ENG.mountEnginePicker(container, opts);
+      }
+      return null;
+    },
+    updateEnginePickers: () => {
+      if (typeof ENG !== 'undefined' && typeof ENG.updateEnginePickers === 'function') {
+        ENG.updateEnginePickers();
+      }
+    },
     loadSubtitleStyle: () => {
       try {
         return (typeof store !== 'undefined') ? store.get('media_subtitle_style', null) : null;
@@ -321,7 +349,7 @@ if($('sidebarBackdrop'))$('sidebarBackdrop').onclick=()=>{
 };
 $('src').onchange=()=>{store.set('src',$('src').value);voiceLabels();if(typeof updateCardLangNames==='function')updateCardLangNames();if(typeof updateOfflineModelHints==='function')updateOfflineModelHints()};
 $('tgt').onchange=()=>{store.set('tgt',$('tgt').value);voiceLabels();fillVoices();fillAskLangs();if(typeof updateCardLangNames==='function'){updateCardLangNames();updateTargetCardDirection();updateListenButtonState()}if(typeof updateOfflineModelHints==='function')updateOfflineModelHints()};
-$('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice()};
+if($('engine'))$('engine').onchange=()=>{store.set('engine',$('engine').value);updateSubEngineNotice();if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();};
 if($('tMode'))$('tMode').onchange=()=>store.set('tMode',$('tMode').value);
 $('tone').onchange=()=>store.set('tone',$('tone').value);
 if($('subStyle'))$('subStyle').onchange=()=>{store.set('subStyle',$('subStyle').value);updateSubEngineNotice()};
@@ -394,6 +422,7 @@ function boot(){
   if($('subStyle'))$('subStyle').value=store.get('subStyle','film');
   if($('subFamily'))$('subFamily').checked=store.get('subFamily',false);
   updateSubEngineNotice();
+  if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();
   if(typeof updateDocEngineInfo==='function')updateDocEngineInfo();
   const rawParams = (location.hash && location.hash.length > 1)
     ? location.hash.slice(1)

@@ -18,7 +18,7 @@ function wrap2(s,max=42){
   return best<0?s:s.slice(0,best)+'\n'+s.slice(best+1);
 }
 function updateSubEngineNotice(){
-  const cur=$('engine')?.value||store.get('engine','auto');
+  const cur=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const isNonAi=cur==='google'||cur==='mymemory'||cur==='nllb'||cur==='chrome';
   const el=$('subEngineNotice');
   if(el)el.hidden=!isNonAi;
@@ -83,7 +83,7 @@ async function saveSubCueCorrection(i){
   if(!text||!text.trim()||!corrected)return;
   if(cfg.tm===false||typeof TranslationMemory==='undefined')return;
 
-  const curEngine=$('engine')?.value||'auto';
+  const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
   const subMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
   const subStyle=$('subStyle')?.value||'film';
@@ -199,7 +199,7 @@ async function doSubs(onlyEmpty){
   if($('sStatusChip'))$('sStatusChip').className='sub-status-chip translating';
   if($('sStatusText'))$('sStatusText').textContent=ui==='fa'?'در حال ترجمه':'Translating';
 
-  const curEngine=$('engine')?.value||'auto';
+  const curEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
   const firstEng=curEngine==='auto'?cfg.order.find(usable):curEngine;
   const subMemMode=(firstEng&&ENG[firstEng]?.ai)?'smart':'fast';
   const subStyle=$('subStyle')?.value||'film';
@@ -268,9 +268,18 @@ async function doSubs(onlyEmpty){
   // (a) Within engine: eGoogle falls back from clients5.google.com to translate.googleapis.com if primary endpoint fails.
   // (b) Across engines: translateItems tries fallback engines in cfg.order if the current engine throws.
   // (c) Unrescued failure: if every engine/endpoint fails, translateItems throws. The run stops,
-  //     untranslated rows remain empty/marked, and the status chip shows Error (never Ready).
+  const chosenEngine=(typeof store!=='undefined'?store.get('engine','auto'):'auto');
+  let subChain;
+  if(chosenEngine==='auto'){
+    subChain=cfg.order.filter(usable);
+  }else{
+    if(!usable(chosenEngine)){
+      throw new Error(why(chosenEngine)||L(isOff()?'noOff':'noEngine'));
+    }
+    subChain=[chosenEngine];
+  }
   try{
-    const r=await translateItems(missTexts,opts({kind:'sub',signal:sCtl.signal,
+    const r=await translateItems(missTexts,opts({kind:'sub',signal:sCtl.signal,engine:chosenEngine,chain:subChain,
       onProgress:(pos,tot,engId)=>{
         const doneUnits=missIndices.length?(units.length-missIndices.length)+pos:pos;
         const pct=units.length?Math.round((doneUnits/units.length)*100):0;
@@ -358,3 +367,23 @@ function exportSubs(vtt){
 $('sSrt').onclick=()=>exportSubs(false);$('sVtt').onclick=()=>exportSubs(true);
 $('src')?.addEventListener('change',()=>{if(cues.length)renderCues();else sInfo();});
 $('tgt')?.addEventListener('change',()=>{if(cues.length)renderCues();else sInfo();});
+
+function initSubEnginePicker(){
+  const hostEl=$('subEnginePickerHost');
+  if(hostEl&&typeof ENG!=='undefined'&&typeof ENG.mountEnginePicker==='function'){
+    ENG.mountEnginePicker(hostEl,{
+      context:'sub',
+      getLangs:()=>({
+        src:$('subSrc')?.value||$('src')?.value||'en',
+        tgt:$('subTgt')?.value||$('tgt')?.value||'fa'
+      })
+    });
+  }
+}
+if(document.readyState==='loading'){
+  document.addEventListener('DOMContentLoaded',initSubEnginePicker);
+}else{
+  initSubEnginePicker();
+}
+$('subSrc')?.addEventListener('change',()=>{if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();});
+$('subTgt')?.addEventListener('change',()=>{if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();});

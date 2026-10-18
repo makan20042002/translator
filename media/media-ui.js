@@ -1012,8 +1012,15 @@
     on(trBtn, 'click', startTranslate);
     on(trCancelBtn, 'click', cancelTranslate);
     on(trHubBtn, 'click', function () { if (typeof host.openModelHub === 'function') host.openModelHub(); });
-    on(trSrc, 'change', function () { tr.srcTouched = true; renderTr(); });
-    on(trTgt, 'change', renderTr);
+    on(trSrc, 'change', function () {
+      tr.srcTouched = true;
+      renderTr();
+      if (typeof host.updateEnginePickers === 'function') host.updateEnginePickers();
+    });
+    on(trTgt, 'change', function () {
+      renderTr();
+      if (typeof host.updateEnginePickers === 'function') host.updateEnginePickers();
+    });
 
     on(ffBtn, 'click', function () {
       if (!desktopAvailable() || typeof host.desktop.chooseFfmpeg !== 'function') return;
@@ -1031,6 +1038,15 @@
 
     applyStrings(container, host);
     fillLangs();
+    var trPickerHost = $('.mt-engine-picker-host');
+    if (trPickerHost && typeof host.mountEnginePicker === 'function') {
+      host.mountEnginePicker(trPickerHost, {
+        context: 'media',
+        getLangs: function () {
+          return { src: trSrc.value, tgt: trTgt.value };
+        }
+      });
+    }
     render();
     refreshFfmpeg().then(function () { if (!unmounted) render(); });
 

@@ -26,6 +26,7 @@ const SHELL = [
   './media/media-tab.html',
   './js/i18n.js',
   './js/translate.js',
+  './js/engine-picker.js',
   './js/speech.js',
   './js/text.js',
   './js/subtitles.js',
