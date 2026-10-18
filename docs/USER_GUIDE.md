@@ -172,3 +172,24 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
   Modern browsers will display a "Local Network Access" permission prompt that you must accept.
 - **Windows SmartScreen**: The Windows desktop application is built independently and is not code-signed with an expensive EV certificate. Windows SmartScreen may show an "Unknown Publisher" prompt on first run (click *More info* → *Run anyway*).
 - **Hosting Environment and Multi-Threading**: The hosted web application at `https://makanlab.tech` runs in a standard static hosting environment where `crossOriginIsolated` is `false` by default. As a result, Whisper uses only one CPU thread on `makanlab.tech` unless the optional `.htaccess.threads-optional` headers are enabled (`Cross-Origin-Opener-Policy: same-origin`, `Cross-Origin-Embedder-Policy: credentialless`). In contrast, the MAKAN Windows desktop application enables cross-origin isolation headers automatically on its local server, unlocking multi-threaded CPU Whisper performance.
+
+---
+
+## 7. Choosing the Translation Engine
+
+In the **Subtitle** and **Media** tabs, the engine picker allows you to decide exactly how your text is translated:
+
+- **Auto vs. Choosing One**:
+  - **Auto (your order in Settings)**: Tries engines in the priority order configured under *Settings → Translation engines & keys*. If an engine is not usable, it is silently skipped; if one fails during translation, the chain automatically moves to the next usable engine.
+  - **Choosing a Specific Engine**: Translates strictly with that chosen engine (e.g. Google, Gemini, NLLB). If that engine encounters an error, the operation stops and displays the plain reason without silently falling back to other providers.
+- **What the States Mean**:
+  - `ready`: Engine is configured, downloaded, or free to use immediately.
+  - `needs a key`: An API key or model name must be provided in Settings.
+  - `not downloaded`: An offline model (such as NLLB) must be downloaded first via Model Hub or Settings.
+  - `offline mode blocks it`: Offline mode is enabled, blocking online network engines.
+  - `not supported in this browser`: The engine requires browser capabilities not present in the current runtime.
+- **Chrome On-Device in the Windows App**:
+  - Chrome's built-in on-device translation API (`window.Translator`) is an experimental Chromium browser feature. In the MAKAN Windows desktop app (Electron), this API is not supported and is honestly marked as unavailable (`not supported in this browser`), so the auto chain never attempts to use it.
+- **Using the Test Button**:
+  - The **Test** button next to the picker quickly verifies your selected engine by translating a sample sentence ("Hello, how are you?") to the active target language. It displays the translation and response time in seconds, or reports the plain failure reason. Testing never modifies your translation history or glossary, and can be cancelled at any time by clicking again.
+

@@ -308,7 +308,9 @@ Object.assign(I18N.en,{
 <p>If you encounter an issue, use the <strong>Report a bug</strong> button in the Help or About window. Nothing is sent automatically by the app. Your own default email program sends the message, allowing you to inspect and edit every word before sending. You can also copy the report to your clipboard.</p>
 <p><strong>Support email:</strong> makan20042002@gmail.com</p>
 <p><strong>What the report contains:</strong> app version, interface language, operating system and browser version, active tab, translation mode, names of enabled translation engines, offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 error messages (with any keys, tokens, or queries redacted).</p>
-<p><strong>What the report NEVER contains:</strong> API keys or authorization tokens, custom server URLs, your source or translated text, file names or paths, and translation history.</p>`
+<p><strong>What the report NEVER contains:</strong> API keys or authorization tokens, custom server URLs, your source or translated text, file names or paths, and translation history.</p>
+<h4>8. Choosing the translation engine</h4>
+<p>In the Subtitle and Media tabs, you can select between <strong>Auto</strong> (tries your configured engine chain from Settings with silent fallback on failure) or <strong>a specific engine</strong> (translates only with that engine, displaying plain error reasons without fallback). Each engine displays its status: <em>ready</em>, <em>needs a key</em>, <em>not downloaded</em>, or <em>offline mode blocks it</em>. Chrome on-device translation is not supported in the Windows desktop app (Electron) and is honestly omitted from the auto chain. Click <strong>Test</strong> to translate a sample sentence with your chosen engine to verify connectivity and measure latency without affecting your history.</p>`
 });
 Object.assign(I18N.fa,{
  tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',tabAppearance:'ظاهر و تم',themeH:'تم رنگی',themeNote:'از بین ۷ تم طراحی‌شده انتخاب کنید. تغییرات فوراً اعمال می‌شوند.',
@@ -454,7 +456,9 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
 <p>در صورت بروز هرگونه مشکل، می‌توانید از دکمه <strong>گزارش باگ</strong> در پنجره راهنما یا درباره استفاده کنید. هیچ داده‌ای به صورت خودکار توسط برنامه ارسال نمی‌شود؛ برنامه ایمیل پیش‌فرض خودِ شما پیام را باز می‌کند تا پیش از ارسال بتوانید تمامی متن را بررسی و ویرایش نمایید. همچنین امکان کپی متن گزارش در کلیپ‌بورد فراهم است.</p>
 <p><strong>ایمیل پشتیبانی:</strong> makan20042002@gmail.com</p>
 <p><strong>اطلاعات موجود در گزارش:</strong> نسخه برنامه، زبان رابط کاربری، سیستم‌عامل و نسخه مرورگر، تب فعال، حالت ترجمه، نام موتورهای فعال، وضعیت حالت آفلاین، نام مدل‌های آفلاین دانلودشده، وضعیت WebGPU، مشخص بودن اجرا در برنامه ویندوز، و حداکثر ۵ خطای اخیر رخ‌داده (با سانسور کامل هرگونه کلید، توکن یا آدرس سرور).</p>
-<p><strong>اطلاعاتی که هرگز ارسال نمی‌شوند:</strong> کلیدهای API یا توکن‌های امنیتی، آدرس سرورهای سفارشی، متن مبدأ یا ترجمه‌شده شما، نام و مسیر فایل‌ها، و تاریخچه ترجمه‌ها.</p>`
+<p><strong>اطلاعاتی که هرگز ارسال نمی‌شوند:</strong> کلیدهای API یا توکن‌های امنیتی، آدرس سرورهای سفارشی، متن مبدأ یا ترجمه‌شده شما، نام و مسیر فایل‌ها، و تاریخچه ترجمه‌ها.</p>
+<h4>۸. انتخاب موتور ترجمه</h4>
+<p>در تب‌های زیرنویس و رسانه می‌توانید بین <strong>خودکار (Auto)</strong> (بررسی موتورها به ترتیب تنظیمات شما با جایگزینی خودکار در صورت خطا) یا <strong>یک موتور خاص</strong> (ترجمه فقط با همان موتور و نمایش مستقیم علت خطا بدون تغییر خودکار) انتخاب کنید. هر موتور وضعیت خود را نشان می‌دهد: <em>آماده</em>، <em>کلید لازم دارد</em>، <em>دانلود نشده</em>، یا <em>حالت آفلاین مانع آن است</em>. مترجم روی دستگاه کروم در برنامه ویندوز (Electron) پشتیبانی نمی‌شود و صادقانه از زنجیره خودکار حذف می‌گردد. با زدن دکمه <strong>آزمایش</strong> می‌توانید یک جمله نمونه را بدون تغییر تاریخچه آزمایش کرده و زمان پاسخ‌دهی را مشاهده نمایید.</p>`
 });
 const ensureMediaI18n = () => {
   if (typeof window !== 'undefined' && window.MediaTranslate && window.MediaTranslate.i18n) {
