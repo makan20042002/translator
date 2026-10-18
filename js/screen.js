@@ -544,7 +544,6 @@ if (document.readyState === 'loading') {
   // Populate installed OCR languages and target languages in settings
   const stOcrLang = $('stOcrLang');
   const stTgtLang = $('stTgtLang');
-  const stOcrHint = $('stOcrStatusHint');
 
   if (stTgtLang && typeof LANGS !== 'undefined' && stTgtLang.options.length <= 2) {
     const curVal = stTgtLang.value || 'fa';
