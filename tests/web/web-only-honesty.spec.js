@@ -68,7 +68,7 @@ test.describe('Web-only Honesty Controls (ITEM 4)', () => {
     // Verify Screen tab in Persian
     await page.locator('#tabs button[data-tab="screen"]').click();
     await expect(page.locator('#screenBrowserBanner')).toBeVisible();
-    await expect(page.locator('#screenBrowserBanner')).toContainText('عکس‌برداری مستقیم از صفحه به برنامه ویندوز MAKAN نیاز دارد');
+    await expect(page.locator('#screenBrowserBanner')).toContainText('تصویربرداری بومی از صفحه به برنامه ویندوز MAKAN نیاز دارد');
     await expect(page.locator('#tabScreenLaunchBtn')).toBeDisabled();
 
     // Verify Subtitles tab in Persian
