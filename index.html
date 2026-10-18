@@ -1855,13 +1855,43 @@
 
 <datalist id="models"></datalist>
 <div class="credits-box" id="creditsBox" role="dialog" aria-labelledby="creditsTitle" hidden style="max-height:85vh;overflow-y:auto;width:min(680px,calc(100vw - 36px))">
-  <div class="row" style="position:sticky;top:0;background:var(--popup, var(--surface2));padding-bottom:8px;z-index:2;border-bottom:1px solid var(--border)"><strong id="creditsTitle" data-t="creditsBtn">About &amp; credits</strong><span class="sp"></span><button class="btn ghost" id="creditsClose" type="button" aria-label="Close">✕</button></div>
+  <div class="row" style="position:sticky;top:0;background:var(--popup, var(--surface2));padding-bottom:8px;z-index:2;border-bottom:1px solid var(--border)"><strong id="creditsTitle" data-t="creditsBtn">About &amp; credits</strong><span class="sp"></span><button class="btn ghost" id="aboutBugReportBtn" type="button" data-t="reportBug" style="min-height:24px;font-size:12px;margin-inline-end:8px">Report a bug</button><button class="btn ghost" id="creditsClose" type="button" aria-label="Close">✕</button></div>
   <p data-t="creditsText"></p>
   <p><a href="dict/en-fa/credits.txt" target="_blank" rel="noopener">credits (en → fa)</a> · <a href="dict/fa-en/credits.txt" target="_blank" rel="noopener">credits (fa → en)</a></p>
   <section id="helpGuideSection" class="help-guide-section" style="margin-top:16px;border-top:1px solid var(--border);padding-top:14px">
-    <h3 id="helpGuideTitle" data-t="helpGuideTitle" style="font-size:15px;margin-bottom:8px">What it can do, limits, and what computer you need</h3>
+    <div class="row" style="align-items:center;margin-bottom:8px">
+      <h3 id="helpGuideTitle" data-t="helpGuideTitle" style="font-size:15px;margin:0">What it can do, limits, and what computer you need</h3>
+      <span class="sp"></span>
+      <button class="btn ghost" id="helpBugReportBtn" type="button" data-t="reportBug" style="min-height:24px;font-size:12px">Report a bug</button>
+    </div>
     <div id="helpGuideContent" data-t="helpGuideHtml"></div>
   </section>
+</div>
+<div class="credits-box bug-report-modal" id="bugReportModal" role="dialog" aria-modal="true" aria-labelledby="bugReportTitle" hidden style="max-height:85vh;overflow-y:auto;width:min(620px,calc(100vw - 36px));z-index:220">
+  <div class="row" style="position:sticky;top:0;background:var(--popup, var(--surface2));padding-bottom:8px;z-index:2;border-bottom:1px solid var(--border)">
+    <strong id="bugReportTitle" data-t="bugReportTitle">Report a bug</strong>
+    <span class="sp"></span>
+    <button class="btn ghost" id="bugReportClose" type="button" aria-label="Close">✕</button>
+  </div>
+  <div style="margin-top:12px;display:flex;flex-direction:column;gap:10px">
+    <label for="bugWhatHappened">
+      <span style="font-weight:600;font-size:13px" data-t="bugWhatHappened">What happened?</span>
+      <textarea id="bugWhatHappened" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--input, var(--surface));color:var(--text);font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box" placeholder="Describe what happened..."></textarea>
+    </label>
+    <label for="bugWhatExpected">
+      <span style="font-weight:600;font-size:13px" data-t="bugWhatExpected">What did you expect?</span>
+      <textarea id="bugWhatExpected" rows="2" style="width:100%;margin-top:4px;padding:8px;border-radius:6px;border:1px solid var(--border);background:var(--input, var(--surface));color:var(--text);font-family:inherit;font-size:13px;resize:vertical;box-sizing:border-box" placeholder="Describe what you expected..."></textarea>
+    </label>
+    <label>
+      <span style="font-weight:600;font-size:13px" data-t="bugDiagTitle">Included diagnostics (read-only):</span>
+      <pre id="bugDiagPreview" role="region" aria-label="Diagnostics preview" tabindex="0" style="margin-top:4px;max-height:160px;overflow-y:auto;background:var(--surface);border:1px solid var(--border);border-radius:6px;padding:8px;font-family:var(--mono);font-size:11.5px;line-height:1.45;color:var(--text);white-space:pre-wrap;word-break:break-all;user-select:text;box-sizing:border-box"></pre>
+    </label>
+    <div class="row" style="margin-top:4px;gap:8px;align-items:center;flex-wrap:wrap">
+      <a class="btn cta" id="bugSendEmail" href="#" role="button" data-t="bugSendEmail" style="text-decoration:none;display:inline-flex;align-items:center;justify-content:center">Send by email</a>
+      <button class="btn ghost" id="bugCopyReport" type="button" data-t="bugCopyReport">Copy report</button>
+      <span id="bugCopyStatus" role="status" style="font-size:12px;display:none"></span>
+    </div>
+  </div>
 </div>
 <div class="word-card" id="wordCard" role="dialog" aria-label="Dictionary" hidden></div>
 <div class="speak-notice" id="speakNotice" role="status" aria-live="polite" hidden>
@@ -1901,5 +1931,6 @@
 <script src="js/idioms.js"></script>
 <script src="js/screen.js"></script>
 <script src="js/welcome.js"></script>
+<script src="js/bug-report.js"></script>
 </body>
 </html>

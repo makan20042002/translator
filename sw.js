@@ -41,6 +41,7 @@ const SHELL = [
   './js/idioms.js',
   './js/screen.js',
   './js/welcome.js',
+  './js/bug-report.js',
   './ai-worker.js',
   './asr-guard.js',
   './models-catalog.js',

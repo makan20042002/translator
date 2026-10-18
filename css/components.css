@@ -45,6 +45,7 @@ input[type=search]::-webkit-search-cancel-button{filter:invert(1)}
 .word-card[hidden]{display:none}
 .credits-box{position:fixed;z-index:210;inset-inline-end:18px;bottom:60px;width:min(480px,calc(100vw - 36px));background:var(--popup, var(--surface2));border:1px solid var(--border2);border-radius:12px;padding:14px 16px;font-size:13px;line-height:1.6;box-shadow:0 14px 36px rgba(0,0,0,.3);color:var(--text)}
 .credits-box[hidden]{display:none}
+.bug-report-modal{z-index:220;width:min(620px,calc(100vw - 36px))}
 .my-word{display:flex;gap:10px;align-items:baseline;padding:6px 0;border-bottom:1px solid var(--border)}
 .speak-notice{position:fixed;bottom:18px;inset-inline-start:18px;z-index:190;display:flex;align-items:center;gap:10px;max-width:min(520px,calc(100vw - 36px));background:var(--surface2);border:1px solid var(--border2);border-inline-start:3px solid var(--warn);border-radius:10px;padding:8px 12px;font-size:13px;box-shadow:0 12px 30px rgba(0,0,0,.3);color:var(--text)}
 .speak-notice[hidden]{display:none}

@@ -67,6 +67,37 @@ const ENG = {
   custom: { name: 'Custom Server (LM Studio / OpenAI-compatible)', tier: 'custom', ai: 1, model: '' }
 };
 
+// Owner bug report email (single constant in translator codebase)
+const BUG_REPORT_EMAIL = 'makan20042002@gmail.com';
+ENG.BUG_REPORT_EMAIL = BUG_REPORT_EMAIL;
+
+function getAppVersion() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime && chrome.runtime.getManifest) {
+      const v = chrome.runtime.getManifest().version;
+      if (v) return v;
+    }
+  } catch (_) {}
+  return '1.0.0';
+}
+ENG.getAppVersion = getAppVersion;
+
+function redactDiagnosticsText(text) {
+  if (typeof text !== 'string') return '';
+  let s = text;
+  s = s.replace(/Bearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [REDACTED_TOKEN]');
+  s = s.replace(/(?:AIza[0-9A-Za-z_-]{35}|(?:sk|gsk)_[a-zA-Z0-9_-]{20,})/g, '[REDACTED_KEY]');
+  s = s.replace(/\b[a-zA-Z0-9_-]{32,}\b/g, (m) => {
+    if (/[0-9]/.test(m) && /[a-zA-Z]/.test(m)) return '[REDACTED_KEY]';
+    return m;
+  });
+  s = s.replace(/[?&][^=\s&]+=[^&\s]*/g, '[REDACTED_QUERY]');
+  s = s.replace(/[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+/g, '[REDACTED_EMAIL]');
+  s = s.replace(/https?:\/\/[^\s"'<>]+/gi, '[REDACTED_URL]');
+  return s;
+}
+ENG.redactDiagnosticsText = redactDiagnosticsText;
+
 const DEF_ORDER = ['gemini', 'openrouter', 'mistral', 'cerebras', 'openai', 'claude', 'ollama', 'custom', 'google', 'mymemory', 'groq'];
 
 const DEFAULT_CFG = {
