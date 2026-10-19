@@ -80,7 +80,7 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
     const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
     await expect(vSttOpt).toHaveCount(1);
     expect(await vSttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
-    await expect(page.locator('#helperStatusMsg')).toContainText('Connected');
+    await expect(page.locator('#helperStatusMsg')).toContainText(/connected/i);
 
     // Helper entries appear in Voice speech picker: helper group becomes visible
     await mouseClick(page, page.locator('#closeSet'));
@@ -165,7 +165,7 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
     const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
     await expect(vSttOpt).toHaveCount(1);
     expect(await vSttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
-    await expect(page.locator('#helperStatusMsg')).toContainText('متصل است');
+    await expect(page.locator('#helperStatusMsg')).toContainText(/دستیار کمکی متصل است/);
 
     // Helper entries appear in Voice speech picker: helper group becomes visible
     await mouseClick(page, page.locator('#closeSet'));
