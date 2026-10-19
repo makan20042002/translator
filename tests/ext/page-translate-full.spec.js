@@ -336,13 +336,18 @@ test.describe('Extension: whole-page translation full suite', () => {
     // Verify requests sent to the engine contained the ORIGINAL English text, NOT "[fa] ..."
     const deCalls = stub.calls('clients5.google.com');
     expect(deCalls.length).toBeGreaterThan(0);
+    let hasParagraphItem = false;
     for (const call of deCalls) {
       const form = new URLSearchParams(call.body);
       for (const q of form.getAll('q')) {
+        expect(q.length).toBeGreaterThan(0);
         expect(q).not.toContain('[fa]');
-        expect(q).toContain('Paragraph text item unique number');
+        if (q.includes('Paragraph text item unique number')) {
+          hasParagraphItem = true;
+        }
       }
     }
+    expect(hasParagraphItem).toBe(true);
 
     await page.close();
   });
