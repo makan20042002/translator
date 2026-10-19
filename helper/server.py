@@ -193,6 +193,9 @@ def load_model(model_key: str):
     if "qwen3" in canonical_key:
         try:
             pipe = Qwen3ASRWrapper(hf_repo, device=device, torch_dtype=torch_dtype)
+        except (ModuleNotFoundError, ImportError) as imp_err:
+            logger.error(f"Missing required dependency for Qwen3-ASR: {imp_err}")
+            raise
         except Exception as q3_err:
             logger.warning(f"Qwen3ASRWrapper failed ({q3_err}), trying standard pipeline...")
             try:
@@ -317,6 +320,16 @@ def api_load_model(req: LoadModelRequest):
     try:
         load_model(req.model)
         return {"status": "loaded", "model": loaded_model_id}
+    except ModuleNotFoundError as e:
+        missing = getattr(e, "name", None) or str(e)
+        detail = f"No module named '{missing}'"
+        logger.error(f"Missing package loading model '{req.model}': {detail}")
+        raise HTTPException(status_code=500, detail=detail)
+    except ImportError as e:
+        missing = getattr(e, "name", None)
+        detail = f"No module named '{missing}'" if missing else str(e)
+        logger.error(f"Import error loading model '{req.model}': {detail}")
+        raise HTTPException(status_code=500, detail=detail)
     except Exception as e:
         logger.error(f"Error loading model {req.model}: {e}")
         raise HTTPException(status_code=500, detail=str(e))
