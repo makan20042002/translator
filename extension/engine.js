@@ -120,6 +120,8 @@ const DEFAULT_CFG = {
   subject: '',
   trigger: 'auto', // 'auto' | 'alt' | 'never'
   dictLookup: true, // double-click word lookup
+  offerPageTranslate: false, // offer to translate pages in other languages
+  neverTranslateSites: [],
   disabledSites: [],
   ui: 'en',
   glossary: [],
@@ -269,6 +271,8 @@ function sanitizeConfig(raw, previous) {
   cfg.subject = isStr(src.subject) ? src.subject : '';
   cfg.subStyle = ['film', 'neutral', 'formal'].includes(src.subStyle) ? src.subStyle : DEFAULT_CFG.subStyle;
   cfg.disabledSites = Array.isArray(src.disabledSites) ? src.disabledSites.filter(isStr) : [];
+  cfg.offerPageTranslate = typeof src.offerPageTranslate === 'boolean' ? src.offerPageTranslate : (typeof prev.offerPageTranslate === 'boolean' ? prev.offerPageTranslate : false);
+  cfg.neverTranslateSites = Array.isArray(src.neverTranslateSites) ? src.neverTranslateSites.filter(isStr) : (Array.isArray(prev.neverTranslateSites) ? prev.neverTranslateSites.filter(isStr) : []);
   cfg.glossary = Array.isArray(src.glossary) ? src.glossary.filter(g => g && isStr(g.s) && isStr(g.t)).map(g => ({ s: g.s, t: g.t })) : [];
   // Engines: only the ones this extension knows, each in the same simple shape.
   const order = Array.isArray(src.order) ? src.order.filter(id => isStr(id) && ENG[id]) : [];

@@ -6,5 +6,9 @@
   "extensionDescription": {
     "message": "Translate text, selection, and web pages with free engines or your own AI key. English & Persian (RTL), privacy-first.",
     "description": "The description of the extension."
+  },
+  "offerPageTranslate": {
+    "message": "Offer to translate pages in other languages",
+    "description": "Option to prompt translation on pages in foreign languages."
   }
 }

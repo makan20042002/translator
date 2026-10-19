@@ -499,6 +499,68 @@
   background: #ffc470;
 }
 
+/* Offer to Translate Floating Top Bar */
+.makan-offer-bar {
+  position: fixed;
+  top: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 2147483646;
+  max-width: min(720px, calc(100vw - 16px));
+  box-sizing: border-box;
+  background: var(--glass);
+  backdrop-filter: blur(18px);
+  -webkit-backdrop-filter: blur(18px);
+  border: 1px solid var(--border2);
+  border-radius: 20px;
+  padding: 6px 14px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: makanBannerDrop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+  font-size: 13px;
+  pointer-events: auto !important;
+}
+
+.makan-offer-text {
+  font-weight: 600;
+  color: var(--text);
+  word-break: break-word;
+}
+
+.makan-offer-btn {
+  height: 28px;
+  padding: 0 12px;
+  border-radius: 20px;
+  border: 1px solid var(--border);
+  background: var(--surface2);
+  color: var(--text);
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
+}
+
+.makan-offer-btn:hover {
+  background: rgba(255, 255, 255, 0.12);
+  border-color: var(--accent);
+}
+
+.makan-offer-btn.cta {
+  background: var(--cta);
+  color: var(--cta-ink);
+  border-color: var(--cta);
+}
+
+.makan-offer-btn.cta:hover {
+  background: #ffc470;
+}
+
 /* Hover Tooltip for translated elements */
 .makan-tooltip {
   position: absolute;

@@ -406,4 +406,79 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('g) offer bar: default OFF shows nothing and sends no request; when ON it appears for another language, sends nothing before click, and "Never for this site" is remembered after reload', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    stub.clearLog();
+
+    // 1. Default OFF: load English page
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1000);
+
+    // Verify offer bar is NOT shown and no translation requests were sent
+    expect(await inShadow(page, '.makan-offer-bar').count()).toBe(0);
+    expect(stub.calls('clients5.google.com')).toHaveLength(0);
+
+    // 2. Turn ON offerPageTranslate
+    await ext.patchConfig({ offerPageTranslate: true });
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+
+    // Offer bar appears because page is English and target is Persian (FA)
+    const offerBar = inShadow(page, '.makan-offer-bar');
+    await expect(offerBar).toBeVisible({ timeout: 10_000 });
+    await expect(inShadow(page, '#makanOfferTranslate')).toBeVisible();
+    await expect(inShadow(page, '#makanOfferNotNow')).toBeVisible();
+    await expect(inShadow(page, '#makanOfferNever')).toBeVisible();
+
+    // STRICT PRIVACY CHECK: NO network request sent before user clicks!
+    expect(stub.calls('clients5.google.com')).toHaveLength(0);
+
+    // 3. Click "Never for this site"
+    await inShadow(page, '#makanOfferNever').click();
+    await expect(offerBar).toHaveCount(0);
+
+    // 4. Reload page: "Never for this site" must be remembered locally
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+    await page.waitForTimeout(1200);
+
+    // Offer bar does NOT appear after reload
+    expect(await inShadow(page, '.makan-offer-bar').count()).toBe(0);
+    // Still zero requests
+    expect(stub.calls('clients5.google.com')).toHaveLength(0);
+
+    await page.close();
+  });
+
+  test('h) with no click, the page is never translated (keeps page-attacks guarantee against programmatic events)', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    stub.clearLog();
+    await ext.patchConfig({ offerPageTranslate: true });
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+
+    const offerBar = inShadow(page, '.makan-offer-bar');
+    await expect(offerBar).toBeVisible({ timeout: 10_000 });
+
+    // Attack simulation: in-page script attempts to fake untrusted click on Translate button
+    await page.evaluate(() => {
+      const root = document.getElementById('makan-translate-root');
+      const btn = root?.shadowRoot?.getElementById('makanOfferTranslate');
+      if (btn) {
+        btn.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true }));
+      }
+    });
+
+    await page.waitForTimeout(1000);
+
+    // Verification: untrusted script cannot trigger translation
+    expect(stub.calls('clients5.google.com')).toHaveLength(0);
+    const p1Text = await page.locator('#p1').textContent();
+    expect(p1Text).not.toContain('[fa]');
+
+    await page.close();
+  });
 });
+

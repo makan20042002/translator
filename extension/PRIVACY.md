@@ -38,6 +38,13 @@ The extension communicates strictly with the following translation providers, an
   - Pressing a user-configured keyboard shortcut (`Alt+Shift+T` for selection, `Alt+Shift+P` for full page).
   - Explicitly clicking "Translate" in the toolbar popup.
   - Explicitly clicking "Translate Page" in the toolbar popup or context menu.
+  - Explicitly clicking "Translate" on the optional "Offer to translate" banner.
+
+- **Optional "Offer to Translate Pages" (Disabled by Default)**:
+  - An optional setting ("Offer to translate pages in other languages") is OFF by default.
+  - When enabled, detection of whether a page differs from your target language is performed **entirely locally in the browser** (checking the page's HTML `lang` tag or a lightweight local regular expression on visible text).
+  - **Zero data or network requests are sent** prior to explicit user consent. No requests leave the browser until and unless the user clicks the "Translate" button on the offer bar.
+  - When the user clicks "Never for this site", the domain is remembered strictly in local browser storage (`chrome.storage.local`) and is never transmitted anywhere.
 
 - **Strict Sensitive Field Protection**:
   The extension is hard-coded to ignore and skip:

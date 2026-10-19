@@ -6,5 +6,9 @@
   "extensionDescription": {
     "message": "ترجمه متن، متن انتخاب‌شده و کل صفحات وب با موتورهای رایگان یا کلید هوش مصنوعی شما. فارسی و انگلیسی، بدون نقض حریم خصوصی.",
     "description": "The description of the extension."
+  },
+  "offerPageTranslate": {
+    "message": "پیشنهاد ترجمه صفحاتی که به زبان دیگری هستند",
+    "description": "گزینه پیشنهاد ترجمه در صفحات با زبان غیرمقصد."
   }
 }

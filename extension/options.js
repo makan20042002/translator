@@ -33,6 +33,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       helpAppUrl: 'Only ports 50505 (desktop app) and 8080 (web app) on localhost / 127.0.0.1 are allowed.',
       lblWebAppUrl: 'Web App URL:',
       lblDictLookup: 'Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)',
+      lblOfferPageTranslate: 'Offer to translate pages in other languages (detects language locally without sending requests)',
       secEngines: 'Translation Engines & Keys',
       subEngines: 'Engines are tried from top to bottom. If a provider hits rate limits or fails, the next available engine takes over seamlessly.',
       btnCheckConn: 'Check Connections',
@@ -89,6 +90,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       helpAppUrl: 'فقط پورت‌های ۵۰۵۰۵ (برنامه دسکتاپ) و ۸۰۸۰ (نسخه وب) روی localhost / 127.0.0.1 مجاز هستند.',
       lblWebAppUrl: 'آدرس وب‌اپلیکیشن:',
       lblDictLookup: 'فعال‌سازی حالت دیکشنری با دوبار کلیک روی کلمه (تلفظ، معانی و مثال با هوش مصنوعی)',
+      lblOfferPageTranslate: 'پیشنهاد ترجمه صفحاتی که به زبان دیگری هستند (تشخیص زبان به صورت محلی بدون ارسال درخواست)',
       secEngines: 'موتورهای ترجمه و کلیدها',
       subEngines: 'موتورها از بالا به پایین امتحان می‌شوند. در صورت بروز محدودیت نرخ (429) یا خطا، موتور بعدی به طور خودکار جایگزین می‌شود.',
       btnCheckConn: 'بررسی اتصال‌ها',
@@ -316,6 +318,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     if (helpAppUrl) helpAppUrl.textContent = I18N[lang].helpAppUrl;
     lblWebAppUrl.textContent = I18N[lang].lblWebAppUrl;
     lblDictLookup.textContent = I18N[lang].lblDictLookup;
+    const lblOfferPageTranslate = document.getElementById('lblOfferPageTranslate');
+    if (lblOfferPageTranslate) lblOfferPageTranslate.textContent = I18N[lang].lblOfferPageTranslate;
     secEngines.textContent = I18N[lang].secEngines;
     subEngines.textContent = I18N[lang].subEngines;
     btnCheckConnText.textContent = I18N[lang].btnCheckConn;
@@ -364,6 +368,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   txtWebAppUrl.value = cfg.webAppUrl || 'http://localhost:8080';
   chkDictLookup.checked = cfg.dictLookup !== false;
   chkShowVulgar.checked = cfg.showVulgar === true;
+  const chkOfferPageTranslate = document.getElementById('chkOfferPageTranslate');
+  if (chkOfferPageTranslate) chkOfferPageTranslate.checked = cfg.offerPageTranslate === true;
   optOpenApp.href = cfg.webAppUrl || 'http://localhost:8080';
   if (optOpenBrowser) optOpenBrowser.href = cfg.webAppUrl || 'http://localhost:8080';
 
@@ -581,6 +587,13 @@ document.addEventListener('DOMContentLoaded', async () => {
     saveAndNotify();
     toast(I18N[currentUi].saved);
   };
+  if (chkOfferPageTranslate) {
+    chkOfferPageTranslate.onchange = () => {
+      cfg.offerPageTranslate = chkOfferPageTranslate.checked;
+      saveAndNotify();
+      toast(I18N[currentUi].saved);
+    };
+  }
 
   // ==================== SITE COMPATIBILITY SELF-CHECK ====================
   let activeTabInfo = null;

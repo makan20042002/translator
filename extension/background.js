@@ -408,7 +408,7 @@ const isExtensionPage = sender => !!sender && (sender.id === chrome.runtime.id |
 const isContentScript = sender => !!sender && !!sender.tab && !isExtensionPage(sender);
 // The only things the part of the extension that runs inside web pages may ask for.
 // Everything else (reading or saving settings, testing engines, injecting scripts) is for extension pages only.
-const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish', 'open-in-app']);
+const CONTENT_SCRIPT_ACTIONS = new Set(['get-public-config', 'translate-text', 'translate-dict', 'play-gemini-tts', 'stop-tts', 'set-language', 'open-options', 'get-card-css', 'dismiss-edge-hint', 'dict-lookup', 'idiom-check', 'finglish', 'open-in-app', 'never-translate-site']);
 
 // The dictionary packs ship inside the extension (the list of packs is dict/packs.json); load one into IndexedDB the
 // first time it is needed (no network).
@@ -463,6 +463,8 @@ function publicConfig(cfg) {
   return {
     src: cfg.src, tgt: cfg.tgt, tone: cfg.tone, subject: cfg.subject,
     trigger: cfg.trigger, dictLookup: cfg.dictLookup, disabledSites: cfg.disabledSites || [], ui: cfg.ui,
+    offerPageTranslate: !!cfg.offerPageTranslate,
+    neverTranslateSites: Array.isArray(cfg.neverTranslateSites) ? cfg.neverTranslateSites : [],
     webAppUrl: safeWebAppUrl(cfg.webAppUrl),
     appUrl: safeAppUrl(cfg.appUrl),
     transMode: cfg.transMode,
@@ -628,6 +630,18 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
     if (req.action === 'dismiss-edge-hint') {
       cfg.edgeHintOff = true;
       await saveConfig(cfg);
+      return { ok: true };
+    }
+
+    if (req.action === 'never-translate-site') {
+      const host = typeof req.host === 'string' ? req.host.toLowerCase().trim() : '';
+      if (host) {
+        if (!Array.isArray(cfg.neverTranslateSites)) cfg.neverTranslateSites = [];
+        if (!cfg.neverTranslateSites.includes(host)) {
+          cfg.neverTranslateSites.push(host);
+          await saveConfig(cfg);
+        }
+      }
       return { ok: true };
     }
 
