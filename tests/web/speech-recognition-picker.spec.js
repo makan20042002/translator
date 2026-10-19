@@ -243,8 +243,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(await page.evaluate(() => cfg.helperModel)).toBe('qwen3-asr');
 
     // Switch to Settings tab and check Helper model row
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     const helperWrap = page.locator('#helperSettingsWrap');
     await expect(helperWrap).toBeVisible();
@@ -262,8 +261,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download sends selected whisper-large-v3 model in body and keeps cfg.helperModel as string (ITEM 1)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       cfg.stt = 'helper';
@@ -305,8 +303,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download sends selected qwen3-asr model in body and keeps cfg.helperModel as string (ITEM 1)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       cfg.stt = 'helper';
@@ -348,8 +345,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays HTTP 422 error detail in status line (EN) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'en';
@@ -382,8 +378,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays HTTP 422 error detail in status line (FA) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'fa';
@@ -416,8 +411,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays HTTP 500 error detail for missing module in status line (EN) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'en';
@@ -450,8 +444,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays HTTP 500 error detail for missing module in status line (FA) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'fa';
@@ -484,8 +477,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays generic hint only on network failure (EN) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'en';
@@ -512,8 +504,7 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
   test('helper model download displays generic hint only on network failure (FA) (ITEM 2)', async ({ app }) => {
     const { page } = app;
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
 
     await page.evaluate(() => {
       ui = 'fa';

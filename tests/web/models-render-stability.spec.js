@@ -1,5 +1,6 @@
 'use strict';
 const { test, expect, mouseClick } = require('../support/fixtures');
+const { openSettings } = require('../support/model-helpers');
 
 test.describe('Model Hub and Settings model rows rendering stability across all states (ITEM 2)', () => {
 
@@ -29,8 +30,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]')).toBeVisible();
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"] .hub-pill.ready')).toBeVisible();
 
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
     await expect(page.locator('.mdl[data-mdl="asr-large-v3"]')).toBeVisible();
 
     // 2. Ready state, FA, WebGPU absent
@@ -70,8 +70,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(page.locator('#tab-models')).toBeVisible();
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"] .hub-pill.busy')).toBeVisible();
 
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
     await expect(page.locator('.mdl[data-mdl="asr-large-v3"][data-state="busy"]')).toBeVisible();
 
     // 2. Busy state, FA
@@ -121,8 +120,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubCard.locator('.hub-error-url')).toHaveAttribute('href', /decoder_model_merged_quantized\.onnx/);
     await expect(hubCard.locator('.hub-error-details')).toContainText('HTTP 404');
 
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     await expect(settingsRow.locator('.hub-model-error')).toBeVisible();
@@ -165,8 +163,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubCard).toBeVisible();
     await expect(hubCard.locator('.hub-error-msg')).toContainText('network / blocked');
 
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     await expect(settingsRow.locator('.hub-error-msg')).toContainText('network / blocked');
@@ -214,8 +211,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubFallback).toBeVisible();
     await expect(hubFallback).toContainText('Device lost or out of memory');
 
-    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
-    await expect(page.locator('#tab-settings')).toBeVisible();
+    await openSettings(page, 'voiceModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     const settingsFallback = settingsRow.locator('.hub-gpu-fallback');

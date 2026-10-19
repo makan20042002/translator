@@ -824,14 +824,20 @@ function createAiWorker(role){
             errObj.message = friendlyMsg;
             errObj.details = errStr;
             mcFailed[wm.id] = errObj;
-            if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
-            if(typeof mcRender==='function')mcRender();
+            try {
+              if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
+            }catch(e){console.error('Failed to update voice readiness on worker error:', e);}
+            try {
+              if(typeof mcRender==='function')mcRender();
+            }catch(e){console.error('Failed to render models on worker error:', e);}
           }
         }
         // Exactly ONE toast per failure: mcDownload owns toasts for loadAsr and loadTr;
         // createAiWorker owns toasts for runtime translate and asr
         if(p.cmd!=='loadAsr'&&p.cmd!=='loadTr'){
-          if(typeof toast==='function')toast(friendlyMsg,'err',8000);
+          try {
+            if(typeof toast==='function')toast(friendlyMsg,'err',8000);
+          }catch(e){console.error('Failed to toast on worker error:', e);}
         }
         const rejErr = new Error(friendlyMsg);
         rejErr.details = errStr;
