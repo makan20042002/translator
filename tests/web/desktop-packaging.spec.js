@@ -238,14 +238,16 @@ test.describe('Desktop Packaging and Server Configuration (Item 2)', () => {
       expect(matched, `Root file "${relFile}" must be matched by extraResources filter in exe translator/package.json`).toBe(true);
     }
 
-    // 6. Verify main.js server types dictionary handles all packaged file extensions
+    // 6. Verify main.js / isolation-headers.js server types dictionary handles all packaged file extensions
     const mainSrc = fs.readFileSync(mainJsPath, 'utf8');
-    expect(mainSrc).toMatch(/const\s+types\s*=\s*\{/);
-    expect(mainSrc).toMatch(/['"]\.js['"]\s*:\s*['"]text\/javascript['"]/);
-    expect(mainSrc).toMatch(/['"]\.html['"]\s*:\s*['"]text\/html/);
-    expect(mainSrc).toMatch(/['"]\.css['"]\s*:\s*['"]text\/css['"]/);
-    expect(mainSrc).toMatch(/['"]\.webmanifest['"]\s*:/);
-    expect(mainSrc).toMatch(/path\.extname\(file\)\.toLowerCase\(\)/);
+    const isolationPath = path.join(exeTranslatorDir, 'isolation-headers.js');
+    const serverSrc = fs.existsSync(isolationPath) ? (mainSrc + '\n' + fs.readFileSync(isolationPath, 'utf8')) : mainSrc;
+    expect(serverSrc).toMatch(/const\s+(?:types|TYPES)\s*=\s*\{/);
+    expect(serverSrc).toMatch(/['"]\.js['"]\s*:\s*['"]text\/javascript['"]/);
+    expect(serverSrc).toMatch(/['"]\.html['"]\s*:\s*['"]text\/html/);
+    expect(serverSrc).toMatch(/['"]\.css['"]\s*:\s*['"]text\/css['"]/);
+    expect(serverSrc).toMatch(/['"]\.webmanifest['"]\s*:/);
+    expect(serverSrc).toMatch(/path\.extname\(file\)\.toLowerCase\(\)/);
 
     // 7. If unpacked build exists (dist/win-unpacked/resources/app), verify jszip.min.js is present
     const unpackedAppDir = path.join(exeTranslatorDir, 'dist', 'win-unpacked', 'resources', 'app');
