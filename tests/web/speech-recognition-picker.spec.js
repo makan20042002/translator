@@ -185,10 +185,37 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
 
-    // Open mic STT popup
+    // Open mic STT popup and assert nothing helper-related shows without manual check
     await page.locator('#vMicSttBtn').click();
     const list = page.locator('#vMicSttList');
+    await expect(list.locator('[data-group="helper-asr"]')).toBeHidden();
+    await expect(list.locator('.voice-card[data-stt="helper"]')).toHaveCount(0);
+    await page.locator('#vMicSttBtn').click();
 
+    // Stub healthy /health
+    let healthChecked = false;
+    await page.route('http://127.0.0.1:8765/health', async route => {
+      healthChecked = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'ok', loaded_model: 'whisper-large-v3' })
+      });
+    });
+
+    // Open Settings and press Check
+    await openSettings(page, 'voiceModels');
+    await expect(page.locator('#helperSettingsWrap')).toBeHidden();
+    await page.locator('#btnCheckHelper').click();
+    await expect.poll(() => healthChecked).toBe(true);
+    await expect(page.locator('#helperSettingsWrap')).toBeVisible();
+
+    // Close settings and return to Voice tab
+    await mouseClick(page, page.locator('#closeSet'));
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+    // Open mic STT popup - helper options now visible
+    await page.locator('#vMicSttBtn').click();
     const helperGroup = list.locator('[data-group="helper-asr"]');
     await expect(helperGroup).toBeVisible();
 
@@ -227,16 +254,45 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     const { page } = app;
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
 
-    // Open mic STT popup and check Qwen3 card in picker
+    // Open mic STT popup and assert nothing helper-related shows without manual check
     await page.locator('#vMicSttBtn').click();
     const list = page.locator('#vMicSttList');
+    await expect(list.locator('[data-group="helper-asr"]')).toBeHidden();
+    await expect(list.locator('.voice-card[data-stt="helper"]')).toHaveCount(0);
+    await page.locator('#vMicSttBtn').click();
+
+    // Stub healthy /health
+    let healthChecked = false;
+    await page.route('http://127.0.0.1:8765/health', async route => {
+      healthChecked = true;
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'ok', loaded_model: 'whisper-large-v3' })
+      });
+    });
+
+    // Check Settings before check: helper block is hidden
+    await openSettings(page, 'voiceModels');
+    const helperWrap = page.locator('#helperSettingsWrap');
+    await expect(helperWrap).toBeHidden();
+
+    // Press Check
+    await page.locator('#btnCheckHelper').click();
+    await expect.poll(() => healthChecked).toBe(true);
+    await expect(helperWrap).toBeVisible();
+
+    // Helper entries appear in Voice picker
+    await mouseClick(page, page.locator('#closeSet'));
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+    await page.locator('#vMicSttBtn').click();
+
     const helperGroup = list.locator('[data-group="helper-asr"]');
     await expect(helperGroup).toBeVisible();
 
     const qwenCard = helperGroup.locator('.voice-card[data-helper-model="qwen3-asr"]');
     await expect(qwenCard).toBeVisible();
-    await expect(qwenCard).toContainText('needs the helper, not included in v1');
-    await expect(qwenCard.locator('[data-act="dl-helper-model"]')).toHaveCount(0);
+    await expect(qwenCard.locator('[data-act="dl-helper-model"]')).toBeVisible();
 
     // Click Qwen3 card to select it
     await qwenCard.click();
@@ -244,16 +300,10 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
 
     // Switch to Settings tab and check Helper model row
     await openSettings(page, 'voiceModels');
-
-    const helperWrap = page.locator('#helperSettingsWrap');
     await expect(helperWrap).toBeVisible();
 
     const helperSel = page.locator('#helperModelSel');
     await expect(helperSel).toHaveValue('qwen3-asr');
-
-    const qwenNotice = page.locator('#helperQwenNotice');
-    await expect(qwenNotice).toBeVisible();
-    await expect(qwenNotice).toHaveText('needs the helper, not included in v1');
 
     const dlBtn = page.locator('#btnDownloadHelperModel');
     await expect(dlBtn).toBeVisible();
