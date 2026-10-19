@@ -148,6 +148,48 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.close();
   });
 
+  test('c) translates late-added content dynamically with MutationObserver and stops observing after Show Original', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+
+    // Start whole page translation
+    await ext.clickContextMenu('makan-translate-page', page.url());
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA');
+
+    // 1. Add late content dynamically 1s after translation finishes
+    await page.waitForTimeout(1000);
+    await page.evaluate(() => {
+      const p = document.createElement('p');
+      p.id = 'late-dynamic-p';
+      p.textContent = 'This is dynamically loaded late paragraph text.';
+      document.body.appendChild(p);
+    });
+
+    // MutationObserver debounces 300ms, rate guards, and translates the new node
+    await expect(page.locator('#late-dynamic-p')).toHaveText('[fa] This is dynamically loaded late paragraph text.', { timeout: 10_000 });
+
+    // 2. Click Show Original
+    await inShadow(page, '#makanRestoreBtn').click();
+    await expect(banner).toHaveCount(0);
+
+    // 3. Add more content after Show Original
+    await page.evaluate(() => {
+      const p2 = document.createElement('p');
+      p2.id = 'post-restore-p';
+      p2.textContent = 'This content was added after restoring original.';
+      document.body.appendChild(p2);
+    });
+
+    // Wait 1.5 seconds to ensure no late translation occurs
+    await page.waitForTimeout(1500);
+    expect(await page.locator('#post-restore-p').textContent()).toBe('This content was added after restoring original.');
+
+    await page.close();
+  });
+
   test('i) deduplicates identical strings inside one request so repeated text is sent once', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
     await page.goto(stub.appOrigin + '/__test/article.html');

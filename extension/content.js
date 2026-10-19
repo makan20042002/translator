@@ -1657,6 +1657,129 @@
     isPageTranslated = true;
     const engineLabel = lastEngineName || (cfg?.order?.[0] || 'MAKAN');
     showPageBanner(`Page translated to ${tgt.toUpperCase()} via ${engineLabel}.`, false, true);
+
+    // Watch for new or changed text with MutationObserver
+    startMutationObserver(tgt);
+  }
+
+  // MutationObserver for dynamic content, infinite scroll, and SPA navigation
+  let mutationDebounceTimer = null;
+  let lastMutationBatchTime = 0;
+  let isApplyingTranslation = false;
+
+  function startMutationObserver(tgt) {
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+    clearTimeout(mutationDebounceTimer);
+
+    mutationObserver = new MutationObserver(mutations => {
+      if (isApplyingTranslation || !isPageTranslated || isTranslationStopped) return;
+
+      let hasRelevantChange = false;
+      for (const m of mutations) {
+        if (m.target?.nodeType === 1) {
+          const el = m.target;
+          if (el.id === 'makan-translate-root' || el.closest?.('#makan-translate-root')) continue;
+          if (el.hasAttribute?.('data-makan-orig') && m.type === 'characterData') continue;
+          hasRelevantChange = true;
+          break;
+        } else if (m.target?.nodeType === 3) {
+          const parent = m.target.parentElement;
+          if (parent && (parent.id === 'makan-translate-root' || parent.closest?.('#makan-translate-root'))) continue;
+          if (parent?.hasAttribute?.('data-makan-orig')) continue;
+          hasRelevantChange = true;
+          break;
+        }
+      }
+
+      if (!hasRelevantChange) return;
+
+      clearTimeout(mutationDebounceTimer);
+      mutationDebounceTimer = setTimeout(() => {
+        processLateMutations(tgt);
+      }, 300);
+    });
+
+    if (document.body) {
+      mutationObserver.observe(document.body, { childList: true, subtree: true, characterData: true });
+    }
+  }
+
+  async function processLateMutations(tgt) {
+    if (!isPageTranslated || isTranslationStopped) return;
+
+    // Rate guard: translate at most one batch per second
+    const now = Date.now();
+    const elapsed = now - lastMutationBatchTime;
+    if (elapsed < 1000) {
+      clearTimeout(mutationDebounceTimer);
+      mutationDebounceTimer = setTimeout(() => processLateMutations(tgt), 1000 - elapsed);
+      return;
+    }
+    lastMutationBatchTime = Date.now();
+
+    const allUnits = collectPageUnits(tgt);
+    const newUnits = allUnits.filter(u => {
+      if (u.type === 'element') return !u.el.hasAttribute('data-makan-orig');
+      if (u.type === 'attr') return !u.el.hasAttribute('data-makan-orig-' + u.attr);
+      if (u.type === 'title') return false;
+      return true;
+    });
+
+    if (!newUnits.length) return;
+
+    const uniqueTexts = Array.from(new Set(newUnits.map(u => u.original)));
+    try {
+      isApplyingTranslation = true;
+      const res = await askBackground({
+        action: 'translate-text',
+        items: uniqueTexts,
+        src: 'auto',
+        tgt: tgt,
+        tone: cfg?.tone,
+        subject: cfg?.subject
+      });
+
+      if (res && res.ok && res.results) {
+        const transMap = new Map();
+        uniqueTexts.forEach((orig, idx) => {
+          transMap.set(orig, res.results[idx] || orig);
+        });
+
+        newUnits.forEach(unit => {
+          const original = unit.original;
+          const translated = transMap.get(original) || original;
+
+          if (unit.type === 'element') {
+            const el = unit.el;
+            el.setAttribute('data-makan-orig', original);
+            el.setAttribute('data-makan-trans', translated);
+            if (el._makanOrigHtml === undefined) el._makanOrigHtml = unit.origHtml !== undefined ? unit.origHtml : el.innerHTML;
+            el.innerText = translated;
+            if (isRtl(tgt)) {
+              if (el._makanOrigDir === undefined) el._makanOrigDir = el.getAttribute('dir');
+              if (el._makanOrigAlign === undefined) el._makanOrigAlign = el.style.textAlign || null;
+              el.setAttribute('dir', 'rtl');
+              el.style.textAlign = 'start';
+            }
+            attachTooltip(el, original);
+            translatedNodes.push(el);
+          } else if (unit.type === 'attr') {
+            const el = unit.el;
+            if (el._makanOrigAttrs === undefined) el._makanOrigAttrs = {};
+            if (el._makanOrigAttrs[unit.attr] === undefined) el._makanOrigAttrs[unit.attr] = unit.original;
+            el.setAttribute('data-makan-orig-' + unit.attr, unit.original);
+            el.setAttribute(unit.attr, translated);
+          }
+          translatedUnits.push(unit);
+        });
+      }
+    } catch (e) {
+    } finally {
+      isApplyingTranslation = false;
+    }
   }
 
   // Restore original page text and attributes
@@ -1667,6 +1790,7 @@
       mutationObserver.disconnect();
       mutationObserver = null;
     }
+    clearTimeout(mutationDebounceTimer);
 
     for (const unit of translatedUnits) {
       if (unit.type === 'element') {
