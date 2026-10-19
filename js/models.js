@@ -623,8 +623,8 @@ async function runTestTranslationModels(){
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
   const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
-  const isSelected = (typeof isOllamaSelected === 'function' ? isOllamaSelected() : false);
-  if (!offline && ollamaOn && (inOrder || isSelected)) {
+  const allowed = ollamaOn && (offline ? isSelected : (inOrder || isSelected));
+  if (allowed) {
     try{
       ollamaModels=(await fetchOllamaModels()) || [];
     }catch{}

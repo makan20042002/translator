@@ -1,8 +1,6 @@
 /* ---------- engines ---------- */
 function isOllamaSelected(){
   if(typeof cfg==='undefined')return false;
-  const inOrder = Array.isArray(cfg.order) && cfg.order.includes('ollama');
-  if(inOrder) return true;
   const mainEng=(typeof store!=='undefined'?store.get('engine','auto'):cfg.engine)||cfg.engine;
   if(mainEng==='ollama'||String(mainEng).startsWith('ollama:'))return true;
   const docEng=(typeof store!=='undefined'?store.get('doc_engine',''):'')||(typeof getDocChosenEngine==='function'?getDocChosenEngine():'');
@@ -11,6 +9,12 @@ function isOllamaSelected(){
   if(typeof window!=='undefined'&&window.MediaTranslate?.host?.getTranslateChoice){
     const ch=window.MediaTranslate.host.getTranslateChoice();
     if(ch==='ollama'||ch?.engine==='ollama'||String(ch?.engine).startsWith('ollama'))return true;
+  }
+  if(typeof document!=='undefined'){
+    const picks = document.querySelectorAll('.engine-picker-select');
+    for(const p of picks){
+      if(p.value==='ollama'||p.value?.startsWith?.('ollama:'))return true;
+    }
   }
   return false;
 }

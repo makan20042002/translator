@@ -15,7 +15,8 @@ async function fetchOllamaModels(force = false){
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
   const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
   const isSelected = (typeof isOllamaSelected === 'function' && isOllamaSelected());
-  if (!force && (offline || !ollamaOn || (!inOrder && !isSelected))) {
+  const allowed = ollamaOn && (offline ? isSelected : (inOrder || isSelected));
+  if (!force && !allowed) {
     if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     return null;
   }
@@ -247,7 +248,8 @@ async function updateOllamaManager(force = false){
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
   const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
   const isSelected = (typeof isOllamaSelected === 'function' && isOllamaSelected());
-  if (!force && (offline || !ollamaOn || (!inOrder && !isSelected))) {
+  const allowed = ollamaOn && (offline ? isSelected : (inOrder || isSelected));
+  if (!force && !allowed) {
     return;
   }
   const sel=$('ollamaModelSel');

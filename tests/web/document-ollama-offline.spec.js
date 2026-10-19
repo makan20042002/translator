@@ -48,4 +48,45 @@ test.describe('Document tab Ollama in Offline mode', () => {
     await expect(page.locator('body')).not.toContainText('Ollama is not running');
     await expect(page.locator('body')).not.toContainText('Ollama در حال اجرا نیست');
   });
+
+  test('with Offline mode ON and Ollama not chosen anywhere, Document tab makes zero requests to port 11434 until Ollama is selected', async ({ app }) => {
+    const { page } = app;
+    const calls = [];
+    await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+      calls.push(route.request().url());
+      if (route.request().url().includes('/api/tags')) {
+        route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+        });
+      } else {
+        route.abort('connectionrefused');
+      }
+    });
+
+    // Turn Offline mode ON
+    const offBtn = page.locator('#offBtn');
+    await mouseClick(page, offBtn);
+    await expect(offBtn).toHaveClass(/\bon\b/);
+
+    // Navigate to Document tab while Ollama is NOT chosen
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    await expect(page.locator('#tab-doc')).toBeVisible();
+
+    // Verify zero calls made to Ollama port 11434 while not chosen
+    expect(calls).toEqual([]);
+
+    // Now explicitly choose Ollama in Document picker
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await picker.selectOption('ollama');
+
+    // Model select should appear and become populated
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator('option[value="gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+
+    // Probing was allowed once explicitly chosen
+    expect(calls.length).toBeGreaterThan(0);
+  });
 });
+

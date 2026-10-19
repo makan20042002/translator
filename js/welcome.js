@@ -226,7 +226,8 @@ async function checkWelcomeOllama(force = false) {
   const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
   const isSelected = (typeof welcomeSelectedEngine !== 'undefined' && welcomeSelectedEngine === 'ollama') ||
                      (typeof isOllamaSelected === 'function' && isOllamaSelected());
-  if (!force && (offline || !ollamaOn || (!inOrder && !isSelected))) {
+  const allowed = ollamaOn && (offline ? isSelected : (inOrder || isSelected));
+  if (!force && !allowed) {
     welcomeOllamaReachable = false;
     updateWelcomePrivacyNotice();
     return;
