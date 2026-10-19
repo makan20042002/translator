@@ -39,7 +39,10 @@ ENG.getAppVersion = function() {
 };
 ENG.redactDiagnosticsText = (typeof window !== 'undefined' && (window.redactDiagnosticsText || (window.ENG && window.ENG.redactDiagnosticsText))) || function(s) { return typeof s === 'string' ? s : ''; };
 if (typeof window !== 'undefined') {
-  window.ENG = Object.assign(window.ENG || {}, ENG);
+  if (window.ENG) {
+    Object.assign(ENG, window.ENG);
+  }
+  window.ENG = ENG;
   if (!window.getAppVersion) window.getAppVersion = ENG.getAppVersion;
 }
 const DEF_ORDER=['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
@@ -153,6 +156,11 @@ function getEngineStatus(id,opts={}){
 }
 ENG.getStatus=getEngineStatus;
 ENG.getEngineStatus=getEngineStatus;
+if (typeof window !== 'undefined') {
+  window.ENG = ENG;
+  window.ENG.getStatus = getEngineStatus;
+  window.ENG.getEngineStatus = getEngineStatus;
+}
 
 async function probeChromeAvailability(src='en',tgt='fa',timeoutMs){
   if(typeof window!=='undefined'&&window.makanDesktop?.isDesktop===true){

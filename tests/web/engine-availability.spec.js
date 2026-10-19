@@ -151,4 +151,20 @@ test.describe('Honest Engine Availability (ITEM 1)', () => {
     expect(evaluation.nllbStatusOffline.state).toBe('not-downloaded');
     expect(evaluation.nllbStatusOffline.usable).toBe(false);
   });
+
+  test('window.ENG.getStatus is a function and equals ENG.getStatus', async ({ app }) => {
+    const { page } = app;
+    const result = await page.evaluate(() => {
+      return {
+        hasWindowEng: typeof window.ENG !== 'undefined',
+        isFunction: typeof window.ENG?.getStatus === 'function',
+        equalsEngGetStatus: window.ENG?.getStatus === ENG?.getStatus,
+        isSameObject: window.ENG === ENG
+      };
+    });
+    expect(result.hasWindowEng).toBe(true);
+    expect(result.isFunction).toBe(true);
+    expect(result.equalsEngGetStatus).toBe(true);
+    expect(result.isSameObject).toBe(true);
+  });
 });
