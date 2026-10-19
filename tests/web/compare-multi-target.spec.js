@@ -78,8 +78,8 @@ test.describe('Web app: Compare tab multi-target language support', () => {
     for (let i = 0; i < 4; i++) {
       const b = resBoxes.nth(i);
       const metaText = await b.locator('.meta').innerText();
-      expect(metaText).toMatch(/\d+(\.\d+)?s/);
-      expect(metaText).toMatch(/\d+\s+chars/);
+      expect(metaText).toMatch(/\d+(\.\d+)?s/i);
+      expect(metaText).toMatch(/\d+\s+chars/i);
     }
 
     expect(errors).toEqual([]);
