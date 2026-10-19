@@ -1620,6 +1620,11 @@
 
         if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
+        if (isTranslationStopped) {
+          isTranslating = false;
+          return;
+        }
+
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
             lastEngineName = res.engineName || res.engineUsed;
@@ -1661,11 +1666,20 @@
           });
 
           completed += batch.length;
+          if (isTranslationStopped) {
+            isTranslating = false;
+            return;
+          }
           showPageBanner(`Translated ${completed} of ${units.length}`, true, false, false, tgt);
         }
       } catch (err) {
         lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
+    }
+
+    if (isTranslationStopped) {
+      isTranslating = false;
+      return;
     }
 
     isTranslating = false;
@@ -1962,6 +1976,20 @@
     for (let bIdx = 0; bIdx < batches.length; bIdx++) {
       if (isTranslationStopped) break;
 
+      // Pause while tab is hidden
+      if (document.hidden) {
+        await new Promise(resolve => {
+          const onVis = () => {
+            if (!document.hidden) {
+              document.removeEventListener('visibilitychange', onVis);
+              resolve();
+            }
+          };
+          document.addEventListener('visibilitychange', onVis);
+        });
+      }
+      if (isTranslationStopped) break;
+
       const batch = batches[bIdx];
       const uniqueTexts = Array.from(new Set(batch.map(u => u.original)));
 
@@ -1976,6 +2004,11 @@
         });
 
         if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
+
+        if (isTranslationStopped) {
+          isTranslating = false;
+          return;
+        }
 
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
@@ -2026,11 +2059,20 @@
           });
 
           completed += batch.length;
+          if (isTranslationStopped) {
+            isTranslating = false;
+            return;
+          }
           showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}`, true, false, false, newTgt);
         }
       } catch (err) {
         lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
+    }
+
+    if (isTranslationStopped) {
+      isTranslating = false;
+      return;
     }
 
     isTranslating = false;
@@ -2119,7 +2161,6 @@
     const select = banner.querySelector('#makanBannerTgtSelect');
     if (select) {
       select.onchange = (e) => {
-        if (!e.isTrusted) return;
         const newTgt = select.value;
         if (newTgt === tgt) return;
         if (cfg) cfg.tgt = newTgt;

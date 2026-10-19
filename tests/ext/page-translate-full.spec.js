@@ -599,5 +599,82 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('l) banner markup, controls and state transitions: Stop halts translation cleanly, language dropdown triggers re-translation from originals, and Show Original restores page', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      document.body.innerHTML = `
+        <h1 id="item3-title">Banner Controls and Stop State Transition</h1>
+        <div id="para-list"></div>
+      `;
+      const list = document.getElementById('para-list');
+      for (let i = 1; i <= 50; i++) {
+        const p = document.createElement('p');
+        p.id = `item3-p-${i}`;
+        p.textContent = `Paragraph sentence number ${i} for banner state test.`;
+        list.appendChild(p);
+      }
+    });
+
+    // Slow down engine slightly so we can interact with Stop during translation
+    stub.delayHost('clients5.google.com', 350);
+    stub.clearLog();
+
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // Verify banner appears in shadow DOM with progress and Stop button
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    const stopBtn = inShadow(page, '#makanStopBtn');
+    await expect(stopBtn).toBeVisible({ timeout: 10_000 });
+    await expect(inShadow(page, '#makanBannerStatus')).toBeVisible();
+
+    // Click Stop button
+    await stopBtn.click();
+
+    // Stop must display stopped status, remove Stop button, and display Show Original button
+    await expect(banner).toContainText('Translation stopped', { timeout: 10_000 });
+    await expect(inShadow(page, '#makanStopBtn')).toHaveCount(0);
+    const restoreBtn = inShadow(page, '#makanRestoreBtn');
+    await expect(restoreBtn).toBeVisible();
+
+    // Verify engine requests ceased
+    const callsAfterStop = stub.calls('clients5.google.com').length;
+    await page.waitForTimeout(800);
+    expect(stub.calls('clients5.google.com').length).toBe(callsAfterStop);
+
+    // Reset delays and stub logs
+    stub.resetModes();
+    stub.clearLog();
+
+    // Change target language to FR using the banner select dropdown
+    const langSelect = inShadow(page, '#makanBannerTgtSelect');
+    await expect(langSelect).toBeVisible();
+    await langSelect.selectOption('fr');
+
+    // Retranslation finishes and banner updates
+    await expect(banner).toContainText('Page translated to FR', { timeout: 15_000 });
+    expect(await page.locator('#item3-p-1').textContent()).toContain('[fr]');
+
+    // Requests sent for FR must contain original English text, not [fa]
+    const frCalls = stub.calls('clients5.google.com');
+    expect(frCalls.length).toBeGreaterThan(0);
+    for (const call of frCalls) {
+      const form = new URLSearchParams(call.body);
+      for (const q of form.getAll('q')) {
+        expect(q).not.toContain('[fa]');
+      }
+    }
+
+    // Click Show Original
+    await restoreBtn.click();
+    await expect(banner).toHaveCount(0);
+    expect(await page.locator('#item3-p-1').textContent()).toBe('Paragraph sentence number 1 for banner state test.');
+
+    await page.close();
+  });
 });
 
