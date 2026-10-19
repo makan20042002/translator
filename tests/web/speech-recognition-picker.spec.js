@@ -222,4 +222,42 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(await page.evaluate(() => cfg.helperModel)).toBe('qwen3-asr');
     await expect(page.locator('#vMicSttCurLabel')).toHaveText('Qwen3-ASR (Helper)');
   });
+
+  test('Qwen3 displays "needs the helper, not included in v1" with no download button in picker and settings (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+
+    // Open mic STT popup and check Qwen3 card in picker
+    await page.locator('#vMicSttBtn').click();
+    const list = page.locator('#vMicSttList');
+    const helperGroup = list.locator('[data-group="helper-asr"]');
+    await expect(helperGroup).toBeVisible();
+
+    const qwenCard = helperGroup.locator('.voice-card[data-helper-model="qwen3-asr"]');
+    await expect(qwenCard).toBeVisible();
+    await expect(qwenCard).toContainText('needs the helper, not included in v1');
+    await expect(qwenCard.locator('[data-act="dl-helper-model"]')).toHaveCount(0);
+
+    // Click Qwen3 card to select it
+    await qwenCard.click();
+    expect(await page.evaluate(() => cfg.helperModel)).toBe('qwen3-asr');
+
+    // Switch to Settings tab and check Helper model row
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    const helperWrap = page.locator('#helperSettingsWrap');
+    await expect(helperWrap).toBeVisible();
+
+    const helperSel = page.locator('#helperModelSel');
+    await expect(helperSel).toHaveValue('qwen3-asr');
+
+    const qwenNotice = page.locator('#helperQwenNotice');
+    await expect(qwenNotice).toBeVisible();
+    await expect(qwenNotice).toHaveText('needs the helper, not included in v1');
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await expect(dlBtn).toBeHidden();
+  });
 });
+

@@ -499,6 +499,7 @@ function renderSttPickerListHTML(){
 
   for(const h of helperOpts){
     const isSel=(curStt==='helper' && (cfg.helperModel||'whisper-large-v3')===h.id);
+    const isQwen=h.id==='qwen3-asr';
     html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="helper" data-helper-model="${esc(h.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
       <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
         <input type="radio" name="sttRadio" value="helper:${esc(h.id)}" ${isSel?'checked':''} style="cursor:pointer">
@@ -508,7 +509,10 @@ function renderSttPickerListHTML(){
         </div>
       </div>
       <div class="row" style="gap:6px;align-items:center">
-        <button class="btn btn-xs" data-act="dl-helper-model" data-helper-model="${esc(h.id)}" style="font-size:11px;padding:3px 7px" title="Download & Load into memory">⚡ Load</button>
+        ${isQwen
+          ? `<span class="badge warn" style="font-size:11px" data-qwen-notice="true">needs the helper, not included in v1</span>`
+          : `<button class="btn btn-xs" data-act="dl-helper-model" data-helper-model="${esc(h.id)}" style="font-size:11px;padding:3px 7px" title="Download & Load into memory">⚡ Load</button>`
+        }
         <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">Helper</span>
       </div>
     </div>`;
@@ -618,6 +622,19 @@ function updateHelperSettingsVisibility(){
   if(!wrap.hidden){
     if($('helperModelSel'))$('helperModelSel').value=cfg.helperModel||'whisper-large-v3';
     if($('helperUrlInput'))$('helperUrlInput').value=cfg.helperUrl||'http://127.0.0.1:8765';
+    updateHelperModelButtons();
+  }
+}
+function updateHelperModelButtons(){
+  const curModel=$('helperModelSel')?.value||cfg.helperModel||'whisper-large-v3';
+  const dlBtn=$('btnDownloadHelperModel');
+  const qNotice=$('helperQwenNotice');
+  if(curModel==='qwen3-asr'){
+    if(dlBtn)dlBtn.hidden=true;
+    if(qNotice)qNotice.hidden=false;
+  }else{
+    if(dlBtn)dlBtn.hidden=false;
+    if(qNotice)qNotice.hidden=true;
   }
 }
 async function checkHelperConnection(){
@@ -639,17 +656,33 @@ async function checkHelperConnection(){
     return false;
   }
 }
-if($('helperModelSel')) $('helperModelSel').onchange=()=>{cfg.helperModel=$('helperModelSel').value;saveCfg();if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay()};
+if($('helperModelSel')) $('helperModelSel').onchange=()=>{
+  cfg.helperModel=$('helperModelSel').value;
+  saveCfg();
+  updateHelperModelButtons();
+  if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
+};
 if($('helperUrlInput')) $('helperUrlInput').onchange=()=>{cfg.helperUrl=$('helperUrlInput').value.trim()||'http://127.0.0.1:8765';saveCfg()};
 if($('btnCheckHelper')) $('btnCheckHelper').onclick=checkHelperConnection;
 async function downloadHelperModel(overrideModel){
+  const cleanModel=typeof overrideModel==='string'?overrideModel:null;
+  const model=cleanModel||$('helperModelSel')?.value||cfg.helperModel||'whisper-large-v3';
   const msgEl=$('helperStatusMsg');
+  const qNotice=$('helperQwenNotice');
+  if(model==='qwen3-asr'){
+    if(qNotice)qNotice.hidden=false;
+    if(msgEl){
+      msgEl.textContent='needs the helper, not included in v1';
+      msgEl.style.color='var(--warn,#f59e0b)';
+    }
+    return;
+  }
   const url=($('helperUrlInput')?.value||cfg.helperUrl||'http://127.0.0.1:8765').replace(/\/+$/, '');
-  const model=overrideModel||$('helperModelSel')?.value||cfg.helperModel||'whisper-large-v3';
-  if(overrideModel){
-    cfg.helperModel=overrideModel;
+  if(cleanModel){
+    cfg.helperModel=cleanModel;
     saveCfg();
-    if($('helperModelSel')) $('helperModelSel').value=overrideModel;
+    if($('helperModelSel')) $('helperModelSel').value=cleanModel;
+    updateHelperModelButtons();
   }
   if(msgEl){
     msgEl.textContent='⏳ Downloading & loading model "'+model+'"... (First run may take a few minutes)';
@@ -679,7 +712,7 @@ async function downloadHelperModel(overrideModel){
     }
   }
 }
-if($('btnDownloadHelperModel')) $('btnDownloadHelperModel').onclick=downloadHelperModel;
+if($('btnDownloadHelperModel')) $('btnDownloadHelperModel').onclick=()=>downloadHelperModel();
 if('speechSynthesis' in self)speechSynthesis.onvoiceschanged=()=>{fillVoices();if(typeof renderUnifiedVoicePicker==='function')renderUnifiedVoicePicker()};
 $('sttSel').onchange=()=>{cfg.stt=$('sttSel').value;saveCfg();if($('vSttChoice'))$('vSttChoice').value=cfg.stt;updateHelperSettingsVisibility();voiceLabels();if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay()};
 document.querySelectorAll('select#vSilenceWait').forEach(el=>{
