@@ -194,7 +194,7 @@ test.describe('Web app: PDF Document input', () => {
     await expect(page.locator('#dGo')).toBeDisabled();
 
     // Zero calls to any provider
-    const providerCalls = appCalls(stub).filter(c => c.pathname.includes('/translate') || c.pathname.includes('/v1/chat'));
+    const providerCalls = appCalls(stub).filter(c => (c.path || '').includes('/translate') || (c.path || '').includes('/v1/chat'));
     expect(providerCalls.length).toBe(0);
 
     // Switch back to English for cleanliness
