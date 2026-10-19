@@ -601,3 +601,15 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
 * `docs/TEST-REPORT.md` has the full output of the run made when the suite
   was written, and says for each failure whether the test or the app was
   wrong.
+
+### Writing extension tests: tab disambiguation
+
+* **Extension tests which open extra tabs must use unique addresses**:
+  The extension test fixture (`ext`) pre-opens `/__test/article.html` as
+  `ext.article`. Test helpers such as `ext.clickContextMenu(menuItemId, pageUrl)`
+  and readiness checks resolve target tabs by address against Chromium's tab registry.
+  When tests open extra tabs (via `ext.context.newPage()`), they must navigate
+  to a unique address (for example `stub.appOrigin + '/__test/article.html?case=xyz'`)
+  and pass that exact `page.url()` to `clickContextMenu`. Reusing identical
+  addresses across multiple tabs creates tab ambiguity and causes commands to be
+  dispatched to the wrong tab.
