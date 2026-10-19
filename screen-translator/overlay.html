@@ -937,6 +937,7 @@
 
   // Handle incoming data from main process
   window.makanOverlay?.onOcrResult((data) => {
+    if (cardContainer) cardContainer.style.display = '';
     if (!data.ok) {
       showError(data.error, data.installationGuidance);
       return;

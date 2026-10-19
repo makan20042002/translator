@@ -200,11 +200,6 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     const isPinned = await page.evaluate(() => window.__overlayPinned);
     expect(isPinned).toBe(true);
 
-    // Test close
-    await mouseClick(page, page.locator('#btnClose'));
-    const closeCount = await page.evaluate(() => window.__overlayCloses);
-    expect(closeCount).toBe(1);
-
     // Test Live Video Subtitles toggle and Zone re-selector
     await expect(page.locator('#btnLiveToggle')).toBeVisible();
     await mouseClick(page, page.locator('#btnLiveToggle'));
@@ -224,6 +219,12 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     });
     await expect(page.locator('#btnLiveToggle')).toHaveClass(/active/);
     await expect(page.locator('#liveBtnLabel')).toHaveText('Live ON');
+
+    // Test close
+    await mouseClick(page, page.locator('#btnClose'));
+    const closeCount = await page.evaluate(() => window.__overlayCloses);
+    expect(closeCount).toBe(1);
+    await expect(page.locator('#cardContainer')).toBeHidden();
   });
 
   test('Overlay renders Persian text right-to-left in original and translated content', async ({ context }) => {
