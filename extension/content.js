@@ -1315,7 +1315,7 @@
       if (el.hidden) return false;
       if (el.getAttribute('aria-hidden') === 'true') return false;
       if (el.id === 'makan-translate-root' || (el.closest && el.closest('#makan-translate-root'))) return false;
-      if (isSensitiveOrEditable(el)) return false;
+      if (el.tagName === 'INPUT' && el.type === 'hidden') return false;
 
       try {
         const cs = window.getComputedStyle(el);
@@ -1386,16 +1386,29 @@
         const tag = el.tagName;
 
         if (el.id === 'makan-translate-root' || (el.closest && el.closest('#makan-translate-root'))) return;
-        if (SKIPPED_TAGS.has(tag)) {
-          if (tag === 'INPUT' && isElementVisible(el)) {
-            checkAttributes(el);
-          }
-          return;
-        }
-        if (isSensitiveOrEditable(el)) return;
+        if (tag === 'INPUT' && el.type === 'hidden') return;
         if (!isElementVisible(el)) return;
 
+        // Skip non-rendered code/script elements completely
+        if (tag === 'SCRIPT' || tag === 'STYLE' || tag === 'NOSCRIPT' || tag === 'SVG') return;
+
+        // Check translatable attributes on visible elements (placeholder, alt, title, aria-label)
         checkAttributes(el);
+
+        // Inputs, textareas, selects: NEVER touch typed values or text contents!
+        if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT' || tag === 'OPTION') {
+          return;
+        }
+
+        // Preformatted / code blocks: do not touch code text
+        if (tag === 'PRE' || tag === 'CODE' || tag === 'KBD' || tag === 'SAMP') {
+          return;
+        }
+
+        // Editable elements: do not touch text content
+        if (el.isContentEditable || el.getAttribute('contenteditable') === 'true' || (el.closest && el.closest('[contenteditable="true"]'))) {
+          return;
+        }
 
         if (el.shadowRoot && el.shadowRoot !== shadow && el.id !== 'makan-translate-root') {
           walk(el.shadowRoot);

@@ -480,5 +480,68 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('j) translates placeholder, title, aria-label, alt on visible inputs and textareas without touching values, skips type=hidden, restores on Show Original', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      document.body.innerHTML = `
+        <h1 id="item1-heading">Form Controls Attribute Translation</h1>
+        <input type="text" id="t-input" placeholder="Search the catalog" value="Typed query text" title="Input tooltip" aria-label="Catalog search input">
+        <textarea id="t-textarea" placeholder="Leave your feedback here" title="Textarea tooltip">User typed essay text</textarea>
+        <input type="password" id="t-password" placeholder="Enter secret password" value="SuperSecretPassword123">
+        <input type="hidden" id="t-hidden" placeholder="Hidden placeholder" value="hidden_value">
+        <div id="t-editable" contenteditable="true" title="Editable area tooltip">User editable note draft</div>
+      `;
+    });
+
+    stub.clearLog();
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA');
+
+    // 1. Translated attributes: placeholder, title, aria-label
+    await expect(page.locator('#t-input')).toHaveAttribute('placeholder', '[fa] Search the catalog');
+    await expect(page.locator('#t-input')).toHaveAttribute('title', '[fa] Input tooltip');
+    await expect(page.locator('#t-input')).toHaveAttribute('aria-label', '[fa] Catalog search input');
+    await expect(page.locator('#t-textarea')).toHaveAttribute('placeholder', '[fa] Leave your feedback here');
+    await expect(page.locator('#t-textarea')).toHaveAttribute('title', '[fa] Textarea tooltip');
+    await expect(page.locator('#t-password')).toHaveAttribute('placeholder', '[fa] Enter secret password');
+    await expect(page.locator('#t-editable')).toHaveAttribute('title', '[fa] Editable area tooltip');
+
+    // 2. Typed values and contents are NEVER touched!
+    expect(await page.locator('#t-input').inputValue()).toBe('Typed query text');
+    expect(await page.locator('#t-textarea').inputValue()).toBe('User typed essay text');
+    expect(await page.locator('#t-password').inputValue()).toBe('SuperSecretPassword123');
+    expect(await page.locator('#t-editable').textContent()).toBe('User editable note draft');
+
+    // 3. Hidden input is completely skipped!
+    expect(await page.locator('#t-hidden').getAttribute('placeholder')).toBe('Hidden placeholder');
+    expect(await page.locator('#t-hidden').inputValue()).toBe('hidden_value');
+
+    // 4. Show Original restores original attributes
+    await inShadow(page, '#makanRestoreBtn').click();
+    await expect(banner).toHaveCount(0);
+
+    expect(await page.locator('#t-input')).toHaveAttribute('placeholder', 'Search the catalog');
+    expect(await page.locator('#t-input')).toHaveAttribute('title', 'Input tooltip');
+    expect(await page.locator('#t-input')).toHaveAttribute('aria-label', 'Catalog search input');
+    expect(await page.locator('#t-textarea')).toHaveAttribute('placeholder', 'Leave your feedback here');
+    expect(await page.locator('#t-textarea')).toHaveAttribute('title', 'Textarea tooltip');
+    expect(await page.locator('#t-password')).toHaveAttribute('placeholder', 'Enter secret password');
+    expect(await page.locator('#t-editable')).toHaveAttribute('title', 'Editable area tooltip');
+
+    // Values remain intact after restore
+    expect(await page.locator('#t-input').inputValue()).toBe('Typed query text');
+    expect(await page.locator('#t-textarea').inputValue()).toBe('User typed essay text');
+    expect(await page.locator('#t-password').inputValue()).toBe('SuperSecretPassword123');
+    expect(await page.locator('#t-editable').textContent()).toBe('User editable note draft');
+
+    await page.close();
+  });
 });
 
