@@ -1226,12 +1226,17 @@
   });
 
   // Close on Escape or click outside
-  document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') {
+  const onGlobalEscape = e => {
+    if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
       removeCard();
       removeFloatBtn();
     }
-  });
+  };
+  document.addEventListener('keydown', onGlobalEscape, true);
+  window.addEventListener('keydown', onGlobalEscape, true);
+  if (shadow && typeof shadow.addEventListener === 'function') {
+    shadow.addEventListener('keydown', onGlobalEscape, true);
+  }
 
   document.addEventListener('mousedown', e => {
     if (isExtensionEvent(e)) return;
