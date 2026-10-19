@@ -40,7 +40,11 @@ ENG.getAppVersion = function() {
 ENG.redactDiagnosticsText = (typeof window !== 'undefined' && (window.redactDiagnosticsText || (window.ENG && window.ENG.redactDiagnosticsText))) || function(s) { return typeof s === 'string' ? s : ''; };
 if (typeof window !== 'undefined') {
   if (window.ENG) {
-    Object.assign(ENG, window.ENG);
+    for (const k of Object.keys(window.ENG)) {
+      if (!(k in ENG)) {
+        ENG[k] = window.ENG[k];
+      }
+    }
   }
   window.ENG = ENG;
   if (!window.getAppVersion) window.getAppVersion = ENG.getAppVersion;

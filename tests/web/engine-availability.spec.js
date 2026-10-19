@@ -167,4 +167,18 @@ test.describe('Honest Engine Availability (ITEM 1)', () => {
     expect(result.equalsEngGetStatus).toBe(true);
     expect(result.isSameObject).toBe(true);
   });
+
+  test('ENG.google.name is Google Translate (web), ENG.mymemory.name is unchanged, and window.ENG === ENG', async ({ app }) => {
+    const { page } = app;
+    const result = await page.evaluate(() => {
+      return {
+        googleName: ENG?.google?.name,
+        myMemoryName: ENG?.mymemory?.name,
+        isSameObject: window.ENG === ENG
+      };
+    });
+    expect(result.googleName).toBe('Google Translate (web)');
+    expect(result.myMemoryName).toBe('MyMemory');
+    expect(result.isSameObject).toBe(true);
+  });
 });
