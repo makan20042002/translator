@@ -529,7 +529,7 @@ function selectSttChoice(stt, whisperKey, helperModel){
     const m = (self.MODEL_CATALOG?.models || []).find(x => x.kind === 'whisper' && x.key === whisperKey);
     if(typeof checkHeavyModelHint === 'function') checkHeavyModelHint(m);
   }
-  if(stt === 'helper' && helperModel){
+  if(stt === 'helper' && typeof helperModel === 'string' && helperModel){
     cfg.helperModel = helperModel;
   }
   saveCfg();
@@ -626,16 +626,11 @@ function updateHelperSettingsVisibility(){
   }
 }
 function updateHelperModelButtons(){
-  const curModel=$('helperModelSel')?.value||cfg.helperModel||'whisper-large-v3';
+  const curModel=(typeof $('helperModelSel')?.value==='string'&&$('helperModelSel').value)||(typeof cfg.helperModel==='string'&&cfg.helperModel)||'whisper-large-v3';
   const dlBtn=$('btnDownloadHelperModel');
   const qNotice=$('helperQwenNotice');
-  if(curModel==='qwen3-asr'){
-    if(dlBtn)dlBtn.hidden=true;
-    if(qNotice)qNotice.hidden=false;
-  }else{
-    if(dlBtn)dlBtn.hidden=false;
-    if(qNotice)qNotice.hidden=true;
-  }
+  if(dlBtn)dlBtn.hidden=false;
+  if(qNotice)qNotice.hidden=(curModel!=='qwen3-asr');
 }
 async function checkHelperConnection(){
   const msgEl=$('helperStatusMsg');
@@ -657,26 +652,27 @@ async function checkHelperConnection(){
   }
 }
 if($('helperModelSel')) $('helperModelSel').onchange=()=>{
-  cfg.helperModel=$('helperModelSel').value;
-  saveCfg();
+  if(typeof $('helperModelSel').value==='string'){
+    cfg.helperModel=$('helperModelSel').value;
+    saveCfg();
+  }
   updateHelperModelButtons();
   if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
 };
 if($('helperUrlInput')) $('helperUrlInput').onchange=()=>{cfg.helperUrl=$('helperUrlInput').value.trim()||'http://127.0.0.1:8765';saveCfg()};
 if($('btnCheckHelper')) $('btnCheckHelper').onclick=checkHelperConnection;
 async function downloadHelperModel(overrideModel){
-  const cleanModel=typeof overrideModel==='string'?overrideModel:null;
-  const model=cleanModel||$('helperModelSel')?.value||cfg.helperModel||'whisper-large-v3';
+  const cleanModel=typeof overrideModel==='string'?overrideModel.trim():null;
+  const selVal=typeof $('helperModelSel')?.value==='string'?$('helperModelSel').value.trim():'';
+  const cfgVal=typeof cfg.helperModel==='string'?cfg.helperModel.trim():'';
+  const model=cleanModel||selVal||cfgVal||'whisper-large-v3';
+  if(typeof cfg.helperModel!=='string'){
+    cfg.helperModel='whisper-large-v3';
+    saveCfg();
+  }
   const msgEl=$('helperStatusMsg');
   const qNotice=$('helperQwenNotice');
-  if(model==='qwen3-asr'){
-    if(qNotice)qNotice.hidden=false;
-    if(msgEl){
-      msgEl.textContent='needs the helper, not included in v1';
-      msgEl.style.color='var(--warn,#f59e0b)';
-    }
-    return;
-  }
+  if(qNotice)qNotice.hidden=(model!=='qwen3-asr');
   const url=($('helperUrlInput')?.value||cfg.helperUrl||'http://127.0.0.1:8765').replace(/\/+$/, '');
   if(cleanModel){
     cfg.helperModel=cleanModel;

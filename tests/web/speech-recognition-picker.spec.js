@@ -257,7 +257,93 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     await expect(qwenNotice).toHaveText('needs the helper, not included in v1');
 
     const dlBtn = page.locator('#btnDownloadHelperModel');
-    await expect(dlBtn).toBeHidden();
+    await expect(dlBtn).toBeVisible();
+  });
+
+  test('helper model download sends selected whisper-large-v3 model in body and keeps cfg.helperModel as string (ITEM 1)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    const helperWrap = page.locator('#helperSettingsWrap');
+    await expect(helperWrap).toBeVisible();
+
+    const helperSel = page.locator('#helperModelSel');
+    await helperSel.selectOption('whisper-large-v3');
+
+    let interceptedRequest = null;
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      interceptedRequest = route.request();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'loaded', model: 'whisper-large-v3' })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await expect(dlBtn).toBeVisible();
+    await dlBtn.click();
+
+    await expect.poll(() => interceptedRequest).not.toBeNull();
+    expect(interceptedRequest.method()).toBe('POST');
+    const reqBody = interceptedRequest.postDataJSON();
+    expect(reqBody).toEqual({ model: 'whisper-large-v3' });
+
+    const modelType = await page.evaluate(() => typeof cfg.helperModel);
+    const modelVal = await page.evaluate(() => cfg.helperModel);
+    expect(modelType).toBe('string');
+    expect(modelVal).toBe('whisper-large-v3');
+  });
+
+  test('helper model download sends selected qwen3-asr model in body and keeps cfg.helperModel as string (ITEM 1)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    const helperWrap = page.locator('#helperSettingsWrap');
+    await expect(helperWrap).toBeVisible();
+
+    const helperSel = page.locator('#helperModelSel');
+    await helperSel.selectOption('qwen3-asr');
+
+    let interceptedRequest = null;
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      interceptedRequest = route.request();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ status: 'loaded', model: 'qwen3-asr' })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await expect(dlBtn).toBeVisible();
+    await dlBtn.click();
+
+    await expect.poll(() => interceptedRequest).not.toBeNull();
+    expect(interceptedRequest.method()).toBe('POST');
+    const reqBody = interceptedRequest.postDataJSON();
+    expect(reqBody).toEqual({ model: 'qwen3-asr' });
+
+    const modelType = await page.evaluate(() => typeof cfg.helperModel);
+    const modelVal = await page.evaluate(() => cfg.helperModel);
+    expect(modelType).toBe('string');
+    expect(modelVal).toBe('qwen3-asr');
   });
 });
 

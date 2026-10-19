@@ -73,7 +73,7 @@ if (window.makanDesktop?.loadAppConfig) {
     }
   }).catch(() => {});
 }
-cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;cfg.tm=(cfg.tm!==undefined)?!!cfg.tm:true;cfg.helperUrl=cfg.helperUrl||'http://127.0.0.1:8765';cfg.helperModel=cfg.helperModel||'whisper-large-v3';
+cfg.stt=cfg.stt||'auto';cfg.whisper=cfg.whisper||(store.get('whisper')||'auto');cfg.offline=!!cfg.offline;cfg.trModel=cfg.trModel||(store.get('nllb')?'tr-nllb-600':'auto');cfg.trPair=!!cfg.trPair;cfg.tm=(cfg.tm!==undefined)?!!cfg.tm:true;cfg.helperUrl=cfg.helperUrl||'http://127.0.0.1:8765';cfg.helperModel=(typeof cfg.helperModel==='string'&&cfg.helperModel)?cfg.helperModel:'whisper-large-v3';
 cfg.audioInput=cfg.audioInput||'mic';
 cfg.tts=Object.assign({mode:'device',voices:{},base:'http://localhost:8000/v1',key:'',model:'csm-1b',voice:'alloy',rate:1.0},cfg.tts);
 cfg.tts.rate=+cfg.tts.rate||1.0;
