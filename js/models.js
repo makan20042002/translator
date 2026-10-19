@@ -305,6 +305,9 @@ async function mcDelete(m){
   if(typeof updateStorageCard==='function')updateStorageCard();
   toast(`${mcText(m.name)}: ${L('mdlDeleted')}`,'ok');
 }
+function mcGpuFallback(m){
+  return (typeof window!=='undefined'&&window.gpuFallbacks?.[m?.repo])||'';
+}
 function mcRow(m){
   const ready=mcReady(m),busy=!!mcDownloading[m.id],failed=!!mcFailed[m.id];
   const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),details:'',file:'',url:''};
@@ -313,7 +316,7 @@ function mcRow(m){
   const failFile=failInfo.file||'';
   const failUrl=failInfo.url||'';
   const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
-  const gpuFallback=(typeof window!=='undefined'&&window.gpuFallbacks?.[m.repo])||'';
+  const gpuFallback=mcGpuFallback(m);
   const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
   const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
   const gpuText=(m.job==='speak'||m.job==='ocr')?L('mdlGpuNo'):gpu;
@@ -437,6 +440,7 @@ function renderModelHub(){
     const failDetails=failInfo.details||'';
     const failFile=failInfo.file||'';
     const failUrl=failInfo.url||'';
+    const gpuFallback=mcGpuFallback(m);
     const state=busy?'busy':(ready?'ready':(failed?'failed':'none'));
     const lic=mcLicence(m);
     const catLbl=categoryLabels[m.job]||m.job;
