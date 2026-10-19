@@ -91,4 +91,105 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('b) translates viewport text first on a long page before off-screen text', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      document.body.innerHTML = '';
+      const onScreen = document.createElement('div');
+      onScreen.id = 'on-screen-container';
+      for (let i = 1; i <= 20; i++) {
+        const p = document.createElement('p');
+        p.id = `top-p-${i}`;
+        p.textContent = `On screen paragraph number ${i} visible near top.`;
+        onScreen.appendChild(p);
+      }
+      document.body.appendChild(onScreen);
+
+      const spacer = document.createElement('div');
+      spacer.style.height = '15000px';
+      document.body.appendChild(spacer);
+
+      const offScreen = document.createElement('div');
+      offScreen.id = 'off-screen-container';
+      for (let i = 1; i <= 50; i++) {
+        const p = document.createElement('p');
+        p.id = `bottom-p-${i}`;
+        p.textContent = `Distant off screen paragraph number ${i} far down.`;
+        offScreen.appendChild(p);
+      }
+      document.body.appendChild(offScreen);
+    });
+
+    stub.clearLog();
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // Wait until Google translate receives the first request and first top paragraph is translated
+    await page.waitForFunction(() => {
+      const el = document.getElementById('top-p-1');
+      return el && el.textContent.includes('[fa]');
+    });
+
+    const googleCalls = stub.calls('clients5.google.com');
+    expect(googleCalls.length).toBeGreaterThanOrEqual(1);
+
+    // The first request must contain top on-screen paragraphs, not bottom off-screen ones
+    const firstCall = googleCalls[0];
+    const form = new URLSearchParams(firstCall.body);
+    const requestedTexts = form.getAll('q');
+
+    const hasOnScreen = requestedTexts.some(t => t.includes('On screen paragraph'));
+    const hasDistantOffScreen = requestedTexts.some(t => t.includes('Distant off screen paragraph'));
+
+    expect(hasOnScreen).toBe(true);
+    expect(hasDistantOffScreen).toBe(false);
+
+    await page.close();
+  });
+
+  test('i) deduplicates identical strings inside one request so repeated text is sent once', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      document.body.innerHTML = `
+        <h1 id="test-title">Deduplication test heading</h1>
+        <button class="action-btn">Download file</button>
+        <button class="action-btn">Download file</button>
+        <button class="action-btn">Download file</button>
+        <button class="action-btn">Download file</button>
+        <button class="action-btn">Download file</button>
+      `;
+    });
+
+    stub.clearLog();
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    await page.waitForFunction(() => {
+      const btn = document.querySelector('.action-btn');
+      return btn && btn.textContent.includes('[fa]');
+    });
+
+    // Check all 5 buttons were translated
+    const btnTexts = await page.evaluate(() => Array.from(document.querySelectorAll('.action-btn')).map(b => b.textContent));
+    expect(btnTexts).toEqual([
+      '[fa] Download file',
+      '[fa] Download file',
+      '[fa] Download file',
+      '[fa] Download file',
+      '[fa] Download file'
+    ]);
+
+    // Check the request sent to Google: "Download file" should appear exactly ONCE
+    const googleCalls = stub.calls('clients5.google.com');
+    const allRequestedStrings = [];
+    for (const call of googleCalls) {
+      const form = new URLSearchParams(call.body);
+      allRequestedStrings.push(...form.getAll('q'));
+    }
+    const downloadOccurrences = allRequestedStrings.filter(s => s === 'Download file');
+    expect(downloadOccurrences.length).toBe(1);
+
+    await page.close();
+  });
 });

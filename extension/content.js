@@ -1488,30 +1488,107 @@
 
     showPageBanner('Translating visible page content…', true);
 
-    const units = collectPageUnits(tgt);
+    let units = collectPageUnits(tgt);
 
     if (!units.length) {
       showPageBanner('No translatable text found on this page.', false);
       return;
     }
 
-    const BATCH_SIZE = 25;
+    // Sort units by distance from viewport (on screen and ~1.5 screens below first)
+    const vh = window.innerHeight || 800;
+    units.sort((a, b) => {
+      const getScore = u => {
+        if (u.type === 'title') return -9999999;
+        const rect = u.rect || (u.el?.getBoundingClientRect ? u.el.getBoundingClientRect() : null);
+        const top = rect ? rect.top : 0;
+        // On screen and up to 1.5 screens below
+        if (top >= -vh * 0.5 && top <= vh * 2.5) {
+          return top >= 0 ? top : 1000 + Math.abs(top);
+        }
+        // Further below
+        if (top > vh * 2.5) {
+          return 100000 + top;
+        }
+        // Scrolled above
+        return 500000 + Math.abs(top);
+      };
+      return getScore(a) - getScore(b);
+    });
+
+    // Cap one page at sensible number of units (4000)
+    const MAX_PAGE_UNITS = 4000;
+    let hitCap = false;
+    if (units.length > MAX_PAGE_UNITS) {
+      units = units.slice(0, MAX_PAGE_UNITS);
+      hitCap = true;
+    }
+
+    // Determine engine batch limits (items and chars)
+    const engineId = cfg?.order?.[0] || 'google';
+    const engDef = (typeof ENG !== 'undefined' && ENG[engineId]) ? ENG[engineId] : null;
+    const maxItems = engDef?.items || 40;
+    const maxChars = engDef?.chars || 1800;
+
+    // Group units into batches respecting maxItems, maxChars, and deduplication
+    const batches = [];
+    let curBatch = [];
+    let curUniqueStrings = new Set();
+    let curCharCount = 0;
+
+    for (const unit of units) {
+      const text = unit.original;
+      const isNew = !curUniqueStrings.has(text);
+      const newItemsCount = curUniqueStrings.size + (isNew ? 1 : 0);
+      const newCharCount = curCharCount + (isNew ? text.length : 0);
+
+      if (curBatch.length > 0 && (newItemsCount > maxItems || newCharCount > maxChars)) {
+        batches.push(curBatch);
+        curBatch = [unit];
+        curUniqueStrings = new Set([text]);
+        curCharCount = text.length;
+      } else {
+        curBatch.push(unit);
+        if (isNew) {
+          curUniqueStrings.add(text);
+          curCharCount += text.length;
+        }
+      }
+    }
+    if (curBatch.length > 0) batches.push(curBatch);
+
     let completed = 0;
     let lastEngineName = '';
     let lastPageFailure = '';
     isTranslating = true;
     isTranslationStopped = false;
 
-    for (let i = 0; i < units.length; i += BATCH_SIZE) {
+    // Process batches with at most 1-2 requests in flight, pausing if tab is hidden
+    for (let bIdx = 0; bIdx < batches.length; bIdx++) {
       if (isTranslationStopped) break;
 
-      const chunk = units.slice(i, i + BATCH_SIZE);
-      const texts = chunk.map(u => u.original);
+      // Pause while tab is hidden
+      if (document.hidden) {
+        await new Promise(resolve => {
+          const onVis = () => {
+            if (!document.hidden) {
+              document.removeEventListener('visibilitychange', onVis);
+              resolve();
+            }
+          };
+          document.addEventListener('visibilitychange', onVis);
+        });
+      }
+      if (isTranslationStopped) break;
+
+      const batch = batches[bIdx];
+      // Deduplicate identical strings inside this request
+      const uniqueTexts = Array.from(new Set(batch.map(u => u.original)));
 
       try {
         const res = await askBackground({
           action: 'translate-text',
-          items: texts,
+          items: uniqueTexts,
           src: 'auto',
           tgt: tgt,
           tone: cfg?.tone,
@@ -1524,9 +1601,15 @@
           if (res.engineName || res.engineUsed) {
             lastEngineName = res.engineName || res.engineUsed;
           }
-          chunk.forEach((unit, idx) => {
-            const original = texts[idx];
-            const translated = res.results[idx] || original;
+          const transMap = new Map();
+          uniqueTexts.forEach((orig, idx) => {
+            transMap.set(orig, res.results[idx] || orig);
+          });
+
+          batch.forEach(unit => {
+            const original = unit.original;
+            const translated = transMap.get(original) || original;
+
             if (unit.type === 'element') {
               const el = unit.el;
               el.setAttribute('data-makan-orig', original);
@@ -1553,7 +1636,8 @@
             }
             translatedUnits.push(unit);
           });
-          completed += chunk.length;
+
+          completed += batch.length;
           showPageBanner(`Translating page… (${completed}/${units.length})`, true);
         }
       } catch (err) {
