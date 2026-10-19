@@ -1,6 +1,6 @@
 'use strict';
 const { test, expect, mouseClick } = require('../support/fixtures');
-const { openSettings } = require('../support/model-helpers');
+const { openSettings, fakeDownloaded } = require('../support/model-helpers');
 
 test.describe('Model Hub and Settings model rows rendering stability across all states (ITEM 2)', () => {
 
@@ -12,32 +12,41 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
 
+    // Seed cache storage with asr-large-v3 files so mcReady recognizes it
+    const modelInfo = await page.evaluate(() => {
+      const m = (window.MODEL_CATALOG?.models || []).find(x => x.id === 'asr-large-v3');
+      return { repo: m.repo, files: m.files || [], gpuFiles: m.gpuFiles || [] };
+    });
+    const allFiles = [...modelInfo.files, ...modelInfo.gpuFiles];
+    await fakeDownloaded(page, modelInfo.repo, allFiles);
+
     // 1. Ready state, EN, WebGPU present
-    await page.evaluate(() => {
+    await page.evaluate(async (files) => {
       ui = 'en';
       applyI18n();
       hasWebGpu = true;
       const d = store.get('mdl', {});
-      d['asr-large-v3'] = { at: Date.now(), files: ['decoder_model_merged_quantized.onnx'] };
+      d['asr-large-v3'] = { at: Date.now(), files: files.map(f => f[0]) };
       store.set('mdl', d);
-      mcScan();
+      await mcScan();
       mcRender();
       renderModelHub();
-    });
+    }, allFiles);
 
     await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
     await expect(page.locator('#tab-models')).toBeVisible();
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]')).toBeVisible();
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"] .hub-pill.ready')).toBeVisible();
 
-    await openSettings(page, 'voiceModels');
+    await openSettings(page, 'trModels');
     await expect(page.locator('.mdl[data-mdl="asr-large-v3"]')).toBeVisible();
 
     // 2. Ready state, FA, WebGPU absent
-    await page.evaluate(() => {
+    await page.evaluate(async () => {
       ui = 'fa';
       applyI18n();
       hasWebGpu = false;
+      await mcScan();
       mcRender();
       renderModelHub();
     });
@@ -70,7 +79,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(page.locator('#tab-models')).toBeVisible();
     await expect(page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"] .hub-pill.busy')).toBeVisible();
 
-    await openSettings(page, 'voiceModels');
+    await openSettings(page, 'trModels');
     await expect(page.locator('.mdl[data-mdl="asr-large-v3"][data-state="busy"]')).toBeVisible();
 
     // 2. Busy state, FA
@@ -120,7 +129,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubCard.locator('.hub-error-url')).toHaveAttribute('href', /decoder_model_merged_quantized\.onnx/);
     await expect(hubCard.locator('.hub-error-details')).toContainText('HTTP 404');
 
-    await openSettings(page, 'voiceModels');
+    await openSettings(page, 'trModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     await expect(settingsRow.locator('.hub-model-error')).toBeVisible();
@@ -163,7 +172,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubCard).toBeVisible();
     await expect(hubCard.locator('.hub-error-msg')).toContainText('network / blocked');
 
-    await openSettings(page, 'voiceModels');
+    await openSettings(page, 'trModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     await expect(settingsRow.locator('.hub-error-msg')).toContainText('network / blocked');
@@ -211,7 +220,7 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     await expect(hubFallback).toBeVisible();
     await expect(hubFallback).toContainText('Device lost or out of memory');
 
-    await openSettings(page, 'voiceModels');
+    await openSettings(page, 'trModels');
     const settingsRow = page.locator('.mdl[data-mdl="asr-large-v3"]');
     await expect(settingsRow).toBeVisible();
     const settingsFallback = settingsRow.locator('.hub-gpu-fallback');
