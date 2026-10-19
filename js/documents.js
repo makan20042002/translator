@@ -1047,6 +1047,7 @@ function getDocEngineChain(){
 }
 
 let docAnalysisCtl = null;
+let docAnalysisPromise = null;
 
 async function detectSubjectAndTerms(d, token){
   if(typeof token !== 'undefined' && token !== docLoadToken) return;
@@ -1100,6 +1101,7 @@ ${sampleText}`;
 
   if(docAnalysisCtl){
     try{ docAnalysisCtl.abort(); }catch{}
+    docAnalysisCtl = null;
   }
   docAnalysisCtl = new AbortController();
   const ctl = docAnalysisCtl;
@@ -1108,28 +1110,33 @@ ${sampleText}`;
     ? window.__docAnalysisTimeoutMs
     : 60000;
   const tm = setTimeout(() => ctl.abort(), analysisTimeoutMs);
-  try{
-    const res=await chat([{role:'user',content:prompt}],{
-      engine:isAi?engId:'auto',
-      signal:ctl.signal,
-      forDocument:true,
-      silent:true
-    });
-    if((typeof token !== 'undefined' && token !== docLoadToken) || docUiState === 'translating' || docUiState === 'error' || ctl.signal.aborted) return;
-    let clean=res.text.replace(/```(?:json)?/g,'').trim();
-    const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
-    if(a>=0&&b>a) clean=clean.slice(a,b+1);
-    const data=JSON.parse(clean);
-    if(data.subject) $('docSubjectField').value=data.subject;
-    if(data.register) $('docRegister').value=data.register;
-    if(Array.isArray(data.terms)) renderDocTerms(data.terms);
-  }catch(e){
-    console.warn('Subject detection skipped:', scrubKeys(e.message));
-  }finally{
-    clearTimeout(tm);
-    if($('docSubjAnalyzing')) $('docSubjAnalyzing').hidden=true;
-    if(docAnalysisCtl === ctl) docAnalysisCtl = null;
-  }
+  const p = (async () => {
+    try{
+      const res=await chat([{role:'user',content:prompt}],{
+        engine:isAi?engId:'auto',
+        signal:ctl.signal,
+        forDocument:true,
+        silent:true
+      });
+      if((typeof token !== 'undefined' && token !== docLoadToken) || docUiState === 'translating' || docUiState === 'error' || ctl.signal.aborted) return;
+      let clean=res.text.replace(/```(?:json)?/g,'').trim();
+      const a=clean.indexOf('{'), b=clean.lastIndexOf('}');
+      if(a>=0&&b>a) clean=clean.slice(a,b+1);
+      const data=JSON.parse(clean);
+      if(data.subject) $('docSubjectField').value=data.subject;
+      if(data.register) $('docRegister').value=data.register;
+      if(Array.isArray(data.terms)) renderDocTerms(data.terms);
+    }catch(e){
+      console.warn('Subject detection skipped:', scrubKeys(e.message));
+    }finally{
+      clearTimeout(tm);
+      if($('docSubjAnalyzing')) $('docSubjAnalyzing').hidden=true;
+      if(docAnalysisCtl === ctl) docAnalysisCtl = null;
+      if(docAnalysisPromise === p) docAnalysisPromise = null;
+    }
+  })();
+  docAnalysisPromise = p;
+  return p;
 }
 
 $('docAddTermBtn').onclick=()=>{
@@ -1559,14 +1566,22 @@ async function loadDoc(f){
     try{ docAnalysisCtl.abort(); }catch{}
     docAnalysisCtl = null;
   }
+  if(docAnalysisPromise){
+    try{ await docAnalysisPromise; }catch{}
+    docAnalysisPromise = null;
+  }
   detectSubjectAndTerms(doc, currentToken);
 }
 
 dropzone($('dDrop'),$('dFile'),loadDoc);
-$('dChangeFile').onclick=()=>{
+$('dChangeFile').onclick=async()=>{
   if(docAnalysisCtl){
     try{ docAnalysisCtl.abort(); }catch{}
     docAnalysisCtl = null;
+  }
+  if(docAnalysisPromise){
+    try{ await docAnalysisPromise; }catch{}
+    docAnalysisPromise = null;
   }
   $('dFile').click();
 };
@@ -1576,6 +1591,10 @@ $('dGo').onclick=async()=>{
   if(docAnalysisCtl){
     try{ docAnalysisCtl.abort(); }catch{}
     docAnalysisCtl = null;
+  }
+  if(docAnalysisPromise){
+    try{ await docAnalysisPromise; }catch{}
+    docAnalysisPromise = null;
   }
   if(docLoadingPromise){
     await docLoadingPromise;

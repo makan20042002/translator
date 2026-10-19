@@ -85,7 +85,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
+      const data = route.request().postDataJSON() || {};
+      const isAnalysis = Boolean(data.messages && data.messages.some(m => /subject/i.test(m.content)));
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url(), isAnalysis });
       // Hang indefinitely
     });
 
@@ -113,7 +115,11 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const elapsed = Date.now() - clickTime;
     const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
-    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
+    expect(requests.length, `Expected exactly 3 requests (1 subject analysis + 1 translation attempt + 1 retry); ${info()}`).toBe(3);
+    const analysisReqs = requests.filter(r => r.isAnalysis);
+    const translationReqs = requests.filter(r => !r.isAnalysis);
+    expect(analysisReqs.length, 'Expected exactly 1 subject analysis request').toBe(1);
+    expect(translationReqs.length, 'Expected exactly 2 translation requests (first attempt + 1 retry)').toBe(2);
 
     // Translate is enabled, Download disabled
     await expect(page.locator('#dGo')).toBeEnabled();
@@ -248,8 +254,24 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
       const data = route.request().postDataJSON() || {};
       const isAnalysis = data.messages && data.messages.some(m => /subject/i.test(m.content));
 
+      let finished = false;
+      const decrement = () => {
+        if (!finished) {
+          finished = true;
+          inFlight = Math.max(0, inFlight - 1);
+        }
+      };
+      const failListener = req => {
+        if (req === route.request()) {
+          decrement();
+          page.off('requestfailed', failListener);
+        }
+      };
+      page.on('requestfailed', failListener);
+
       await new Promise(r => setTimeout(r, 1200));
-      inFlight--;
+      decrement();
+      page.off('requestfailed', failListener);
 
       try {
         const body = isAnalysis
@@ -295,7 +317,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
+      const data = route.request().postDataJSON() || {};
+      const isAnalysis = Boolean(data.messages && data.messages.some(m => /subject/i.test(m.content)));
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url(), isAnalysis });
       // Hang indefinitely
     });
 
@@ -326,7 +350,11 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const elapsed = Date.now() - clickTime;
     const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
-    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
+    expect(requests.length, `Expected exactly 3 requests (1 subject analysis + 1 translation attempt + 1 retry); ${info()}`).toBe(3);
+    const analysisReqs = requests.filter(r => r.isAnalysis);
+    const translationReqs = requests.filter(r => !r.isAnalysis);
+    expect(analysisReqs.length, 'Expected exactly 1 subject analysis request').toBe(1);
+    expect(translationReqs.length, 'Expected exactly 2 translation requests (first attempt + 1 retry)').toBe(2);
 
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();
@@ -394,7 +422,9 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
 
     await page.route('**/v1/chat/completions', route => {
       const t = clickTime ? Date.now() - clickTime : 0;
-      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url() });
+      const data = route.request().postDataJSON() || {};
+      const isAnalysis = Boolean(data.messages && data.messages.some(m => /subject/i.test(m.content)));
+      requests.push({ count: requests.length + 1, timeMs: t, url: route.request().url(), isAnalysis });
       // Hang indefinitely
     });
 
@@ -421,7 +451,11 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const elapsed = Date.now() - clickTime;
     const info = () => `Request history (${requests.length} requests): ${JSON.stringify(requests)}`;
     expect(elapsed, `Total time ${elapsed}ms > max ${maxWait}ms; ${info()}`).toBeLessThanOrEqual(maxWait);
-    expect(requests.length, `Expected exactly 2 requests (first attempt + 1 retry); ${info()}`).toBe(2);
+    expect(requests.length, `Expected exactly 3 requests (1 subject analysis + 1 translation attempt + 1 retry); ${info()}`).toBe(3);
+    const analysisReqs = requests.filter(r => r.isAnalysis);
+    const translationReqs = requests.filter(r => !r.isAnalysis);
+    expect(analysisReqs.length, 'Expected exactly 1 subject analysis request').toBe(1);
+    expect(translationReqs.length, 'Expected exactly 2 translation requests (first attempt + 1 retry)').toBe(2);
 
     await expect(page.locator('#dGo')).toBeEnabled();
     await expect(page.locator('#dSave')).toBeDisabled();
@@ -505,5 +539,64 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     const dbgLog = await page.evaluate(() => window.__docDbgLog);
     expect(Array.isArray(dbgLog)).toBe(true);
     expect(dbgLog.length).toBeGreaterThan(0);
+  });
+
+  test('k) clicking Translate cleanly aborts subject analysis before starting translation requests', async ({ app, files }) => {
+    const { page } = app;
+
+    let analysisAborted = false;
+    let translationStarted = false;
+    let overlapDetected = false;
+
+    page.on('requestfailed', req => {
+      if (req.url().includes('/v1/chat/completions')) {
+        analysisAborted = true;
+      }
+    });
+
+    await page.route('**/api/tags', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+      });
+    });
+
+    await page.route('**/v1/chat/completions', async route => {
+      const data = route.request().postDataJSON() || {};
+      const isAnalysis = Boolean(data.messages && data.messages.some(m => /subject/i.test(m.content)));
+      if (!isAnalysis) {
+        translationStarted = true;
+        if (!analysisAborted) {
+          overlapDetected = true;
+        }
+        await route.fulfill({
+          status: 200,
+          contentType: 'application/json',
+          body: JSON.stringify({ choices: [{ message: { content: JSON.stringify(['ترجمه یک', 'ترجمه دو', 'ترجمه سه']) } }] })
+        });
+      } else {
+        // Hang subject analysis to verify it gets aborted when Translate is clicked
+        await new Promise(r => setTimeout(r, 10000));
+        try {
+          await route.fulfill({
+            status: 200,
+            contentType: 'application/json',
+            body: JSON.stringify({ choices: [{ message: { content: '{}' } }] })
+          });
+        } catch (_) {}
+      }
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    await selectDocOllama(page, 'gemma4:12b');
+
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+    await mouseClick(page, page.locator('#dGo'));
+
+    await expect(page.locator('#dSave')).toBeEnabled({ timeout: 15000 });
+    expect(translationStarted).toBe(true);
+    expect(analysisAborted).toBe(true);
+    expect(overlapDetected).toBe(false);
   });
 });
