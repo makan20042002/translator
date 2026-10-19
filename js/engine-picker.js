@@ -219,6 +219,11 @@
       }
 
       if (curChoice === 'ollama') {
+        const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+        if (offline) {
+          modelLabel.hidden = true;
+          return;
+        }
         modelLabel.hidden = false;
         let models = null;
         try {

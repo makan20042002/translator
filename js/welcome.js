@@ -220,9 +220,12 @@ function isWelcomeNllbReady() {
   return false;
 }
 
-async function checkWelcomeOllama() {
+async function checkWelcomeOllama(force = false) {
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
-  if (offline) {
+  const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const isSelected = (typeof welcomeSelectedEngine !== 'undefined' && welcomeSelectedEngine === 'ollama') ||
+                     (typeof isOllamaSelected === 'function' && isOllamaSelected());
+  if (!force && (offline || !ollamaOn || !isSelected)) {
     welcomeOllamaReachable = false;
     updateWelcomePrivacyNotice();
     return;
@@ -364,7 +367,7 @@ function openWelcomeWizard(step = 1) {
   welcomeCurrentStep = step;
   ov.hidden = false;
   ov.classList.add('on');
-  checkWelcomeOllama();
+  if (typeof welcomeSelectedEngine !== 'undefined' && welcomeSelectedEngine === 'ollama') checkWelcomeOllama();
   if (typeof mcScan === 'function') {
     mcScan().then(() => updateWelcomePrivacyNotice()).catch(() => {});
   }

@@ -622,8 +622,8 @@ async function runTestTranslationModels(){
   let ollamaModels=[];
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
-  if (!offline && ollamaOn && inOrder) {
+  const isSelected = (typeof isOllamaSelected === 'function' ? isOllamaSelected() : false);
+  if (!offline && ollamaOn && isSelected) {
     try{
       ollamaModels=(await fetchOllamaModels()) || [];
     }catch{}

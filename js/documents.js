@@ -756,13 +756,13 @@ function buildDocEngineOptions(){
   }
 }
 
-function refreshOllamaModelsForDoc(){
+function refreshOllamaModelsForDoc(force = false){
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
-  const isSelected = (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama') ||
-                     (typeof store !== 'undefined' && String(store.get('doc_engine', '')).startsWith('ollama'));
-  if (offline || !ollamaOn || (!inOrder && !isSelected)) {
+  const docEng = (typeof store !== 'undefined' ? store.get('doc_engine', '') : '') || (typeof getDocChosenEngine === 'function' ? getDocChosenEngine() : '');
+  const isSelected = (docEng === 'ollama' || String(docEng).startsWith('ollama')) ||
+                     (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama');
+  if (!force && (offline || !ollamaOn || !isSelected)) {
     cachedOllamaModels = false;
     if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     buildDocEngineOptions();

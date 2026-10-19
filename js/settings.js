@@ -10,17 +10,28 @@ function getOllamaUnreachableMsg(){
   const origin=getOllamaOrigin();
   return L('ollamaUnreachableMsg').replace('{origin}',origin);
 }
-async function fetchOllamaModels(){
+function isOllamaSelected(){
+  if(typeof cfg==='undefined')return false;
+  const mainEng=(typeof store!=='undefined'?store.get('engine','auto'):cfg.engine)||cfg.engine;
+  if(mainEng==='ollama'||String(mainEng).startsWith('ollama:'))return true;
+  const docEng=(typeof store!=='undefined'?store.get('doc_engine',''):'')||(typeof getDocChosenEngine==='function'?getDocChosenEngine():'');
+  if(docEng==='ollama'||String(docEng).startsWith('ollama'))return true;
+  if(typeof welcomeSelectedEngine!=='undefined'&&welcomeSelectedEngine==='ollama')return true;
+  if(typeof window!=='undefined'&&window.MediaTranslate?.host?.getTranslateChoice){
+    const ch=window.MediaTranslate.host.getTranslateChoice();
+    if(ch==='ollama'||ch?.engine==='ollama'||String(ch?.engine).startsWith('ollama'))return true;
+  }
+  return false;
+}
+async function fetchOllamaModels(force = false){
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
-  if (offline) {
+  if (offline && !force) {
     if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     return null;
   }
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
-  const isSelected = (typeof cfg !== 'undefined' && cfg.engine === 'ollama') ||
-                     (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama');
-  if (!ollamaOn || (!inOrder && !isSelected)) {
+  const isSelected = isOllamaSelected();
+  if (!force && (offline || !ollamaOn || !isSelected)) {
     if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     return null;
   }
@@ -243,21 +254,19 @@ function renderOllamaManager(e){
     <p class="hint" id="ollamaAsrNotice" style="margin:8px 0 0;font-size:11.5px;color:var(--muted)">${esc(L('ollamaAsrNotice'))}</p>
   </div>`;
 }
-async function updateOllamaManager(){
+async function updateOllamaManager(force = false){
   const mgr=$('ollamaMgr');
   if(!mgr)return;
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
-  const isSelected = (typeof cfg !== 'undefined' && cfg.engine === 'ollama') ||
-                     (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama');
-  if (offline || !ollamaOn || (!inOrder && !isSelected)) {
+  const isSelected = isOllamaSelected();
+  if (!force && (offline || !ollamaOn || !isSelected)) {
     return;
   }
   const sel=$('ollamaModelSel');
   const notice=$('ollamaUnreachableNotice');
   try{
-    const models=await fetchOllamaModels();
+    const models=await fetchOllamaModels(force);
     if(!models)return;
     if(notice)notice.hidden=true;
     if(sel){

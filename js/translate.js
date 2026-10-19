@@ -1303,7 +1303,7 @@ async function listModels(id){
   if(id==='gemini'){const j=await fx('https://generativelanguage.googleapis.com/v1beta/models?pageSize=200',{headers:{'x-goog-api-key':e.key}});
     return j.models.filter(m=>(m.supportedGenerationMethods||[]).includes('generateContent')).map(m=>m.name.replace('models/',''))}
   if(id==='claude'){const j=await fx('https://api.anthropic.com/v1/models',{headers:{'x-api-key':e.key,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'}});return j.data.map(m=>m.id)}
-  if(id==='ollama')return await fetchOllamaModels();
+  if(id==='ollama')return await fetchOllamaModels(true);
   const h={};if(e.key)h.Authorization='Bearer '+e.key;
   const j=await fx(e.base.replace(/\/+$/,'')+'/models',{headers:h});return (j.data||[]).map(m=>m.id);
 }
