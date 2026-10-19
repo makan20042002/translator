@@ -24,14 +24,18 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
     await page.locator('#vMicSttBtn').click();
     const list = page.locator('#vMicSttList');
-    await expect(list.locator('[data-group="helper-asr"]')).toBeHidden();
+    await expect(list.locator('[data-group="helper-asr"]')).toHaveCount(0);
     await expect(list.locator('.voice-card[data-stt="helper"]')).toHaveCount(0);
 
     // 2. Settings: Voice models section shows no helper entries
     await openSettings(page, 'voiceModels');
     await expect(page.locator('#helperSettingsWrap')).toBeHidden();
-    await expect(page.locator('#sttSel option[value="helper"]')).toBeHidden();
-    await expect(page.locator('#vSttChoice option[value="helper"]')).toBeHidden();
+    const sttOpt = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOpt).toHaveCount(1);
+    expect(await sttOpt.evaluate(el => el.hidden && el.disabled)).toBe(true);
+    const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
+    await expect(vSttOpt).toHaveCount(1);
+    expect(await vSttOpt.evaluate(el => el.hidden && el.disabled)).toBe(true);
 
     // 3. Honesty/cleanup: default UI does not state "needs the helper, not included in v1"
     const bodyText = await page.locator('body').innerText();
@@ -51,23 +55,34 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
       });
     });
 
-    // Open Settings -> Voice models tab
+    // Voice picker group is absent before Check
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+    await page.locator('#vMicSttBtn').click();
+    await expect(page.locator('#vMicSttList [data-group="helper-asr"]')).toHaveCount(0);
+
+    // Open Settings -> Voice models tab: helper block is absent before Check
     await openSettings(page, 'voiceModels');
     expect(healthChecked).toBe(false); // Never checked automatically!
     await expect(page.locator('#helperSettingsWrap')).toBeHidden();
-    await expect(page.locator('#sttSel option[value="helper"]')).toBeHidden();
+    const sttOptBefore = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOptBefore).toHaveCount(1);
+    expect(await sttOptBefore.evaluate(el => el.hidden && el.disabled)).toBe(true);
 
     // Press Check
     await page.locator('#btnCheckHelper').click();
     await expect.poll(() => healthChecked).toBe(true);
 
-    // Helper entries appear in Settings
+    // Helper entries appear in Settings: helper block is visible and option is unhidden
     await expect(page.locator('#helperSettingsWrap')).toBeVisible();
-    await expect(page.locator('#sttSel option[value="helper"]')).toBeVisible();
-    await expect(page.locator('#vSttChoice option[value="helper"]')).toBeVisible();
+    const sttOpt = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOpt).toHaveCount(1);
+    expect(await sttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
+    const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
+    await expect(vSttOpt).toHaveCount(1);
+    expect(await vSttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
     await expect(page.locator('#helperStatusMsg')).toContainText('Connected');
 
-    // Helper entries appear in Voice speech picker
+    // Helper entries appear in Voice speech picker: helper group becomes visible
     await mouseClick(page, page.locator('#closeSet'));
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
     await page.locator('#vMicSttBtn').click();
@@ -89,14 +104,18 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
     await page.locator('#vMicSttBtn').click();
     const list = page.locator('#vMicSttList');
-    await expect(list.locator('[data-group="helper-asr"]')).toBeHidden();
+    await expect(list.locator('[data-group="helper-asr"]')).toHaveCount(0);
     await expect(list.locator('.voice-card[data-stt="helper"]')).toHaveCount(0);
 
     // 2. Settings: Voice models section shows no helper entries
     await openSettings(page, 'voiceModels');
     await expect(page.locator('#helperSettingsWrap')).toBeHidden();
-    await expect(page.locator('#sttSel option[value="helper"]')).toBeHidden();
-    await expect(page.locator('#vSttChoice option[value="helper"]')).toBeHidden();
+    const sttOpt = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOpt).toHaveCount(1);
+    expect(await sttOpt.evaluate(el => el.hidden && el.disabled)).toBe(true);
+    const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
+    await expect(vSttOpt).toHaveCount(1);
+    expect(await vSttOpt.evaluate(el => el.hidden && el.disabled)).toBe(true);
 
     // 3. Default Persian UI does not show v1 excluded notice
     const bodyText = await page.locator('body').innerText();
@@ -121,21 +140,34 @@ test.describe('Python ASR Helper v1 Cleanup (ITEM 3)', () => {
       });
     });
 
+    // Voice picker group is absent before Check
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+    await page.locator('#vMicSttBtn').click();
+    await expect(page.locator('#vMicSttList [data-group="helper-asr"]')).toHaveCount(0);
+
+    // Open Settings -> Voice models tab: helper block is absent before Check
     await openSettings(page, 'voiceModels');
     expect(healthChecked).toBe(false); // Never checked automatically!
     await expect(page.locator('#helperSettingsWrap')).toBeHidden();
+    const sttOptBefore = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOptBefore).toHaveCount(1);
+    expect(await sttOptBefore.evaluate(el => el.hidden && el.disabled)).toBe(true);
 
     // Press Check
     await page.locator('#btnCheckHelper').click();
     await expect.poll(() => healthChecked).toBe(true);
 
-    // Helper entries appear in Settings
+    // Helper entries appear in Settings: helper block is visible and option is unhidden
     await expect(page.locator('#helperSettingsWrap')).toBeVisible();
-    await expect(page.locator('#sttSel option[value="helper"]')).toBeVisible();
-    await expect(page.locator('#vSttChoice option[value="helper"]')).toBeVisible();
+    const sttOpt = page.locator('#sttSel option[value="helper"]');
+    await expect(sttOpt).toHaveCount(1);
+    expect(await sttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
+    const vSttOpt = page.locator('#vSttChoice option[value="helper"]');
+    await expect(vSttOpt).toHaveCount(1);
+    expect(await vSttOpt.evaluate(el => !el.hidden && !el.disabled)).toBe(true);
     await expect(page.locator('#helperStatusMsg')).toContainText('متصل است');
 
-    // Helper entries appear in Voice speech picker
+    // Helper entries appear in Voice speech picker: helper group becomes visible
     await mouseClick(page, page.locator('#closeSet'));
     await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
     await page.locator('#vMicSttBtn').click();
