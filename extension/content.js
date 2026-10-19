@@ -1593,22 +1593,27 @@
     isTranslating = true;
     isTranslationStopped = false;
 
+  // Helper: Wait until document becomes visible if tab is hidden
+  async function waitUntilVisible() {
+    if (!document.hidden && document.visibilityState !== 'hidden') return;
+    await new Promise(resolve => {
+      const onVis = () => {
+        if (!document.hidden && document.visibilityState !== 'hidden') {
+          document.removeEventListener('visibilitychange', onVis);
+          resolve();
+        }
+      };
+      document.addEventListener('visibilitychange', onVis);
+    });
+  }
+  window.__makanWaitUntilVisible = waitUntilVisible;
+
     // Process batches with at most 1-2 requests in flight, pausing if tab is hidden
     for (let bIdx = 0; bIdx < batches.length; bIdx++) {
       if (isTranslationStopped) break;
 
       // Pause while tab is hidden
-      if (document.hidden) {
-        await new Promise(resolve => {
-          const onVis = () => {
-            if (!document.hidden) {
-              document.removeEventListener('visibilitychange', onVis);
-              resolve();
-            }
-          };
-          document.addEventListener('visibilitychange', onVis);
-        });
-      }
+      await waitUntilVisible();
       if (isTranslationStopped) break;
 
       const batch = batches[bIdx];
@@ -1984,17 +1989,7 @@
       if (isTranslationStopped) break;
 
       // Pause while tab is hidden
-      if (document.hidden) {
-        await new Promise(resolve => {
-          const onVis = () => {
-            if (!document.hidden) {
-              document.removeEventListener('visibilitychange', onVis);
-              resolve();
-            }
-          };
-          document.addEventListener('visibilitychange', onVis);
-        });
-      }
+      await waitUntilVisible();
       if (isTranslationStopped) break;
 
       const batch = batches[bIdx];

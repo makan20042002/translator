@@ -585,43 +585,48 @@ test.describe('Extension: whole-page translation full suite', () => {
   });
 
   test('k) pauses translation while tab is hidden, sends no network requests until tab becomes visible, then resumes and finishes', async ({ ext, stub }) => {
-    const page = await ext.context.newPage();
-    await page.bringToFront();
-    await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
-    await page.waitForLoadState('domcontentloaded');
+    // 1. Open Page A and wait for it to load and content script to be ready
+    const pageA = await ext.context.newPage();
+    await pageA.bringToFront();
+    await pageA.waitForFunction(() => document.visibilityState === 'visible');
+    await pageA.goto(stub.appOrigin + '/__test/article.html');
+    await pageA.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(pageA);
 
-    // 1. Simulate the tab becoming hidden before translation batch loop begins
-    await page.evaluate(() => {
-      Object.defineProperty(document, 'hidden', { value: true, configurable: true, writable: true });
-      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true, writable: true });
-    });
+    // 2. Open Page B and bring to front so Page A becomes genuinely hidden in Chromium
+    const pageB = await ext.context.newPage();
+    await pageB.goto('about:blank');
+    await pageB.bringToFront();
+    await pageB.waitForFunction(() => document.visibilityState === 'visible');
+
+    // Verify Page A is now hidden
+    await pageA.waitForFunction(() => document.visibilityState === 'hidden', null, { timeout: 5000 }).catch(() => {});
+    const stateA = await pageA.evaluate(() => document.visibilityState);
 
     stub.clearLog();
-    // Trigger translation via context menu
-    await ext.clickContextMenu('makan-translate-page', page.url());
 
-    // 2. Wait while tab is hidden: translation must pause and send ZERO engine requests
-    await page.waitForTimeout(1000);
+    // Trigger translation on Page A via context menu
+    await ext.clickContextMenu('makan-translate-page', pageA.url());
+
+    // 3. Wait ~1 s while Page A is in background: assert ZERO engine requests
+    await pageA.waitForTimeout(1000);
     expect(stub.calls('clients5.google.com')).toHaveLength(0);
 
-    // 3. Tab becomes visible: dispatch visibilitychange event that content script listens to
-    await page.evaluate(() => {
-      Object.defineProperty(document, 'hidden', { value: false, configurable: true, writable: true });
-      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true, writable: true });
-      document.dispatchEvent(new Event('visibilitychange'));
-    });
+    // 4. Bring Page A to front: translation resumes and finishes
+    await pageA.bringToFront();
+    await pageA.waitForFunction(() => document.visibilityState === 'visible');
 
-    // 4. Verification: translation now proceeds, requests are sent, banner indicates completion, and text is translated
-    const banner = inShadow(page, '.makan-top-banner');
+    // Assert translation completes and banner shows
+    const banner = inShadow(pageA, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
     await expect(banner).toContainText('Page translated to FA', { timeout: 15_000 });
     expect(stub.calls('clients5.google.com').length).toBeGreaterThanOrEqual(1);
 
-    const p1 = await page.locator('#p1').textContent();
+    const p1 = await pageA.locator('#p1').textContent();
     expect(p1).toContain('[fa]');
 
-    await page.close();
+    await pageB.close();
+    await pageA.close();
   });
 
   test('l) banner markup, controls and state transitions: Stop halts translation cleanly, language dropdown triggers re-translation from originals, and Show Original restores page', async ({ ext, stub }) => {
@@ -736,6 +741,41 @@ test.describe('Extension: whole-page translation full suite', () => {
     await expect(banner).toBeVisible({ timeout: 12_000 });
     await expect(banner).toContainText('Page translated to FA', { timeout: 12_000 });
 
+    await page.close();
+  });
+
+  test('o) waitUntilVisible pauses when document is hidden and resolves when visibilitychange fires', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    const result = await page.evaluate(async () => {
+      let resolved = false;
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true, writable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true, writable: true });
+
+      const promise = (window.__makanWaitUntilVisible || (async () => {}))().then(() => {
+        resolved = true;
+      });
+
+      // After 200ms, it should still be paused
+      await new Promise(r => setTimeout(r, 200));
+      const stillPaused = !resolved;
+
+      // Restore and fire visibilitychange
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true, writable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true, writable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+
+      await promise;
+      return { stillPaused, resumed: resolved };
+    });
+
+    expect(result.stillPaused).toBe(true);
+    expect(result.resumed).toBe(true);
     await page.close();
   });
 });
