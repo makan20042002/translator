@@ -613,3 +613,8 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
   and pass that exact `page.url()` to `clickContextMenu`. Reusing identical
   addresses across multiple tabs creates tab ambiguity and causes commands to be
   dispatched to the wrong tab.
+
+* **Pause while the tab is hidden is a HAND TEST (headless cannot hide tabs)**:
+  Automated extension tests run in headless mode where tabs never become hidden,
+  and content-script globals live in an isolated execution world. Verification
+  of background tab translation pausing must be performed by hand.
