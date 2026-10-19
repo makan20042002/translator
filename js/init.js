@@ -257,7 +257,7 @@
       }
     },
     engine: { libUrl: 'https://cdn.jsdelivr.net/npm/@huggingface/transformers@3.8.1' },
-    onModelUsed: repo => { if (typeof recordModelUse === 'function') recordModelUse(repo); },
+    onModelUsed: repo => { if (typeof window !== 'undefined' && typeof window.recordModelUse === 'function') window.recordModelUse(repo); },
     openModelHub: () => {
       const btn = document.querySelector('#tabs button[data-tab="models"]');
       if (btn) btn.click();

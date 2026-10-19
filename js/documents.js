@@ -1154,8 +1154,19 @@ $('docAddToGlossaryBtn').onclick=()=>{
 async function reviewDocTermsInContext(){
   const valid=getDocTerms();
   if(!valid.length){toast(L('noTermsToReview')||'No key terms detected to review','warn');return}
+  const curEngine = getDocChosenEngine() || (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
+  const baseEngine = curEngine.startsWith('ollama:') ? 'ollama' : curEngine;
+  let isAi = false;
+  let engId = 'auto';
   const isReady = id => (typeof isAiEngineReady==='function'?isAiEngineReady(id):(typeof ENG!=='undefined'&&ENG.isAiEngineReady?ENG.isAiEngineReady(id):false));
-  const isAi=isReady(engId)||(engId==='auto'&&cfg.order.some(isReady));
+  if(baseEngine === 'auto'){
+    const firstReady = (typeof cfg !== 'undefined' && cfg.order) ? cfg.order.find(isReady) : null;
+    isAi = Boolean(firstReady);
+    engId = firstReady || 'auto';
+  }else{
+    isAi = Boolean(isReady(baseEngine));
+    engId = baseEngine;
+  }
   if(!isAi){toast(L('docEngineNoticeText')||'Terminology review requires an AI engine','warn');return}
 
   $('docSubjAnalyzing').hidden=false;

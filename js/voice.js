@@ -103,7 +103,7 @@ function getVoiceTabReadiness() {
     asrOk = !!hasSR;
     if (!asrOk) asrReason = L('voiceNoSR') || 'Speech recognition unavailable';
   } else if (mode === 'helper') {
-    asrOk = !!(typeof isHelperConnected === 'function' && isHelperConnected());
+    asrOk = !!(typeof window !== 'undefined' && typeof window.isHelperConnected === 'function' && window.isHelperConnected());
     if (!asrOk) asrReason = L('voiceNoHelper') || 'Speech helper not connected';
   } else if (mode === 'groq') {
     asrOk = !!cfg.eng.groq.key;
@@ -491,7 +491,13 @@ function setAudioInput(mode) {
   cfg.audioInput = (mode === 'desktop') ? 'desktop' : 'mic';
   saveCfg();
   syncAudioInputUI();
-  if (typeof saveAppConfig === 'function') saveAppConfig();
+  if (typeof window !== 'undefined') {
+    if (typeof window.saveAppConfig === 'function') {
+      try { window.saveAppConfig(); } catch {}
+    } else if (window.makanDesktop?.saveAppConfig) {
+      try { window.makanDesktop.saveAppConfig(cfg); } catch {}
+    }
+  }
   toast(cfg.audioInput === 'desktop' ? 'PC Audio / Video translation active' : 'Microphone input active', 'ok', 2000);
 }
 

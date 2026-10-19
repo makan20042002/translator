@@ -510,7 +510,7 @@ function renderSttPickerListHTML(){
       </div>
       <div class="row" style="gap:6px;align-items:center">
         ${isQwen
-          ? `<span class="badge warn" style="font-size:11px" data-qwen-notice="true">needs the helper, not included in v1</span>`
+          ? `<span class="badge warn" style="font-size:11px" data-qwen-notice="true">${esc(L('helperQwenNotice')||'needs the helper, not included in v1')}</span>`
           : `<button class="btn btn-xs" data-act="dl-helper-model" data-helper-model="${esc(h.id)}" style="font-size:11px;padding:3px 7px" title="Download & Load into memory">⚡ Load</button>`
         }
         <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">Helper</span>
@@ -681,7 +681,8 @@ async function downloadHelperModel(overrideModel){
     updateHelperModelButtons();
   }
   if(msgEl){
-    msgEl.textContent='⏳ Downloading & loading model "'+model+'"... (First run may take a few minutes)';
+    const dlMsg = (typeof L === 'function' && L('helperDownloading')) || 'Downloading & loading model "{model}"… (First run may take a few minutes)';
+    msgEl.textContent = '⏳ ' + dlMsg.replace('{model}', model);
     msgEl.style.color='var(--muted)';
   }
   try{

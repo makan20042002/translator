@@ -18,22 +18,34 @@ const ROOT = path.resolve(__dirname, '..');
 
 // Standard browser, DOM, and runtime globals
 const BROWSER_GLOBALS = new Set([
+  // JavaScript runtime primitive values and globals (ECMA-262)
+  'undefined', 'NaN', 'Infinity',
+  // Window / global scopes
   'window', 'self', 'globalThis', 'document', 'navigator', 'location', 'history',
   'console', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
   'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback',
   'localStorage', 'sessionStorage', 'performance', 'crypto', 'indexedDB', 'caches',
   'alert', 'confirm', 'prompt', 'open', 'close', 'focus', 'blur', 'print',
+  // Window event listener and dimension properties
+  'addEventListener', 'removeEventListener', 'innerWidth', 'innerHeight',
+  // DOM Events and Elements
   'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'UIEvent', 'EventTarget',
   'Node', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLSelectElement',
   'HTMLTextAreaElement', 'HTMLButtonElement', 'HTMLAnchorElement', 'HTMLAudioElement',
   'HTMLVideoElement', 'HTMLCanvasElement', 'HTMLDetailsElement', 'HTMLDialogElement',
+  // Streams, Files, Network
   'Blob', 'File', 'FileList', 'FileReader', 'FormData', 'URL', 'URLSearchParams',
   'AbortController', 'AbortSignal', 'Headers', 'Response', 'Request',
   'WebSocket', 'Worker', 'SharedWorker', 'ServiceWorker',
+  // Media and Speech
   'AudioContext', 'webkitAudioContext', 'MediaStream', 'MediaRecorder', 'Audio', 'Image',
   'speechSynthesis', 'SpeechSynthesisUtterance', 'SpeechRecognition', 'webkitSpeechRecognition',
+  // Observers and Parsers
   'DOMParser', 'XMLSerializer', 'MutationObserver', 'IntersectionObserver', 'ResizeObserver',
   'Notification', 'Screen', 'devicePixelRatio', 'matchMedia', 'getComputedStyle',
+  // Web APIs (Exceptions, Encoding, Streams, Subtitles)
+  'DOMException', 'TextDecoder', 'TextEncoder', 'DecompressionStream', 'VTTCue',
+  // Standard built-ins
   'btoa', 'atob', 'escape', 'unescape', 'encodeURI', 'encodeURIComponent',
   'decodeURI', 'decodeURIComponent', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
   'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Boolean', 'RegExp', 'Date',
@@ -43,6 +55,12 @@ const BROWSER_GLOBALS = new Set([
   'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array',
   'BigInt64Array', 'BigUint64Array', 'BigInt', 'DataView', 'ArrayBuffer', 'Intl',
   'WebAssembly', 'GPU', 'GPUBuffer', 'GPUTexture', 'GPUAdapter', 'GPUDevice',
+  // Chrome Built-in AI APIs (window.ai / window.translation)
+  'LanguageDetector', 'Translator',
+  // WebExtensions globals (extension/engine.js)
+  'chrome', 'browser', 'importScripts',
+  // CommonJS environment globals for hybrid browser/node scripts (e.g. js/pdf-input.js, translation-memory.js)
+  'module', 'require',
   // Electron / Desktop bridge globals
   'ENG', 'makanDesktop', 'electronAPI',
   // External library globals loaded via vendor or CDN
@@ -65,29 +83,51 @@ function getIndexHtmlScripts() {
   return scripts;
 }
 
-// Extract top-level declaration names from an AST node
-function extractDeclarations(node, names) {
-  if (!node) return;
-  if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
-    if (node.id && node.id.name) names.add(node.id.name);
-  } else if (node.type === 'VariableDeclaration') {
-    for (const decl of node.declarations) {
-      extractPatternNames(decl.id, names);
+function walkNode(node, visitor) {
+  if (!node || typeof node !== 'object') return;
+  visitor(node);
+  for (const key of Object.keys(node)) {
+    if (key === 'loc' || key === 'range') continue;
+    const child = node[key];
+    if (Array.isArray(child)) {
+      for (const item of child) {
+        if (item && typeof item.type === 'string') walkNode(item, visitor);
+      }
+    } else if (child && typeof child.type === 'string') {
+      walkNode(child, visitor);
     }
-  } else if (node.type === 'ExpressionStatement' && node.expression) {
-    const expr = node.expression;
-    if (expr.type === 'AssignmentExpression') {
-      if (expr.left.type === 'Identifier') {
-        names.add(expr.left.name);
-      } else if (expr.left.type === 'MemberExpression') {
-        const obj = expr.left.object;
-        const prop = expr.left.property;
-        if (obj && (obj.name === 'window' || obj.name === 'self' || obj.name === 'globalThis') && prop && prop.name) {
-          names.add(prop.name);
-        }
+  }
+}
+
+// Extract top-level declaration names from an AST
+function extractDeclarations(ast, names) {
+  if (!ast || !Array.isArray(ast.body)) return;
+  for (const node of ast.body) {
+    if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
+      if (node.id && node.id.name) names.add(node.id.name);
+    } else if (node.type === 'VariableDeclaration') {
+      for (const decl of node.declarations) {
+        extractPatternNames(decl.id, names);
       }
     }
   }
+
+  // Also collect global exports (window.X = ..., root.X = ..., self.X = ..., globalThis.X = ...)
+  walkNode(ast, (node) => {
+    if (node.type === 'AssignmentExpression') {
+      if (node.left.type === 'MemberExpression') {
+        const obj = node.left.object;
+        const prop = node.left.property;
+        if (obj && prop) {
+          const objName = obj.name;
+          const propName = prop.name || (prop.type === 'Literal' ? String(prop.value) : null);
+          if (['window', 'self', 'globalThis', 'root'].includes(objName) && propName) {
+            names.add(propName);
+          }
+        }
+      }
+    }
+  });
 }
 
 function extractPatternNames(id, names) {
@@ -124,13 +164,11 @@ test('Permanent static guard: no undefined identifiers across loaded scripts (IT
     const ast = acorn.parse(code, {
       ecmaVersion: 'latest',
       sourceType: 'script',
-      locations: true
+      locations: true,
+      ranges: true
     });
 
-    for (const node of ast.body) {
-      extractDeclarations(node, allGlobals);
-    }
-
+    extractDeclarations(ast, allGlobals);
     parsedScripts.push({ relPath, code, ast });
   }
 
@@ -168,4 +206,35 @@ test('Permanent static guard: no undefined identifiers across loaded scripts (IT
     0,
     `Found undefined identifiers across browser scripts:\n${failureDetails}`
   );
+});
+
+test('Static guard detects and reports deliberately undefined identifier in in-memory script', () => {
+  const code = 'function testDeliberateUndef() { const val = deliberatelyUndefinedIdentifier; return val; }';
+  const ast = acorn.parse(code, {
+    ecmaVersion: 'latest',
+    sourceType: 'script',
+    locations: true,
+    ranges: true
+  });
+
+  const scopeManager = eslintScope.analyze(ast, {
+    ecmaVersion: 'latest',
+    sourceType: 'script'
+  });
+
+  const undefs = [];
+  for (const ref of scopeManager.globalScope.through) {
+    if (typeof ref.isTypeof === 'function' && ref.isTypeof()) continue;
+    const name = ref.identifier.name;
+    if (!BROWSER_GLOBALS.has(name)) {
+      undefs.push({
+        name,
+        line: ref.identifier.loc?.start?.line,
+        col: ref.identifier.loc?.start?.column
+      });
+    }
+  }
+
+  assert.strictEqual(undefs.length, 1, 'Guard should detect exactly one undefined identifier');
+  assert.strictEqual(undefs[0].name, 'deliberatelyUndefinedIdentifier');
 });

@@ -7,7 +7,7 @@
  * - Shows friendly user-facing message, never raw WASM text.
  * - Records failure in mcFailed so Voice status line shows a warning instead of Ready until later success.
  */
-const { test, expect, onlyEngines } = require('../support/fixtures');
+const { test, expect, onlyEngines, mouseClick } = require('../support/fixtures');
 const { fakeDownloaded } = require('../support/model-helpers');
 
 test.describe('Offline fatal WASM error recovery', () => {
@@ -285,6 +285,9 @@ test.describe('Offline fatal WASM error recovery', () => {
     expect(msg).toContain('out of memory');
 
     // Check Model Hub displays the unsafe tab/WASM RAM warning for models with memMB >= 3500
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    await expect(page.locator('#tab-models')).toBeVisible();
+
     await page.evaluate(() => {
       if (typeof window.renderModelHub === 'function') {
         window.renderModelHub();
