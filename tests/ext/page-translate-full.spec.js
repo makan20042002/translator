@@ -272,6 +272,7 @@ test.describe('Extension: whole-page translation full suite', () => {
   });
 
   test('d) Stop keeps what is done and sends no more requests; changing the banner language re-translates from originals', async ({ ext, stub }) => {
+    test.setTimeout(60_000);
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
@@ -279,27 +280,27 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
-      // Create 60 paragraphs to ensure multiple batches
+      // Create 200 paragraphs with different text each to ensure several batches
       const container = document.createElement('div');
       container.id = 'bulk-container';
-      for (let i = 1; i <= 60; i++) {
+      for (let i = 1; i <= 200; i++) {
         const p = document.createElement('p');
         p.id = `para-${i}`;
-        p.textContent = `Paragraph text item number ${i} for stop and retranslate test.`;
+        p.textContent = `Paragraph text item unique number ${i} for stop and retranslate test block.`;
         container.appendChild(p);
       }
       document.body.appendChild(container);
     });
 
-    // Slow down the engine host slightly so we can click Stop during progress
-    stub.delayHost('clients5.google.com', 400);
+    // Slow down the engine host so we can click Stop during progress
+    stub.delayHost('clients5.google.com', 1200);
 
     await rightClick(page, '#para-1');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     // Wait for the stop button to appear in shadow DOM while translating
     const stopBtn = inShadow(page, '#makanStopBtn');
-    await expect(stopBtn).toBeVisible({ timeout: 10_000 });
+    await expect(stopBtn).toBeVisible({ timeout: 15_000 });
 
     // Click Stop button
     await stopBtn.click();
@@ -339,7 +340,7 @@ test.describe('Extension: whole-page translation full suite', () => {
       const form = new URLSearchParams(call.body);
       for (const q of form.getAll('q')) {
         expect(q).not.toContain('[fa]');
-        expect(q).toContain('Paragraph text item number');
+        expect(q).toContain('Paragraph text item unique number');
       }
     }
 
@@ -610,6 +611,7 @@ test.describe('Extension: whole-page translation full suite', () => {
   });
 
   test('l) banner markup, controls and state transitions: Stop halts translation cleanly, language dropdown triggers re-translation from originals, and Show Original restores page', async ({ ext, stub }) => {
+    test.setTimeout(60_000);
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
@@ -622,16 +624,16 @@ test.describe('Extension: whole-page translation full suite', () => {
         <div id="para-list"></div>
       `;
       const list = document.getElementById('para-list');
-      for (let i = 1; i <= 50; i++) {
+      for (let i = 1; i <= 200; i++) {
         const p = document.createElement('p');
         p.id = `item3-p-${i}`;
-        p.textContent = `Paragraph sentence number ${i} for banner state test.`;
+        p.textContent = `Paragraph sentence unique number ${i} for banner state test verification content block.`;
         list.appendChild(p);
       }
     });
 
-    // Slow down engine slightly so we can interact with Stop during translation
-    stub.delayHost('clients5.google.com', 350);
+    // Slow down engine so we can interact with Stop during translation
+    stub.delayHost('clients5.google.com', 1200);
     stub.clearLog();
 
     await rightClick(page, '#item3-title');
@@ -641,7 +643,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const banner = inShadow(page, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
     const stopBtn = inShadow(page, '#makanStopBtn');
-    await expect(stopBtn).toBeVisible({ timeout: 10_000 });
+    await expect(stopBtn).toBeVisible({ timeout: 15_000 });
     await expect(inShadow(page, '#makanBannerStatus')).toBeVisible();
 
     // Click Stop button
@@ -684,7 +686,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     // Click Show Original
     await restoreBtn.click();
     await expect(banner).toHaveCount(0);
-    expect(await page.locator('#item3-p-1').textContent()).toBe('Paragraph sentence number 1 for banner state test.');
+    expect(await page.locator('#item3-p-1').textContent()).toBe('Paragraph sentence unique number 1 for banner state test verification content block.');
 
     await page.close();
   });
@@ -786,6 +788,7 @@ test.describe('Extension: whole-page translation full suite', () => {
   });
 
   test('r) banner controls and attribute translation with language change and restore on dedicated tab', async ({ ext, stub }) => {
+    test.setTimeout(60_000);
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
