@@ -245,6 +245,25 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
 
   test('with offline mode on, opening Model Hub and Settings model tabs makes zero requests to Ollama port 11434 (ITEM 1)', async ({ app }) => {
     const { page } = app;
+
+    // Seed offline mode before reloading/booting
+    await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('mkt_cfg');
+        const c = raw ? JSON.parse(raw) : {};
+        c.offline = true;
+        localStorage.setItem('mkt_cfg', JSON.stringify(c));
+      } catch (e) {}
+    });
+    await page.addInitScript(() => {
+      try {
+        const raw = localStorage.getItem('mkt_cfg');
+        const c = raw ? JSON.parse(raw) : {};
+        c.offline = true;
+        localStorage.setItem('mkt_cfg', JSON.stringify(c));
+      } catch (e) {}
+    });
+
     const ollamaCalls = [];
     await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
       ollamaCalls.push(route.request().url());
@@ -253,12 +272,6 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
 
     await page.reload();
     await page.waitForLoadState('domcontentloaded');
-
-    await page.evaluate(() => {
-      cfg.offline = true;
-      saveCfg();
-      if (typeof offStatus === 'function') offStatus();
-    });
 
     const offBtn = page.locator('#offBtn');
     await expect(offBtn).toHaveClass(/\bon\b/);
@@ -278,4 +291,55 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     // Fixed assertion: zero requests to Ollama port 11434
     expect(ollamaCalls).toEqual([]);
   });
+
+  test('booting with stored offline mode makes zero requests to Ollama port 11434 across tab navigation (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => {
+      try {
+        const raw = localStorage.getItem('mkt_cfg');
+        const c = raw ? JSON.parse(raw) : {};
+        c.offline = true;
+        localStorage.setItem('mkt_cfg', JSON.stringify(c));
+      } catch (e) {}
+    });
+    await page.addInitScript(() => {
+      try {
+        const raw = localStorage.getItem('mkt_cfg');
+        const c = raw ? JSON.parse(raw) : {};
+        c.offline = true;
+        localStorage.setItem('mkt_cfg', JSON.stringify(c));
+      } catch (e) {}
+    });
+
+    const bootCalls = [];
+    await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+      bootCalls.push(route.request().url());
+      route.abort('connectionrefused');
+    });
+
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+
+    await expect(page.locator('#offBtn')).toHaveClass(/\bon\b/);
+
+    // Navigate to Document tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    await expect(page.locator('#tab-doc')).toBeVisible();
+
+    // Navigate to Text tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
+    await expect(page.locator('#tab-text')).toBeVisible();
+
+    // Navigate to Voice tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="voice"]'));
+    await expect(page.locator('#tab-voice')).toBeVisible();
+
+    // Navigate to Screen tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="screen"]'));
+    await expect(page.locator('#tab-screen')).toBeVisible();
+
+    // Zero requests to Ollama port 11434 during boot and tab navigation
+    expect(bootCalls).toEqual([]);
+  });
 });
+
