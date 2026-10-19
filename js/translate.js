@@ -466,7 +466,24 @@ async function fx(url,opt,tries=2){
     return fx(url,opt,tries-1);
   }
   let j=null;const txt=await r.text();try{j=JSON.parse(txt)}catch{}
-  if(!r.ok){const m=j&&(j.error?.message||j.error||j.message);{const er=new Error(scrubKeys(typeof m==='string'?m:'HTTP '+r.status).slice(0,160));er.status=r.status;throw er}}
+  if(!r.ok){
+    let detail='';
+    if(typeof j?.detail==='string'){
+      detail=j.detail;
+    }else if(Array.isArray(j?.detail)){
+      detail=j.detail.map(d=>(d&&typeof d==='object')?(d.msg||JSON.stringify(d)):String(d)).join('; ');
+    }else if(j?.detail&&typeof j.detail==='object'){
+      detail=JSON.stringify(j.detail);
+    }
+    const m=j&&(j.error?.message||j.error||j.message);
+    const detailOrMsg=detail||(typeof m==='string'?m:'');
+    const msg=detailOrMsg||(txt?txt.slice(0,160):'')||('HTTP '+r.status);
+    const er=new Error(scrubKeys(msg).slice(0,160));
+    er.status=r.status;
+    er.detail=detail||(typeof m==='string'?m:'');
+    er.body=j||txt;
+    throw er;
+  }
   if(j==null)throw new Error('bad response');
   return j;
 }

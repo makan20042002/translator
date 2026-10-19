@@ -345,5 +345,197 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     expect(modelType).toBe('string');
     expect(modelVal).toBe('qwen3-asr');
   });
+
+  test('helper model download displays HTTP 422 error detail in status line (EN) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'en';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Value error, invalid model' })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('HTTP 422');
+    await expect(statusMsg).toContainText('Value error, invalid model');
+    await expect(statusMsg).toContainText('Failed to load model');
+    await expect(statusMsg).not.toContainText('Ensure helper server is running');
+    await expect(statusMsg).not.toContainText('مطمئن شوید');
+  });
+
+  test('helper model download displays HTTP 422 error detail in status line (FA) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'fa';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.fulfill({
+        status: 422,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: 'Value error, invalid model' })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('HTTP 422');
+    await expect(statusMsg).toContainText('Value error, invalid model');
+    await expect(statusMsg).toContainText('بارگذاری مدل ناموفق بود');
+    await expect(statusMsg).not.toContainText('Ensure helper server is running');
+    await expect(statusMsg).not.toContainText('مطمئن شوید');
+  });
+
+  test('helper model download displays HTTP 500 error detail for missing module in status line (EN) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'en';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'qwen3-asr';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: "No module named 'qwen_asr'" })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('HTTP 500');
+    await expect(statusMsg).toContainText("No module named 'qwen_asr'");
+    await expect(statusMsg).toContainText('Failed to load model');
+    await expect(statusMsg).not.toContainText('Ensure helper server is running');
+    await expect(statusMsg).not.toContainText('مطمئن شوید');
+  });
+
+  test('helper model download displays HTTP 500 error detail for missing module in status line (FA) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'fa';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'qwen3-asr';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.fulfill({
+        status: 500,
+        contentType: 'application/json',
+        body: JSON.stringify({ detail: "No module named 'qwen_asr'" })
+      });
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('HTTP 500');
+    await expect(statusMsg).toContainText("No module named 'qwen_asr'");
+    await expect(statusMsg).toContainText('بارگذاری مدل ناموفق بود');
+    await expect(statusMsg).not.toContainText('Ensure helper server is running');
+    await expect(statusMsg).not.toContainText('مطمئن شوید');
+  });
+
+  test('helper model download displays generic hint only on network failure (EN) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'en';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.abort('failed');
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('Failed to load model');
+    await expect(statusMsg).toContainText('Ensure helper server is running (python helper/server.py or desktop app).');
+    await expect(statusMsg).not.toContainText('HTTP ');
+  });
+
+  test('helper model download displays generic hint only on network failure (FA) (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="settings"]'));
+    await expect(page.locator('#tab-settings')).toBeVisible();
+
+    await page.evaluate(() => {
+      ui = 'fa';
+      applyI18n();
+      cfg.stt = 'helper';
+      cfg.helperModel = 'whisper-large-v3';
+      saveCfg();
+      updateHelperSettingsVisibility();
+    });
+
+    await page.route('http://127.0.0.1:8765/v1/models/load', async route => {
+      await route.abort('failed');
+    });
+
+    const dlBtn = page.locator('#btnDownloadHelperModel');
+    await dlBtn.click();
+
+    const statusMsg = page.locator('#helperStatusMsg');
+    await expect(statusMsg).toBeVisible();
+    await expect(statusMsg).toContainText('بارگذاری مدل ناموفق بود');
+    await expect(statusMsg).toContainText('مطمئن شوید سرور کمکی در حال اجرا است (python helper/server.py یا برنامه دسکتاپ).');
+    await expect(statusMsg).not.toContainText('HTTP ');
+  });
 });
 

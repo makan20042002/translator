@@ -703,7 +703,16 @@ async function downloadHelperModel(overrideModel){
     }
   }catch(err){
     if(msgEl){
-      msgEl.textContent='⚠️ Failed to load model: '+(err.message||err)+'. Ensure helper server is running (python helper/run.py or desktop app).';
+      const prefix=(typeof L==='function'?L('helperLoadFailed'):null)||'Failed to load model';
+      if(err && err.status){
+        const detail=err.detail||(err.message && !err.message.startsWith('HTTP')?err.message:'');
+        const detailPart=detail?`: ${detail}`:'';
+        msgEl.textContent=`⚠️ ${prefix}: HTTP ${err.status}${detailPart}`;
+      }else{
+        const hint=(typeof L==='function'?L('helperEnsureRunning'):null)||'Ensure helper server is running (python helper/server.py or desktop app).';
+        const netErr=err?.message||'network error';
+        msgEl.textContent=`⚠️ ${prefix}: ${netErr}. ${hint}`;
+      }
       msgEl.style.color='var(--err)';
     }
   }
