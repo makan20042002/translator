@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Messy Test Page</title>
+<style>
+  body { font: 16px Arial, sans-serif; margin: 20px; }
+  .hidden { display: none; }
+</style>
+</head>
+<body>
+  <h1 id="heading1">Main Heading</h1>
+  <div id="div1">Text in a plain div</div>
+  <span id="span1">Standalone span text</span>
+  <nav id="nav1">
+    <a id="nav-link1" href="#section1">Nav Link One</a>
+    <a id="nav-link2" href="#section2">Nav Link Two</a>
+  </nav>
+  <button id="btn1">Click Me <em>Now</em></button>
+  <p id="split-p">A sentence with <a id="inner-link" href="https://example.com">a link</a> and <b>bold words</b> inside.</p>
+  <table id="tbl1">
+    <tbody>
+      <tr>
+        <th id="th1">Header Cell</th>
+        <td id="td1">Data Cell</td>
+      </tr>
+    </tbody>
+  </table>
+  <div id="hidden-div" style="display: none">Hidden div text</div>
+  <p id="hidden-p" hidden>Hidden p text</p>
+  <p id="aria-hidden-p" aria-hidden="true">Aria hidden text</p>
+  <pre id="pre-block">code inside pre should not be translated</pre>
+  <code id="code-block">inline code should not be translated</code>
+  <label id="lbl1">Search <input id="test-input" placeholder="Search here..." value="User input value"></label>
+  <div id="editable" contenteditable="true">Editable text should be skipped</div>
+  <p id="numbers-only">12345 67890 #$@%</p>
+  <p id="already-fa" dir="rtl" lang="fa">این یک جمله فارسی برای آزمایش است.</p>
+  <img id="test-img" src="data:image/gif;base64,R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7" alt="Logo image" title="Image title tooltip" aria-label="Graphic illustration" width="50" height="50">
+  <div id="shadow-host"></div>
+  <script>
+    try {
+      const host = document.getElementById('shadow-host');
+      const s = host.attachShadow({ mode: 'open' });
+      const p = document.createElement('p');
+      p.id = 'shadow-p';
+      p.textContent = 'Text inside open shadow root';
+      s.appendChild(p);
+    } catch (e) {}
+  </script>
+</body>
+</html>

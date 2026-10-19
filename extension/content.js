@@ -14,6 +14,11 @@
   let activeRange = null;
   let isPageTranslated = false;
   let translatedNodes = [];
+  let translatedUnits = [];
+  let origDocTitle = null;
+  let isTranslating = false;
+  let isTranslationStopped = false;
+  let mutationObserver = null;
   let currentCardElem = null;
   let currentFloatBtn = null;
   let currentBannerElem = null;
@@ -333,6 +338,39 @@
   }
   function isRtlText(str) {
     return /[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/.test(str || '');
+  }
+
+  // Simple script detection helper: check if text is already in the target language
+  function isAlreadyTargetLang(text, tgt) {
+    if (!text || !tgt) return false;
+    const letters = text.match(/\p{L}/gu);
+    if (!letters || letters.length < 2) return true;
+
+    if (['fa', 'ar', 'ur', 'ps'].includes(tgt)) {
+      const rtlCount = (text.match(/[\u0600-\u06FF\u0750-\u077F\u08A0-\u08FF\uFB50-\uFDFF\uFE70-\uFEFF]/g) || []).length;
+      return (rtlCount / letters.length) > 0.6;
+    }
+    if (tgt === 'he') {
+      const heCount = (text.match(/[\u0590-\u05FF]/g) || []).length;
+      return (heCount / letters.length) > 0.6;
+    }
+    if (['ru', 'uk', 'bg', 'be'].includes(tgt)) {
+      const cyrCount = (text.match(/[\u0400-\u04FF]/g) || []).length;
+      return (cyrCount / letters.length) > 0.6;
+    }
+    if (['zh', 'zh-CN', 'zh-TW', 'ja'].includes(tgt)) {
+      const cjkCount = (text.match(/[\u4E00-\u9FFF\u3040-\u309F\u30A0-\u30FF]/g) || []).length;
+      return (cjkCount / letters.length) > 0.5;
+    }
+    if (tgt === 'ko') {
+      const koCount = (text.match(/[\uAC00-\uD7AF\u1100-\u11FF]/g) || []).length;
+      return (koCount / letters.length) > 0.6;
+    }
+    if (tgt === 'en') {
+      const enCount = (text.match(/[a-zA-Z]/g) || []).length;
+      return (enCount / letters.length) > 0.8;
+    }
+    return false;
   }
 
   // Remove existing floating button
@@ -1262,7 +1300,183 @@
     }
   }, { passive: true });
 
-  // Whole Page Translation Functionality
+  // Whole Page Translation Functionality - Collect all visible text blocks, attributes, and shadow roots
+  function collectPageUnits(targetLang) {
+    const units = [];
+
+    function isElementVisible(el) {
+      if (!el || el.nodeType !== 1) return false;
+      if (el.hidden) return false;
+      if (el.getAttribute('aria-hidden') === 'true') return false;
+      if (el.id === 'makan-translate-root' || (el.closest && el.closest('#makan-translate-root'))) return false;
+      if (isSensitiveOrEditable(el)) return false;
+
+      try {
+        const cs = window.getComputedStyle(el);
+        if (cs.display === 'none') return false;
+        if (cs.visibility === 'hidden' || cs.visibility === 'collapse') return false;
+      } catch {}
+
+      const rect = el.getBoundingClientRect();
+      if (rect.width === 0 && rect.height === 0) {
+        if (typeof el.getClientRects === 'function' && el.getClientRects().length === 0) {
+          if (!el.offsetParent && el.tagName !== 'BODY' && el.tagName !== 'HTML') {
+            return false;
+          }
+        }
+      }
+      return true;
+    }
+
+    function isValidTranslatableText(text, tgt) {
+      if (typeof text !== 'string') return false;
+      const trimmed = text.trim();
+      if (trimmed.length < 2) return false;
+      if (!/[\p{L}\p{M}]/u.test(trimmed)) return false;
+      if (isAlreadyTargetLang(trimmed, tgt)) return false;
+      return true;
+    }
+
+    function checkAttributes(el) {
+      const attrs = ['placeholder', 'alt', 'title', 'aria-label'];
+      for (const attr of attrs) {
+        const val = el.getAttribute(attr);
+        if (val && isValidTranslatableText(val, targetLang)) {
+          if (!el.hasAttribute('data-makan-orig-' + attr)) {
+            const rect = el.getBoundingClientRect();
+            units.push({
+              type: 'attr',
+              el,
+              attr,
+              original: val.trim(),
+              rect,
+              distance: rect.top
+            });
+          }
+        }
+      }
+    }
+
+    const SKIPPED_TAGS = new Set([
+      'SCRIPT', 'STYLE', 'NOSCRIPT', 'SVG', 'PRE', 'CODE', 'KBD', 'SAMP',
+      'TEXTAREA', 'INPUT', 'SELECT', 'OPTION'
+    ]);
+
+    const ATOMIC_BLOCK_TAGS = new Set([
+      'P', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'LI', 'BLOCKQUOTE',
+      'DT', 'DD', 'TD', 'TH', 'FIGCAPTION', 'BUTTON', 'SUMMARY'
+    ]);
+
+    const CONTAINER_TAGS = new Set([
+      'DIV', 'SECTION', 'ARTICLE', 'ASIDE', 'HEADER', 'FOOTER', 'NAV', 'MAIN',
+      'FIGURE', 'CAPTION', 'DETAILS', 'FIELDSET', 'FORM', 'ADDRESS', 'LABEL', 'UL', 'OL', 'TABLE', 'THEAD', 'TBODY', 'TFOOT', 'TR'
+    ]);
+
+    function walk(node) {
+      if (!node) return;
+
+      if (node.nodeType === 1) {
+        const el = node;
+        const tag = el.tagName;
+
+        if (el.id === 'makan-translate-root' || (el.closest && el.closest('#makan-translate-root'))) return;
+        if (SKIPPED_TAGS.has(tag)) {
+          if (tag === 'INPUT' && isElementVisible(el)) {
+            checkAttributes(el);
+          }
+          return;
+        }
+        if (isSensitiveOrEditable(el)) return;
+        if (!isElementVisible(el)) return;
+
+        checkAttributes(el);
+
+        if (el.shadowRoot && el.shadowRoot !== shadow && el.id !== 'makan-translate-root') {
+          walk(el.shadowRoot);
+        }
+
+        if (el.hasAttribute('data-makan-orig')) return;
+
+        const hasFormControls = !!el.querySelector('input, select, textarea');
+
+        if (ATOMIC_BLOCK_TAGS.has(tag) && !hasFormControls) {
+          const text = (el.innerText || el.textContent || '').trim();
+          if (isValidTranslatableText(text, targetLang)) {
+            const rect = el.getBoundingClientRect();
+            units.push({
+              type: 'element',
+              el,
+              original: text,
+              origHtml: el.innerHTML,
+              rect,
+              distance: rect.top
+            });
+          }
+          return;
+        }
+
+        if (tag === 'A' && !hasFormControls) {
+          const text = (el.innerText || el.textContent || '').trim();
+          if (isValidTranslatableText(text, targetLang)) {
+            const rect = el.getBoundingClientRect();
+            units.push({
+              type: 'element',
+              el,
+              original: text,
+              origHtml: el.innerHTML,
+              rect,
+              distance: rect.top
+            });
+          }
+          return;
+        }
+
+        const children = Array.from(el.children).filter(c => !SKIPPED_TAGS.has(c.tagName) && isElementVisible(c));
+        const hasBlockChildren = children.some(c =>
+          ATOMIC_BLOCK_TAGS.has(c.tagName) ||
+          c.tagName === 'A' ||
+          CONTAINER_TAGS.has(c.tagName)
+        );
+
+        if (!hasBlockChildren && !hasFormControls) {
+          const text = (el.innerText || el.textContent || '').trim();
+          if (isValidTranslatableText(text, targetLang)) {
+            const rect = el.getBoundingClientRect();
+            units.push({
+              type: 'element',
+              el,
+              original: text,
+              origHtml: el.innerHTML,
+              rect,
+              distance: rect.top
+            });
+            return;
+          }
+        }
+
+        for (const child of el.children) {
+          walk(child);
+        }
+      } else if (node.nodeType === 11) {
+        for (const child of node.children) {
+          walk(child);
+        }
+      }
+    }
+
+    if (document.body) walk(document.body);
+
+    if (document.title && isValidTranslatableText(document.title, targetLang)) {
+      units.push({
+        type: 'title',
+        original: document.title.trim(),
+        distance: -999999
+      });
+    }
+
+    return units;
+  }
+
   async function translateWholePage() {
     if (isPageTranslated) {
       restoreOriginalPage();
@@ -1272,38 +1486,27 @@
     if (!cfg) await refreshConfig();
     const tgt = cfg?.tgt || 'fa';
 
-    // Show floating top banner
     showPageBanner('Translating visible page content…', true);
 
-    // Collect eligible text nodes
-    const eligibleSelectors = 'p, h1, h2, h3, h4, h5, h6, li, blockquote, dt, dd, td, th, figcaption, article p, section p';
-    const allCandidates = Array.from(document.querySelectorAll(eligibleSelectors));
+    const units = collectPageUnits(tgt);
 
-    const targets = [];
-    for (const el of allCandidates) {
-      if (isSensitiveOrEditable(el)) continue;
-      if (el.closest('pre, code, kbd, noscript, script, style, svg, [data-makan-orig]')) continue;
-      const text = el.innerText?.trim();
-      if (text && text.length > 3 && /[a-zA-Z\u0600-\u06FF]/.test(text)) {
-        targets.push(el);
-      }
-    }
-
-    if (!targets.length) {
+    if (!units.length) {
       showPageBanner('No translatable text found on this page.', false);
       return;
     }
 
-    // Process in batches
     const BATCH_SIZE = 25;
     let completed = 0;
     let lastEngineName = '';
-    translatedNodes = [];
     let lastPageFailure = '';
+    isTranslating = true;
+    isTranslationStopped = false;
 
-    for (let i = 0; i < targets.length; i += BATCH_SIZE) {
-      const chunk = targets.slice(i, i + BATCH_SIZE);
-      const texts = chunk.map(el => el.innerText.trim());
+    for (let i = 0; i < units.length; i += BATCH_SIZE) {
+      if (isTranslationStopped) break;
+
+      const chunk = units.slice(i, i + BATCH_SIZE);
+      const texts = chunk.map(u => u.original);
 
       try {
         const res = await askBackground({
@@ -1314,32 +1517,51 @@
           tone: cfg?.tone,
           subject: cfg?.subject
         });
+
         if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
             lastEngineName = res.engineName || res.engineUsed;
           }
-          chunk.forEach((el, idx) => {
+          chunk.forEach((unit, idx) => {
             const original = texts[idx];
             const translated = res.results[idx] || original;
-            el.setAttribute('data-makan-orig', original);
-            el.setAttribute('data-makan-trans', translated);
-            if (el._makanOrigHtml === undefined) el._makanOrigHtml = el.innerHTML;
-            el.innerText = translated;
-            if (isRtl(tgt)) el.setAttribute('dir', 'rtl');
-
-            // Attach hover tooltip listener
-            attachTooltip(el, original);
-            translatedNodes.push(el);
+            if (unit.type === 'element') {
+              const el = unit.el;
+              el.setAttribute('data-makan-orig', original);
+              el.setAttribute('data-makan-trans', translated);
+              if (el._makanOrigHtml === undefined) el._makanOrigHtml = unit.origHtml !== undefined ? unit.origHtml : el.innerHTML;
+              el.innerText = translated;
+              if (isRtl(tgt)) {
+                if (el._makanOrigDir === undefined) el._makanOrigDir = el.getAttribute('dir');
+                if (el._makanOrigAlign === undefined) el._makanOrigAlign = el.style.textAlign || null;
+                el.setAttribute('dir', 'rtl');
+                el.style.textAlign = 'start';
+              }
+              attachTooltip(el, original);
+              translatedNodes.push(el);
+            } else if (unit.type === 'attr') {
+              const el = unit.el;
+              if (el._makanOrigAttrs === undefined) el._makanOrigAttrs = {};
+              if (el._makanOrigAttrs[unit.attr] === undefined) el._makanOrigAttrs[unit.attr] = unit.original;
+              el.setAttribute('data-makan-orig-' + unit.attr, unit.original);
+              el.setAttribute(unit.attr, translated);
+            } else if (unit.type === 'title') {
+              if (origDocTitle === null) origDocTitle = unit.original;
+              document.title = translated;
+            }
+            translatedUnits.push(unit);
           });
           completed += chunk.length;
-          showPageBanner(`Translating page… (${completed}/${targets.length})`, true);
+          showPageBanner(`Translating page… (${completed}/${units.length})`, true);
         }
       } catch (err) {
         lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
     }
+
+    isTranslating = false;
 
     if (completed === 0) {
       isPageTranslated = false;
@@ -1353,15 +1575,66 @@
     showPageBanner(`Page translated to ${tgt.toUpperCase()} via ${engineLabel}.`, false, true);
   }
 
-  // Restore original page text
+  // Restore original page text and attributes
   function restoreOriginalPage() {
+    isTranslating = false;
+    isTranslationStopped = true;
+    if (mutationObserver) {
+      mutationObserver.disconnect();
+      mutationObserver = null;
+    }
+
+    for (const unit of translatedUnits) {
+      if (unit.type === 'element') {
+        const el = unit.el;
+        if (el._makanOrigHtml !== undefined) {
+          el.innerHTML = el._makanOrigHtml;
+          delete el._makanOrigHtml;
+        } else {
+          const orig = el.getAttribute('data-makan-orig');
+          if (orig) el.innerText = orig;
+        }
+        el.removeAttribute('data-makan-orig');
+        el.removeAttribute('data-makan-trans');
+        if (el._makanOrigDir !== undefined) {
+          if (el._makanOrigDir !== null) el.setAttribute('dir', el._makanOrigDir);
+          else el.removeAttribute('dir');
+          delete el._makanOrigDir;
+        } else {
+          el.removeAttribute('dir');
+        }
+        if (el._makanOrigAlign !== undefined) {
+          if (el._makanOrigAlign !== null) el.style.textAlign = el._makanOrigAlign;
+          else {
+            el.style.removeProperty('text-align');
+            if (!el.getAttribute('style')) el.removeAttribute('style');
+          }
+          delete el._makanOrigAlign;
+        }
+        el.onmouseenter = null;
+        el.onmouseleave = null;
+      } else if (unit.type === 'attr') {
+        const el = unit.el;
+        if (el._makanOrigAttrs && el._makanOrigAttrs[unit.attr] !== undefined) {
+          el.setAttribute(unit.attr, el._makanOrigAttrs[unit.attr]);
+          delete el._makanOrigAttrs[unit.attr];
+        } else {
+          const origAttr = el.getAttribute('data-makan-orig-' + unit.attr);
+          if (origAttr !== null) el.setAttribute(unit.attr, origAttr);
+        }
+        el.removeAttribute('data-makan-orig-' + unit.attr);
+        if (el._makanOrigAttrs && Object.keys(el._makanOrigAttrs).length === 0) {
+          delete el._makanOrigAttrs;
+        }
+      } else if (unit.type === 'title') {
+        document.title = unit.original;
+      }
+    }
+
     translatedNodes.forEach(el => {
       if (el._makanOrigHtml !== undefined) {
         el.innerHTML = el._makanOrigHtml;
         delete el._makanOrigHtml;
-      } else {
-        const orig = el.getAttribute('data-makan-orig');
-        if (orig) el.innerText = orig;
       }
       el.removeAttribute('data-makan-orig');
       el.removeAttribute('data-makan-trans');
@@ -1369,6 +1642,13 @@
       el.onmouseenter = null;
       el.onmouseleave = null;
     });
+
+    if (origDocTitle !== null) {
+      document.title = origDocTitle;
+      origDocTitle = null;
+    }
+
+    translatedUnits = [];
     translatedNodes = [];
     isPageTranslated = false;
     if (currentBannerElem) {
