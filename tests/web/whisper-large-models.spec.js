@@ -656,6 +656,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await page.evaluate(() => {
       const errObj = new String('QuotaExceededError: The quota has been exceeded.');
       errObj.message = 'QuotaExceededError: The quota has been exceeded.';
+      errObj.details = 'Raw quota error: quota exceeded';
       errObj.file = 'onnx/decoder_model_merged_quantized.onnx';
       errObj.url = 'https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx';
       window.mcFailed['asr-large-v3'] = errObj;
@@ -683,7 +684,122 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await expect(errUrl).toBeVisible();
     await expect(errUrl).toHaveAttribute('href', 'https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx');
     await expect(errUrl).toHaveText('https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx');
+
+    const detailsToggle = errBox.locator('.hub-error-toggle');
+    await expect(detailsToggle).toBeVisible();
+    await expect(detailsToggle).toHaveText('Show details');
+
+    const detailsBox = errBox.locator('.hub-error-details');
+    await expect(detailsBox).toContainText('Raw quota error: quota exceeded');
   });
+
+  for (const scenario of [
+    { name: 'Aborted(', raw: 'Aborted(session initialization failed)', isOom: false },
+    { name: 'RuntimeError', raw: 'RuntimeError: abort during onnx model load', isOom: false },
+    { name: "Can't create a session", raw: "Can't create a session: status 0x80004005", isOom: false },
+    { name: 'Real OOM (failed to allocate)', raw: 'Aborted(). failed to allocate a buffer of size 2147483648', isOom: true }
+  ]) {
+    test(`fake worker failing with ${scenario.name}: friendly text, details field, one toast only, model name in toast (ITEM 1)`, async ({ app }) => {
+      const { page } = app;
+      await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+      await expect(page.locator('#tab-models')).toBeVisible();
+
+      const result = await page.evaluate(async (rawErr) => {
+        const toasts = [];
+        const origToast = window.toast;
+        window.toast = (msg, kind, duration) => {
+          toasts.push({ msg, kind, duration });
+          if (typeof origToast === 'function') origToast(msg, kind, duration);
+        };
+
+        const origWorker = window.Worker;
+        class MockFailingWorker {
+          constructor() {
+            setTimeout(() => {
+              if (this.onmessage) {
+                // ready
+              }
+            }, 0);
+          }
+          postMessage(data) {
+            const { id, cmd } = data;
+            if (cmd === 'loadAsr') {
+              setTimeout(() => {
+                if (this.onmessage) {
+                  this.onmessage({
+                    data: {
+                      id,
+                      status: 'error',
+                      ok: false,
+                      err: rawErr
+                    }
+                  });
+                }
+              }, 10);
+            }
+          }
+          terminate() { this.terminated = true; }
+        }
+        window.Worker = MockFailingWorker;
+
+        const m = (window.MODEL_CATALOG?.models || []).find(x => x.id === 'asr-large-v3');
+        if (window.mcFailed) delete window.mcFailed[m.id];
+
+        try {
+          await window.mcDownload(m);
+        } catch (e) {}
+
+        const failRecord = window.mcFailed?.[m.id];
+        const failMessage = failRecord?.message || String(failRecord || '');
+        const failDetails = failRecord?.details || '';
+
+        window.Worker = origWorker;
+        window.toast = origToast;
+
+        return {
+          failMessage,
+          failDetails,
+          toasts,
+          toastCount: toasts.length
+        };
+      }, scenario.raw);
+
+      // Check details field
+      expect(result.failDetails).toBe(scenario.raw);
+
+      // Check friendly text: OOM vs not OOM
+      if (scenario.isOom) {
+        expect(result.failMessage).toContain('ran out of memory');
+        expect(result.failMessage).toContain('Whisper Large v3');
+      } else {
+        expect(result.failMessage).toBe('The model (Whisper Large v3) could not be loaded.');
+        expect(result.failMessage).not.toContain('ran out of memory');
+      }
+
+      // Check one toast only
+      expect(result.toastCount).toBe(1);
+
+      // Check model name in toast
+      expect(result.toasts[0].msg).toContain('Whisper Large v3');
+      if (scenario.isOom) {
+        expect(result.toasts[0].msg).toContain('ran out of memory');
+      } else {
+        expect(result.toasts[0].msg).toContain('could not be loaded');
+      }
+
+      // Check Hub row UI elements
+      const card = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]');
+      await expect(card).toBeVisible();
+      await expect(card).toHaveAttribute('data-state', 'failed');
+
+      const detailsToggle = card.locator('.hub-error-toggle');
+      await expect(detailsToggle).toBeVisible();
+      await expect(detailsToggle).toHaveText('Show details');
+
+      const detailsBox = card.locator('.hub-error-details');
+      await expect(detailsBox).toContainText(scenario.raw);
+    });
+  }
 
   test('Whisper Small has believable memMB (1800) and does not show false heavy model warning (ITEM 3)', async ({ app }) => {
     const { page } = app;

@@ -243,9 +243,25 @@ async function mcDownload(m){
       const dlInfo=mcDownloading[m.id];
       let failFile=dlInfo?.lastFile||'';
       let failUrl=dlInfo?.lastUrl||'';
-      const errMsg=e?.message||String(e);
+      const mName=mcText(m.name).replace(/\s*\(default\)$/i,'');
+      const rawDetails=e?.details||e?.rawError||e?.message||String(e);
+      console.warn('Model download failed for', mName, 'Error:', rawDetails);
+
+      const isOom=(typeof isRealOomError==='function'?isRealOomError(rawDetails):/out of memory|failed to allocate|bad_alloc|memory access out of bounds/i.test(rawDetails));
+      const isLoadFail=/Aborted\(|RuntimeError|Can't create a session/i.test(rawDetails);
+      let friendlyLine;
+      if(isOom){
+        friendlyLine=`The offline model (${mName}) ran out of memory and was restarted. A browser tab has a memory limit lower than the computer's RAM. Try again, or choose a smaller model.`;
+      }else if(isLoadFail){
+        friendlyLine=`The model (${mName}) could not be loaded.`;
+      }else if(e?.message&&e.message.includes(`(${mName})`)){
+        friendlyLine=e.message;
+      }else{
+        friendlyLine=e?.message?`${mName}: ${e.message}`:`The model (${mName}) could not be loaded.`;
+      }
+
       if(!failUrl){
-        const match=errMsg.match(/https?:\/\/[^\s"')]+/);
+        const match=rawDetails.match(/https?:\/\/[^\s"')]+/);
         if(match)failUrl=match[0];
       }
       if(!failFile&&failUrl){
@@ -256,12 +272,13 @@ async function mcDownload(m){
         failFile=m.files[0][0];
         failUrl=`https://huggingface.co/${m.repo}/resolve/main/${failFile}`;
       }
-      const errObj=new String(errMsg);
-      errObj.message=errMsg;
+      const errObj=new String(friendlyLine);
+      errObj.message=friendlyLine;
+      errObj.details=rawDetails;
       errObj.file=failFile;
       errObj.url=failUrl;
       mcFailed[m.id]=errObj;
-      toast(errMsg,'err',9000);
+      toast(friendlyLine,'err',9000);
     }
   }
   delete mcDownloading[m.id];
@@ -290,8 +307,9 @@ async function mcDelete(m){
 }
 function mcRow(m){
   const ready=mcReady(m),busy=!!mcDownloading[m.id],failed=!!mcFailed[m.id];
-  const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),file:'',url:''};
+  const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),details:'',file:'',url:''};
   const failMsg=failInfo.message||String(mcFailed[m.id]||'');
+  const failDetails=failInfo.details||'';
   const failFile=failInfo.file||'';
   const failUrl=failInfo.url||'';
   const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
@@ -305,7 +323,7 @@ function mcRow(m){
     <div class="mdl-h"><span class="dot${ready?' ok':''}"></span><strong>${esc(mcText(m.name))}</strong>${badges}<span class="sp"></span><span class="meta" id="mdlSt-${m.id}">${esc(st)}</span></div>
     <div class="mdl-m"><span title="${esc(L('mdlSizeTip'))}">${esc(L('mdlSize'))} ${mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes)}${m.extraBytes?` (+${mcSize(m.extraBytes)} ${esc(L('mdlEngineOnce'))})`:''}</span> · <span title="${esc(L('mdlMemTip'))}">${esc(L('mdlMem'))} ≈ ${mcSize(m.memMB*1048576)}</span> · ${esc(L('mdlGpu'))}: ${esc(gpuText)}${m.speed?` · ${esc(L('mdlSpeed'))} ${m.speed<1?m.speed.toFixed(1):Math.round(m.speed*10)/10} ${esc(L('mdlSpeedUnit'))}`:''} · ${esc(L('mdlLangs'))}: ${esc(langs)}</div>
     <div class="mdl-g">${esc(mcText(m.good))}</div>
-    ${failed?`<div class="hub-model-error mdl-err" style="font-size:11px;color:var(--err-text,#ef4444);margin-top:4px;word-break:break-all;"><strong>Error:</strong> <span class="hub-error-msg">${esc(failMsg)}</span>${failFile?` · <code class="hub-error-file">${esc(failFile)}</code>`:''}${failUrl?` · <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url">${esc(failUrl)}</a>`:''}</div>`:''}
+    ${failed?`<div class="hub-model-error mdl-err" style="font-size:11px;color:var(--err-text,#ef4444);margin-top:4px;word-break:break-all;"><strong>Error:</strong> <span class="hub-error-msg">${esc(failMsg)}</span>${failFile?` · <code class="hub-error-file">${esc(failFile)}</code>`:''}${failUrl?` · <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url">${esc(failUrl)}</a>`:''}${failDetails?`<details class="hub-error-details-wrap" style="margin-top:4px;"><summary class="hub-error-toggle" style="cursor:pointer;color:var(--text-sub,#888);user-select:none;">Show details</summary><pre class="hub-error-details" style="margin:4px 0 0;padding:4px 6px;background:rgba(0,0,0,0.06);border-radius:4px;white-space:pre-wrap;font-family:monospace;font-size:10px;color:inherit;">${esc(failDetails)}</pre></details>`:''}</div>`:''}
     <div class="prog" id="mdlProg-${m.id}"${busy?'':' hidden'}><i id="mdlBar-${m.id}"></i></div>
     <div class="mdl-a">
       <button class="btn"${dlId} data-act="dl" ${ready||busy?'hidden':''}>${esc(L('download'))}</button>
@@ -412,8 +430,9 @@ function renderModelHub(){
     const ready=mcReady(m);
     const busy=!!mcDownloading[m.id];
     const failed=!!mcFailed[m.id];
-    const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),file:'',url:''};
+    const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),details:'',file:'',url:''};
     const failMsg=failInfo.message||String(mcFailed[m.id]||'');
+    const failDetails=failInfo.details||'';
     const failFile=failInfo.file||'';
     const failUrl=failInfo.url||'';
     const state=busy?'busy':(ready?'ready':(failed?'failed':'none'));
@@ -460,6 +479,7 @@ function renderModelHub(){
         <div class="hub-error-text"><strong>${esc(L('errPrefix')||'Error')}:</strong> <span class="hub-error-msg">${esc(failMsg||'Download failed')}</span></div>
         ${failFile?`<div class="hub-error-file-wrap" style="margin-top:3px;"><strong>${esc(L('file')||'File')}:</strong> <code class="hub-error-file">${esc(failFile)}</code></div>`:''}
         ${failUrl?`<div class="hub-error-url-wrap" style="margin-top:3px;"><strong>URL:</strong> <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url" style="color:inherit;text-decoration:underline;">${esc(failUrl)}</a></div>`:''}
+        ${failDetails?`<details class="hub-error-details-wrap" style="margin-top:6px;"><summary class="hub-error-toggle" style="cursor:pointer;color:var(--text-sub,#888);user-select:none;font-weight:500;">Show details</summary><pre class="hub-error-details" style="margin:4px 0 0;padding:6px 8px;background:rgba(0,0,0,0.06);border-radius:4px;white-space:pre-wrap;font-family:monospace;font-size:11px;color:var(--text,#111);">${esc(failDetails)}</pre></details>`:''}
       </div>`:''}
       <div class="prog hub-prog" id="hubProg-${esc(m.id)}" ${busy?'':'hidden'}><i id="hubBar-${esc(m.id)}"></i></div>
       <div class="hub-prog-meta" id="hubSt-${esc(m.id)}" ${busy?'':'hidden'}>${esc(L('mdlDownloading'))}</div>

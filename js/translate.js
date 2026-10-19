@@ -696,10 +696,18 @@ const asrGuard = import(asrGuardUrl)
 
 function isFatalEngineError(err){
   const str=String(err?.message||err||'');
-  return /Aborted\(|failed to allocate|Can't create a session|out of memory|RuntimeError|memory access out of bounds/i.test(str);
+  return /Aborted\(|failed to allocate|Can't create a session|out of memory|RuntimeError|memory access out of bounds|bad_alloc/i.test(str);
+}
+function isRealOomError(err){
+  const str=String(err?.message||err||'');
+  return /out of memory|failed to allocate|bad_alloc|memory access out of bounds/i.test(str);
+}
+if(typeof window!=='undefined'){
+  window.isFatalEngineError=isFatalEngineError;
+  window.isRealOomError=isRealOomError;
 }
 
-function terminateAiWorker(role,reason){
+function terminateAiWorker(role,reason,rawError){
   const wk=role==='speech'?asrWk:trWk;
   if(role==='speech')asrWk=null;
   else trWk=null;
@@ -715,7 +723,9 @@ function terminateAiWorker(role,reason){
   for(const k in pend){
     if(pend[k].role===role){
       const p=pend[k];delete pend[k];
-      p.rej(new Error(reason||L('offlineOom')||'The offline model ran out of memory and was restarted. Try again, or choose a smaller model.'));
+      const rejErr = new Error(reason||L('offlineOom')||'The offline model ran out of memory and was restarted. A browser tab has a memory limit lower than the computer\'s RAM. Try again, or choose a smaller model.');
+      if(rawError){rejErr.details = rawError; rejErr.rawError = rawError;}
+      p.rej(rejErr);
     }
   }
 }
@@ -765,12 +775,14 @@ function createAiWorker(role){
           modelName = mObj ? mcText(mObj.name).replace(/\s*\(default\)$/i,'') : (specRepo || 'Translation');
         }
         const modelLabel = modelName ? ` (${modelName})` : '';
-        const defaultFriendly = `The offline model${modelLabel} ran out of memory and was restarted. A browser tab has a memory limit lower than the computer's RAM. Try again, or choose a smaller model.`;
-        const rawTpl = typeof L==='function'?L('offlineOom'):'';
-        const friendlyMsg = rawTpl
-          ? (rawTpl.includes('{model}') ? rawTpl.replace('{model}', modelLabel) : rawTpl)
-          : defaultFriendly;
-        terminateAiWorker(role,friendlyMsg);
+        const isOom = isRealOomError(errStr);
+        const friendlyMsg = isOom
+          ? `The offline model${modelLabel} ran out of memory and was restarted. A browser tab has a memory limit lower than the computer's RAM. Try again, or choose a smaller model.`
+          : `The model${modelLabel} could not be loaded.`;
+
+        console.warn('Model fatal error for', modelName || role, 'Friendly:', friendlyMsg, 'Details:', errStr);
+
+        terminateAiWorker(role,friendlyMsg,errStr);
         if(p.cmd==='translate'&&!p.isRetry){
           // Retry once automatically on the fresh worker
           rpc('translate',p.a,p.tr,p.signal,true).then(p.res,err=>{
@@ -782,15 +794,29 @@ function createAiWorker(role){
         if(p.cmd==='asr'||p.cmd==='loadAsr'){
           const wm=typeof asrModel==='function'?asrModel(p.a?.model):null;
           if(wm&&typeof mcFailed!=='undefined'){
-            mcFailed[wm.id]=friendlyMsg;
+            const errObj = new String(friendlyMsg);
+            errObj.message = friendlyMsg;
+            errObj.details = errStr;
+            mcFailed[wm.id] = errObj;
             if(typeof updateVoiceReadiness==='function')updateVoiceReadiness();
             if(typeof mcRender==='function')mcRender();
           }
         }
-        if(typeof toast==='function')toast(friendlyMsg,'err',8000);
-        p.rej(new Error(friendlyMsg));
+        // Exactly ONE toast per failure: mcDownload owns toasts for loadAsr and loadTr;
+        // createAiWorker owns toasts for runtime translate and asr
+        if(p.cmd!=='loadAsr'&&p.cmd!=='loadTr'){
+          if(typeof toast==='function')toast(friendlyMsg,'err',8000);
+        }
+        const rejErr = new Error(friendlyMsg);
+        rejErr.details = errStr;
+        rejErr.rawError = errStr;
+        p.rej(rejErr);
       }else{
-        p.rej(new Error(m.err));
+        console.warn('Model non-fatal error:', errStr);
+        const rejErr = new Error(m.err);
+        rejErr.details = errStr;
+        rejErr.rawError = errStr;
+        p.rej(rejErr);
       }
     }
   };
