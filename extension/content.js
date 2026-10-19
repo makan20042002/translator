@@ -18,6 +18,7 @@
   let origDocTitle = null;
   let isTranslating = false;
   let isTranslationStopped = false;
+  let pageRunId = 0;
   let mutationObserver = null;
   let currentCardElem = null;
   let currentFloatBtn = null;
@@ -1538,7 +1539,9 @@
       return;
     }
 
+    const myRun = ++pageRunId;
     await refreshConfig();
+    if (myRun !== pageRunId) return;
     const tgt = cfg?.tgt || 'fa';
 
     showPageBanner('Translating visible page content…', true);
@@ -1622,11 +1625,11 @@
 
     // Process batches with at most 1-2 requests in flight, pausing if tab is hidden
     for (let bIdx = 0; bIdx < batches.length; bIdx++) {
-      if (isTranslationStopped) break;
+      if (myRun !== pageRunId || isTranslationStopped) return;
 
       // Pause while tab is hidden
       await waitUntilVisible();
-      if (isTranslationStopped) break;
+      if (myRun !== pageRunId || isTranslationStopped) return;
 
       const batch = batches[bIdx];
       // Deduplicate identical strings inside this request
@@ -1641,6 +1644,8 @@
           tone: cfg?.tone,
           subject: cfg?.subject
         });
+
+        if (myRun !== pageRunId) return;
 
         if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
@@ -1685,6 +1690,7 @@
           });
 
           completed += batch.length;
+          if (myRun !== pageRunId) return;
           if (isTranslationStopped) {
             isTranslating = false;
             showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
@@ -1692,15 +1698,18 @@
           }
           showPageBanner(`Translated ${completed} of ${units.length}`, true, false, false, tgt);
         } else if (isTranslationStopped) {
+          if (myRun !== pageRunId) return;
           isTranslating = false;
           showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
           return;
         }
       } catch (err) {
+        if (myRun !== pageRunId) return;
         lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
     }
 
+    if (myRun !== pageRunId) return;
     if (isTranslationStopped) {
       isTranslating = false;
       return;
@@ -1771,6 +1780,7 @@
 
   async function processLateMutations(tgt) {
     if (!isPageTranslated || isTranslationStopped) return;
+    const myRun = pageRunId;
 
     // Rate guard: translate at most one batch per second
     const now = Date.now();
@@ -1803,6 +1813,8 @@
         tone: cfg?.tone,
         subject: cfg?.subject
       });
+
+      if (myRun !== pageRunId || !isPageTranslated || isTranslationStopped) return;
 
       if (res && res.ok && res.results) {
         const transMap = new Map();
@@ -1846,6 +1858,7 @@
 
   // Restore original page text and attributes
   function restoreOriginalPage() {
+    ++pageRunId;
     isTranslating = false;
     isTranslationStopped = true;
     if (mutationObserver) {
@@ -1943,6 +1956,7 @@
 
   // Re-translate from saved originals when target language is changed in the banner
   async function retranslateFromOriginals(newTgt) {
+    const myRun = ++pageRunId;
     isTranslationStopped = true;
     isTranslating = false;
     if (mutationObserver) {
@@ -1999,11 +2013,11 @@
 
     try {
       for (let bIdx = 0; bIdx < batches.length; bIdx++) {
-        if (isTranslationStopped) break;
+        if (myRun !== pageRunId || isTranslationStopped) return;
 
         // Pause while tab is hidden
         await waitUntilVisible();
-        if (isTranslationStopped) break;
+        if (myRun !== pageRunId || isTranslationStopped) return;
 
         const batch = batches[bIdx];
         const uniqueTexts = Array.from(new Set(batch.map(u => u.original)));
@@ -2017,6 +2031,8 @@
             tone: cfg?.tone,
             subject: cfg?.subject
           });
+
+          if (myRun !== pageRunId) return;
 
           if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
@@ -2074,6 +2090,7 @@
             });
 
             completed += batch.length;
+            if (myRun !== pageRunId) return;
             if (isTranslationStopped) {
               isTranslating = false;
               return;
@@ -2081,16 +2098,19 @@
             showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}`, true, false, false, newTgt);
           }
         } catch (err) {
+          if (myRun !== pageRunId) return;
           lastPageFailure = plainFailure(cspBlockedReason() || err);
         }
       }
     } catch (unexpectedErr) {
+      if (myRun !== pageRunId) return;
       isTranslating = false;
       const why = plainFailure(cspBlockedReason() || unexpectedErr);
       showPageBanner(`Page not translated: ${why}`, false, true, failureNeedsOptions(why), newTgt);
       return;
     }
 
+    if (myRun !== pageRunId) return;
     if (isTranslationStopped) {
       isTranslating = false;
       return;

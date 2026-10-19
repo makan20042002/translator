@@ -671,7 +671,15 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     // Retranslation finishes and banner updates
     await expect(banner).toContainText('Page translated to FR', { timeout: 15_000 });
-    expect(await page.locator('#item3-p-1').textContent()).toContain('[fr]');
+    const p1Text = await page.locator('#item3-p-1').textContent();
+    expect(p1Text).toContain('[fr]');
+    expect(p1Text).not.toContain('[fa]');
+
+    // After it ends, wait 1500 ms and assert banner still says FR and no further calls went out
+    const callsAfterFr = stub.calls('clients5.google.com').length;
+    await page.waitForTimeout(1500);
+    await expect(banner).toContainText('Page translated to FR');
+    expect(stub.calls('clients5.google.com').length).toBe(callsAfterFr);
 
     // Requests sent for FR must contain original English text, not [fa]
     const frCalls = stub.calls('clients5.google.com');
