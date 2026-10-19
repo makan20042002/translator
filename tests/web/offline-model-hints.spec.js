@@ -15,6 +15,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     const { page } = app;
 
     const tHint = page.locator('#tOfflineModelHint');
+    const dPicker = page.locator('#docEnginePickerHost .engine-picker-select');
     const dSel = page.locator('#dEngineSel');
     const docEngineText = page.locator('#docEngineText');
     const vHint = page.locator('#vOfflineModelHint');
@@ -36,12 +37,12 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
     // Text tab assertion
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
-    await expect(tHint).toBeVisible();
+    await expect(tHint).toBeAttached();
     await expect(tHint).toContainText('No offline model downloaded');
 
     // Document tab assertion
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(dSel).toBeVisible();
+    await expect(dPicker).toBeVisible();
     await expect(dSel).toHaveAttribute('title', /No offline model downloaded/);
 
     // Voice tab assertion
@@ -65,15 +66,15 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
     // Document tab: should update immediately to show M2M-100
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(dSel).toBeVisible();
+    await expect(dPicker).toBeVisible();
     await expect(dSel).toHaveAttribute('title', /M2M-100/);
-    await dSel.selectOption('nllb');
+    await dPicker.selectOption('nllb');
     await expect(docEngineText).toContainText('M2M-100');
-    await dSel.selectOption('');
+    await dPicker.selectOption('auto');
 
     // Text tab: should show M2M-100 without reloading
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
-    await expect(tHint).toBeVisible();
+    await expect(tHint).toBeAttached();
     await expect(tHint).toHaveText(/^Offline model:/);
     await expect(tHint).toContainText('M2M-100');
 
@@ -105,20 +106,20 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
     // Text tab updates to NLLB
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
-    await expect(tHint).toBeVisible();
+    await expect(tHint).toBeAttached();
     await expect(tHint).toHaveText(/^Offline model:/);
     await expect(tHint).toContainText('NLLB');
     await expect(tHint).not.toContainText('M2M-100');
 
     // Document tab updates to NLLB
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    await expect(dSel).toBeVisible();
+    await expect(dPicker).toBeVisible();
     await expect(dSel).toHaveAttribute('title', /NLLB/);
     await expect(dSel).not.toHaveAttribute('title', /M2M-100/);
-    await dSel.selectOption('nllb');
+    await dPicker.selectOption('nllb');
     await expect(docEngineText).toContainText('NLLB');
     await expect(docEngineText).not.toContainText('M2M-100');
-    await dSel.selectOption('');
+    await dPicker.selectOption('auto');
 
     // 4. With cfg.trModel='auto' and both models cached, Text hint shows Auto and NLLB name
     await page.evaluate(() => {
@@ -128,7 +129,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="text"]'));
-    await expect(tHint).toBeVisible();
+    await expect(tHint).toBeAttached();
     await expect(tHint).toHaveText(/^Offline model:/);
     await expect(tHint).toContainText('Auto');
     await expect(tHint).toContainText('NLLB');
@@ -153,6 +154,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
 
       const headerTop = page.locator('.doc-header-top');
       const headerControls = page.locator('.doc-header-controls');
+      const dPicker = page.locator('#docEnginePickerHost .engine-picker-select');
       const dSel = page.locator('#dEngineSel');
       const docEngineText = page.locator('#docEngineText');
 
@@ -178,7 +180,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
         if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
       }, { lang });
 
-      await dSel.selectOption('nllb');
+      await dPicker.selectOption('nllb');
 
       const topBoxNoModel = await headerTop.boundingBox();
       const controlsBoxNoModel = await headerControls.boundingBox();
@@ -202,7 +204,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
         if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
       }, { lang });
 
-      await dSel.selectOption('nllb');
+      await dPicker.selectOption('nllb');
 
       const topBoxWithModel = await headerTop.boundingBox();
       const controlsBoxWithModel = await headerControls.boundingBox();
@@ -223,7 +225,7 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
       expect(selTitle).toMatch(/mBART-50|M2M-100/);
 
       // Reset picker to default for stubbed translation
-      await dSel.selectOption('');
+      await dPicker.selectOption('auto');
 
       if (doTranslation) {
         await chooseFile(page, page.locator('#dDrop'), files.txt);

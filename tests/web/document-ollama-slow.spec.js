@@ -3,6 +3,17 @@ const fs = require('fs');
 const path = require('path');
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
 
+async function selectDocOllama(page, model = 'gemma4:12b') {
+  const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+  await expect(picker.locator('option[value="ollama"]')).toBeAttached({ timeout: 5000 });
+  await picker.selectOption('ollama');
+  if (model) {
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator(`option[value="${model}"]`)).toBeAttached({ timeout: 5000 });
+    await modelPicker.selectOption(model);
+  }
+}
+
 test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
   test.use({ appOptions: { seed: { cfg: onlyEngines(['google', 'mymemory', 'ollama', 'nllb']), src: 'en', tgt: 'fa' } } });
 
@@ -37,9 +48,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
@@ -81,9 +90,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
@@ -150,9 +157,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
@@ -199,9 +204,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
@@ -257,9 +260,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     // Load file -> subject analysis starts
     await chooseFile(page, page.locator('#dDrop'), files.txt);
@@ -302,9 +303,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     await mouseClick(page, page.locator('#uiLang'));
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     stub.clearLog();
     await chooseFile(page, page.locator('#dDrop'), files.txt);
@@ -360,9 +359,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));
@@ -402,9 +399,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
 
@@ -449,9 +444,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
 
@@ -494,9 +487,7 @@ test.describe('Document tab slow Ollama, timeouts, and concurrency', () => {
     });
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker.locator('option[value="ollama:gemma4:12b"]')).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
+    await selectDocOllama(page, 'gemma4:12b');
 
     await chooseFile(page, page.locator('#dDrop'), files.txt);
     await mouseClick(page, page.locator('#dGo'));

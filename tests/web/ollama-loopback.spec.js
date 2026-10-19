@@ -19,17 +19,21 @@ test.describe('Ollama alternate loopback address fallback', () => {
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
-    const option = picker.locator('option[value="ollama:qwen2.5:7b"]');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    const option = picker.locator('option[value="ollama"]');
     await expect(option).toBeAttached({ timeout: 5000 });
 
     const optionText = await option.textContent();
-    expect(optionText).toContain('Ready');
-    expect(optionText).not.toContain('Needs Ollama running');
+    expect(optionText).toMatch(/ready/i);
+    expect(optionText).not.toMatch(/needs.*running/i);
 
-    await picker.selectOption('ollama:qwen2.5:7b');
+    await picker.selectOption('ollama');
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator('option[value="qwen2.5:7b"]')).toBeAttached({ timeout: 5000 });
+    await modelPicker.selectOption('qwen2.5:7b');
+
     const readyCheck = await page.evaluate(async () => {
-      return await checkDocEngineReady('ollama:qwen2.5:7b');
+      return await checkDocEngineReady('ollama');
     });
     expect(readyCheck.ready).toBe(true);
   });
@@ -43,7 +47,7 @@ test.describe('Ollama alternate loopback address fallback', () => {
 
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    const picker = page.locator('#dEngineSel');
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
     await picker.selectOption('ollama');
 
     stub.clearLog();

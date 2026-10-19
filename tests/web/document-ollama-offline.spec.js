@@ -22,20 +22,24 @@ test.describe('Document tab Ollama in Offline mode', () => {
     // Navigate to Document tab
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
 
-    // Choose Ollama from the picker
-    const picker = page.locator('#dEngineSel');
-    const option = picker.locator('option[value="ollama:gemma4:12b"]');
+    // Choose Ollama from the visible shared engine picker
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    const option = picker.locator('option[value="ollama"]');
     await expect(option).toBeAttached({ timeout: 5000 });
-    await picker.selectOption('ollama:gemma4:12b');
 
     // Verify option text indicates Ready and not "Needs Ollama running"
     const optionText = await option.textContent();
-    expect(optionText).toContain('Ready');
-    expect(optionText).not.toContain('Needs Ollama running');
+    expect(optionText).toMatch(/ready/i);
+    expect(optionText).not.toMatch(/needs.*running/i);
+
+    await picker.selectOption('ollama');
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator('option[value="gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+    await modelPicker.selectOption('gemma4:12b');
 
     // Verify checkDocEngineReady reports ready: true
     const readyCheck = await page.evaluate(async () => {
-      return await checkDocEngineReady('ollama:gemma4:12b');
+      return await checkDocEngineReady('ollama');
     });
     expect(readyCheck.ready).toBe(true);
 

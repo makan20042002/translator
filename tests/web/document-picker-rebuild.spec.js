@@ -10,13 +10,13 @@ test.describe('Document tab engine picker rebuild and preservation', () => {
 
     // 1. Open the Document tab
     await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
-    const picker = page.locator('#dEngineSel');
-    await expect(picker, '#dEngineSel should be visible').toBeVisible();
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await expect(picker, '#docEnginePickerHost .engine-picker-select should be visible').toBeVisible();
 
-    // Verify initial "Same as Text tab" option exists
+    // Verify initial "Auto (your order in Settings)" option exists
     const firstOption = picker.locator('option').first();
-    await expect(firstOption).toHaveAttribute('value', '');
-    await expect(firstOption).toHaveText(/Same as Text tab/i);
+    await expect(firstOption).toHaveAttribute('value', 'auto');
+    await expect(firstOption).toHaveText(/Auto/i);
 
     // 2. Previously choose an engine
     await picker.selectOption('google');
@@ -41,18 +41,30 @@ test.describe('Document tab engine picker rebuild and preservation', () => {
     expect(pageErrors, 'zero page errors').toEqual([]);
     expect(errors, 'zero console or page errors').toEqual([]);
 
-    // 7. Verify the picker still has the "Same as Text tab" option plus engine options
+    // 7. Verify the picker still has the "Auto" option plus engine options
     const options = picker.locator('option');
     expect(await options.count()).toBeGreaterThan(1);
-    await expect(picker.locator('option').first()).toHaveAttribute('value', '');
-    await expect(picker.locator('option').first()).toHaveText(/Same as Text tab/i);
+    await expect(picker.locator('option').first()).toHaveAttribute('value', 'auto');
+    await expect(picker.locator('option').first()).toHaveText(/Auto/i);
 
     const values = await picker.locator('option').evaluateAll(opts => opts.map(o => o.value));
-    expect(values).toContain('');
+    expect(values).toContain('auto');
     expect(values).toContain('google');
     expect(values).toContain('mymemory');
 
     // 8. Verify the previously chosen engine stays selected
     await expect(picker).toHaveValue('google');
   });
+
+  test('selecting an engine via visible docEnginePickerHost updates both the picker and engine store', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await expect(picker).toBeVisible();
+    await picker.selectOption('mymemory');
+    await expect(picker).toHaveValue('mymemory');
+    const stored = await page.evaluate(() => store.get('engine', ''));
+    expect(stored).toBe('mymemory');
+  });
 });
+
