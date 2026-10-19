@@ -676,5 +676,22 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('m) triggers page translation immediately after page.goto without prior click or delay on a fresh tab', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+
+    // Immediately trigger translation without any click or artificial delay
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // Expect the banner to appear within a few seconds
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 12_000 });
+    await expect(banner).toContainText('Page translated', { timeout: 12_000 });
+
+    await page.close();
+  });
 });
 

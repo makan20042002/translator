@@ -259,6 +259,19 @@ function showNotification(title, message, tabId) {
   showInPageToast(tabId, message);
 }
 
+// Helper: send a ping to a tab with a timeout
+async function pingTab(tabId, timeoutMs = 200) {
+  try {
+    const res = await Promise.race([
+      chrome.tabs.sendMessage(tabId, { action: 'ping' }),
+      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), timeoutMs))
+    ]);
+    return !!(res && res.ok);
+  } catch {
+    return false;
+  }
+}
+
 // Helper: Verify tab readiness, injecting content script if missing
 async function ensureTabReady(tab) {
   if (!tab || !tab.id) return false;
@@ -273,16 +286,9 @@ async function ensureTabReady(tab) {
   }
 
   // First ping to check if content script is already listening
-  let answered = false;
-  try {
-    const res = await Promise.race([
-      chrome.tabs.sendMessage(tab.id, { action: 'ping' }),
-      new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 220))
-    ]);
-    if (res && res.ok) answered = true;
-  } catch {}
-
-  if (answered) return true;
+  if (await pingTab(tab.id, 250)) {
+    return true;
+  }
 
   // Attempt dynamic injection if scripting API is available
   if (chrome.scripting?.executeScript) {
@@ -297,9 +303,6 @@ async function ensureTabReady(tab) {
           files: ['content.css']
         }).catch(() => {});
       }
-      // Brief pause to allow content script initialization
-      await new Promise(r => setTimeout(r, 60));
-      return true;
     } catch (injErr) {
       showInPageToast(
         tab.id,
@@ -307,6 +310,21 @@ async function ensureTabReady(tab) {
       );
       return false;
     }
+
+    // Ping in a loop every 50 ms up to ~2 s until content script answers
+    const startTime = Date.now();
+    while (Date.now() - startTime < 2000) {
+      if (await pingTab(tab.id, 100)) {
+        return true;
+      }
+      await new Promise(r => setTimeout(r, 50));
+    }
+
+    showInPageToast(
+      tab.id,
+      'Please reload this page once to enable MAKAN Translate (or check site access in extension settings).'
+    );
+    return false;
   }
 
   showInPageToast(
@@ -981,6 +999,20 @@ chrome.runtime.onMessage.addListener((req, sender, sendResponse) => {
       } catch (e) {
         return { ok: false, error: e.message };
       }
+    }
+
+    // Trigger page translation from popup or command with readiness assurance
+    if (req.action === 'trigger-page-translate') {
+      const tabId = req.tabId;
+      if (!tabId) return { ok: false, error: 'Missing tabId' };
+      const tab = await chrome.tabs.get(tabId).catch(() => null);
+      if (!tab) return { ok: false, error: 'Tab not found' };
+      const ready = await ensureTabReady(tab);
+      if (!ready) return { ok: false, error: 'Tab not ready' };
+      chrome.tabs.sendMessage(tab.id, { action: 'page-translate-toggle' }).catch(err => {
+        showInPageToast(tab.id, 'Please reload this page once to enable translation.');
+      });
+      return { ok: true };
     }
 
     return { ok: false, error: 'Unknown action: ' + req.action };

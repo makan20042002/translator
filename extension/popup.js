@@ -837,7 +837,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   // Translate Entire Page Button
   pPageTransBtn.onclick = async () => {
     if (!activeTabId) return;
-    chrome.tabs.sendMessage(activeTabId, { action: 'page-translate-toggle' }).catch(() => {});
+    try {
+      await chrome.runtime.sendMessage({ action: 'trigger-page-translate', tabId: activeTabId });
+    } catch {
+      chrome.tabs.sendMessage(activeTabId, { action: 'page-translate-toggle' }).catch(() => {});
+    }
     window.close(); // Close popup so user sees page translation
   };
 

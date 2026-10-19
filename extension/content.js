@@ -24,7 +24,14 @@
   let currentBannerElem = null;
   let currentTooltipElem = null;
 
-  // Initialize Shadow DOM Container
+  // Initialize Shadow DOM Container (clean up any leftover roots from previous instances/reload)
+  try {
+    const oldRoots = document.querySelectorAll('#makan-translate-root');
+    for (const r of oldRoots) {
+      r.remove();
+    }
+  } catch {}
+
   const hostElem = document.createElement('div');
   hostElem.id = 'makan-translate-root';
   hostElem.style.cssText = 'position:absolute;top:0;left:0;width:0;height:0;z-index:2147483647;pointer-events:none;';
