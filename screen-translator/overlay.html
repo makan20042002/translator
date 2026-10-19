@@ -45,11 +45,20 @@
     font-size: 13.5px;
     line-height: 1.5;
     user-select: none;
+    margin: 0;
+    padding: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
   }
 
   .card-container {
-    width: 100%;
+    position: relative;
+    width: min(460px, calc(100vw - 16px));
+    max-width: calc(100vw - 16px);
+    max-height: calc(100vh - 16px);
     height: 100%;
+    margin: auto;
     background: var(--glass);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
@@ -59,17 +68,26 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    box-sizing: border-box;
   }
 
   /* Header draggable bar */
   .header {
-    height: 42px;
+    min-height: 42px;
+    height: auto;
     background: rgba(255, 255, 255, 0.03);
     border-bottom: 1px solid var(--border);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
-    gap: 8px;
-    padding: 0 10px;
+    row-gap: 6px;
+    column-gap: 8px;
+    padding: 6px 10px;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    flex-shrink: 0;
+    box-sizing: border-box;
     -webkit-app-region: drag;
   }
 
@@ -82,6 +100,7 @@
     color: var(--text);
     white-space: nowrap;
     letter-spacing: 0.02em;
+    flex-shrink: 0;
   }
 
   .mark {
@@ -95,6 +114,35 @@
     font-size: 11px;
     font-weight: 800;
     font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  }
+
+  /* Header toolbar and actions */
+  .header-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    flex-wrap: wrap;
+    flex-shrink: 1;
+    min-width: 0;
+  }
+
+  .header-actions {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    margin-inline-start: auto;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 440px) {
+    .header-actions {
+      order: 2;
+    }
+    .header-toolbar {
+      order: 3;
+      width: 100%;
+      padding-top: 2px;
+    }
   }
 
   .no-drag {
@@ -166,13 +214,16 @@
 
   /* Body content */
   .body {
-    flex: 1;
+    flex: 1 1 auto;
+    min-height: 0;
     overflow-y: auto;
+    overflow-x: hidden;
     padding: 12px 14px;
     display: flex;
     flex-direction: column;
     gap: 10px;
     user-select: text;
+    box-sizing: border-box;
   }
 
   .body::-webkit-scrollbar {
@@ -288,13 +339,17 @@
 
   /* Footer action bar */
   .footer {
-    height: 42px;
+    min-height: 42px;
+    height: auto;
     background: rgba(0, 0, 0, 0.3);
     border-top: 1px solid var(--border);
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 6px;
-    padding: 0 10px;
+    padding: 6px 10px;
+    flex-shrink: 0;
+    box-sizing: border-box;
   }
 
   .btn {
@@ -302,7 +357,7 @@
     align-items: center;
     gap: 5px;
     height: 28px;
-    padding: 0 10px;
+    padding: 0 8px;
     border-radius: 6px;
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -311,6 +366,9 @@
     font-weight: 600;
     cursor: pointer;
     transition: all 0.15s ease;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: nowrap;
   }
 
   .btn:hover {
@@ -322,6 +380,12 @@
   .btn.copied {
     color: var(--green);
     border-color: var(--green);
+  }
+
+  .btn span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .btn-open-app {
@@ -336,6 +400,15 @@
     gap: 4px;
     padding: 4px 6px;
     border-radius: 6px;
+    flex-shrink: 1;
+    min-width: 0;
+    white-space: nowrap;
+  }
+
+  .btn-open-app span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .btn-open-app:hover {
@@ -356,6 +429,7 @@
     font-weight: 700;
     cursor: pointer;
     transition: all 0.2s ease;
+    flex-shrink: 0;
   }
   .btn-live:hover {
     background: var(--surface3);
@@ -383,14 +457,6 @@
   @keyframes liveBlink {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.35; transform: scale(0.8); }
-  }
-
-  .header-actions {
-    display: flex;
-    align-items: center;
-    gap: 6px;
-    margin-left: auto;
-    flex-shrink: 0;
   }
 
   .btn-close-header {
@@ -421,7 +487,9 @@
     font-size: 11.5px;
     font-weight: 600;
     transition: background 0.15s, color 0.15s;
-    margin-left: auto;
+    margin-inline-start: auto;
+    flex-shrink: 0;
+    white-space: nowrap;
   }
   .btn-footer-close:hover {
     background: rgba(255, 107, 122, 0.35);
@@ -436,43 +504,50 @@
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
-    margin-left: 8px;
+    margin-inline-start: 8px;
+  }
+
+  /* RTL / Persian layout */
+  html[dir="rtl"] body, body[dir="rtl"] {
+    direction: rtl;
   }
 </style>
 </head>
 <body>
 
-<div class="card-container">
+<div class="card-container" id="cardContainer">
   <!-- Draggable Title Bar -->
   <div class="header">
     <div class="brand">
       <div class="mark">M</div>
-      <span style="font-size:11.5px">Translate</span>
+      <span style="font-size:11.5px" id="brandTitle">Translate</span>
     </div>
 
-    <span class="pill detected no-drag" id="sourceLangPill">EN</span>
-    <span class="lang-arrow">→</span>
+    <div class="header-toolbar no-drag" id="headerToolbar">
+      <span class="pill detected no-drag" id="sourceLangPill">EN</span>
+      <span class="lang-arrow">→</span>
 
-    <select class="select-clean no-drag" id="targetLangSel" title="Target Language">
-      <option value="fa">فارسی</option>
-      <option value="en">English</option>
-      <option value="ar">العربية</option>
-      <option value="de">Deutsch</option>
-      <option value="fr">Français</option>
-      <option value="es">Español</option>
-      <option value="tr">Türkçe</option>
-      <option value="zh">中文</option>
-      <option value="ru">Русский</option>
-    </select>
+      <select class="select-clean no-drag" id="targetLangSel" title="Target Language">
+        <option value="fa">فارسی</option>
+        <option value="en">English</option>
+        <option value="ar">العربية</option>
+        <option value="de">Deutsch</option>
+        <option value="fr">Français</option>
+        <option value="es">Español</option>
+        <option value="tr">Türkçe</option>
+        <option value="zh">中文</option>
+        <option value="ru">Русский</option>
+      </select>
 
-    <select class="select-clean no-drag" id="engineSel" title="Translation Engine">
-      <option value="auto">Auto</option>
-      <option value="google">Google</option>
-      <option value="gemini">Gemini</option>
-      <option value="groq">Groq</option>
-      <option value="ollama">Ollama</option>
-      <option value="mymemory">MyMemory</option>
-    </select>
+      <select class="select-clean no-drag" id="engineSel" title="Translation Engine">
+        <option value="auto">Auto</option>
+        <option value="google">Google</option>
+        <option value="gemini">Gemini</option>
+        <option value="groq">Groq</option>
+        <option value="ollama">Ollama</option>
+        <option value="mymemory">MyMemory</option>
+      </select>
+    </div>
 
     <div class="header-actions no-drag">
       <button class="btn-live no-drag" id="btnLiveToggle" title="Live Video Mode: continuously track and translate video subtitles">
@@ -502,7 +577,7 @@
     <div class="state-error" id="stateError" style="display: none;">
       <div id="errorText">Recognition failed</div>
       <div class="error-guidance" id="errorGuidance" style="display: none;"></div>
-      <div style="margin-top: 8px; display: flex; gap: 8px;">
+      <div style="margin-top: 8px; display: flex; gap: 8px; flex-wrap: wrap;">
         <button class="btn no-drag" id="btnErrorRetry" style="padding: 3px 10px; font-size: 11px;">Retry</button>
         <button class="btn-open-app no-drag" id="btnErrorOpenApp" style="padding: 3px 10px; font-size: 11px;" title="Open in Windows app: all features, OCR, offline models">Open in Windows app</button>
         <button class="btn-open-app no-drag" id="btnErrorOpenBrowser" style="padding: 3px 10px; font-size: 11px;" title="Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)">Open in browser</button>
@@ -534,31 +609,31 @@
 
     <button class="btn no-drag" id="btnCopyOrig" title="Copy Original Text">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>
-      <span>Original</span>
+      <span id="copyOrigLabel">Original</span>
     </button>
 
     <button class="btn no-drag" id="btnRetry" title="Retry Translation">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/><path d="M3 21v-5h5"/></svg>
-      <span>Retry</span>
+      <span id="retryLabel">Retry</span>
     </button>
 
     <button class="btn no-drag" id="btnReselectZone" title="Set/reselect video subtitle region">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
-      <span>Zone</span>
+      <span id="zoneLabel">Zone</span>
     </button>
 
     <button class="btn-open-app no-drag" id="btnOpenInApp" title="Open in Windows app: all features, OCR, offline models">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
-      <span>Open in Windows app</span>
+      <span id="openInAppLabel">Open in Windows app</span>
     </button>
 
     <button class="btn-open-app no-drag" id="btnOpenBrowser" title="Open in browser: opens the web app at the Web App URL (makanlab.tech), uses your browser (Chrome on-device translation works in Chrome)">
       <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-      <span>Open in browser</span>
+      <span id="openBrowserLabel">Open in browser</span>
     </button>
 
     <button class="btn-footer-close no-drag" id="btnFooterClose" title="Close (Esc)">
-      <span>✕ Close</span>
+      <span id="footerCloseLabel">✕ Close</span>
     </button>
   </div>
 </div>
@@ -572,6 +647,7 @@
   let engine = 'auto';
 
   // DOM elements
+  const cardContainer = document.getElementById('cardContainer') || document.querySelector('.card-container');
   const stateLoading = document.getElementById('stateLoading');
   const loadingMsg = document.getElementById('loadingMsg');
   const stateError = document.getElementById('stateError');
@@ -591,14 +667,119 @@
   const btnCopyTrans = document.getElementById('btnCopyTrans');
   const copyTransLabel = document.getElementById('copyTransLabel');
   const btnCopyOrig = document.getElementById('btnCopyOrig');
+  const copyOrigLabel = document.getElementById('copyOrigLabel');
   const btnRetry = document.getElementById('btnRetry');
+  const retryLabel = document.getElementById('retryLabel');
+  const btnReselectZone = document.getElementById('btnReselectZone');
+  const zoneLabel = document.getElementById('zoneLabel');
   const btnOpenInApp = document.getElementById('btnOpenInApp');
+  const openInAppLabel = document.getElementById('openInAppLabel');
   const btnOpenBrowser = document.getElementById('btnOpenBrowser');
+  const openBrowserLabel = document.getElementById('openBrowserLabel');
+  const footerCloseLabel = document.getElementById('footerCloseLabel');
+  const brandTitle = document.getElementById('brandTitle');
   const btnErrorRetry = document.getElementById('btnErrorRetry');
   const btnErrorOpenApp = document.getElementById('btnErrorOpenApp');
   const btnErrorOpenBrowser = document.getElementById('btnErrorOpenBrowser');
   const originalPreview = document.getElementById('originalPreview');
   const ocrLangLabel = document.getElementById('ocrLangLabel');
+  const btnLiveToggle = document.getElementById('btnLiveToggle');
+  const liveBtnLabel = document.getElementById('liveBtnLabel');
+
+  // Viewport clamping & dragging
+  function clampPanelPosition(x, y) {
+    const pad = 8;
+    const rect = cardContainer.getBoundingClientRect();
+    const maxX = Math.max(pad, window.innerWidth - rect.width - pad);
+    const maxY = Math.max(pad, window.innerHeight - rect.height - pad);
+    const clampedX = Math.min(Math.max(pad, x), maxX);
+    const clampedY = Math.min(Math.max(pad, y), maxY);
+    return { x: clampedX, y: clampedY };
+  }
+
+  function setPanelPosition(x, y) {
+    cardContainer.style.position = 'fixed';
+    cardContainer.style.margin = '0';
+    const clamped = clampPanelPosition(x, y);
+    cardContainer.style.left = clamped.x + 'px';
+    cardContainer.style.top = clamped.y + 'px';
+    cardContainer.style.right = 'auto';
+    cardContainer.style.bottom = 'auto';
+  }
+
+  function ensureInViewport() {
+    if (cardContainer.style.position === 'fixed') {
+      const rect = cardContainer.getBoundingClientRect();
+      setPanelPosition(rect.left, rect.top);
+    }
+  }
+  window.addEventListener('resize', ensureInViewport);
+
+  let isDragging = false;
+  let dragStartX = 0;
+  let dragStartY = 0;
+  let initialCardX = 0;
+  let initialCardY = 0;
+
+  const header = document.querySelector('.header');
+  if (header) {
+    header.addEventListener('pointerdown', (e) => {
+      if (e.target.closest('.no-drag')) return;
+      isDragging = true;
+      try { header.setPointerCapture(e.pointerId); } catch {}
+      const rect = cardContainer.getBoundingClientRect();
+      initialCardX = rect.left;
+      initialCardY = rect.top;
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+    });
+
+    header.addEventListener('pointermove', (e) => {
+      if (!isDragging) return;
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      setPanelPosition(initialCardX + dx, initialCardY + dy);
+    });
+
+    const stopDrag = (e) => {
+      if (!isDragging) return;
+      isDragging = false;
+      try { header.releasePointerCapture(e.pointerId); } catch {}
+    };
+    header.addEventListener('pointerup', stopDrag);
+    header.addEventListener('pointercancel', stopDrag);
+  }
+
+  window.setOverlayPosition = (x, y) => {
+    setPanelPosition(x, y);
+  };
+
+  function applyOverlayI18n(lang) {
+    const isFa = lang === 'fa';
+    document.documentElement.lang = isFa ? 'fa' : 'en';
+    document.documentElement.dir = isFa ? 'rtl' : 'ltr';
+    document.body.dir = isFa ? 'rtl' : 'ltr';
+
+    if (brandTitle) brandTitle.textContent = isFa ? 'ترجمه' : 'Translate';
+    if (liveBtnLabel) liveBtnLabel.textContent = isFa ? 'ویدیو زنده' : 'Live Video';
+    if (copyTransLabel) copyTransLabel.textContent = isFa ? 'کپی' : 'Copy';
+    if (copyOrigLabel) copyOrigLabel.textContent = isFa ? 'متن اصلی' : 'Original';
+    if (retryLabel) retryLabel.textContent = isFa ? 'تلاش مجدد' : 'Retry';
+    if (zoneLabel) zoneLabel.textContent = isFa ? 'ناحیه' : 'Zone';
+    if (openInAppLabel) openInAppLabel.textContent = isFa ? 'باز کردن در برنامه ویندوز' : 'Open in Windows app';
+    if (openBrowserLabel) openBrowserLabel.textContent = isFa ? 'باز کردن در مرورگر' : 'Open in browser';
+    if (footerCloseLabel) footerCloseLabel.textContent = isFa ? '✕ بستن' : '✕ Close';
+    if (btnClose) btnClose.title = isFa ? 'بستن (Esc)' : 'Close (Esc)';
+    if (btnPin) btnPin.title = isFa ? 'سنجاق کردن' : 'Pin overlay (stay on top)';
+  }
+
+  try {
+    const params = new URLSearchParams(window.location.search);
+    if (params.get('ui') === 'fa' || params.get('lang') === 'fa') {
+      applyOverlayI18n('fa');
+    }
+  } catch {}
+  window.setOverlayLanguage = applyOverlayI18n;
 
   // Toggle original text
   originalToggle.onclick = () => {
@@ -626,16 +807,17 @@
     window.makanOverlay?.setPinned(isPinned);
   };
 
-  // Close handlers (header & footer)
+  // Close handlers (header & footer & Escape)
   const closeOverlay = () => {
+    cardContainer.style.display = 'none';
     window.makanOverlay?.close();
   };
   btnClose.onclick = closeOverlay;
   if (btnFooterClose) btnFooterClose.onclick = closeOverlay;
 
   window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape' && !isPinned) {
-      window.makanOverlay?.close();
+    if (e.key === 'Escape') {
+      closeOverlay();
     }
   });
 
@@ -791,8 +973,6 @@
   });
 
   // Live video subtitle controls
-  const btnLiveToggle = document.getElementById('btnLiveToggle');
-  const liveBtnLabel = document.getElementById('liveBtnLabel');
   const btnReselectZone = document.getElementById('btnReselectZone');
 
   btnLiveToggle.onclick = () => {
