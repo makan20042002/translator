@@ -234,4 +234,26 @@ test.describe('Web app: Ollama model manager in settings', () => {
     expect(res).toBeNull();
     expect(tagsRequested).toBe(false);
   });
+
+  test('Ollama makes zero requests when offline mode is on even if in cfg.order and enabled', async ({ app }) => {
+    const { page } = app;
+    let requests = [];
+    await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+      requests.push(route.request().url());
+      route.abort('connectionrefused');
+    });
+
+    const res = await page.evaluate(async () => {
+      cfg.order = ['google', 'ollama'];
+      cfg.eng.ollama.on = true;
+      cfg.offline = true;
+      store.set('engine', 'auto');
+      saveCfg();
+      return await fetchOllamaModels();
+    });
+
+    expect(res).toBeNull();
+    expect(requests).toEqual([]);
+  });
 });
+
