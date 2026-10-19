@@ -115,7 +115,10 @@ test.describe('Web app: Media settings persistence and GPU choice', () => {
           get: () => ({ requestAdapter: async () => ({}) })
         });
 
-        // Case A: Model Hub has whisper_webgpu set -> gpu should be true
+        // Case A: Base model with WebGPU -> gpu is true
+        if (typeof window.MediaTranslate?.host?.setWhisperChoice === 'function') {
+          window.MediaTranslate.host.setWhisperChoice('base');
+        }
         store.set('whisper_webgpu', 'base');
         store.set('whisper_wasm', '');
         const choiceGpu = window.MediaTranslate.host.getWhisperChoice();
@@ -125,9 +128,18 @@ test.describe('Web app: Media settings persistence and GPU choice', () => {
         store.set('whisper_wasm', 'base');
         const choiceWasm = window.MediaTranslate.host.getWhisperChoice();
 
+        // Case C: Large v3 model with WebGPU -> gpu is dtype object per worker contract
+        if (typeof window.MediaTranslate?.host?.setWhisperChoice === 'function') {
+          window.MediaTranslate.host.setWhisperChoice('large-v3');
+        }
+        store.set('whisper_webgpu', 'large-v3');
+        store.set('whisper_wasm', '');
+        const choiceLargeGpu = window.MediaTranslate.host.getWhisperChoice();
+
         return {
           gpuWithWebGpuSetting: choiceGpu ? choiceGpu.gpu : null,
-          gpuWithWasmSetting: choiceWasm ? choiceWasm.gpu : null
+          gpuWithWasmSetting: choiceWasm ? choiceWasm.gpu : null,
+          gpuLargeSetting: choiceLargeGpu ? choiceLargeGpu.gpu : null
         };
       } finally {
         Object.defineProperty(navigator, 'gpu', {
@@ -139,6 +151,9 @@ test.describe('Web app: Media settings persistence and GPU choice', () => {
 
     expect(gpuResults.gpuWithWebGpuSetting).toBe(true);
     expect(gpuResults.gpuWithWasmSetting).toBe(false);
+    expect(typeof gpuResults.gpuLargeSetting).toBe('object');
+    expect(gpuResults.gpuLargeSetting).toHaveProperty('encoder_model');
+    expect(gpuResults.gpuLargeSetting).toHaveProperty('decoder_model_merged');
   });
 
   test('with no WebGPU, getWhisperChoice().gpu is strictly false', async ({ app }) => {
@@ -151,6 +166,9 @@ test.describe('Web app: Media settings persistence and GPU choice', () => {
     const choiceNoGpu = await page.evaluate(async () => {
       const origGpu = navigator.gpu;
       try {
+        if (typeof window.MediaTranslate?.host?.setWhisperChoice === 'function') {
+          window.MediaTranslate.host.setWhisperChoice('base');
+        }
         // Even if whisper_webgpu was previously set in store
         store.set('whisper_webgpu', 'base');
         store.set('whisper_wasm', '');
