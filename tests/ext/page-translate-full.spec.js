@@ -7,6 +7,8 @@ const MESSY_PAGE = '/__test/messy.html';
 test.describe('Extension: whole-page translation full suite', () => {
   test('a) translates all visible text blocks and attributes on a messy page and restores exact HTML on Show Original', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + MESSY_PAGE);
     await page.waitForLoadState('domcontentloaded');
 
@@ -94,6 +96,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('b) translates viewport text first on a long page before off-screen text', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.evaluate(() => {
       document.body.innerHTML = '';
@@ -150,6 +154,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('c) translates late-added content dynamically with MutationObserver and stops observing after Show Original', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.waitForLoadState('domcontentloaded');
 
@@ -192,6 +198,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('i) deduplicates identical strings inside one request so repeated text is sent once', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.evaluate(() => {
       document.body.innerHTML = `
@@ -237,6 +245,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('d) Stop keeps what is done and sends no more requests; changing the banner language re-translates from originals', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.evaluate(() => {
       // Create 60 paragraphs to ensure multiple batches
@@ -307,6 +317,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('f) banner at 360 px in EN and FA fits cleanly without horizontal overflow and all buttons visible', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.setViewportSize({ width: 360, height: 640 });
     await page.goto(stub.appOrigin + '/__test/article.html');
 
@@ -335,6 +347,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     // 2. Test FA banner at 360px
     await ext.patchConfig({ ui: 'fa' });
     await page.reload();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.setViewportSize({ width: 360, height: 640 });
 
     await ext.clickContextMenu('makan-translate-page', page.url());
@@ -357,6 +371,8 @@ test.describe('Extension: whole-page translation full suite', () => {
 
   test('e) RTL target sets dir=rtl and restores it; LTR target does not change dir', async ({ ext, stub }) => {
     const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.evaluate(() => {
       document.body.innerHTML = `
@@ -540,6 +556,46 @@ test.describe('Extension: whole-page translation full suite', () => {
     expect(await page.locator('#t-textarea').inputValue()).toBe('User typed essay text');
     expect(await page.locator('#t-password').inputValue()).toBe('SuperSecretPassword123');
     expect(await page.locator('#t-editable').textContent()).toBe('User editable note draft');
+
+    await page.close();
+  });
+
+  test('k) pauses translation while tab is hidden, sends no network requests until tab becomes visible, then resumes and finishes', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+
+    // 1. Simulate the tab becoming hidden before translation batch loop begins
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: true, configurable: true, writable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'hidden', configurable: true, writable: true });
+    });
+
+    stub.clearLog();
+    // Trigger translation via context menu
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // 2. Wait while tab is hidden: translation must pause and send ZERO engine requests
+    await page.waitForTimeout(1000);
+    expect(stub.calls('clients5.google.com')).toHaveLength(0);
+
+    // 3. Tab becomes visible: dispatch visibilitychange event that content script listens to
+    await page.evaluate(() => {
+      Object.defineProperty(document, 'hidden', { value: false, configurable: true, writable: true });
+      Object.defineProperty(document, 'visibilityState', { value: 'visible', configurable: true, writable: true });
+      document.dispatchEvent(new Event('visibilitychange'));
+    });
+
+    // 4. Verification: translation now proceeds, requests are sent, banner indicates completion, and text is translated
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA', { timeout: 15_000 });
+    expect(stub.calls('clients5.google.com').length).toBeGreaterThanOrEqual(1);
+
+    const p1 = await page.locator('#p1').textContent();
+    expect(p1).toContain('[fa]');
 
     await page.close();
   });
