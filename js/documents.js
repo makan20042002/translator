@@ -843,7 +843,9 @@ function showDocEngineNotReady(msg){
 
 function getDocChosenEngine(){
   const shared = (typeof store !== 'undefined' ? store.get('engine', 'auto') : 'auto');
-  return shared !== 'auto' ? shared : '';
+  if(shared !== 'auto') return shared;
+  const legacy = (typeof $ === 'function' && $('dEngineSel')?.value) || '';
+  return legacy;
 }
 
 async function checkDocEngineReady(docChosen){

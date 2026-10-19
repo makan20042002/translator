@@ -55,6 +55,31 @@ test.describe('Document tab offline model names (Item 2 & 4)', () => {
     expect(result.displayName).not.toContain('NLLB');
   });
 
+  test('with M2M100 chosen via shared engine store, failure message contains M2M-100', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => {
+      const cat = self.MODEL_CATALOG?.models || [];
+      const m2m = cat.find(m => m.id === 'tr-m2m100-418');
+      const d = store.get('mdl', {});
+      d['tr-m2m100-418'] = { at: Date.now(), files: m2m.files.map(f => f[0]) };
+      store.set('mdl', d);
+      if (!mcCache) mcCache = {};
+      mcCache[m2m.repo] = { bytes: 1000, files: new Map(m2m.files.map(f => [f[0], f[1]])) };
+      cfg.trModel = 'tr-m2m100-418';
+      store.set('engine', 'nllb');
+      if (typeof saveCfg === 'function') saveCfg();
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+    const failMsg = await page.evaluate(() => {
+      return buildHonestFailureMessage(null, null, new Error('engine failure'));
+    });
+
+    expect(failMsg).toContain('M2M-100');
+    expect(failMsg).not.toContain('NLLB');
+  });
+
   test('document and voice translations do not write to hist storage, and FA hint contains no English word Auto', async ({ app, files }) => {
     const { page } = app;
 
