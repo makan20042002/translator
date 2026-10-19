@@ -258,6 +258,7 @@ Object.assign(I18N.en,{
   <li><strong>History:</strong> Stores recent translations locally with search and CSV export.</li>
   <li><strong>Games:</strong> <em>Experimental:</em> Interactive vocabulary flashcards and drills based on your saved words.</li>
   <li><strong>Model Hub:</strong> Inspect, download, and manage on-device Whisper, NLLB, M2M, OPUS, and Piper models.</li>
+  <li><strong>Extension Whole-Page:</strong> Translates all visible text blocks (div, span, headings, links, buttons, table cells, open shadow roots, document title, and placeholder/alt attributes). Groups sentences to preserve links and formatting. Viewport content is translated first; infinite scroll is observed dynamically. RTL layout is applied for RTL targets and original HTML is restored cleanly. Capped at 4,000 units per page; skips code, pre, sensitive form fields, and nested iframes.</li>
 </ul>
 <h4>2. Which setup should I choose?</h4>
 <div style="overflow-x:auto">
@@ -540,6 +541,7 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
   <li><strong>تاریخچه (History):</strong> ثبت محلی ترجمه‌های اخیر در مرورگر با قابلیت جستجو و خروجی CSV.</li>
   <li><strong>بازی‌ها (Games):</strong> <em>آزمایشی:</em> تمرین واژگان و فلش‌کارت بر پایه لغات ذخیره‌شده.</li>
   <li><strong>مرکز مدل‌ها (Model Hub):</strong> مشاهده، دانلود و مدیریت مدل‌های Whisper، NLLB، M2M، OPUS و صداهای Piper در حافظه مرورگر.</li>
+  <li><strong>ترجمه کل صفحه در افزونه:</strong> ترجمه تمامی بلوک‌های متنی قابل مشاهده (div، span، تیترها، پیوندها، دکمه‌ها، سلول‌های جدول، shadow root باز، عنوان سند و ویژگی‌های placeholder/alt). حفظ قالب‌بندی و لینک‌های درون جملات، ترجمه اولویت‌دار بخش نمایان صفحه، پایش پویای محتوای جدید (اسکرول بی‌نهایت)، پشتیبانی خودکار از راست‌به‌چپ (RTL) و بازگردانی دقیق متن اصلی با دکمه Show Original. محدود به ۴۰۰۰ واحد؛ فیلدهای حساس، کدهای برنامه‌نویسی و آی‌فریم‌ها پردازش نمی‌شوند.</li>
 </ul>
 <h4>۲. کدام پیکربندی برای رایانه من مناسب است؟</h4>
 <div style="overflow-x:auto">

@@ -222,4 +222,28 @@ In the **Text**, **Subtitle**, **Document**, and **Media** tabs, the engine pick
 | **NLLB / M2M / mBART / OPUS-MT offline** | needs download | needs download | needs download | needs download | no |
 | **Whisper** | needs download | needs download | needs download | needs download | no |
 
+---
+
+## 9. Browser Extension & Whole-Page Translation
+
+The MAKAN Translate browser extension (Chrome, Edge, Firefox) provides full in-place page translation:
+
+- **What it can do**:
+  - **Comprehensive Text Collection**: Walks the DOM to find all visible text-bearing elements (including `div`, `span`, `a`, `button`, headings, list items, table cells, form labels, summary, document title, and open shadow roots).
+  - **Attribute Translation**: Translates `placeholder`, `alt`, `title`, and `aria-label` attributes of visible elements.
+  - **Sentence & Markup Preservation**: Groups inline runs inside block elements so sentences split by formatting (`<a>`, `<b>`, `<em>`) are translated as single units and original markup is preserved.
+  - **Viewport Prioritization**: Sorts units by distance from the screen to translate on-screen content first before translating remaining content in the background.
+  - **Dynamic Content & SPAs**: Observes dynamic DOM changes with a debounced `MutationObserver` to automatically translate infinite-scroll feeds and single-page application navigation.
+  - **Interactive Top Banner**: Displays real-time progress ("Translated 120 of 430"), a Stop button (halting further translation while keeping what is done), Show Original (restoring original HTML and attributes exactly), and a target-language dropdown that re-translates from saved originals.
+  - **RTL Support**: Automatically applies right-to-left layout (`dir="rtl"` and `text-align: start`) for RTL target languages (`fa`, `ar`, `he`, `ur`), leaving LTR untouched and cleanly restored.
+  - **Optional Translation Offer Bar**: An optional setting ("Offer to translate pages in other languages") detects foreign language pages entirely locally without sending any data over the network until the user clicks Translate. Includes a "Never for this site" preference stored locally.
+
+- **Limits & Known Constraints**:
+  - **Sensible Page Cap**: One page is capped at 4,000 units to ensure browser responsiveness and prevent quota exhaustion.
+  - **Excluded Elements**: Automatically skips `<script>`, `<style>`, `<noscript>`, `<svg>`, `<pre>`, `<code>`, `<kbd>`, `<samp>`, `<textarea>`, `<input>` values, `[contenteditable]`, and password or payment fields.
+  - **Excluded Text**: Numeric-only, symbol-only, or emoji-only strings and text shorter than 2 letters are skipped.
+  - **Same-Origin Iframes**: Content inside nested `<iframe>` elements is not translated by the top-level page translator (each frame operates in isolation).
+  - **Mutation Rate Limit**: Dynamic mutations are rate-guarded to at most one batch per second to prevent browser freezes on rapidly updating pages.
+
+
 
