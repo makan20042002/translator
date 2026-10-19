@@ -647,4 +647,43 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     }
   });
 
+  test('Hub row displays real error text, failing file name, and failing URL when download fails (ITEM 1)', async ({ app }) => {
+    const { page } = app;
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    await expect(page.locator('#tab-models')).toBeVisible();
+
+    await page.evaluate(() => {
+      const errObj = new String('QuotaExceededError: The quota has been exceeded.');
+      errObj.message = 'QuotaExceededError: The quota has been exceeded.';
+      errObj.file = 'onnx/decoder_model_merged_quantized.onnx';
+      errObj.url = 'https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx';
+      window.mcFailed['asr-large-v3'] = errObj;
+      if (typeof window.renderModelHub === 'function') {
+        window.renderModelHub();
+      }
+    });
+
+    const card = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]');
+    await expect(card).toBeVisible();
+    await expect(card).toHaveAttribute('data-state', 'failed');
+
+    const errBox = card.locator('.hub-model-error');
+    await expect(errBox).toBeVisible();
+
+    const errMsg = errBox.locator('.hub-error-msg');
+    await expect(errMsg).toBeVisible();
+    await expect(errMsg).toContainText('QuotaExceededError: The quota has been exceeded.');
+
+    const errFile = errBox.locator('.hub-error-file');
+    await expect(errFile).toBeVisible();
+    await expect(errFile).toHaveText('onnx/decoder_model_merged_quantized.onnx');
+
+    const errUrl = errBox.locator('.hub-error-url');
+    await expect(errUrl).toBeVisible();
+    await expect(errUrl).toHaveAttribute('href', 'https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx');
+    await expect(errUrl).toHaveText('https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx');
+  });
+
 });
+

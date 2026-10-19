@@ -22,7 +22,10 @@ async function mcScan(){
       const k=req.url.match(/^https:\/\/huggingface\.co\/([^/]+\/[^/]+)\/resolve\/[^/]+\/([^?]+)/);if(!k)continue;
       const res=await c.match(req),m=MC.models.find(x=>x.repo===k[1]);
       let n=+(res?.headers.get('content-length')||0);
-      if(!n&&m)n=(m.files.find(f=>f[0]===k[2])||[0,0])[1];
+      if(!n&&m){
+        const allFiles=(m.files||[]).concat(m.gpuFiles||[]);
+        n=(allFiles.find(f=>f[0]===k[2])||[0,0])[1];
+      }
       const r=out[k[1]]||(out[k[1]]={bytes:0,files:new Map()});r.bytes+=n;r.files.set(k[2],n);
     }
     mcCache=out;
@@ -45,7 +48,9 @@ function mcReady(m){
   const r=mcCache[m.repo];
   if(!r||(rec&&!rec.files.every(f=>r.files.has(f))))return false;
   if(typeof hasWebGpu!=='undefined'&&hasWebGpu&&m.gpu&&m.gpuFiles&&m.gpuFiles.length){
-    if(!m.gpuFiles.every(f=>r.files.has(f[0])))return false;
+    const hasGpu=m.gpuFiles.every(f=>r.files.has(f[0]));
+    const hasCpu=m.files&&m.files.length&&m.files.every(f=>r.files.has(f[0]));
+    if(!hasGpu&&!hasCpu)return false;
   }
   return true;
 }
@@ -235,8 +240,28 @@ async function mcDownload(m){
     if(e.name==='AbortError'){
       toast(`${mcText(m.name)}: ${L('dlCancelled')||'Download cancelled'}`,'warn');
     }else{
-      mcFailed[m.id]=e.message;
-      toast(e.message,'err',9000);
+      const dlInfo=mcDownloading[m.id];
+      let failFile=dlInfo?.lastFile||'';
+      let failUrl=dlInfo?.lastUrl||'';
+      const errMsg=e?.message||String(e);
+      if(!failUrl){
+        const match=errMsg.match(/https?:\/\/[^\s"')]+/);
+        if(match)failUrl=match[0];
+      }
+      if(!failFile&&failUrl){
+        const k=failUrl.match(/\/resolve\/[^/]+\/(.+)$/);
+        if(k)failFile=k[1];
+      }
+      if(!failFile&&m.files&&m.files.length){
+        failFile=m.files[0][0];
+        failUrl=`https://huggingface.co/${m.repo}/resolve/main/${failFile}`;
+      }
+      const errObj=new String(errMsg);
+      errObj.message=errMsg;
+      errObj.file=failFile;
+      errObj.url=failUrl;
+      mcFailed[m.id]=errObj;
+      toast(errMsg,'err',9000);
     }
   }
   delete mcDownloading[m.id];
@@ -264,18 +289,23 @@ async function mcDelete(m){
   toast(`${mcText(m.name)}: ${L('mdlDeleted')}`,'ok');
 }
 function mcRow(m){
-  const ready=mcReady(m),busy=!!mcDownloading[m.id];
+  const ready=mcReady(m),busy=!!mcDownloading[m.id],failed=!!mcFailed[m.id];
+  const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),file:'',url:''};
+  const failMsg=failInfo.message||String(mcFailed[m.id]||'');
+  const failFile=failInfo.file||'';
+  const failUrl=failInfo.url||'';
   const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
   const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
   const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
   const gpuText=(m.job==='speak'||m.job==='ocr')?L('mdlGpuNo'):gpu;
   const badges=(m.rec?`<span class="badge rec">${esc(L('mdlRecNonEn'))}</span>`:'')+(m.weak?`<span class="badge warn">${esc(L('mdlWeak'))}</span>`:'');
   const dlId=m.id==='tr-nllb-600'?' id="dlTr"':'';
-  const st=busy?L('mdlDownloading'):ready?L('ready')+(mcBytes(m)?' · '+mcSize(mcBytes(m)):''):L('notDl');
-  return `<div class="mdl${inUse?' inuse':''}" data-mdl="${m.id}" data-state="${busy?'busy':ready?'ready':'none'}">
+  const st=busy?L('mdlDownloading'):ready?L('ready')+(mcBytes(m)?' · '+mcSize(mcBytes(m)):''):failed?`${L('failed')||'Failed'}: ${failMsg}`:L('notDl');
+  return `<div class="mdl${inUse?' inuse':''}" data-mdl="${m.id}" data-state="${busy?'busy':ready?'ready':failed?'failed':'none'}">
     <div class="mdl-h"><span class="dot${ready?' ok':''}"></span><strong>${esc(mcText(m.name))}</strong>${badges}<span class="sp"></span><span class="meta" id="mdlSt-${m.id}">${esc(st)}</span></div>
     <div class="mdl-m"><span title="${esc(L('mdlSizeTip'))}">${esc(L('mdlSize'))} ${mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes)}${m.extraBytes?` (+${mcSize(m.extraBytes)} ${esc(L('mdlEngineOnce'))})`:''}</span> · <span title="${esc(L('mdlMemTip'))}">${esc(L('mdlMem'))} ≈ ${mcSize(m.memMB*1048576)}</span> · ${esc(L('mdlGpu'))}: ${esc(gpuText)}${m.speed?` · ${esc(L('mdlSpeed'))} ${m.speed<1?m.speed.toFixed(1):Math.round(m.speed*10)/10} ${esc(L('mdlSpeedUnit'))}`:''} · ${esc(L('mdlLangs'))}: ${esc(langs)}</div>
     <div class="mdl-g">${esc(mcText(m.good))}</div>
+    ${failed?`<div class="hub-model-error mdl-err" style="font-size:11px;color:var(--err-text,#ef4444);margin-top:4px;word-break:break-all;"><strong>Error:</strong> <span class="hub-error-msg">${esc(failMsg)}</span>${failFile?` · <code class="hub-error-file">${esc(failFile)}</code>`:''}${failUrl?` · <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url">${esc(failUrl)}</a>`:''}</div>`:''}
     <div class="prog" id="mdlProg-${m.id}"${busy?'':' hidden'}><i id="mdlBar-${m.id}"></i></div>
     <div class="mdl-a">
       <button class="btn"${dlId} data-act="dl" ${ready||busy?'hidden':''}>${esc(L('download'))}</button>
@@ -382,6 +412,10 @@ function renderModelHub(){
     const ready=mcReady(m);
     const busy=!!mcDownloading[m.id];
     const failed=!!mcFailed[m.id];
+    const failInfo=typeof mcFailed[m.id]==='object'&&mcFailed[m.id]!==null?mcFailed[m.id]:{message:String(mcFailed[m.id]||''),file:'',url:''};
+    const failMsg=failInfo.message||String(mcFailed[m.id]||'');
+    const failFile=failInfo.file||'';
+    const failUrl=failInfo.url||'';
     const state=busy?'busy':(ready?'ready':(failed?'failed':'none'));
     const lic=mcLicence(m);
     const catLbl=categoryLabels[m.job]||m.job;
@@ -391,7 +425,7 @@ function renderModelHub(){
     let stateBadge='';
     if(busy)stateBadge=`<span class="hub-pill busy">⏳ ${esc(L('mdlDownloading'))}</span>`;
     else if(ready)stateBadge=`<span class="hub-pill ready">✓ ${esc(L('statusReady')||'Installed')}</span>`;
-    else if(failed)stateBadge=`<span class="hub-pill failed" title="${esc(mcFailed[m.id])}">⚠ ${esc(L('failed')||'Failed')}</span>`;
+    else if(failed)stateBadge=`<span class="hub-pill failed" title="${esc(failMsg)}">⚠ ${esc(L('failed')||'Failed')}</span>`;
     else stateBadge=`<span class="hub-pill none">${esc(L('statusNotDownloaded')||'Not downloaded')}</span>`;
 
     const dlSize=mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes);
@@ -421,6 +455,11 @@ function renderModelHub(){
         <span>Langs: ${esc(langs)}</span>
       </div>
       <p class="hub-model-desc">${esc(mcText(m.good))}</p>
+      ${failed?`<div class="hub-model-error" style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;color:var(--err-text,#ef4444);word-break:break-all;">
+        <div class="hub-error-text"><strong>${esc(L('errPrefix')||'Error')}:</strong> <span class="hub-error-msg">${esc(failMsg||'Download failed')}</span></div>
+        ${failFile?`<div class="hub-error-file-wrap" style="margin-top:3px;"><strong>${esc(L('file')||'File')}:</strong> <code class="hub-error-file">${esc(failFile)}</code></div>`:''}
+        ${failUrl?`<div class="hub-error-url-wrap" style="margin-top:3px;"><strong>URL:</strong> <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url" style="color:inherit;text-decoration:underline;">${esc(failUrl)}</a></div>`:''}
+      </div>`:''}
       <div class="prog hub-prog" id="hubProg-${esc(m.id)}" ${busy?'':'hidden'}><i id="hubBar-${esc(m.id)}"></i></div>
       <div class="hub-prog-meta" id="hubSt-${esc(m.id)}" ${busy?'':'hidden'}>${esc(L('mdlDownloading'))}</div>
       <div class="hub-model-actions">

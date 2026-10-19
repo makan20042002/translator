@@ -923,11 +923,21 @@ function onAsrProg(m){
 }
 function onProg(p,repo){
   const m=MC.models.find(x=>x.repo===repo&&mcDownloading[x.id]);
-  if(m&&p.status==='progress'&&p.total)mcFileProgress(m,p.file,p.loaded,p.total);
+  if(m){
+    if(p.file&&mcDownloading[m.id]){
+      mcDownloading[m.id].lastFile=p.file;
+      mcDownloading[m.id].lastUrl=`https://huggingface.co/${repo}/resolve/main/${p.file}`;
+    }
+    if(p.status==='progress'&&p.total)mcFileProgress(m,p.file,p.loaded,p.total);
+  }
 }
 // Bar and text of one row while its files come in.
 function mcFileProgress(m,file,loaded,total){
   const d=mcDownloading[m.id];if(!d||!total)return;
+  if(file){
+    d.lastFile=file;
+    if(m.repo)d.lastUrl=`https://huggingface.co/${m.repo}/resolve/main/${file}`;
+  }
   d.files[file]=[loaded,total];let a=0,b=0;for(const k in d.files){a+=d.files[k][0];b+=d.files[k][1]}
   const bar=$('mdlBar-'+m.id),st=$('mdlSt-'+m.id),box=$('mdlProg-'+m.id);
   if(box)box.hidden=false;if(bar)bar.style.width=(a/b*100)+'%';
