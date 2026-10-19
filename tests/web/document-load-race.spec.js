@@ -1,9 +1,9 @@
 'use strict';
 const { test, expect, mouseClick, chooseFile, onlyEngines } = require('../support/fixtures');
 
-// Chromium's own background traffic (sign-in check and device check-in) carries no app data.
+// Chromium's own background traffic (sign-in check, device check-in, autofill telemetry) carries no app data.
 function appCalls(stub) {
-  return stub.calls().filter(c => c.host !== 'accounts.google.com' && c.host !== 'android.clients.google.com');
+  return stub.calls().filter(c => c.host !== 'accounts.google.com' && c.host !== 'android.clients.google.com' && c.host !== 'content-autofill.googleapis.com');
 }
 
 async function ensureOfflineOn(page) {

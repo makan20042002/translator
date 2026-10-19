@@ -11,7 +11,7 @@ const { buildPdf, writePdfSync } = require('../support/make-pdf');
 const GEN_DIR = path.resolve(__dirname, '..', '.generated');
 
 function appCalls(stub) {
-  return stub.calls().filter(c => c.host !== 'accounts.google.com' && c.host !== 'android.clients.google.com');
+  return stub.calls().filter(c => c.host !== 'accounts.google.com' && c.host !== 'android.clients.google.com' && c.host !== 'content-autofill.googleapis.com');
 }
 
 test.describe('Web app: PDF Document input', () => {

@@ -293,4 +293,25 @@ test.describe('Document tab engine picker, failure reporting, and responsiveness
     expect(box, '#dSave bounding box').not.toBeNull();
     expect(box.y + box.height, 'Download button bottom must be <= 900px').toBeLessThanOrEqual(900);
   });
+
+  test('offline failure line reports failure with exactly zero provider requests', async ({ app, files, stub }) => {
+    const { page } = app;
+    await page.evaluate(() => {
+      localStorage.setItem('mkt_nllb', 'false');
+      if (typeof trAnyReady === 'function') window.__origTrAnyReady = window.trAnyReady;
+      window.trAnyReady = () => false;
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await picker.selectOption('nllb');
+
+    stub.clearLog();
+    await chooseFile(page, page.locator('#dDrop'), files.txt);
+    await mouseClick(page, page.locator('#dGo'));
+
+    const progText = page.locator('#dProgText');
+    await expect(progText).toContainText('Download the offline model in Engines & keys.');
+    expect(stub.calls().length).toBe(0);
+  });
 });

@@ -373,8 +373,11 @@ async function startStub() {
     providerPort,
     proxyPort,
     log,
-    /** Requests seen by the provider imitation (not counting the browser's CORS preflight checks), optionally only for one host. */
-    calls(host) { return log.filter(e => e.server === 'provider' && e.method !== 'OPTIONS' && (!host || e.host === host)); },
+    /** Requests seen by the provider imitation (not counting the browser's CORS preflight checks or Chromium background traffic), optionally only for one host. */
+    calls(host) {
+      const BROWSER_BACKGROUND_HOSTS = new Set(['accounts.google.com', 'android.clients.google.com', 'content-autofill.googleapis.com']);
+      return log.filter(e => e.server === 'provider' && e.method !== 'OPTIONS' && !BROWSER_BACKGROUND_HOSTS.has(e.host) && (!host || e.host === host));
+    },
     clearLog() { log.length = 0; },
     /** Make the next `times` requests to `host` fail with `status` ('drop' closes the connection). */
     failHost(host, status, times = Infinity, body) { modes[host] = { status, times, body, hits: 0 }; return modes[host]; },
@@ -412,7 +415,8 @@ function chromiumNetworkArgs(stub) {
     '--ignore-certificate-errors',
     ...extraArgs,
     // Stop Chromium's own background services from making noise in the logs.
-    '--disable-background-networking', '--disable-component-update', '--no-first-run', '--no-default-browser-check'
+    '--disable-background-networking', '--disable-component-update', '--no-first-run', '--no-default-browser-check',
+    '--disable-features=AutofillServerCommunication'
   ];
 }
 
