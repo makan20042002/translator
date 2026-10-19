@@ -528,5 +528,41 @@ test.describe('Web app: speech recognition choice in Voice tab', () => {
     await expect(statusMsg).toContainText('مطمئن شوید سرور کمکی در حال اجرا است (python helper/server.py یا برنامه دسکتاپ).');
     await expect(statusMsg).not.toContainText('HTTP ');
   });
+
+  test('transcribeHelper sends audio recording to helper /v1/audio/transcriptions with model and speech.wav filename (ITEM 1 addendum)', async ({ app }) => {
+    const { page } = app;
+    await page.evaluate(() => {
+      cfg.stt = 'helper';
+      cfg.helperModel = 'qwen3-asr';
+      cfg.helperUrl = 'http://127.0.0.1:8765';
+      saveCfg();
+    });
+
+    let interceptedRequest = null;
+    await page.route('http://127.0.0.1:8765/v1/audio/transcriptions', async route => {
+      interceptedRequest = route.request();
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ text: 'transcription successful' })
+      });
+    });
+
+    const result = await page.evaluate(async () => {
+      const fakeWebmHeader = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0x01, 0x00, 0x00, 0x00]);
+      const blob = new Blob([fakeWebmHeader], { type: 'audio/webm;codecs=opus' });
+      return await transcribeHelper(blob, 'fa');
+    });
+
+    expect(result).toBe('transcription successful');
+    await expect.poll(() => interceptedRequest).not.toBeNull();
+    expect(interceptedRequest.method()).toBe('POST');
+    const postData = interceptedRequest.postData();
+    expect(postData).toContain('name="model"');
+    expect(postData).toContain('qwen3-asr');
+    expect(postData).toContain('name="language"');
+    expect(postData).toContain('fa');
+    expect(postData).toContain('filename="speech.wav"');
+  });
 });
 

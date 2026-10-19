@@ -9,8 +9,11 @@ import sys
 import gc
 import logging
 import tempfile
-from typing import Optional, Dict, Any
+import shutil
+import subprocess
+from typing import Optional, Dict, Any, Tuple
 
+import numpy as np
 import torch
 from fastapi import FastAPI, UploadFile, File, Form, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
@@ -74,6 +77,128 @@ def ensure_default_rope_registered():
         pass
 
 
+def detect_audio_extension(content: bytes, filename: Optional[str] = None) -> str:
+    """
+    Detect the real audio format extension from the file's magic bytes.
+    Falls back to the filename extension if present, or .wav as default.
+    """
+    if content.startswith(b"\x1a\x45\xdf\xa3"):
+        return ".webm"
+    if content.startswith(b"OggS"):
+        return ".ogg"
+    if content.startswith(b"RIFF") and len(content) >= 12 and content[8:12] == b"WAVE":
+        return ".wav"
+    if content.startswith(b"fLaC"):
+        return ".flac"
+    if content.startswith(b"ID3") or (len(content) >= 2 and content[0] == 0xFF and (content[1] & 0xE0) == 0xE0):
+        return ".mp3"
+    if len(content) >= 8 and content[4:8] == b"ftyp":
+        return ".m4a"
+    if filename:
+        _, ext = os.path.splitext(filename)
+        if ext:
+            return ext.lower()
+    return ".wav"
+
+
+def _resample_to_16k(data: np.ndarray, orig_sr: int) -> np.ndarray:
+    if orig_sr == 16000:
+        return data.astype(np.float32)
+    try:
+        import librosa
+        return librosa.resample(data, orig_sr=orig_sr, target_sr=16000).astype(np.float32)
+    except Exception:
+        pass
+    try:
+        import scipy.signal
+        target_len = int(round(len(data) * 16000 / orig_sr))
+        return scipy.signal.resample(data, target_len).astype(np.float32)
+    except Exception:
+        pass
+    target_len = int(round(len(data) * 16000 / orig_sr))
+    if target_len <= 0:
+        return np.empty(0, dtype=np.float32)
+    old_indices = np.linspace(0, 1, len(data))
+    new_indices = np.linspace(0, 1, target_len)
+    return np.interp(new_indices, old_indices, data).astype(np.float32)
+
+
+def load_audio_to_16k_mono(audio_path: str) -> np.ndarray:
+    """
+    Load an audio file into a 16 kHz mono float32 numpy array.
+    Order of preference:
+      1. ffmpeg (handles WebM, Ogg, MP3, AAC, and any container)
+      2. wave module (standard library, handles uncompressed PCM WAV)
+      3. soundfile (handles WAV, FLAC, Ogg/Opus if libsndfile supports it)
+    If all decoders fail:
+      Raises HTTPException(415) with clear detail about ffmpeg if not installed.
+    """
+    ffmpeg_bin = shutil.which("ffmpeg")
+
+    # 1. Try ffmpeg first
+    if ffmpeg_bin:
+        try:
+            cmd = [ffmpeg_bin, "-y", "-i", audio_path, "-f", "s16le", "-ac", "1", "-ar", "16000", "-"]
+            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.PIPE, check=True)
+            if proc.stdout and len(proc.stdout) > 0:
+                audio_data = np.frombuffer(proc.stdout, dtype=np.int16).astype(np.float32) / 32768.0
+                return audio_data
+        except Exception as ffmpeg_err:
+            logger.warning(f"ffmpeg extraction failed: {ffmpeg_err}. Trying wave module...")
+    else:
+        logger.info("ffmpeg not found on PATH. Trying wave module...")
+
+    # 2. Try wave module for real WAV
+    try:
+        import wave
+        with wave.open(audio_path, "rb") as wf:
+            n_channels = wf.getnchannels()
+            sampwidth = wf.getsampwidth()
+            framerate = wf.getframerate()
+            n_frames = wf.getnframes()
+            raw_bytes = wf.readframes(n_frames)
+
+            data = None
+            if sampwidth == 2:
+                data = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+            elif sampwidth == 1:
+                data = (np.frombuffer(raw_bytes, dtype=np.uint8).astype(np.float32) - 128.0) / 128.0
+            elif sampwidth == 4:
+                data = np.frombuffer(raw_bytes, dtype=np.int32).astype(np.float32) / 2147483648.0
+
+            if data is not None and data.size > 0:
+                if n_channels > 1:
+                    data = data.reshape(-1, n_channels).mean(axis=1)
+                return _resample_to_16k(data, framerate)
+    except Exception as wave_err:
+        logger.debug(f"wave module decoding failed: {wave_err}. Trying soundfile...")
+
+    # 3. Try soundfile third
+    try:
+        import soundfile as sf
+        data, sr = sf.read(audio_path, dtype="float32", always_2d=False)
+        if data is not None and data.size > 0:
+            if data.ndim > 1:
+                data = np.mean(data, axis=-1)
+            return _resample_to_16k(data, sr)
+    except Exception as sf_err:
+        logger.debug(f"soundfile decoding failed: {sf_err}")
+
+    # 4. All decoders failed
+    if not ffmpeg_bin:
+        detail = (
+            "Cannot decode audio file: format not recognized by native WAV decoders, "
+            "and ffmpeg is not installed. Please install ffmpeg to decode WebM, Ogg, and other compressed formats."
+        )
+    else:
+        detail = (
+            "Cannot decode audio file: format not recognized or file is corrupted. "
+            "Tried ffmpeg, wave, and soundfile."
+        )
+    logger.error(detail)
+    raise HTTPException(status_code=415, detail=detail)
+
+
 class Qwen3ASRWrapper:
     def __init__(self, model_id: str, device: str, torch_dtype: Any):
         self.model_id = model_id
@@ -93,7 +218,31 @@ class Qwen3ASRWrapper:
         lang = gen_kwargs.get("language")
         lang_map = {"fa": "Persian", "en": "English", "zh": "Chinese", "ar": "Arabic", "es": "Spanish", "fr": "French", "de": "German"}
         qwen_lang = lang_map.get(lang, lang) if lang else None
-        res = self.model.transcribe(audio=audio_path, language=qwen_lang)
+
+        # Load audio into 16 kHz mono float32 numpy array
+        audio_data = load_audio_to_16k_mono(audio_path)
+
+        # 1. Try array path first (tuple of (ndarray, 16000) accepted by Qwen3ASRModel)
+        res = None
+        try:
+            res = self.model.transcribe(audio=(audio_data, 16000), language=qwen_lang)
+        except Exception as array_err:
+            logger.warning(f"Qwen3ASR transcribe with array failed: {array_err}. Falling back to real WAV file path...")
+            # 2. Try real WAV file path second
+            import soundfile as sf
+            wav_tmp = None
+            try:
+                with tempfile.NamedTemporaryFile(delete=False, suffix=".wav") as f:
+                    wav_tmp = f.name
+                sf.write(wav_tmp, audio_data, 16000, subtype="PCM_16")
+                res = self.model.transcribe(audio=wav_tmp, language=qwen_lang)
+            finally:
+                if wav_tmp and os.path.exists(wav_tmp):
+                    try:
+                        os.remove(wav_tmp)
+                    except Exception:
+                        pass
+
         text = res[0].text if res and len(res) > 0 else ""
         return {"text": text.strip()}
 
@@ -128,20 +277,7 @@ class QwenAudioPipeline:
         self.model.eval()
 
     def __call__(self, audio_path: str, **kwargs) -> Dict[str, str]:
-        import subprocess
-        import numpy as np
-
-        # Extract 16kHz mono audio via ffmpeg
-        try:
-            cmd = ["ffmpeg", "-y", "-i", audio_path, "-f", "s16le", "-ac", "1", "-ar", "16000", "-"]
-            proc = subprocess.run(cmd, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, check=True)
-            audio_data = np.frombuffer(proc.stdout, dtype=np.int16).astype(np.float32) / 32768.0
-        except Exception as err:
-            logger.warning(f"FFmpeg audio extraction failed: {err}. Trying wave module...")
-            import wave
-            with wave.open(audio_path, "rb") as wf:
-                raw_bytes = wf.readframes(wf.getnframes())
-                audio_data = np.frombuffer(raw_bytes, dtype=np.int16).astype(np.float32) / 32768.0
+        audio_data = load_audio_to_16k_mono(audio_path)
 
         gen_kwargs = kwargs.get("generate_kwargs", {})
         lang = gen_kwargs.get("language")
@@ -363,19 +499,13 @@ async def transcribe(
     """
     logger.info(f"Transcription request received: model='{model}', language='{language}', file='{file.filename}'")
 
-    # Suffix for temp file
-    suffix = ".wav"
-    if file.filename:
-        _, ext = os.path.splitext(file.filename)
-        if ext:
-            suffix = ext.lower()
-
-    # Save to temp file
+    # Save to temp file with suffix from content magic bytes
     temp_path = None
     try:
+        content = await file.read()
+        suffix = detect_audio_extension(content, file.filename)
         with tempfile.NamedTemporaryFile(delete=False, suffix=suffix) as tmp:
             temp_path = tmp.name
-            content = await file.read()
             tmp.write(content)
 
         # Ensure model is ready
@@ -417,6 +547,8 @@ async def transcribe(
 
         return JSONResponse({"text": transcription_text})
 
+    except HTTPException:
+        raise
     except Exception as e:
         logger.error(f"Inference error: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Transcription failed: {str(e)}")
