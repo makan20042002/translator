@@ -161,6 +161,34 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
       }, { menuItemId, pageUrl, selectionText });
     },
 
+    /** Wait until the content script in `page` is listening and answers ping. */
+    async waitForContentScript(page, timeout = 10000) {
+      const pageUrl = page.url();
+      const sw = await ext.worker();
+      const t0 = Date.now();
+      while (Date.now() - t0 < timeout) {
+        try {
+          const ok = await sw.evaluate(async (url) => {
+            const tabs = await chrome.tabs.query({});
+            const tab = tabs.find(t => t.url === url || (url && t.url && t.url.startsWith(url)));
+            if (!tab || !tab.id) return false;
+            try {
+              const res = await Promise.race([
+                chrome.tabs.sendMessage(tab.id, { action: 'ping' }),
+                new Promise((_, reject) => setTimeout(() => reject(new Error('timeout')), 200))
+              ]);
+              return !!(res && res.ok);
+            } catch {
+              return false;
+            }
+          }, pageUrl);
+          if (ok) return true;
+        } catch {}
+        await new Promise(r => setTimeout(r, 80));
+      }
+      throw new Error('timed out waiting for content script on ' + pageUrl);
+    },
+
     /** Errors Chrome has recorded for the extension (the "Errors" button on the extensions page). */
     async chromeReportedErrors() {
       const p = await context.newPage();

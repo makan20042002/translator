@@ -99,6 +99,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       document.body.innerHTML = '';
       const onScreen = document.createElement('div');
@@ -127,6 +129,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     });
 
     stub.clearLog();
+    await rightClick(page, '#top-p-1');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     // Wait until Google translate receives the first request and first top paragraph is translated
@@ -158,8 +161,10 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
     await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
 
     // Start whole page translation
+    await rightClick(page, '#p1');
     await ext.clickContextMenu('makan-translate-page', page.url());
     const banner = inShadow(page, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
@@ -201,6 +206,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       document.body.innerHTML = `
         <h1 id="test-title">Deduplication test heading</h1>
@@ -213,6 +220,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     });
 
     stub.clearLog();
+    await rightClick(page, '#test-title');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     await page.waitForFunction(() => {
@@ -248,6 +256,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       // Create 60 paragraphs to ensure multiple batches
       const container = document.createElement('div');
@@ -264,6 +274,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     // Slow down the engine host slightly so we can click Stop during progress
     stub.delayHost('clients5.google.com', 400);
 
+    await rightClick(page, '#para-1');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     // Wait for the stop button to appear in shadow DOM while translating
@@ -321,8 +332,11 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.setViewportSize({ width: 360, height: 640 });
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
 
     // 1. Test EN banner at 360px
+    await rightClick(page, '#p1');
     await ext.clickContextMenu('makan-translate-page', page.url());
     const banner = inShadow(page, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
@@ -350,7 +364,10 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.setViewportSize({ width: 360, height: 640 });
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
 
+    await rightClick(page, '#p1');
     await ext.clickContextMenu('makan-translate-page', page.url());
     const faBanner = inShadow(page, '.makan-top-banner');
     await expect(faBanner).toBeVisible({ timeout: 15_000 });
@@ -373,7 +390,10 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
+    await ext.patchConfig({ tgt: 'fa' });
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       document.body.innerHTML = `
         <h1 id="rtl-h1">Sample Heading</h1>
@@ -383,7 +403,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     });
 
     // 1. Translate to RTL (target fa)
-    await ext.patchConfig({ tgt: 'fa' });
+    await rightClick(page, '#rtl-h1');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     const banner = inShadow(page, '.makan-top-banner');
@@ -411,6 +431,7 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     // 3. Translate to LTR (target de)
     await ext.patchConfig({ tgt: 'de' });
+    await rightClick(page, '#rtl-h1');
     await ext.clickContextMenu('makan-translate-page', page.url());
     await expect(banner).toBeVisible({ timeout: 15_000 });
     await expect(banner).toContainText('Page translated to DE');
@@ -502,6 +523,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       document.body.innerHTML = `
         <h1 id="item1-heading">Form Controls Attribute Translation</h1>
@@ -514,6 +537,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     });
 
     stub.clearLog();
+    await rightClick(page, '#item1-heading');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     const banner = inShadow(page, '.makan-top-banner');
@@ -605,6 +629,8 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
     await page.evaluate(() => {
       document.body.innerHTML = `
         <h1 id="item3-title">Banner Controls and Stop State Transition</h1>
@@ -623,6 +649,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     stub.delayHost('clients5.google.com', 350);
     stub.clearLog();
 
+    await rightClick(page, '#item3-title');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
     // Verify banner appears in shadow DOM with progress and Stop button
@@ -690,6 +717,24 @@ test.describe('Extension: whole-page translation full suite', () => {
     const banner = inShadow(page, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 12_000 });
     await expect(banner).toContainText('Page translated', { timeout: 12_000 });
+
+    await page.close();
+  });
+
+  test('n) ext.waitForContentScript reliably confirms content script readiness before triggering translation', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+
+    await ext.waitForContentScript(page);
+    await rightClick(page, '#p1');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 12_000 });
+    await expect(banner).toContainText('Page translated to FA', { timeout: 12_000 });
 
     await page.close();
   });
