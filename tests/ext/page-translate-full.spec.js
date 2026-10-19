@@ -132,25 +132,45 @@ test.describe('Extension: whole-page translation full suite', () => {
     await rightClick(page, '#top-p-1');
     await ext.clickContextMenu('makan-translate-page', page.url());
 
-    // Wait until Google translate receives the first request and first top paragraph is translated
+    // Wait until Google translate receives the first request and top-p-1 is translated before the page finishes
     await page.waitForFunction(() => {
       const el = document.getElementById('top-p-1');
       return el && el.textContent.includes('[fa]');
     });
+    const bottomP50Text = await page.locator('#bottom-p-50').textContent();
+    expect(bottomP50Text).not.toContain('[fa]');
 
+    // Wait for the full page translation to complete
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA', { timeout: 15_000 });
+
+    // Flatten all q values of all stub.calls('clients5.google.com') in request order
     const googleCalls = stub.calls('clients5.google.com');
     expect(googleCalls.length).toBeGreaterThanOrEqual(1);
 
-    // The first request must contain top on-screen paragraphs, not bottom off-screen ones
-    const firstCall = googleCalls[0];
-    const form = new URLSearchParams(firstCall.body);
-    const requestedTexts = form.getAll('q');
+    const allQ = [];
+    for (const call of googleCalls) {
+      const form = new URLSearchParams(call.body);
+      allQ.push(...form.getAll('q'));
+    }
 
-    const hasOnScreen = requestedTexts.some(t => t.includes('On screen paragraph'));
-    const hasDistantOffScreen = requestedTexts.some(t => t.includes('Distant off screen paragraph'));
+    const onScreenIndices = [];
+    const distantIndices = [];
+    allQ.forEach((text, idx) => {
+      if (text.includes('On screen paragraph')) onScreenIndices.push(idx);
+      if (text.includes('Distant off screen paragraph')) distantIndices.push(idx);
+    });
 
-    expect(hasOnScreen).toBe(true);
-    expect(hasDistantOffScreen).toBe(false);
+    expect(onScreenIndices.length).toBe(20);
+    expect(distantIndices.length).toBe(50);
+
+    // Assert that every on-screen text index is smaller than every Distant off screen text index
+    for (const onIdx of onScreenIndices) {
+      for (const offIdx of distantIndices) {
+        expect(onIdx).toBeLessThan(offIdx);
+      }
+    }
 
     await page.close();
   });
