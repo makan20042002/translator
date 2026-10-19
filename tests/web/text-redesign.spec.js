@@ -26,7 +26,8 @@ test.describe('Web app: Text tab redesign', () => {
       await expect(page.locator('#swap')).toBeVisible();
       await expect(page.locator('#tgt')).toBeVisible();
       await expect(page.locator('#tMode')).toBeVisible();
-      await expect(page.locator('#engine')).toBeVisible();
+      await expect(page.locator('#engine')).toBeAttached();
+      await expect(page.locator('#textEnginePickerHost .engine-picker-select')).toBeVisible();
       await expect(page.locator('#tone')).toBeVisible();
       await expect(page.locator('#tSubject')).toBeVisible();
       await expect(page.locator('.switch-lbl[for="tmToggle"]')).toBeVisible();
