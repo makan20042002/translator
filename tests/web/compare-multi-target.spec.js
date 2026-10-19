@@ -146,13 +146,13 @@ test.describe('Web app: Compare tab multi-target language support', () => {
 
   test('Compare tab in FA (Persian) with RTL direction and i18n labels', async ({ app }) => {
     const { page } = app;
-    // Set Persian UI
-    await page.evaluate(() => {
-      if (typeof setUiLang === 'function') setUiLang('fa');
-    });
+    // Switch UI language to Persian via language toggle button
+    const langBtn = page.locator('#uiLang');
+    await mouseClick(page, langBtn);
+    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
+    await expect(page.locator('html')).toHaveAttribute('lang', 'fa');
 
     await mouseClick(page, page.locator('#tabs button[data-tab="cmp"]'));
-    await expect(page.locator('html')).toHaveAttribute('dir', 'rtl');
 
     // Check Add language button has Persian text
     await expect(page.locator('#cmpAddTgt')).toHaveText('+ افزودن زبان');
