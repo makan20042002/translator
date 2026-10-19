@@ -11,6 +11,19 @@ function getOllamaUnreachableMsg(){
   return L('ollamaUnreachableMsg').replace('{origin}',origin);
 }
 async function fetchOllamaModels(){
+  const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+  if (offline) {
+    if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
+    return null;
+  }
+  const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  const isSelected = (typeof cfg !== 'undefined' && cfg.engine === 'ollama') ||
+                     (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama');
+  if (!ollamaOn || (!inOrder && !isSelected)) {
+    if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
+    return null;
+  }
   const host=getOllamaHost();
   const v1base=(cfg.eng?.ollama?.base||'http://localhost:11434/v1').replace(/\/+$/,'');
   const deadline=Date.now()+5000;
@@ -233,10 +246,19 @@ function renderOllamaManager(e){
 async function updateOllamaManager(){
   const mgr=$('ollamaMgr');
   if(!mgr)return;
+  const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+  const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  const isSelected = (typeof cfg !== 'undefined' && cfg.engine === 'ollama') ||
+                     (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama');
+  if (offline || !ollamaOn || (!inOrder && !isSelected)) {
+    return;
+  }
   const sel=$('ollamaModelSel');
   const notice=$('ollamaUnreachableNotice');
   try{
     const models=await fetchOllamaModels();
+    if(!models)return;
     if(notice)notice.hidden=true;
     if(sel){
       const current=cfg.eng?.ollama?.model||'';

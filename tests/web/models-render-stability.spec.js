@@ -233,4 +233,40 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
 
     expect(pageErrors, 'Expected zero page errors with GPU fallback reason set').toEqual([]);
   });
+
+  test('with offline mode on, opening Model Hub and Settings model tabs makes zero requests to Ollama port 11434 (ITEM 1)', async ({ app }) => {
+    const { page } = app;
+    const ollamaCalls = [];
+    await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+      ollamaCalls.push(route.request().url());
+      route.abort('connectionrefused');
+    });
+
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.evaluate(() => {
+      cfg.offline = true;
+      saveCfg();
+      if (typeof offStatus === 'function') offStatus();
+    });
+
+    const offBtn = page.locator('#offBtn');
+    await expect(offBtn).toHaveClass(/\bon\b/);
+
+    // Open Model Hub
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    await expect(page.locator('#tab-models')).toBeVisible();
+
+    // Open Settings translation models tab
+    await openSettings(page, 'trModels');
+    await expect(page.locator('#secTrModels')).toBeVisible();
+
+    // Open Settings voice models tab
+    await openSettings(page, 'voiceModels');
+    await expect(page.locator('#secVoiceModels')).toBeVisible();
+
+    // Fixed assertion: zero requests to Ollama port 11434
+    expect(ollamaCalls).toEqual([]);
+  });
 });

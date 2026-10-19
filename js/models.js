@@ -620,9 +620,14 @@ async function runTestTranslationModels(){
   const dlModels=trModels().filter(mcReady);
 
   let ollamaModels=[];
-  try{
-    ollamaModels=await fetchOllamaModels();
-  }catch{}
+  const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+  const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  if (!offline && ollamaOn && inOrder) {
+    try{
+      ollamaModels=(await fetchOllamaModels()) || [];
+    }catch{}
+  }
 
   const allToTest=[
     ...dlModels.map(m=>({type:'offline',model:m,name:mcText(m.name)})),

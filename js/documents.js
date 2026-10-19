@@ -757,6 +757,18 @@ function buildDocEngineOptions(){
 }
 
 function refreshOllamaModelsForDoc(){
+  const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+  const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  const isSelected = (typeof store !== 'undefined' && store.get('engine', 'auto') === 'ollama') ||
+                     (typeof store !== 'undefined' && String(store.get('doc_engine', '')).startsWith('ollama'));
+  if (offline || !ollamaOn || (!inOrder && !isSelected)) {
+    cachedOllamaModels = false;
+    if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
+    buildDocEngineOptions();
+    updateDocEngineInfo();
+    return;
+  }
   if(ollamaFetchPending){
     ollamaRefreshQueued = true;
     return;

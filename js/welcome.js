@@ -221,6 +221,12 @@ function isWelcomeNllbReady() {
 }
 
 async function checkWelcomeOllama() {
+  const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
+  if (offline) {
+    welcomeOllamaReachable = false;
+    updateWelcomePrivacyNotice();
+    return;
+  }
   if (typeof engineConnStatus !== 'undefined' && engineConnStatus?.ollama?.code === 'works') {
     welcomeOllamaReachable = true;
     updateWelcomePrivacyNotice();
