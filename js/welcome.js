@@ -223,9 +223,10 @@ function isWelcomeNllbReady() {
 async function checkWelcomeOllama(force = false) {
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
   const isSelected = (typeof welcomeSelectedEngine !== 'undefined' && welcomeSelectedEngine === 'ollama') ||
                      (typeof isOllamaSelected === 'function' && isOllamaSelected());
-  if (!force && (offline || !ollamaOn || !isSelected)) {
+  if (!force && (!ollamaOn || (offline && !ollamaOn) || (!inOrder && !isSelected))) {
     welcomeOllamaReachable = false;
     updateWelcomePrivacyNotice();
     return;

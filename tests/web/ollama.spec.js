@@ -201,4 +201,37 @@ test.describe('Web app: Ollama model manager in settings', () => {
     await expect(asrNotice).toBeVisible();
     await expect(asrNotice).toContainText(/Qwen3-ASR/i);
   });
+
+  test('Ollama in cfg.order probes models when enabled, but makes zero requests when disabled', async ({ app }) => {
+    const { page } = app;
+    let tagsRequested = false;
+    await page.route('**/api/tags', route => {
+      tagsRequested = true;
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'test-ollama:latest' }] })
+      });
+    });
+
+    // 1. With Ollama in cfg.order and engine='auto', opening settings probes Ollama models
+    await page.evaluate(() => {
+      cfg.order = ['google', 'ollama'];
+      cfg.eng.ollama.on = true;
+      store.set('engine', 'auto');
+      saveCfg();
+    });
+    await openSettings(page);
+    await expect(page.locator('#ollamaModelSel option[value="test-ollama:latest"]')).toHaveCount(1);
+    expect(tagsRequested).toBe(true);
+
+    // 2. When Ollama is disabled, fetchOllamaModels makes zero requests
+    tagsRequested = false;
+    const res = await page.evaluate(async () => {
+      cfg.eng.ollama.on = false;
+      return await fetchOllamaModels();
+    });
+    expect(res).toBeNull();
+    expect(tagsRequested).toBe(false);
+  });
 });

@@ -10,28 +10,12 @@ function getOllamaUnreachableMsg(){
   const origin=getOllamaOrigin();
   return L('ollamaUnreachableMsg').replace('{origin}',origin);
 }
-function isOllamaSelected(){
-  if(typeof cfg==='undefined')return false;
-  const mainEng=(typeof store!=='undefined'?store.get('engine','auto'):cfg.engine)||cfg.engine;
-  if(mainEng==='ollama'||String(mainEng).startsWith('ollama:'))return true;
-  const docEng=(typeof store!=='undefined'?store.get('doc_engine',''):'')||(typeof getDocChosenEngine==='function'?getDocChosenEngine():'');
-  if(docEng==='ollama'||String(docEng).startsWith('ollama'))return true;
-  if(typeof welcomeSelectedEngine!=='undefined'&&welcomeSelectedEngine==='ollama')return true;
-  if(typeof window!=='undefined'&&window.MediaTranslate?.host?.getTranslateChoice){
-    const ch=window.MediaTranslate.host.getTranslateChoice();
-    if(ch==='ollama'||ch?.engine==='ollama'||String(ch?.engine).startsWith('ollama'))return true;
-  }
-  return false;
-}
 async function fetchOllamaModels(force = false){
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
-  if (offline && !force) {
-    if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
-    return null;
-  }
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const isSelected = isOllamaSelected();
-  if (!force && (offline || !ollamaOn || !isSelected)) {
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  const isSelected = (typeof isOllamaSelected === 'function' && isOllamaSelected());
+  if (!force && (!ollamaOn || (offline && !ollamaOn) || (!inOrder && !isSelected))) {
     if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
     return null;
   }
@@ -257,10 +241,13 @@ function renderOllamaManager(e){
 async function updateOllamaManager(force = false){
   const mgr=$('ollamaMgr');
   if(!mgr)return;
+  const secEngines = $('secEngines');
+  if (secEngines && secEngines.hidden && !force) return;
   const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
   const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
-  const isSelected = isOllamaSelected();
-  if (!force && (offline || !ollamaOn || !isSelected)) {
+  const inOrder = (typeof cfg !== 'undefined' && Array.isArray(cfg.order) && cfg.order.includes('ollama'));
+  const isSelected = (typeof isOllamaSelected === 'function' && isOllamaSelected());
+  if (!force && (!ollamaOn || (offline && !ollamaOn) || (!inOrder && !isSelected))) {
     return;
   }
   const sel=$('ollamaModelSel');

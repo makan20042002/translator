@@ -220,7 +220,8 @@
 
       if (curChoice === 'ollama') {
         const offline = (typeof isOff === 'function' && isOff()) || (typeof cfg !== 'undefined' && !!cfg.offline);
-        if (offline) {
+        const ollamaOn = (typeof cfg !== 'undefined' && cfg.eng?.ollama?.on !== false);
+        if (offline && !ollamaOn) {
           modelLabel.hidden = true;
           return;
         }

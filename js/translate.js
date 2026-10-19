@@ -1,4 +1,20 @@
 /* ---------- engines ---------- */
+function isOllamaSelected(){
+  if(typeof cfg==='undefined')return false;
+  const inOrder = Array.isArray(cfg.order) && cfg.order.includes('ollama');
+  if(inOrder) return true;
+  const mainEng=(typeof store!=='undefined'?store.get('engine','auto'):cfg.engine)||cfg.engine;
+  if(mainEng==='ollama'||String(mainEng).startsWith('ollama:'))return true;
+  const docEng=(typeof store!=='undefined'?store.get('doc_engine',''):'')||(typeof getDocChosenEngine==='function'?getDocChosenEngine():'');
+  if(docEng==='ollama'||String(docEng).startsWith('ollama'))return true;
+  if(typeof welcomeSelectedEngine!=='undefined'&&welcomeSelectedEngine==='ollama')return true;
+  if(typeof window!=='undefined'&&window.MediaTranslate?.host?.getTranslateChoice){
+    const ch=window.MediaTranslate.host.getTranslateChoice();
+    if(ch==='ollama'||ch?.engine==='ollama'||String(ch?.engine).startsWith('ollama'))return true;
+  }
+  return false;
+}
+
 const ENG={
  google:{name:'Google Translate (web)',tier:'free',items:40,chars:1800},
  mymemory:{name:'MyMemory',tier:'free',items:1,chars:450},
