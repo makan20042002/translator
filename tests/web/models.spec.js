@@ -127,7 +127,8 @@ test.describe('Web app: offline model catalogue', () => {
     await openSettings(page, 'trModels');
     await mouseClick(page, row(page, 'asr-tiny').locator('[data-act="dl"]'));
     await expect(page.locator('.toast.err').first()).toBeVisible({ timeout: 30_000 });
-    await expect(row(page, 'asr-tiny')).toHaveAttribute('data-state', 'none');
+    await expect(row(page, 'asr-tiny')).toHaveAttribute('data-state', 'failed');
+    await expect(row(page, 'asr-tiny').locator('.hub-model-error')).toBeVisible();
     expect(await page.evaluate(() => store.get('mdl', {})['asr-tiny'])).toBeUndefined();
   });
 
