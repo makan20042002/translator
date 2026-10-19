@@ -150,7 +150,14 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
     async clickContextMenu(menuItemId, pageUrl, selectionText) {
       const sw = await ext.worker();
       return sw.evaluate(async ({ menuItemId, pageUrl, selectionText }) => {
-        const tabs = await chrome.tabs.query({ url: pageUrl });
+        let tabs = [];
+        try {
+          tabs = await chrome.tabs.query({ url: pageUrl });
+        } catch {}
+        if (!tabs || tabs.length === 0) {
+          const all = await chrome.tabs.query({});
+          tabs = all.filter(t => t.url === pageUrl || (t.url && pageUrl && t.url.split('#')[0] === pageUrl.split('#')[0]));
+        }
         let tab = null;
         if (tabs.length === 1) {
           tab = tabs[0];
@@ -184,7 +191,14 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
       while (Date.now() - t0 < timeout) {
         try {
           const ok = await sw.evaluate(async (url) => {
-            const tabs = await chrome.tabs.query({ url });
+            let tabs = [];
+            try {
+              tabs = await chrome.tabs.query({ url });
+            } catch {}
+            if (!tabs || tabs.length === 0) {
+              const all = await chrome.tabs.query({});
+              tabs = all.filter(t => t.url === url || (t.url && url && t.url.split('#')[0] === url.split('#')[0]));
+            }
             let tab = null;
             if (tabs.length === 1) {
               tab = tabs[0];

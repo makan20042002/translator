@@ -593,15 +593,9 @@ test.describe('Extension: whole-page translation full suite', () => {
     await pageA.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(pageA);
 
-    // 2. Open Page B and bring to front so Page A becomes genuinely hidden in Chromium
-    const pageB = await ext.context.newPage();
-    await pageB.goto(stub.appOrigin + '/__test/article.html?case=k_bg');
-    await pageB.bringToFront();
-    await pageB.waitForFunction(() => document.visibilityState === 'visible');
-
-    // Verify Page A is now hidden
-    await pageA.waitForFunction(() => document.visibilityState === 'hidden', null, { timeout: 5000 }).catch(() => {});
-    const stateA = await pageA.evaluate(() => document.visibilityState);
+    // 2. Bring ext.article to front so Page A becomes genuinely hidden in Chromium
+    await ext.article.bringToFront();
+    await pageA.waitForFunction(() => document.visibilityState === 'hidden');
 
     stub.clearLog();
 
@@ -625,7 +619,6 @@ test.describe('Extension: whole-page translation full suite', () => {
     const p1 = await pageA.locator('#p1').textContent();
     expect(p1).toContain('[fa]');
 
-    await pageB.close();
     await pageA.close();
   });
 
@@ -838,6 +831,73 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page1.close();
     await page2.close();
+  });
+
+  test('r) banner controls and attribute translation with language change and restore on dedicated tab', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=r');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    await page.evaluate(() => {
+      document.body.innerHTML = `
+        <h1 id="r-title">Form and Banner Integration</h1>
+        <p id="r-p">Original lead paragraph content.</p>
+        <input type="text" id="r-input" placeholder="Type search keywords" value="typed user value" title="Search input title" aria-label="Search box">
+        <textarea id="r-textarea" placeholder="Provide feedback notes" title="Feedback area">typed feedback content</textarea>
+      `;
+    });
+
+    stub.clearLog();
+    await rightClick(page, '#r-title');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // 1. Banner appears with correct controls
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(inShadow(page, '#makanBannerStatus')).toBeVisible();
+    await expect(inShadow(page, '#makanBannerTgtSelect')).toBeVisible();
+    await expect(inShadow(page, '#makanBannerClose')).toBeVisible();
+
+    // Wait for translation to complete
+    await expect(banner).toContainText('Page translated to FA', { timeout: 15_000 });
+    await expect(inShadow(page, '#makanRestoreBtn')).toBeVisible();
+
+    // 2. Element text and attributes are translated to FA, input values untouched
+    expect(await page.locator('#r-p').textContent()).toContain('[fa]');
+    await expect(page.locator('#r-input')).toHaveAttribute('placeholder', '[fa] Type search keywords');
+    await expect(page.locator('#r-input')).toHaveAttribute('title', '[fa] Search input title');
+    await expect(page.locator('#r-input')).toHaveAttribute('aria-label', '[fa] Search box');
+    await expect(page.locator('#r-textarea')).toHaveAttribute('placeholder', '[fa] Provide feedback notes');
+    expect(await page.locator('#r-input').inputValue()).toBe('typed user value');
+    expect(await page.locator('#r-textarea').inputValue()).toBe('typed feedback content');
+
+    // 3. Change language via dropdown to DE
+    stub.clearLog();
+    const langSelect = inShadow(page, '#makanBannerTgtSelect');
+    await langSelect.selectOption('de');
+    await expect(banner).toContainText('Page translated to DE', { timeout: 15_000 });
+
+    // Attributes and paragraphs re-translate from originals to DE
+    expect(await page.locator('#r-p').textContent()).toContain('[de]');
+    await expect(page.locator('#r-input')).toHaveAttribute('placeholder', '[de] Type search keywords');
+    await expect(page.locator('#r-input')).toHaveAttribute('title', '[de] Search input title');
+    expect(await page.locator('#r-input').inputValue()).toBe('typed user value');
+
+    // 4. Show Original restores original attributes and text
+    await inShadow(page, '#makanRestoreBtn').click();
+    await expect(banner).toHaveCount(0);
+    expect(await page.locator('#r-p').textContent()).toBe('Original lead paragraph content.');
+    await expect(page.locator('#r-input')).toHaveAttribute('placeholder', 'Type search keywords');
+    await expect(page.locator('#r-input')).toHaveAttribute('title', 'Search input title');
+    await expect(page.locator('#r-input')).toHaveAttribute('aria-label', 'Search box');
+    await expect(page.locator('#r-textarea')).toHaveAttribute('placeholder', 'Provide feedback notes');
+    expect(await page.locator('#r-input').inputValue()).toBe('typed user value');
+    expect(await page.locator('#r-textarea').inputValue()).toBe('typed feedback content');
+
+    await page.close();
   });
 });
 
