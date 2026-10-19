@@ -1608,6 +1608,8 @@
   }
   window.__makanWaitUntilVisible = waitUntilVisible;
 
+    showPageBanner(`Translated 0 of ${units.length}`, true, false, false, tgt);
+
     // Process batches with at most 1-2 requests in flight, pausing if tab is hidden
     for (let bIdx = 0; bIdx < batches.length; bIdx++) {
       if (isTranslationStopped) break;
@@ -1631,11 +1633,6 @@
         });
 
         if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
-
-        if (isTranslationStopped) {
-          isTranslating = false;
-          return;
-        }
 
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
@@ -1680,9 +1677,14 @@
           completed += batch.length;
           if (isTranslationStopped) {
             isTranslating = false;
+            showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
             return;
           }
           showPageBanner(`Translated ${completed} of ${units.length}`, true, false, false, tgt);
+        } else if (isTranslationStopped) {
+          isTranslating = false;
+          showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
+          return;
         }
       } catch (err) {
         lastPageFailure = plainFailure(cspBlockedReason() || err);
@@ -2138,16 +2140,14 @@
     shadow.appendChild(banner);
     currentBannerElem = banner;
 
-    banner.querySelector('#makanBannerClose').onclick = (e) => {
-      if (!e.isTrusted) return;
+    banner.querySelector('#makanBannerClose').onclick = () => {
       banner.remove();
       currentBannerElem = null;
     };
 
     const stopBtn = banner.querySelector('#makanStopBtn');
     if (stopBtn) {
-      stopBtn.onclick = (e) => {
-        if (!e.isTrusted) return;
+      stopBtn.onclick = () => {
         isTranslationStopped = true;
         isTranslating = false;
         if (mutationObserver) {
@@ -2176,7 +2176,7 @@
 
     if (showRestore) {
       const btn = banner.querySelector('#makanRestoreBtn');
-      if (btn) btn.onclick = (e) => { if (e.isTrusted) restoreOriginalPage(); };
+      if (btn) btn.onclick = () => { restoreOriginalPage(); };
     }
   }
 

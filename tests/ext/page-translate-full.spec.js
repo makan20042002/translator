@@ -778,5 +778,40 @@ test.describe('Extension: whole-page translation full suite', () => {
     expect(result.resumed).toBe(true);
     await page.close();
   });
+
+  test('p) banner lifecycle: immediate banner and Stop button presentation, transition to stopped and restore button, and close', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    stub.delayHost('clients5.google.com', 400);
+
+    await rightClick(page, '#p1');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // 1. Banner appears with status and stop button immediately
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 10_000 });
+    const status = inShadow(page, '#makanBannerStatus');
+    await expect(status).toBeVisible();
+    const stopBtn = inShadow(page, '#makanStopBtn');
+    await expect(stopBtn).toBeVisible();
+
+    // 2. Click stop button
+    await stopBtn.click();
+    await expect(status).toContainText('Translation stopped');
+    await expect(inShadow(page, '#makanStopBtn')).toHaveCount(0);
+    const restoreBtn = inShadow(page, '#makanRestoreBtn');
+    await expect(restoreBtn).toBeVisible();
+
+    // 3. Close banner
+    await inShadow(page, '#makanBannerClose').click();
+    await expect(banner).toHaveCount(0);
+
+    await page.close();
+  });
 });
 
