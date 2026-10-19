@@ -363,7 +363,7 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
     stopLive();
   }
   if(b.dataset.tab==='voice')checkFileProtoNotice();
-  if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();
+  if(b.dataset.tab==='hist')renderHist();if(b.dataset.tab==='gls')renderGloss();if(b.dataset.tab==='cmp'&&typeof initCompareLangs==='function')initCompareLangs();
   if(b.dataset.tab==='models'){if(typeof renderModelHub==='function')renderModelHub();if(typeof mcScan==='function')mcScan().then(()=>{if(typeof renderModelHub==='function')renderModelHub();});}
   if(b.dataset.tab==='sub')updateSubEngineNotice();
   if(b.dataset.tab==='doc'&&typeof updateDocEngineNoticeFromPicker==='function')updateDocEngineNoticeFromPicker();
