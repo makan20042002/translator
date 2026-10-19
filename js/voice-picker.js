@@ -493,31 +493,29 @@ function renderSttPickerListHTML(){
     { id:'whisper-large-v3-turbo', name:'Whisper large-v3-turbo', desc:'Whisper Large v3 Turbo (Local Helper)' },
     { id:'qwen3-asr', name:'Qwen3-ASR', desc:'Qwen Speech/ASR (Local Helper)' }
   ];
-  html+=`<div class="voice-group" data-group="helper-asr" style="margin-bottom:6px">
-    <div class="voice-group-title" style="padding:4px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">دستیار پایتون / Python ASR Helper</div>
-    <div style="display:flex;flex-direction:column;gap:6px">`;
+  if(typeof helperHealthy!=='undefined'&&helperHealthy || cfg.stt==='helper'){
+    html+=`<div class="voice-group" data-group="helper-asr" style="margin-bottom:6px">
+      <div class="voice-group-title" style="padding:4px 8px;font-size:11px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:0.5px">دستیار پایتون / Python ASR Helper</div>
+      <div style="display:flex;flex-direction:column;gap:6px">`;
 
-  for(const h of helperOpts){
-    const isSel=(curStt==='helper' && (cfg.helperModel||'whisper-large-v3')===h.id);
-    const isQwen=h.id==='qwen3-asr';
-    html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="helper" data-helper-model="${esc(h.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
-      <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
-        <input type="radio" name="sttRadio" value="helper:${esc(h.id)}" ${isSel?'checked':''} style="cursor:pointer">
-        <div style="min-width:0">
-          <div style="font-weight:600;font-size:13px">${esc(h.name)}</div>
-          <div style="font-size:11.5px;color:var(--muted)">${esc(h.desc)}</div>
+    for(const h of helperOpts){
+      const isSel=(curStt==='helper' && (cfg.helperModel||'whisper-large-v3')===h.id);
+      html+=`<div class="voice-card ${isSel?'selected':''}" data-stt="helper" data-helper-model="${esc(h.id)}" style="display:flex;align-items:center;justify-content:space-between;padding:7px 10px;border:1px solid ${isSel?'var(--accent)':'var(--border)'};border-radius:6px;background:${isSel?'var(--accent-dim)':'var(--surface2)'};cursor:pointer;gap:8px">
+        <div class="row" style="gap:8px;align-items:center;flex:1;min-width:0">
+          <input type="radio" name="sttRadio" value="helper:${esc(h.id)}" ${isSel?'checked':''} style="cursor:pointer">
+          <div style="min-width:0">
+            <div style="font-weight:600;font-size:13px">${esc(h.name)}</div>
+            <div style="font-size:11.5px;color:var(--muted)">${esc(h.desc)}</div>
+          </div>
         </div>
-      </div>
-      <div class="row" style="gap:6px;align-items:center">
-        ${isQwen
-          ? `<span class="badge warn" style="font-size:11px" data-qwen-notice="true">${esc(L('helperQwenNotice')||'needs the helper, not included in v1')}</span>`
-          : `<button class="btn btn-xs" data-act="dl-helper-model" data-helper-model="${esc(h.id)}" style="font-size:11px;padding:3px 7px" title="Download & Load into memory">⚡ Load</button>`
-        }
-        <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">Helper</span>
-      </div>
-    </div>`;
+        <div class="row" style="gap:6px;align-items:center">
+          <button class="btn btn-xs" data-act="dl-helper-model" data-helper-model="${esc(h.id)}" style="font-size:11px;padding:3px 7px" title="Download & Load into memory">⚡ Load</button>
+          <span class="badge" style="font-size:11px;background:var(--surface3);color:var(--fg)">Helper</span>
+        </div>
+      </div>`;
+    }
+    html+=`</div></div>`;
   }
-  html+=`</div></div>`;
 
   return html;
 }
@@ -615,38 +613,77 @@ function renderVoice(){
   updateHelperSettingsVisibility();
   if(typeof updateSttPickerDisplay==='function')updateSttPickerDisplay();
 }
+let helperHealthy = false;
+
 function updateHelperSettingsVisibility(){
-  const wrap=$('helperSettingsWrap');
-  if(!wrap)return;
-  wrap.hidden=(cfg.stt!=='helper');
-  if(!wrap.hidden){
-    if($('helperModelSel'))$('helperModelSel').value=cfg.helperModel||'whisper-large-v3';
-    if($('helperUrlInput'))$('helperUrlInput').value=cfg.helperUrl||'http://127.0.0.1:8765';
-    updateHelperModelButtons();
+  const isAvailable = !!(helperHealthy || cfg.stt === 'helper');
+  const wrap = $('helperSettingsWrap');
+  if(wrap){
+    wrap.hidden = !isAvailable;
+    if(!wrap.hidden){
+      if($('helperModelSel')) $('helperModelSel').value = cfg.helperModel || 'whisper-large-v3';
+      updateHelperModelButtons();
+    }
+  }
+  if($('helperUrlInput')) $('helperUrlInput').value = cfg.helperUrl || 'http://127.0.0.1:8765';
+
+  const sttOpt = $('sttSel')?.querySelector('option[value="helper"]');
+  if(sttOpt){
+    sttOpt.hidden = !isAvailable;
+    sttOpt.disabled = !isAvailable;
+  }
+  const vSttOpt = $('vSttChoice')?.querySelector('option[value="helper"]');
+  if(vSttOpt){
+    vSttOpt.hidden = !isAvailable;
+    vSttOpt.disabled = !isAvailable;
   }
 }
 function updateHelperModelButtons(){
-  const curModel=(typeof $('helperModelSel')?.value==='string'&&$('helperModelSel').value)||(typeof cfg.helperModel==='string'&&cfg.helperModel)||'whisper-large-v3';
-  const dlBtn=$('btnDownloadHelperModel');
-  const qNotice=$('helperQwenNotice');
-  if(dlBtn)dlBtn.hidden=false;
-  if(qNotice)qNotice.hidden=(curModel!=='qwen3-asr');
+  const dlBtn = $('btnDownloadHelperModel');
+  const qNotice = $('helperQwenNotice');
+  if(dlBtn) dlBtn.hidden = false;
+  if(qNotice) {
+    qNotice.hidden = true;
+    qNotice.textContent = '';
+  }
 }
 async function checkHelperConnection(){
-  const msgEl=$('helperStatusMsg');
-  const url=($('helperUrlInput')?.value||cfg.helperUrl||'http://127.0.0.1:8765').replace(/\/+$/, '');
-  if(msgEl){msgEl.textContent='...';msgEl.style.color='var(--muted)';}
-  try{
-    const res=await fx(url+'/health');
+  const msgEl = $('helperStatusMsg');
+  const url = ($('helperUrlInput')?.value || cfg.helperUrl || 'http://127.0.0.1:8765').replace(/\/+$/, '');
+  const isLocal = u => /\/\/(localhost|127\.0\.0\.1|\[::1\]|192\.168\.|10\.)/.test(u || '');
+  if(typeof isOff === 'function' && isOff() && !isLocal(url)){
+    helperHealthy = false;
+    updateHelperSettingsVisibility();
     if(msgEl){
-      msgEl.textContent='✅ '+L('helperConnected')+(res.loaded_model?` (${res.loaded_model})`:'');
-      msgEl.style.color='var(--accent)';
+      msgEl.textContent = '⚠️ ' + (typeof L === 'function' && L('helperOfflineRemote') || 'Cannot check remote helper in offline mode');
+      msgEl.style.color = 'var(--err)';
     }
-    return true;
+    return false;
+  }
+  if(msgEl){ msgEl.textContent = '...'; msgEl.style.color = 'var(--muted)'; }
+  try{
+    const res = await fx(url + '/health');
+    if(res && (res.status === 'ok' || res.status === 200 || !res.error)){
+      helperHealthy = true;
+      updateHelperSettingsVisibility();
+      if(typeof renderUnifiedVoicePicker === 'function') renderUnifiedVoicePicker();
+      if(typeof updateSttPickerDisplay === 'function') updateSttPickerDisplay();
+      if(msgEl){
+        msgEl.textContent = '✅ ' + L('helperConnected') + (res.loaded_model ? ` (${res.loaded_model})` : '');
+        msgEl.style.color = 'var(--accent)';
+      }
+      return true;
+    }else{
+      throw new Error('Helper not ready');
+    }
   }catch(err){
+    helperHealthy = false;
+    updateHelperSettingsVisibility();
+    if(typeof renderUnifiedVoicePicker === 'function') renderUnifiedVoicePicker();
+    if(typeof updateSttPickerDisplay === 'function') updateSttPickerDisplay();
     if(msgEl){
-      msgEl.textContent='⚠️ '+L('helperOffline');
-      msgEl.style.color='var(--err)';
+      msgEl.textContent = '⚠️ ' + L('helperOffline');
+      msgEl.style.color = 'var(--err)';
     }
     return false;
   }
