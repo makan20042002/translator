@@ -164,10 +164,12 @@ function getEngineStatus(id,opts={}){
 }
 ENG.getStatus=getEngineStatus;
 ENG.getEngineStatus=getEngineStatus;
+ENG.offCapable=offCapable;
 if (typeof window !== 'undefined') {
   window.ENG = ENG;
   window.ENG.getStatus = getEngineStatus;
   window.ENG.getEngineStatus = getEngineStatus;
+  window.ENG.offCapable = offCapable;
 }
 
 async function probeChromeAvailability(src='en',tgt='fa',timeoutMs){

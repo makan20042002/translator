@@ -88,5 +88,46 @@ test.describe('Document tab Ollama in Offline mode', () => {
     // Probing was allowed once explicitly chosen
     expect(calls.length).toBeGreaterThan(0);
   });
+
+  test('with Offline mode ON and Ollama chosen, getEngineStatus and checkDocEngineReady agree that Ollama is ready', async ({ app }) => {
+    const { page } = app;
+
+    await page.route('**/api/tags', route => {
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ models: [{ name: 'gemma4:12b' }] })
+      });
+    });
+
+    // Turn Offline mode ON
+    const offBtn = page.locator('#offBtn');
+    await mouseClick(page, offBtn);
+    await expect(offBtn).toHaveClass(/\bon\b/);
+
+    // Navigate to Document tab
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+    // Choose Ollama in Document picker
+    const picker = page.locator('#docEnginePickerHost .engine-picker-select');
+    await picker.selectOption('ollama');
+
+    const modelPicker = page.locator('#docEnginePickerHost .engine-picker-model-select');
+    await expect(modelPicker.locator('option[value="gemma4:12b"]')).toBeAttached({ timeout: 5000 });
+    await modelPicker.selectOption('gemma4:12b');
+
+    // Both getEngineStatus and checkDocEngineReady must agree that Ollama is ready
+    const statusCheck = await page.evaluate(async () => {
+      const getStatus = window.ENG.getStatus('ollama');
+      const docReady = await checkDocEngineReady('ollama');
+      const docModelReady = await checkDocEngineReady('ollama:gemma4:12b');
+      return { getStatus, docReady, docModelReady };
+    });
+
+    expect(statusCheck.getStatus.usable).toBe(true);
+    expect(statusCheck.getStatus.state).toBe('ready');
+    expect(statusCheck.docReady.ready).toBe(true);
+    expect(statusCheck.docModelReady.ready).toBe(true);
+  });
 });
 

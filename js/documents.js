@@ -602,6 +602,22 @@ let ollamaRefreshQueued = false;
 let lastPickerUiLang = null;
 let isRebuildingDocPicker = false;
 
+function getEffectiveCachedOllamaModels(){
+  if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0) return cachedOllamaModels;
+  if(typeof ENG !== 'undefined' && Array.isArray(ENG.cachedOllamaModels) && ENG.cachedOllamaModels.length > 0) {
+    cachedOllamaModels = ENG.cachedOllamaModels;
+    return cachedOllamaModels;
+  }
+  if(cachedOllamaModels === false && typeof ENG !== 'undefined' && Array.isArray(ENG.cachedOllamaModels)) {
+    cachedOllamaModels = ENG.cachedOllamaModels;
+    return cachedOllamaModels;
+  }
+  if(cachedOllamaModels === null && typeof ENG !== 'undefined' && typeof ENG.cachedOllamaModels !== 'undefined') {
+    return ENG.cachedOllamaModels;
+  }
+  return cachedOllamaModels;
+}
+
 async function fetchOllamaModelsSafely(){
   if(typeof fetchOllamaModels === 'function'){
     try{
@@ -623,9 +639,10 @@ function getDocEngineStatus(id, isOllamaModel = false){
   if(cfg.eng[id]?.on === false) return L('docOffInSettings') || 'Off in Engines & keys';
   if(id === 'ollama'){
     if(isOllamaModel) return L('docStatusReady') || 'Ready';
-    if(cachedOllamaModels === null) return '';
-    if(cachedOllamaModels === false) return L('docNeedsOllamaRunning') || 'Needs Ollama running';
-    if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length === 0) return L('docNeedsModelDownload') || 'Needs model download';
+    const cached = getEffectiveCachedOllamaModels();
+    if(cached === null) return '';
+    if(cached === false) return L('docNeedsOllamaRunning') || 'Needs Ollama running';
+    if(Array.isArray(cached) && cached.length === 0) return L('docNeedsModelDownload') || 'Needs model download';
     return L('docStatusReady') || 'Ready';
   }
   if(id === 'nllb'){
@@ -690,8 +707,9 @@ function buildDocEngineOptions(){
       if(!ENG[id]) return;
       const tag = getDocEngineTag(id);
       if(id === 'ollama'){
-        if(Array.isArray(cachedOllamaModels) && cachedOllamaModels.length > 0){
-          cachedOllamaModels.forEach(m => {
+        const cached = getEffectiveCachedOllamaModels();
+        if(Array.isArray(cached) && cached.length > 0){
+          cached.forEach(m => {
             const st = getDocEngineStatus('ollama', true);
             items.push({
               val: `ollama:${m}`,
@@ -763,8 +781,12 @@ function refreshOllamaModelsForDoc(force = false){
   const isSelected = (typeof isOllamaSelected === 'function' && isOllamaSelected());
   const allowed = ollamaOn && (offline ? isSelected : (inOrder || isSelected));
   if (!force && !allowed) {
-    cachedOllamaModels = false;
-    if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
+    if (typeof ENG !== 'undefined' && Array.isArray(ENG.cachedOllamaModels) && ENG.cachedOllamaModels.length > 0) {
+      cachedOllamaModels = ENG.cachedOllamaModels;
+    } else {
+      cachedOllamaModels = false;
+      if (typeof ENG !== 'undefined') ENG.cachedOllamaModels = false;
+    }
     buildDocEngineOptions();
     updateDocEngineInfo();
     return;
@@ -864,27 +886,37 @@ async function checkDocEngineReady(docChosen){
     const msg = (L('docTurnedOffPrompt') || '{engine} is turned off. Turn it on in Engines & keys.').replace('{engine}', name);
     return {ready: false, msg, reason: L('docTurnedOffInSettings') || (ui === 'fa' ? 'خاموش در موتورها و کلیدها' : 'turned off in Engines & keys')};
   }
-  if(isOff() && !offCapable(engId)){
+  const isEngineOffCapable = id => (typeof offCapable === 'function' ? offCapable(id) : (!!ENG[id]?.off || (id === 'custom' && typeof isLocalUrl === 'function' && isLocalUrl(cfg.eng?.[id]?.base))));
+  if(isOff() && !isEngineOffCapable(engId)){
     const name = ENG[engId].name;
     const msg = (L('docInternetRequiredPrompt') || '{engine} requires an internet connection. Turn off Offline mode or connect to the internet.').replace('{engine}', name);
     return {ready: false, msg, reason: L('docOfflineModeActive') || (ui === 'fa' ? 'حالت آفلاین فعال است' : 'offline mode active')};
   }
   if(engId === 'ollama'){
-    if(cachedOllamaModels === false || cachedOllamaModels === null){
+    let models = getEffectiveCachedOllamaModels();
+    if(!models || models === false || (Array.isArray(models) && models.length === 0)){
+      if(typeof fetchOllamaModels === 'function'){
+        try {
+          const fetched = await fetchOllamaModels();
+          if(Array.isArray(fetched) && fetched.length > 0){
+            models = fetched;
+            cachedOllamaModels = fetched;
+            if(typeof ENG !== 'undefined') ENG.cachedOllamaModels = fetched;
+          }
+        } catch(_) {}
+      }
+    }
+    if(!models || models === false){
       const msg = L('docStartOllamaPrompt') || 'Ollama is not running. Start Ollama, then try again.';
       return {ready: false, msg, reason: L('docOllamaNotRunning') || (ui === 'fa' ? 'Ollama در حال اجرا نیست' : 'Ollama not running')};
     }
-    const models = Array.isArray(cachedOllamaModels) ? cachedOllamaModels : [];
-    if(modelName && !models.includes(modelName)){
+    const modelList = Array.isArray(models) ? models : [];
+    if(modelList.length === 0){
+      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
+      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
+    }
+    if(modelName && !modelList.includes(modelName)){
       const msg = (L('docOllamaModelNotFound') || 'Model {model} is not downloaded. Run “ollama pull {model}” or select a model in Engines & keys.').replace(/\{model\}/g, modelName);
-      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
-    }
-    if(!models || models.length === 0){
-      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
-      return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
-    }
-    if(!modelName && !cfg.eng?.ollama?.model){
-      const msg = L('docDownloadModelPrompt') || 'Download the offline model in Engines & keys.';
       return {ready: false, msg, reason: L('docModelNotDownloaded') || (ui === 'fa' ? 'مدل دانلود نشده' : 'model not downloaded')};
     }
     return {ready: true};

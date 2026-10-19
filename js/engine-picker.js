@@ -446,6 +446,11 @@
       if (typeof updateDocEngineNoticeFromPicker === 'function') {
         updateDocEngineNoticeFromPicker();
       }
+      if (val === 'ollama' || val?.startsWith?.('ollama:')) {
+        if (typeof refreshOllamaModelsForDoc === 'function') {
+          refreshOllamaModelsForDoc(true);
+        }
+      }
     };
 
     link.onclick = (e) => {
