@@ -430,11 +430,16 @@ test.describe('Extension: whole-page translation full suite', () => {
     expect(await page.locator('#p-ltr').evaluate(el => el.style.textAlign)).toBe('left');
 
     // 3. Translate to LTR (target de)
+    stub.clearLog();
     await ext.patchConfig({ tgt: 'de' });
     await rightClick(page, '#rtl-h1');
     await ext.clickContextMenu('makan-translate-page', page.url());
     await expect(banner).toBeVisible({ timeout: 15_000 });
     await expect(banner).toContainText('Page translated to DE');
+
+    const deCalls = stub.calls('clients5.google.com');
+    expect(deCalls.length).toBeGreaterThan(0);
+    expect(deCalls[0].query).toContain('tl=de');
 
     // Verify LTR target does NOT change dir
     expect(await page.locator('#p-plain').getAttribute('dir')).toBeNull();

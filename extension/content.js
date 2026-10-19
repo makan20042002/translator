@@ -336,6 +336,16 @@
     }
   });
 
+  try {
+    if (typeof chrome !== 'undefined' && chrome.storage?.onChanged) {
+      chrome.storage.onChanged.addListener((changes, area) => {
+        if (area === 'local' && changes && changes.makan_cfg) {
+          refreshConfig();
+        }
+      });
+    }
+  } catch {}
+
   // Helper: check if target is inside form control or password/payment
   function isSensitiveOrEditable(el) {
     if (!el || !el.closest) return false;
@@ -1528,7 +1538,7 @@
       return;
     }
 
-    if (!cfg) await refreshConfig();
+    await refreshConfig();
     const tgt = cfg?.tgt || 'fa';
 
     showPageBanner('Translating visible page content…', true);
