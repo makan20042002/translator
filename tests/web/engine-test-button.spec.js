@@ -41,7 +41,7 @@ test.describe('Engine Test Button (ITEM 3)', () => {
 
     await expect(statusEl).toBeVisible();
     await expect(statusEl).toContainText('[fa] Hello, how are you?');
-    await expect(statusEl).toMatch(/\(\d+\.\d+s\)/);
+    await expect(statusEl).toHaveText(/\(\d+\.\d+s\)/);
 
     // Assert nothing was written to History
     const afterHist = await page.evaluate(() => store.get('hist', []));
@@ -129,5 +129,34 @@ test.describe('Engine Test Button (ITEM 3)', () => {
     // Switch to FA
     await page.locator('#uiLang').click();
     await expect(testBtn).toHaveText('آزمایش');
+  });
+
+  test('cancelling test in Persian interface displays Persian cancellation status', async ({ app, files }) => {
+    const { page } = app;
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
+    const picker = page.locator('#subEnginePickerHost .engine-picker');
+    const select = picker.locator('.engine-picker-select');
+    await select.selectOption('google');
+
+    // Switch to FA
+    await page.locator('#uiLang').click();
+
+    await page.route('https://clients5.google.com/translate_a/t*', async route => {
+      await new Promise(r => setTimeout(r, 600));
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify(['[fa] Hello, how are you?'])
+      });
+    });
+
+    const testBtn = picker.locator('.engine-picker-test-btn');
+    const statusEl = picker.locator('.engine-picker-status');
+
+    await mouseClick(page, testBtn);
+    await mouseClick(page, testBtn);
+    await expect(statusEl).toContainText('لغو شد.');
   });
 });

@@ -470,7 +470,7 @@
         testBtn.textContent = (typeof L === 'function' ? L('engineTestBtn') : 'Test');
         statusEl.hidden = false;
         statusEl.className = 'engine-picker-status';
-        statusEl.textContent = (typeof L === 'function' ? L('stopped') : 'Cancelled.');
+        statusEl.textContent = (typeof L === 'function' ? L('engineTestCancelled') : 'Cancelled.');
         return;
       }
 
@@ -518,7 +518,7 @@
       } catch (err) {
         if (err.name === 'AbortError' || testCtl?.signal.aborted) {
           statusEl.className = 'engine-picker-status';
-          statusEl.textContent = (typeof L === 'function' ? L('stopped') : 'Cancelled.');
+          statusEl.textContent = (typeof L === 'function' ? L('engineTestCancelled') : 'Cancelled.');
         } else {
           statusEl.className = 'engine-picker-status err';
           const plain = (typeof toPlainReason === 'function' ? toPlainReason(err) : '') || err.message || 'Failed';
