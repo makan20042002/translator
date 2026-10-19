@@ -94,12 +94,9 @@ test.describe('Screen Translator overlay panel responsiveness [ext]', () => {
         expect(clampedBox.y + clampedBox.height).toBeLessThanOrEqual(vp.height);
 
         // 6. Test Esc key closes the panel
+        await card.focus();
         await page.keyboard.press('Escape');
-        const isClosed = await page.evaluate(() => {
-          const c = document.getElementById('cardContainer');
-          return c.style.display === 'none' || window.__overlayClosed;
-        });
-        expect(isClosed).toBe(true);
+        await expect(card).toBeHidden();
 
         await page.close();
       });

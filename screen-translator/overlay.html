@@ -515,7 +515,7 @@
 </head>
 <body>
 
-<div class="card-container" id="cardContainer">
+<div class="card-container" id="cardContainer" tabindex="-1">
   <!-- Draggable Title Bar -->
   <div class="header">
     <div class="brand">
@@ -810,16 +810,21 @@
   // Close handlers (header & footer & Escape)
   const closeOverlay = () => {
     cardContainer.style.display = 'none';
+    cardContainer.hidden = true;
     window.makanOverlay?.close();
   };
   btnClose.onclick = closeOverlay;
   if (btnFooterClose) btnFooterClose.onclick = closeOverlay;
 
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') {
+  const onKeyDown = (e) => {
+    if (e.key === 'Escape' || e.key === 'Esc' || e.keyCode === 27) {
       closeOverlay();
     }
-  });
+  };
+  document.addEventListener('keydown', onKeyDown, true);
+  window.addEventListener('keydown', onKeyDown, true);
+  cardContainer.addEventListener('keydown', onKeyDown);
+  try { cardContainer.focus(); } catch {}
 
   // Copy buttons
   btnCopyTrans.onclick = () => {
