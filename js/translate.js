@@ -752,13 +752,29 @@ function createAiWorker(role){
     }else{
       const errStr=String(m.err||'');
       if(isFatalEngineError(errStr)){
-        const friendlyMsg=L('offlineOom')||'The offline model ran out of memory and was restarted. Try again, or choose a smaller model.';
+        let modelName = '';
+        if(role==='speech'){
+          const wm=typeof asrModel==='function'?asrModel(p.a?.model):null;
+          modelName=wm?mcText(wm.name):'Speech';
+        }else{
+          const specRepo = p.a?.spec?.repo;
+          const trM = specRepo ? (MC.models||[]).find(x=>x.repo===specRepo) : null;
+          const chosen = (!trM && cfg.trModel && cfg.trModel!=='auto') ? (MC.models||[]).find(x=>x.id===cfg.trModel) : null;
+          const autoM = (!trM && !chosen && typeof offlineTrChoice==='function') ? offlineTrChoice()?.model : null;
+          const mObj = trM || chosen || autoM;
+          modelName = mObj ? mcText(mObj.name).replace(/\s*\(default\)$/i,'') : (specRepo || 'Translation');
+        }
+        const modelLabel = modelName ? ` (${modelName})` : '';
+        const defaultFriendly = `The offline model${modelLabel} ran out of memory and was restarted. A browser tab has a memory limit lower than the computer's RAM. Try again, or choose a smaller model.`;
+        const rawTpl = typeof L==='function'?L('offlineOom'):'';
+        const friendlyMsg = rawTpl
+          ? (rawTpl.includes('{model}') ? rawTpl.replace('{model}', modelLabel) : rawTpl)
+          : defaultFriendly;
         terminateAiWorker(role,friendlyMsg);
         if(p.cmd==='translate'&&!p.isRetry){
           // Retry once automatically on the fresh worker
           rpc('translate',p.a,p.tr,p.signal,true).then(p.res,err=>{
             const finalMsg=isFatalEngineError(err)?friendlyMsg:(err.message||String(err));
-            if(typeof toast==='function')toast(friendlyMsg,'err',8000);
             p.rej(new Error(finalMsg));
           });
           return;

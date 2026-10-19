@@ -443,6 +443,7 @@ function renderModelHub(){
             ${autoBadge}
             <span class="hub-pill cat">${esc(catLbl)}</span>
             <span class="hub-pill ram" title="Estimated RAM">RAM ≈ ${esc(mcSize(m.memMB*1048576))}</span>
+            ${m.memMB>=3500?`<span class="hub-pill warn wasm-mem-warn" title="${esc(L('tabMemTip')||'Requires over 3.5 GB. May exceed browser tab/WASM memory limit (2–4 GB).')}">⚠️ ${esc(L('tabMemWarning')||'Unsafe tab/WASM RAM')}</span>`:''}
             <span class="hub-pill lic" title="Licence">${esc(lic)}</span>
             ${m.rec?`<span class="hub-pill rec">${esc(L('mdlRecNonEn'))}</span>`:''}
             ${m.weak?`<span class="hub-pill warn">${esc(L('mdlWeak'))}</span>`:''}

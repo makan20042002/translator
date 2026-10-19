@@ -213,4 +213,93 @@ test.describe('Offline fatal WASM error recovery', () => {
     expect(result.mcFailedAfterSuccess).toBeFalsy();
     expect(result.secondResultText).toBe('Recovered speech text');
   });
+
+  test('OOM toast shows only once per event, names the model, explains browser tab memory limits, and Hub marks unsafe tab/WASM models (ITEM 4)', async ({ app }) => {
+    const { page } = app;
+
+    // Test OOM toast behavior on repeated failure (retry also fails)
+    const toastCheck = await page.evaluate(async () => {
+      const toasts = [];
+      const origToast = window.toast;
+      window.toast = (msg, type, duration) => {
+        toasts.push({ msg, type, duration });
+        if (typeof origToast === 'function') origToast(msg, type, duration);
+      };
+
+      class AlwaysOomWorker {
+        constructor() {
+          this.terminated = false;
+        }
+        postMessage(data) {
+          const { id, cmd } = data || {};
+          if (cmd === 'translate') {
+            setTimeout(() => {
+              this.onmessage?.({
+                data: {
+                  id,
+                  ok: false,
+                  err: 'Aborted(). failed to allocate a buffer of size 4294967296'
+                }
+              });
+            }, 10);
+          }
+        }
+        terminate() {
+          this.terminated = true;
+        }
+      }
+
+      const origWorker = window.Worker;
+      window.Worker = AlwaysOomWorker;
+
+      let caughtError = null;
+      try {
+        await rpc('translate', {
+          spec: { repo: 'Xenova/nllb-200-distilled-600M', kind: 'nllb' },
+          items: ['sample text for oom testing'],
+          src: 'en',
+          tgt: 'fa'
+        });
+      } catch (err) {
+        caughtError = err.message;
+      }
+
+      window.Worker = origWorker;
+      window.toast = origToast;
+
+      return {
+        toastCount: toasts.length,
+        toastMessages: toasts.map(t => t.msg),
+        caughtError
+      };
+    });
+
+    // Exactly one toast per event (no duplicate stacked toast)
+    expect(toastCheck.toastCount).toBe(1);
+
+    const msg = toastCheck.toastMessages[0];
+    // Names the model
+    expect(msg).toContain('NLLB-200 600M');
+    // Explains that browser tab has a memory limit lower than the computer's RAM
+    expect(msg).toContain('browser tab has a memory limit lower than the computer');
+    expect(msg).toContain('out of memory');
+
+    // Check Model Hub displays the unsafe tab/WASM RAM warning for models with memMB >= 3500
+    await page.evaluate(() => {
+      if (typeof window.renderModelHub === 'function') {
+        window.renderModelHub();
+      }
+    });
+
+    const nllbCard = page.locator('.hub-model-card[data-hub-mdl="tr-nllb-600"]');
+    await expect(nllbCard.locator('.wasm-mem-warn')).toBeVisible();
+
+    const largeCard = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]');
+    await expect(largeCard.locator('.wasm-mem-warn')).toBeVisible();
+
+    // Models with lower memory (e.g. Tiny or Base) should not have the badge
+    const tinyCard = page.locator('.hub-model-card[data-hub-mdl="asr-tiny"]');
+    await expect(tinyCard.locator('.wasm-mem-warn')).toHaveCount(0);
+  });
 });
+
