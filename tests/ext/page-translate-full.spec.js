@@ -98,7 +98,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=b');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -159,7 +159,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=c');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
 
@@ -205,7 +205,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=i');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -255,7 +255,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=d');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -331,7 +331,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await page.setViewportSize({ width: 360, height: 640 });
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=f');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
 
@@ -391,7 +391,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
     await ext.patchConfig({ tgt: 'fa' });
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=e');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -449,7 +449,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     stub.clearLog();
 
     // 1. Default OFF: load English page
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=g');
     await page.waitForLoadState('domcontentloaded');
     await page.waitForTimeout(1000);
 
@@ -493,7 +493,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     stub.clearLog();
     await ext.patchConfig({ offerPageTranslate: true });
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=h');
     await page.waitForLoadState('domcontentloaded');
 
     const offerBar = inShadow(page, '.makan-offer-bar');
@@ -522,7 +522,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=j');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -589,13 +589,13 @@ test.describe('Extension: whole-page translation full suite', () => {
     const pageA = await ext.context.newPage();
     await pageA.bringToFront();
     await pageA.waitForFunction(() => document.visibilityState === 'visible');
-    await pageA.goto(stub.appOrigin + '/__test/article.html');
+    await pageA.goto(stub.appOrigin + '/__test/article.html?case=k');
     await pageA.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(pageA);
 
     // 2. Open Page B and bring to front so Page A becomes genuinely hidden in Chromium
     const pageB = await ext.context.newPage();
-    await pageB.goto('about:blank');
+    await pageB.goto(stub.appOrigin + '/__test/article.html?case=k_bg');
     await pageB.bringToFront();
     await pageB.waitForFunction(() => document.visibilityState === 'visible');
 
@@ -633,7 +633,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=l');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
     await page.evaluate(() => {
@@ -713,7 +713,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=m');
 
     // Immediately trigger translation without any click or artificial delay
     await ext.clickContextMenu('makan-translate-page', page.url());
@@ -730,7 +730,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=n');
     await page.waitForLoadState('domcontentloaded');
 
     await ext.waitForContentScript(page);
@@ -748,7 +748,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=o');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
 
@@ -783,7 +783,7 @@ test.describe('Extension: whole-page translation full suite', () => {
     const page = await ext.context.newPage();
     await page.bringToFront();
     await page.waitForFunction(() => document.visibilityState === 'visible');
-    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=p');
     await page.waitForLoadState('domcontentloaded');
     await ext.waitForContentScript(page);
 
@@ -812,6 +812,32 @@ test.describe('Extension: whole-page translation full suite', () => {
     await expect(banner).toHaveCount(0);
 
     await page.close();
+  });
+
+  test('q) ext.clickContextMenu resolves ambiguous tabs by preferring active tab in focused window', async ({ ext, stub }) => {
+    // Both tabs navigate to the same URL
+    const url = stub.appOrigin + '/__test/article.html?case=ambiguous';
+    const page1 = await ext.context.newPage();
+    await page1.goto(url);
+    await page1.waitForLoadState('domcontentloaded');
+
+    const page2 = await ext.context.newPage();
+    await page2.goto(url);
+    await page2.waitForLoadState('domcontentloaded');
+
+    // With page2 brought to front, clickContextMenu targets active page2
+    await page2.bringToFront();
+    await page2.waitForFunction(() => document.visibilityState === 'visible');
+    await rightClick(page2, '#p1');
+    await ext.clickContextMenu('makan-translate-page', url);
+
+    const banner2 = inShadow(page2, '.makan-top-banner');
+    await expect(banner2).toBeVisible({ timeout: 12_000 });
+    // page1 was in background and should NOT have received the action
+    expect(await inShadow(page1, '.makan-top-banner').count()).toBe(0);
+
+    await page1.close();
+    await page2.close();
   });
 });
 

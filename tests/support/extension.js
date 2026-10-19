@@ -150,7 +150,22 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
     async clickContextMenu(menuItemId, pageUrl, selectionText) {
       const sw = await ext.worker();
       return sw.evaluate(async ({ menuItemId, pageUrl, selectionText }) => {
-        const [tab] = await chrome.tabs.query({ url: pageUrl });
+        const tabs = await chrome.tabs.query({ url: pageUrl });
+        let tab = null;
+        if (tabs.length === 1) {
+          tab = tabs[0];
+        } else if (tabs.length > 1) {
+          // If more than one tab matches the url, prefer the active tab in the focused window
+          const activeInFocused = tabs.find(t => t.active && t.lastFocusedWindow);
+          const active = tabs.filter(t => t.active);
+          if (activeInFocused) {
+            tab = activeInFocused;
+          } else if (active.length === 1) {
+            tab = active[0];
+          } else {
+            throw new Error(`ambiguous tab: ${tabs.length} tabs match ${pageUrl}`);
+          }
+        }
         if (!tab) throw new Error('tab not found: ' + pageUrl);
         const fns = self.__makanTest.menuListeners;
         if (!fns.length) throw new Error('no context-menu handler was registered by background.js');
@@ -169,8 +184,13 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
       while (Date.now() - t0 < timeout) {
         try {
           const ok = await sw.evaluate(async (url) => {
-            const tabs = await chrome.tabs.query({});
-            const tab = tabs.find(t => t.url === url || (url && t.url && t.url.startsWith(url)));
+            const tabs = await chrome.tabs.query({ url });
+            let tab = null;
+            if (tabs.length === 1) {
+              tab = tabs[0];
+            } else if (tabs.length > 1) {
+              tab = tabs.find(t => t.active && t.lastFocusedWindow) || tabs.find(t => t.active) || tabs[0];
+            }
             if (!tab || !tab.id) return false;
             try {
               const res = await Promise.race([
