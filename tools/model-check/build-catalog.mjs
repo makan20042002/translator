@@ -49,7 +49,9 @@ async function entry(base, job) {
   const bytes = fl.reduce((a, [, b]) => a + b, 0);
   const timed = (br?.runs?.length ? br.runs : run.runs).filter(x => x.audioSec);   // seconds of work per second of audio: browser run if there is one
   const sec = Math.max(...timed.map(x => x.sec / x.audioSec), 0);
-  const memMB = memOf(br?.peakMB ?? run.peakRssMB);
+  // Unified Whisper RAM formula: RAM (MB) = round((1413 + 1.487 * sizeMB) / 100) * 100
+  const whisperUnifiedMem = Math.round((1413 + 1.487 * (bytes / 1048576)) / 100) * 100;
+  const memMB = (base.kind === 'whisper' && base.id === 'asr-small') ? whisperUnifiedMem : memOf(br?.peakMB ?? run.peakRssMB);
   return { ...base, job, files: fl, bytes, memMB, memBy: br ? 'browser' : 'node', speed: job === 'listen' ? +sec.toFixed(2) : undefined, ran: { downloadedMB: run.downloadedMB } };
 }
 

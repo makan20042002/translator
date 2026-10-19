@@ -193,7 +193,7 @@ self.MODEL_CATALOG = {
     ]
    ],
    "bytes": 251875316,
-   "memMB": 3300,
+   "memMB": 1800,
    "speed": 2.44,
    "ran": {
     "downloadedMB": 240

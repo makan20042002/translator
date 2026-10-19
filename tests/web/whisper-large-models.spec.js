@@ -685,5 +685,61 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     await expect(errUrl).toHaveText('https://huggingface.co/onnx-community/whisper-large-v3-ONNX/resolve/main/onnx/decoder_model_merged_quantized.onnx');
   });
 
+  test('Whisper Small has believable memMB (1800) and does not show false heavy model warning (ITEM 3)', async ({ app }) => {
+    const { page } = app;
+
+    // Verify catalog memMB for all Whisper models
+    const memChecks = await page.evaluate(() => {
+      const models = window.MODEL_CATALOG?.models || [];
+      const whisper = models.filter(m => m.kind === 'whisper');
+      return Object.fromEntries(whisper.map(m => [m.id, m.memMB]));
+    });
+
+    expect(memChecks['asr-tiny']).toBe(1000);
+    expect(memChecks['asr-base']).toBe(1400);
+    expect(memChecks['asr-small']).toBe(1800);
+    expect(memChecks['asr-distil-large-v3']).toBe(2500);
+    expect(memChecks['asr-large-v3-turbo']).toBe(3400);
+    expect(memChecks['asr-large-v3']).toBe(4000);
+
+    // Whisper Small (1800 MB) is significantly lower than Turbo (3400 MB)
+    expect(memChecks['asr-small']).toBeLessThan(memChecks['asr-large-v3-turbo']);
+    expect(memChecks['asr-small']).toBeLessThan(3000);
+
+    // Verify in Media UI that choosing Whisper Small does NOT show the heavy warning
+    await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await expect(page.locator('#tab-media')).toBeVisible();
+
+    const wavBuffer = createTestWav(0.2, 16000);
+    const fileInput = page.locator('#tab-media .mt-file-input');
+    await fileInput.setInputFiles({
+      name: 'small-mem-check.wav',
+      mimeType: 'audio/wav',
+      buffer: wavBuffer
+    });
+
+    // Mock Whisper choice as asr-small
+    await page.evaluate(() => {
+      const smallM = window.MODEL_CATALOG.models.find(m => m.id === 'asr-small');
+      window.MediaTranslate.host.getWhisperChoice = () => ({
+        key: smallM.key,
+        id: smallM.id,
+        repo: smallM.repo,
+        name: smallM.name,
+        memMB: smallM.memMB,
+        ready: true,
+        gpu: null
+      });
+      if (typeof window.MediaTranslate?.host?.render === 'function') {
+        window.MediaTranslate.host.render();
+      }
+    });
+
+    // Heavy warning element should be hidden
+    const warnEl = page.locator('#tab-media .mt-asr-heavy-warn');
+    await expect(warnEl).toBeHidden();
+  });
+
 });
+
 
