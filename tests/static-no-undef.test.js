@@ -1,0 +1,171 @@
+'use strict';
+/**
+ * tests/static-no-undef.test.js
+ * ITEM 3: Permanent static guard for undefined identifiers in browser scripts.
+ * Collects top-level declarations across all scripts loaded in index.html,
+ * checks every script against the unified global scope using acorn and eslint-scope,
+ * and reports any undeclared variable references (preventing ReferenceErrors).
+ */
+
+const test = require('node:test');
+const assert = require('node:assert');
+const fs = require('node:fs');
+const path = require('node:path');
+const acorn = require('acorn');
+const eslintScope = require('eslint-scope');
+
+const ROOT = path.resolve(__dirname, '..');
+
+// Standard browser, DOM, and runtime globals
+const BROWSER_GLOBALS = new Set([
+  'window', 'self', 'globalThis', 'document', 'navigator', 'location', 'history',
+  'console', 'fetch', 'setTimeout', 'clearTimeout', 'setInterval', 'clearInterval',
+  'requestAnimationFrame', 'cancelAnimationFrame', 'requestIdleCallback', 'cancelIdleCallback',
+  'localStorage', 'sessionStorage', 'performance', 'crypto', 'indexedDB', 'caches',
+  'alert', 'confirm', 'prompt', 'open', 'close', 'focus', 'blur', 'print',
+  'Event', 'CustomEvent', 'MouseEvent', 'KeyboardEvent', 'UIEvent', 'EventTarget',
+  'Node', 'Element', 'HTMLElement', 'HTMLInputElement', 'HTMLSelectElement',
+  'HTMLTextAreaElement', 'HTMLButtonElement', 'HTMLAnchorElement', 'HTMLAudioElement',
+  'HTMLVideoElement', 'HTMLCanvasElement', 'HTMLDetailsElement', 'HTMLDialogElement',
+  'Blob', 'File', 'FileList', 'FileReader', 'FormData', 'URL', 'URLSearchParams',
+  'AbortController', 'AbortSignal', 'Headers', 'Response', 'Request',
+  'WebSocket', 'Worker', 'SharedWorker', 'ServiceWorker',
+  'AudioContext', 'webkitAudioContext', 'MediaStream', 'MediaRecorder', 'Audio', 'Image',
+  'speechSynthesis', 'SpeechSynthesisUtterance', 'SpeechRecognition', 'webkitSpeechRecognition',
+  'DOMParser', 'XMLSerializer', 'MutationObserver', 'IntersectionObserver', 'ResizeObserver',
+  'Notification', 'Screen', 'devicePixelRatio', 'matchMedia', 'getComputedStyle',
+  'btoa', 'atob', 'escape', 'unescape', 'encodeURI', 'encodeURIComponent',
+  'decodeURI', 'decodeURIComponent', 'parseInt', 'parseFloat', 'isNaN', 'isFinite',
+  'Math', 'JSON', 'Object', 'Array', 'String', 'Number', 'Boolean', 'RegExp', 'Date',
+  'Error', 'TypeError', 'RangeError', 'SyntaxError', 'ReferenceError', 'URIError', 'EvalError',
+  'Promise', 'Map', 'Set', 'WeakMap', 'WeakSet', 'Symbol', 'Proxy', 'Reflect',
+  'Int8Array', 'Uint8Array', 'Uint8ClampedArray', 'Int16Array', 'Uint16Array',
+  'Int32Array', 'Uint32Array', 'Float32Array', 'Float64Array',
+  'BigInt64Array', 'BigUint64Array', 'BigInt', 'DataView', 'ArrayBuffer', 'Intl',
+  'WebAssembly', 'GPU', 'GPUBuffer', 'GPUTexture', 'GPUAdapter', 'GPUDevice',
+  // Electron / Desktop bridge globals
+  'ENG', 'makanDesktop', 'electronAPI',
+  // External library globals loaded via vendor or CDN
+  'pdfjsLib', 'docx', 'ExcelJS', 'PptxGenJS', 'JSZip', 'XMLParser', 'XMLBuilder',
+  'flatted', 'pipeline', 'env', 'AutoModel', 'AutoTokenizer', 'ort'
+]);
+
+// Read index.html to extract scripts in load order
+function getIndexHtmlScripts() {
+  const html = fs.readFileSync(path.join(ROOT, 'index.html'), 'utf8');
+  const scripts = [];
+  const re = /<script\s+src="([^"]+)"><\/script>/g;
+  let m;
+  while ((m = re.exec(html)) !== null) {
+    // Only verify local app scripts, skip vendor or external CDNs
+    if (!m[1].startsWith('http://') && !m[1].startsWith('https://') && !m[1].startsWith('vendor/')) {
+      scripts.push(m[1]);
+    }
+  }
+  return scripts;
+}
+
+// Extract top-level declaration names from an AST node
+function extractDeclarations(node, names) {
+  if (!node) return;
+  if (node.type === 'FunctionDeclaration' || node.type === 'ClassDeclaration') {
+    if (node.id && node.id.name) names.add(node.id.name);
+  } else if (node.type === 'VariableDeclaration') {
+    for (const decl of node.declarations) {
+      extractPatternNames(decl.id, names);
+    }
+  } else if (node.type === 'ExpressionStatement' && node.expression) {
+    const expr = node.expression;
+    if (expr.type === 'AssignmentExpression') {
+      if (expr.left.type === 'Identifier') {
+        names.add(expr.left.name);
+      } else if (expr.left.type === 'MemberExpression') {
+        const obj = expr.left.object;
+        const prop = expr.left.property;
+        if (obj && (obj.name === 'window' || obj.name === 'self' || obj.name === 'globalThis') && prop && prop.name) {
+          names.add(prop.name);
+        }
+      }
+    }
+  }
+}
+
+function extractPatternNames(id, names) {
+  if (!id) return;
+  if (id.type === 'Identifier') {
+    names.add(id.name);
+  } else if (id.type === 'ObjectPattern') {
+    for (const prop of id.properties) {
+      if (prop.type === 'Property') extractPatternNames(prop.value, names);
+      else if (prop.type === 'RestElement') extractPatternNames(prop.argument, names);
+    }
+  } else if (id.type === 'ArrayPattern') {
+    for (const elem of id.elements) {
+      if (elem) extractPatternNames(elem, names);
+    }
+  } else if (id.type === 'AssignmentPattern') {
+    extractPatternNames(id.left, names);
+  } else if (id.type === 'RestElement') {
+    extractPatternNames(id.argument, names);
+  }
+}
+
+test('Permanent static guard: no undefined identifiers across loaded scripts (ITEM 3)', () => {
+  const scriptFiles = getIndexHtmlScripts();
+  assert.ok(scriptFiles.length > 0, 'index.html should load scripts');
+
+  const allGlobals = new Set(BROWSER_GLOBALS);
+  const parsedScripts = [];
+
+  // Pass 1: Parse all scripts and collect all top-level globals
+  for (const relPath of scriptFiles) {
+    const absPath = path.join(ROOT, relPath);
+    const code = fs.readFileSync(absPath, 'utf8');
+    const ast = acorn.parse(code, {
+      ecmaVersion: 'latest',
+      sourceType: 'script',
+      locations: true
+    });
+
+    for (const node of ast.body) {
+      extractDeclarations(node, allGlobals);
+    }
+
+    parsedScripts.push({ relPath, code, ast });
+  }
+
+  // Pass 2: Analyze scopes and find any references not defined in any scope or global
+  const undefinedReferences = [];
+
+  for (const { relPath, ast } of parsedScripts) {
+    const scopeManager = eslintScope.analyze(ast, {
+      ecmaVersion: 'latest',
+      sourceType: 'script'
+    });
+
+    for (const ref of scopeManager.globalScope.through) {
+      // typeof identifier guards (e.g. typeof foo === 'undefined') are safe and never throw ReferenceError
+      if (typeof ref.isTypeof === 'function' && ref.isTypeof()) continue;
+
+      const name = ref.identifier.name;
+      if (!allGlobals.has(name)) {
+        undefinedReferences.push({
+          file: relPath,
+          name,
+          line: ref.identifier.loc?.start?.line,
+          col: ref.identifier.loc?.start?.column
+        });
+      }
+    }
+  }
+
+  const failureDetails = undefinedReferences.map(
+    u => `  - ${u.file}:${u.line}:${u.col} '${u.name}' is not defined`
+  ).join('\n');
+
+  assert.strictEqual(
+    undefinedReferences.length,
+    0,
+    `Found undefined identifiers across browser scripts:\n${failureDetails}`
+  );
+});
