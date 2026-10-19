@@ -459,6 +459,7 @@ function checkFileProtoNotice(){
 function boot(){
   const s=$('src').value,t=$('tgt').value;
   applyI18n();fillLangs();if(s){$('src').value=s;$('tgt').value=t}
+  if(typeof offStatus === 'function') offStatus();
   updateStatusPill();
   updateStorageCard();
   checkFileProtoNotice();

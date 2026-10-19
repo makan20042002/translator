@@ -249,10 +249,22 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     // Seed offline mode before reloading/booting
     await page.evaluate(() => {
       try {
+        if (typeof cfg !== 'undefined') {
+          cfg.offline = true;
+          if (typeof saveCfg === 'function') saveCfg();
+        }
+        if (typeof store !== 'undefined') {
+          store.set('offline', true);
+        }
         const raw = localStorage.getItem('mkt_cfg');
         const c = raw ? JSON.parse(raw) : {};
         c.offline = true;
+        if (!Array.isArray(c.order)) {
+          c.order = ['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
+        }
+        if (!c.eng) c.eng = {};
         localStorage.setItem('mkt_cfg', JSON.stringify(c));
+        localStorage.setItem('mkt_offline', 'true');
       } catch (e) {}
     });
     await page.addInitScript(() => {
@@ -260,7 +272,12 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
         const raw = localStorage.getItem('mkt_cfg');
         const c = raw ? JSON.parse(raw) : {};
         c.offline = true;
+        if (!Array.isArray(c.order)) {
+          c.order = ['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
+        }
+        if (!c.eng) c.eng = {};
         localStorage.setItem('mkt_cfg', JSON.stringify(c));
+        localStorage.setItem('mkt_offline', 'true');
       } catch (e) {}
     });
 
@@ -296,10 +313,22 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
     const { page } = app;
     await page.evaluate(() => {
       try {
+        if (typeof cfg !== 'undefined') {
+          cfg.offline = true;
+          if (typeof saveCfg === 'function') saveCfg();
+        }
+        if (typeof store !== 'undefined') {
+          store.set('offline', true);
+        }
         const raw = localStorage.getItem('mkt_cfg');
         const c = raw ? JSON.parse(raw) : {};
         c.offline = true;
+        if (!Array.isArray(c.order)) {
+          c.order = ['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
+        }
+        if (!c.eng) c.eng = {};
         localStorage.setItem('mkt_cfg', JSON.stringify(c));
+        localStorage.setItem('mkt_offline', 'true');
       } catch (e) {}
     });
     await page.addInitScript(() => {
@@ -307,7 +336,12 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
         const raw = localStorage.getItem('mkt_cfg');
         const c = raw ? JSON.parse(raw) : {};
         c.offline = true;
+        if (!Array.isArray(c.order)) {
+          c.order = ['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
+        }
+        if (!c.eng) c.eng = {};
         localStorage.setItem('mkt_cfg', JSON.stringify(c));
+        localStorage.setItem('mkt_offline', 'true');
       } catch (e) {}
     });
 
@@ -340,6 +374,54 @@ test.describe('Model Hub and Settings model rows rendering stability across all 
 
     // Zero requests to Ollama port 11434 during boot and tab navigation
     expect(bootCalls).toEqual([]);
+  });
+
+  test('restores offline mode from storage on fresh boot with #offBtn class on and zero background network requests', async ({ app }) => {
+    const { page } = app;
+
+    await page.evaluate(() => {
+      try {
+        if (typeof cfg !== 'undefined') {
+          cfg.offline = true;
+          if (typeof saveCfg === 'function') saveCfg();
+        }
+        if (typeof store !== 'undefined') {
+          store.set('offline', true);
+        }
+        const raw = localStorage.getItem('mkt_cfg');
+        const c = raw ? JSON.parse(raw) : {};
+        c.offline = true;
+        if (!Array.isArray(c.order)) {
+          c.order = ['gemini','openrouter','mistral','cerebras','openai','claude','ollama','custom','chrome','google','mymemory','nllb','groq'];
+        }
+        if (!c.eng) c.eng = {};
+        localStorage.setItem('mkt_cfg', JSON.stringify(c));
+        localStorage.setItem('mkt_offline', 'true');
+      } catch (e) {}
+    });
+
+    const requests = [];
+    await page.route(/(localhost|127\.0\.0\.1|\[::1\]):11434/, route => {
+      requests.push(route.request().url());
+      route.abort('connectionrefused');
+    });
+
+    await page.reload();
+    await page.waitForLoadState('domcontentloaded');
+
+    const offBtn = page.locator('#offBtn');
+    await expect(offBtn).toHaveClass(/\bon\b/);
+
+    const offlineState = await page.evaluate(() => ({
+      cfgOffline: cfg.offline,
+      isOffResult: typeof isOff === 'function' ? isOff() : null,
+      storedOffline: store.get('offline')
+    }));
+
+    expect(offlineState.cfgOffline).toBe(true);
+    expect(offlineState.isOffResult).toBe(true);
+    expect(offlineState.storedOffline).toBe(true);
+    expect(requests).toEqual([]);
   });
 });
 
