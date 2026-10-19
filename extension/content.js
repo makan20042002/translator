@@ -1809,8 +1809,6 @@
           if (el._makanOrigDir !== null) el.setAttribute('dir', el._makanOrigDir);
           else el.removeAttribute('dir');
           delete el._makanOrigDir;
-        } else {
-          el.removeAttribute('dir');
         }
         if (el._makanOrigAlign !== undefined) {
           if (el._makanOrigAlign !== null) el.style.textAlign = el._makanOrigAlign;
@@ -1847,7 +1845,19 @@
       }
       el.removeAttribute('data-makan-orig');
       el.removeAttribute('data-makan-trans');
-      el.removeAttribute('dir');
+      if (el._makanOrigDir !== undefined) {
+        if (el._makanOrigDir !== null) el.setAttribute('dir', el._makanOrigDir);
+        else el.removeAttribute('dir');
+        delete el._makanOrigDir;
+      }
+      if (el._makanOrigAlign !== undefined) {
+        if (el._makanOrigAlign !== null) el.style.textAlign = el._makanOrigAlign;
+        else {
+          el.style.removeProperty('text-align');
+          if (!el.getAttribute('style')) el.removeAttribute('style');
+        }
+        delete el._makanOrigAlign;
+      }
       el.onmouseenter = null;
       el.onmouseleave = null;
     });

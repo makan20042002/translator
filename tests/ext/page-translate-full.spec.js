@@ -354,4 +354,56 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('e) RTL target sets dir=rtl and restores it; LTR target does not change dir', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      document.body.innerHTML = `
+        <h1 id="rtl-h1">Sample Heading</h1>
+        <p id="p-plain">Plain paragraph without dir attribute.</p>
+        <p id="p-ltr" dir="ltr" style="text-align: left;">LTR paragraph with explicit left alignment.</p>
+      `;
+    });
+
+    // 1. Translate to RTL (target fa)
+    await ext.patchConfig({ tgt: 'fa' });
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA');
+
+    // Check RTL direction and start alignment applied
+    await expect(page.locator('#p-plain')).toHaveAttribute('dir', 'rtl');
+    expect(await page.locator('#p-plain').evaluate(el => el.style.textAlign)).toBe('start');
+
+    await expect(page.locator('#p-ltr')).toHaveAttribute('dir', 'rtl');
+    expect(await page.locator('#p-ltr').evaluate(el => el.style.textAlign)).toBe('start');
+
+    // 2. Click Show Original
+    await inShadow(page, '#makanRestoreBtn').click();
+    await expect(banner).toHaveCount(0);
+
+    // Verify p-plain has dir attribute removed and no inline text-align
+    expect(await page.locator('#p-plain').getAttribute('dir')).toBeNull();
+    expect(await page.locator('#p-plain').evaluate(el => el.style.textAlign)).toBe('');
+
+    // Verify p-ltr has dir="ltr" and style text-align: left restored
+    expect(await page.locator('#p-ltr').getAttribute('dir')).toBe('ltr');
+    expect(await page.locator('#p-ltr').evaluate(el => el.style.textAlign)).toBe('left');
+
+    // 3. Translate to LTR (target de)
+    await ext.patchConfig({ tgt: 'de' });
+    await ext.clickContextMenu('makan-translate-page', page.url());
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to DE');
+
+    // Verify LTR target does NOT change dir
+    expect(await page.locator('#p-plain').getAttribute('dir')).toBeNull();
+    expect(await page.locator('#p-ltr').getAttribute('dir')).toBe('ltr');
+    expect(await page.locator('#p-ltr').evaluate(el => el.style.textAlign)).toBe('left');
+
+    await page.close();
+  });
 });
