@@ -302,8 +302,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   pLangToggle.onclick = async () => {
     const next = currentUi === 'en' ? 'fa' : 'en';
     cfg.ui = next;
-    await chrome.runtime.sendMessage({ action: 'save-config', cfg });
     applyUi(next);
+    await chrome.runtime.sendMessage({ action: 'save-config', cfg });
   };
 
   // Open Options page

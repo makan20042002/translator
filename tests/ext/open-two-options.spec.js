@@ -188,4 +188,24 @@ test.describe('Extension: Open in Windows app and Open in browser side by side',
     expect(pingReq.headers['x-makan-open']).toBe('1');
   });
 
+  test('Popup language toggle switches labels immediately and toggles back', async ({ ext }) => {
+    const popup = await openRealPopup(ext);
+
+    // Initial EN
+    let appTitle = await popup.eval(`document.querySelector('#pOpenWebApp .p-open-title')?.textContent.trim()`);
+    expect(appTitle).toBe('Open in Windows app');
+
+    // Switch to FA
+    await popup.click('#pLangToggle');
+    appTitle = await popup.eval(`document.querySelector('#pOpenWebApp .p-open-title')?.textContent.trim()`);
+    expect(appTitle).toBe('باز کردن در برنامه ویندوز');
+
+    // Switch back to EN
+    await popup.click('#pLangToggle');
+    appTitle = await popup.eval(`document.querySelector('#pOpenWebApp .p-open-title')?.textContent.trim()`);
+    expect(appTitle).toBe('Open in Windows app');
+
+    await popup.close();
+  });
+
 });
