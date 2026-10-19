@@ -64,13 +64,13 @@ test.describe('Web app: Compare tab multi-target language support', () => {
     // Verify stub calls: Google and MyMemory requests carry both 'fa' and 'de' target codes
     const googleCalls = stub.calls('clients5.google.com');
     expect(googleCalls.length).toBeGreaterThanOrEqual(2);
-    const googleTgts = googleCalls.map(c => new URL(c.url, 'http://stub').searchParams.get('tl'));
+    const googleTgts = googleCalls.map(c => new URLSearchParams(c.query || c.body).get('tl') || (c.url ? new URL(c.url, 'http://stub').searchParams.get('tl') : null));
     expect(googleTgts).toContain('fa');
     expect(googleTgts).toContain('de');
 
     const mmCalls = stub.calls('api.mymemory.translated.net');
     expect(mmCalls.length).toBeGreaterThanOrEqual(2);
-    const mmPairs = mmCalls.map(c => new URL(c.url, 'http://stub').searchParams.get('langpair'));
+    const mmPairs = mmCalls.map(c => new URLSearchParams(c.query || c.body).get('langpair') || (c.url ? new URL(c.url, 'http://stub').searchParams.get('langpair') : null));
     expect(mmPairs.some(p => p && p.endsWith('|fa'))).toBe(true);
     expect(mmPairs.some(p => p && p.endsWith('|de'))).toBe(true);
 
