@@ -1503,6 +1503,21 @@
     return units;
   }
 
+  // Helper: Wait until document becomes visible if tab is hidden
+  async function waitUntilVisible() {
+    if (!document.hidden && document.visibilityState !== 'hidden') return;
+    await new Promise(resolve => {
+      const onVis = () => {
+        if (!document.hidden && document.visibilityState !== 'hidden') {
+          document.removeEventListener('visibilitychange', onVis);
+          resolve();
+        }
+      };
+      document.addEventListener('visibilitychange', onVis);
+    });
+  }
+  window.__makanWaitUntilVisible = waitUntilVisible;
+
   async function translateWholePage() {
     if (currentOfferBarElem) {
       currentOfferBarElem.remove();
@@ -1592,21 +1607,6 @@
     let lastPageFailure = '';
     isTranslating = true;
     isTranslationStopped = false;
-
-  // Helper: Wait until document becomes visible if tab is hidden
-  async function waitUntilVisible() {
-    if (!document.hidden && document.visibilityState !== 'hidden') return;
-    await new Promise(resolve => {
-      const onVis = () => {
-        if (!document.hidden && document.visibilityState !== 'hidden') {
-          document.removeEventListener('visibilitychange', onVis);
-          resolve();
-        }
-      };
-      document.addEventListener('visibilitychange', onVis);
-    });
-  }
-  window.__makanWaitUntilVisible = waitUntilVisible;
 
     showPageBanner(`Translated 0 of ${units.length}`, true, false, false, tgt);
 
@@ -1987,91 +1987,98 @@
     isTranslating = true;
     isTranslationStopped = false;
 
-    for (let bIdx = 0; bIdx < batches.length; bIdx++) {
-      if (isTranslationStopped) break;
+    try {
+      for (let bIdx = 0; bIdx < batches.length; bIdx++) {
+        if (isTranslationStopped) break;
 
-      // Pause while tab is hidden
-      await waitUntilVisible();
-      if (isTranslationStopped) break;
+        // Pause while tab is hidden
+        await waitUntilVisible();
+        if (isTranslationStopped) break;
 
-      const batch = batches[bIdx];
-      const uniqueTexts = Array.from(new Set(batch.map(u => u.original)));
+        const batch = batches[bIdx];
+        const uniqueTexts = Array.from(new Set(batch.map(u => u.original)));
 
-      try {
-        const res = await askBackground({
-          action: 'translate-text',
-          items: uniqueTexts,
-          src: 'auto',
-          tgt: newTgt,
-          tone: cfg?.tone,
-          subject: cfg?.subject
-        });
-
-        if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
-
-        if (isTranslationStopped) {
-          isTranslating = false;
-          return;
-        }
-
-        if (res && res.ok && res.results) {
-          if (res.engineName || res.engineUsed) {
-            lastEngineName = res.engineName || res.engineUsed;
-          }
-          const transMap = new Map();
-          uniqueTexts.forEach((orig, idx) => {
-            transMap.set(orig, res.results[idx] || orig);
+        try {
+          const res = await askBackground({
+            action: 'translate-text',
+            items: uniqueTexts,
+            src: 'auto',
+            tgt: newTgt,
+            tone: cfg?.tone,
+            subject: cfg?.subject
           });
 
-          batch.forEach(unit => {
-            const original = unit.original;
-            const translated = transMap.get(original) || original;
+          if (!res.ok) lastPageFailure = plainFailure(cspBlockedReason() || res.error);
 
-            if (unit.type === 'element') {
-              const el = unit.el;
-              el.setAttribute('data-makan-orig', original);
-              el.setAttribute('data-makan-trans', translated);
-              if (el._makanOrigHtml === undefined) el._makanOrigHtml = unit.origHtml !== undefined ? unit.origHtml : el.innerHTML;
-              el.innerText = translated;
-              if (isRtl(newTgt)) {
-                if (el._makanOrigDir === undefined) el._makanOrigDir = el.getAttribute('dir');
-                if (el._makanOrigAlign === undefined) el._makanOrigAlign = el.style.textAlign || null;
-                el.setAttribute('dir', 'rtl');
-                el.style.textAlign = 'start';
-              } else {
-                if (el._makanOrigDir !== undefined && el._makanOrigDir !== null) {
-                  el.setAttribute('dir', el._makanOrigDir);
-                } else {
-                  el.removeAttribute('dir');
-                }
-                if (el._makanOrigAlign !== undefined && el._makanOrigAlign !== null) {
-                  el.style.textAlign = el._makanOrigAlign;
-                } else {
-                  el.style.removeProperty('text-align');
-                  if (!el.getAttribute('style')) el.removeAttribute('style');
-                }
-              }
-              attachTooltip(el, original);
-            } else if (unit.type === 'attr') {
-              const el = unit.el;
-              el.setAttribute('data-makan-orig-' + unit.attr, unit.original);
-              el.setAttribute(unit.attr, translated);
-            } else if (unit.type === 'title') {
-              if (origDocTitle === null) origDocTitle = unit.original;
-              document.title = translated;
-            }
-          });
-
-          completed += batch.length;
           if (isTranslationStopped) {
             isTranslating = false;
             return;
           }
-          showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}`, true, false, false, newTgt);
+
+          if (res && res.ok && res.results) {
+            if (res.engineName || res.engineUsed) {
+              lastEngineName = res.engineName || res.engineUsed;
+            }
+            const transMap = new Map();
+            uniqueTexts.forEach((orig, idx) => {
+              transMap.set(orig, res.results[idx] || orig);
+            });
+
+            batch.forEach(unit => {
+              const original = unit.original;
+              const translated = transMap.get(original) || original;
+
+              if (unit.type === 'element') {
+                const el = unit.el;
+                el.setAttribute('data-makan-orig', original);
+                el.setAttribute('data-makan-trans', translated);
+                if (el._makanOrigHtml === undefined) el._makanOrigHtml = unit.origHtml !== undefined ? unit.origHtml : el.innerHTML;
+                el.innerText = translated;
+                if (isRtl(newTgt)) {
+                  if (el._makanOrigDir === undefined) el._makanOrigDir = el.getAttribute('dir');
+                  if (el._makanOrigAlign === undefined) el._makanOrigAlign = el.style.textAlign || null;
+                  el.setAttribute('dir', 'rtl');
+                  el.style.textAlign = 'start';
+                } else {
+                  if (el._makanOrigDir !== undefined && el._makanOrigDir !== null) {
+                    el.setAttribute('dir', el._makanOrigDir);
+                  } else {
+                    el.removeAttribute('dir');
+                  }
+                  if (el._makanOrigAlign !== undefined && el._makanOrigAlign !== null) {
+                    el.style.textAlign = el._makanOrigAlign;
+                  } else {
+                    el.style.removeProperty('text-align');
+                    if (!el.getAttribute('style')) el.removeAttribute('style');
+                  }
+                }
+                attachTooltip(el, original);
+              } else if (unit.type === 'attr') {
+                const el = unit.el;
+                el.setAttribute('data-makan-orig-' + unit.attr, unit.original);
+                el.setAttribute(unit.attr, translated);
+              } else if (unit.type === 'title') {
+                if (origDocTitle === null) origDocTitle = unit.original;
+                document.title = translated;
+              }
+            });
+
+            completed += batch.length;
+            if (isTranslationStopped) {
+              isTranslating = false;
+              return;
+            }
+            showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}`, true, false, false, newTgt);
+          }
+        } catch (err) {
+          lastPageFailure = plainFailure(cspBlockedReason() || err);
         }
-      } catch (err) {
-        lastPageFailure = plainFailure(cspBlockedReason() || err);
       }
+    } catch (unexpectedErr) {
+      isTranslating = false;
+      const why = plainFailure(cspBlockedReason() || unexpectedErr);
+      showPageBanner(`Page not translated: ${why}`, false, true, failureNeedsOptions(why), newTgt);
+      return;
     }
 
     if (isTranslationStopped) {
