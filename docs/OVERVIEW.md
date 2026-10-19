@@ -260,6 +260,10 @@ Subtitle, Document, Compare and the Voice tab all use the same
    `POST /__makan/open` with the text and language pair to bring the desktop app
    window forward. If the desktop app is not running or the ping check is
    rejected, the extension falls back to opening the web app in a browser tab.
+8. **Whole-page translation**: Whole-page translate reads the saved target
+   language on every start (refreshing from settings and updating dynamically
+   if changed in popup/options). Retranslate after Stop only re-translates the
+   units that were already done.
 
 ## 4. Where settings and keys are stored
 
