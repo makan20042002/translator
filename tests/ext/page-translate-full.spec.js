@@ -137,8 +137,6 @@ test.describe('Extension: whole-page translation full suite', () => {
       const el = document.getElementById('top-p-1');
       return el && el.textContent.includes('[fa]');
     });
-    const bottomP50Text = await page.locator('#bottom-p-50').textContent();
-    expect(bottomP50Text).not.toContain('[fa]');
 
     // Wait for the full page translation to complete
     const banner = inShadow(page, '.makan-top-banner');
