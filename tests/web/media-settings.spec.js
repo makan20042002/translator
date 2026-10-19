@@ -154,6 +154,56 @@ test.describe('Web app: Media settings persistence and GPU choice', () => {
     expect(typeof gpuResults.gpuLargeSetting).toBe('object');
     expect(gpuResults.gpuLargeSetting).toHaveProperty('encoder_model');
     expect(gpuResults.gpuLargeSetting).toHaveProperty('decoder_model_merged');
+    expect(gpuResults.gpuLargeSetting).toEqual({ encoder_model: 'fp16', decoder_model_merged: 'q4f16' });
+  });
+
+  test('getWhisperChoice contract distinguishes base models (boolean true) and dtype models (object)', async ({ app }) => {
+    const { page } = app;
+    await mouseClick(page, page.locator('#tabs button[data-tab="media"]'));
+    await expect(page.locator('#tab-media')).toBeVisible();
+
+    const res = await page.evaluate(async () => {
+      const origGpu = navigator.gpu;
+      try {
+        Object.defineProperty(navigator, 'gpu', {
+          configurable: true,
+          get: () => ({ requestAdapter: async () => ({}) })
+        });
+
+        // 1. Base model with GPU on -> boolean true
+        window.MediaTranslate.host.setWhisperChoice('base');
+        store.set('whisper_webgpu', 'base');
+        store.set('whisper_wasm', '');
+        const baseChoice = window.MediaTranslate.host.getWhisperChoice();
+
+        // 2. Large v3 (dtype model) with GPU on -> dtype object
+        window.MediaTranslate.host.setWhisperChoice('large-v3');
+        store.set('whisper_webgpu', 'large-v3');
+        store.set('whisper_wasm', '');
+        const largeChoice = window.MediaTranslate.host.getWhisperChoice();
+
+        // 3. Large v3 Turbo (dtype model) with GPU on -> dtype object
+        window.MediaTranslate.host.setWhisperChoice('large-v3-turbo');
+        store.set('whisper_webgpu', 'large-v3-turbo');
+        store.set('whisper_wasm', '');
+        const turboChoice = window.MediaTranslate.host.getWhisperChoice();
+
+        return {
+          baseGpu: baseChoice?.gpu,
+          largeGpu: largeChoice?.gpu,
+          turboGpu: turboChoice?.gpu
+        };
+      } finally {
+        Object.defineProperty(navigator, 'gpu', {
+          configurable: true,
+          get: () => origGpu
+        });
+      }
+    });
+
+    expect(res.baseGpu).toBe(true);
+    expect(res.largeGpu).toEqual({ encoder_model: 'fp16', decoder_model_merged: 'q4f16' });
+    expect(res.turboGpu).toEqual({ encoder_model: 'fp16', decoder_model_merged: 'q4' });
   });
 
   test('with no WebGPU, getWhisperChoice().gpu is strictly false', async ({ app }) => {

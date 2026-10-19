@@ -37,6 +37,17 @@
     return Boolean(m.gpu || m.webgpu === 'optional');
   }
 
+  function resolveMediaWhisperGpu(m) {
+    if (!getMediaWhisperGpu(m)) return false;
+    if (m && m.gpuFiles && m.gpuFiles.length > 0 && typeof m.gpu === 'object' && m.gpu) {
+      return m.gpu;
+    }
+    if (m && typeof m.dtype === 'object' && m.dtype) {
+      return m.dtype;
+    }
+    return true;
+  }
+
   function getMediaWhisperChoice() {
     const m = (typeof asrModel === 'function') ? asrModel() : null;
     if (!m) return null;
@@ -47,7 +58,7 @@
       name: (typeof mcText === 'function') ? mcText(m.name) : (m.name || m.repo),
       memMB: m.memMB || 1000,
       ready: (typeof mcReady === 'function') ? mcReady(m) : false,
-      gpu: getMediaWhisperGpu(m) ? (m.gpu || true) : false,
+      gpu: resolveMediaWhisperGpu(m),
       gpuVariant: m.gpu || null,
       hasGpuVariant: hasGpu
     };
