@@ -313,6 +313,7 @@ function mcRow(m){
   const failFile=failInfo.file||'';
   const failUrl=failInfo.url||'';
   const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
+  const gpuFallback=(typeof window!=='undefined'&&window.gpuFallbacks?.[m.repo])||'';
   const gpu=m.webgpu==='optional'?L('mdlGpuOpt'):L('mdlGpuNo');
   const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
   const gpuText=(m.job==='speak'||m.job==='ocr')?L('mdlGpuNo'):gpu;
@@ -323,6 +324,7 @@ function mcRow(m){
     <div class="mdl-h"><span class="dot${ready?' ok':''}"></span><strong>${esc(mcText(m.name))}</strong>${badges}<span class="sp"></span><span class="meta" id="mdlSt-${m.id}">${esc(st)}</span></div>
     <div class="mdl-m"><span title="${esc(L('mdlSizeTip'))}">${esc(L('mdlSize'))} ${mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes)}${m.extraBytes?` (+${mcSize(m.extraBytes)} ${esc(L('mdlEngineOnce'))})`:''}</span> · <span title="${esc(L('mdlMemTip'))}">${esc(L('mdlMem'))} ≈ ${mcSize(m.memMB*1048576)}</span> · ${esc(L('mdlGpu'))}: ${esc(gpuText)}${m.speed?` · ${esc(L('mdlSpeed'))} ${m.speed<1?m.speed.toFixed(1):Math.round(m.speed*10)/10} ${esc(L('mdlSpeedUnit'))}`:''} · ${esc(L('mdlLangs'))}: ${esc(langs)}</div>
     <div class="mdl-g">${esc(mcText(m.good))}</div>
+    ${gpuFallback?`<div class="hub-gpu-fallback" style="font-size:10px;color:var(--text-sub,#888);margin-top:2px;"><strong>WebGPU fallback:</strong> ${esc(gpuFallback)}</div>`:''}
     ${failed?`<div class="hub-model-error mdl-err" style="font-size:11px;color:var(--err-text,#ef4444);margin-top:4px;word-break:break-all;"><strong>Error:</strong> <span class="hub-error-msg">${esc(failMsg)}</span>${failFile?` · <code class="hub-error-file">${esc(failFile)}</code>`:''}${failUrl?` · <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url">${esc(failUrl)}</a>`:''}${failDetails?`<details class="hub-error-details-wrap" style="margin-top:4px;"><summary class="hub-error-toggle" style="cursor:pointer;color:var(--text-sub,#888);user-select:none;">Show details</summary><pre class="hub-error-details" style="margin:4px 0 0;padding:4px 6px;background:rgba(0,0,0,0.06);border-radius:4px;white-space:pre-wrap;font-family:monospace;font-size:10px;color:inherit;">${esc(failDetails)}</pre></details>`:''}</div>`:''}
     <div class="prog" id="mdlProg-${m.id}"${busy?'':' hidden'}><i id="mdlBar-${m.id}"></i></div>
     <div class="mdl-a">
@@ -475,6 +477,7 @@ function renderModelHub(){
         <span>Langs: ${esc(langs)}</span>
       </div>
       <p class="hub-model-desc">${esc(mcText(m.good))}</p>
+      ${gpuFallback?`<div class="hub-gpu-fallback" style="margin-top:4px;font-size:11px;color:var(--text-sub,#888);word-break:break-all;"><strong>WebGPU fallback:</strong> ${esc(gpuFallback)}</div>`:''}
       ${failed?`<div class="hub-model-error" style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;color:var(--err-text,#ef4444);word-break:break-all;">
         <div class="hub-error-text"><strong>${esc(L('errPrefix')||'Error')}:</strong> <span class="hub-error-msg">${esc(failMsg||'Download failed')}</span></div>
         ${failFile?`<div class="hub-error-file-wrap" style="margin-top:3px;"><strong>${esc(L('file')||'File')}:</strong> <code class="hub-error-file">${esc(failFile)}</code></div>`:''}

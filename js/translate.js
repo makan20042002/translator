@@ -737,6 +737,15 @@ function createAiWorker(role){
     const m=e.data;
     if(m.type==='progress'){onProg(m.p,m.repo);return}
     if(m.type==='asr'){onAsrProg(m);return}
+    if(m.type==='gpuFallback'){
+      if(typeof window!=='undefined'){
+        if(!window.gpuFallbacks)window.gpuFallbacks={};
+        window.gpuFallbacks[m.repo]=m.reason;
+        if(typeof renderModelHub==='function')renderModelHub();
+        if(typeof mcRender==='function')mcRender();
+      }
+      return;
+    }
     const p=pend[m.id];
     if(!p)return;
     delete pend[m.id];

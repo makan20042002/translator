@@ -81,7 +81,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     expect(catalogCheck.largeV3.webgpu).toBe('optional');
     expect(catalogCheck.largeV3.gpuVerified).toBe(false);
     expect(catalogCheck.largeV3.bytes).toBe(1825000000);
-    expect(catalogCheck.largeV3.gpuBytes).toBe(3090000000);
+    expect(catalogCheck.largeV3.gpuBytes).toBe(1880000000);
     expect(catalogCheck.largeV3.memMB).toBe(4000);
     expect(catalogCheck.largeV3.files).toEqual([
       ['onnx/encoder_model_quantized.onnx', 645000000],
@@ -89,11 +89,11 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     ]);
     expect(catalogCheck.largeV3.gpuFiles).toEqual([
       ['onnx/encoder_model_fp16.onnx', 1270000000],
-      ['onnx/decoder_model_merged_fp16.onnx', 1820000000]
+      ['onnx/decoder_model_merged_q4f16.onnx', 610000000]
     ]);
     expect(catalogCheck.largeV3.gpu).toEqual({
       encoder_model: 'fp16',
-      decoder_model_merged: 'fp16'
+      decoder_model_merged: 'q4f16'
     });
 
     // Whisper Distil Large v3 assertions (CPU only, gpu: null)
@@ -122,7 +122,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     expect(thirdPartyContent).toContain('**Licence**: MIT');
   });
 
-  test('Hub lists both with GPU download size (2.9 GB for Large v3, 731 MB for Distil) when WebGPU is mocked present', async ({ app }) => {
+  test('Hub lists both with GPU download size (1.8 GB for Large v3, 731 MB for Distil) when WebGPU is mocked present', async ({ app }) => {
     const { page } = app;
 
     await page.addInitScript(() => {
@@ -138,7 +138,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
 
     const largeMeta = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"] .hub-model-meta');
     await expect(largeMeta).toBeVisible();
-    await expect(largeMeta).toContainText('Download: 2.9 GB');
+    await expect(largeMeta).toContainText('Download: 1.8 GB');
 
     const distilMeta = page.locator('.hub-model-card[data-hub-mdl="asr-distil-large-v3"] .hub-model-meta');
     await expect(distilMeta).toBeVisible();
@@ -298,7 +298,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     expect(capturedLarge.length).toBeGreaterThanOrEqual(1);
     expect(capturedLarge[0].gpu).toEqual({
       encoder_model: 'fp16',
-      decoder_model_merged: 'fp16'
+      decoder_model_merged: 'q4f16'
     });
 
     // Now test with Distil Large v3
@@ -520,6 +520,29 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
     const deviceEl = page.locator('#tab-media .mt-asr-device');
     await expect(deviceEl).toBeVisible();
     await expect(deviceEl).toContainText('Failed to create WebGPU adapter');
+  });
+
+  test('Hub details and running-on line report fallback reason when Large v3 GPU load fails and falls back to CPU (ITEM 2)', async ({ app }) => {
+    const { page } = app;
+
+    // Simulate GPU fallback received from ai-worker
+    await page.evaluate(() => {
+      if (!window.gpuFallbacks) window.gpuFallbacks = {};
+      window.gpuFallbacks['onnx-community/whisper-large-v3-ONNX'] = 'WebGPU device creation failed: out of memory';
+      if (typeof window.renderModelHub === 'function') {
+        window.renderModelHub();
+      }
+    });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    await expect(page.locator('#tab-models')).toBeVisible();
+
+    const card = page.locator('.hub-model-card[data-hub-mdl="asr-large-v3"]');
+    await expect(card).toBeVisible();
+
+    const fallbackEl = card.locator('.hub-gpu-fallback');
+    await expect(fallbackEl).toBeVisible();
+    await expect(fallbackEl).toContainText('WebGPU device creation failed: out of memory');
   });
 
   test('theme contrast >= 4.5 in light themes, makan-lab unchanged, and RTL layout at 360 and 1280 px', async ({ app }) => {

@@ -79,8 +79,8 @@ for (const w of WHISPER) {
   } else if (w.gpu === 'large-v3') {
     const sz = await sizes(w.repo);
     const small = e.files.filter(([f]) => !f.endsWith('.onnx'));
-    const LARGE_V3_GPU = ['onnx/encoder_model_fp16.onnx', 'onnx/decoder_model_merged_fp16.onnx'];
-    e.gpu = { encoder_model: 'fp16', decoder_model_merged: 'fp16' };
+    const LARGE_V3_GPU = ['onnx/encoder_model_fp16.onnx', 'onnx/decoder_model_merged_q4f16.onnx'];
+    e.gpu = { encoder_model: 'fp16', decoder_model_merged: 'q4f16' };
     e.gpuVerified = false;
     e.gpuBytes = small.reduce((a, [, b]) => a + b, 0) + LARGE_V3_GPU.reduce((a, f) => a + (sz[f] || 0), 0);
     e.gpuFiles = [...small, ...LARGE_V3_GPU.map(f => [f, sz[f] || 0])];

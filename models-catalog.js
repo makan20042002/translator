@@ -297,7 +297,7 @@ self.MODEL_CATALOG = {
    "rec": true,
    "gpu": {
     "encoder_model": "fp16",
-    "decoder_model_merged": "fp16"
+    "decoder_model_merged": "q4f16"
    },
    "gpuVerified": false,
    "good": {
@@ -324,15 +324,15 @@ self.MODEL_CATALOG = {
    ],
    "bytes": 1825000000,
    "memMB": 4000,
-   "gpuBytes": 3090000000,
+   "gpuBytes": 1880000000,
    "gpuFiles": [
     [
      "onnx/encoder_model_fp16.onnx",
      1270000000
     ],
     [
-     "onnx/decoder_model_merged_fp16.onnx",
-     1820000000
+     "onnx/decoder_model_merged_q4f16.onnx",
+      610000000
     ]
    ],
    "webgpu": "optional"

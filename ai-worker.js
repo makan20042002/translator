@@ -7,7 +7,7 @@ env.allowLocalModels = false;            // models come from the Hugging Face hu
 const DEFAULT_TR = { repo: 'Xenova/nllb-200-distilled-600M', kind: 'nllb' };
 const OLD_GPU = { encoder_model: 'fp32', decoder_model_merged: 'q4' };
 const TURBO_GPU = { encoder_model: 'fp16', decoder_model_merged: 'q4' };
-const LARGE_V3_GPU = { encoder_model: 'fp16', decoder_model_merged: 'fp16' };
+const LARGE_V3_GPU = { encoder_model: 'fp16', decoder_model_merged: 'q4f16' };
 const defaultAsr = name => {
   if (name === 'large-v3-turbo') return { repo: 'onnx-community/whisper-large-v3-turbo', gpu: TURBO_GPU };
   if (name === 'large-v3') return { repo: 'onnx-community/whisper-large-v3-ONNX', gpu: LARGE_V3_GPU };
@@ -62,6 +62,8 @@ const getAsr = async (spec, forceWasm = false) => {
       }));
     } catch (gpuErr) {
       delete loaded[key];
+      const reason = String(gpuErr?.message || gpuErr || '').slice(0, 200);
+      postMessage({ type: 'gpuFallback', repo: model, reason });
     }
   }
   return (loaded[key] = await pipeline('automatic-speech-recognition', model, {
