@@ -5,14 +5,15 @@
  * ITEM 3: Test button next to engine picker.
  */
 
-const { test, expect, mouseClick } = require('../support/fixtures');
+const { test, expect, mouseClick, chooseFile } = require('../support/fixtures');
 
 test.describe('Engine Test Button (ITEM 3)', () => {
 
-  test('success path with stubbed google endpoint shows translated text and time, and touches no history', async ({ app }) => {
+  test('success path with stubbed google endpoint shows translated text and time, and touches no history', async ({ app, files }) => {
     const { page, stub } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const select = picker.locator('.engine-picker-select');
     await select.selectOption('google');
@@ -47,10 +48,11 @@ test.describe('Engine Test Button (ITEM 3)', () => {
     expect(afterHist).toEqual([]);
   });
 
-  test('failure path shows plain reason without leaking keys', async ({ app }) => {
+  test('failure path shows plain reason without leaking keys', async ({ app, files }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const select = picker.locator('.engine-picker-select');
     await select.selectOption('google');
@@ -76,10 +78,11 @@ test.describe('Engine Test Button (ITEM 3)', () => {
     expect(statusText).not.toMatch(/(?:AIza[0-9A-Za-z_-]{35}|(?:sk|gsk)_[a-zA-Z0-9_-]{20,})/);
   });
 
-  test('clicking while running cancels test without sending second request', async ({ app }) => {
+  test('clicking while running cancels test without sending second request', async ({ app, files }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const select = picker.locator('.engine-picker-select');
     await select.selectOption('google');
@@ -112,10 +115,11 @@ test.describe('Engine Test Button (ITEM 3)', () => {
     expect(requestCount).toBe(1);
   });
 
-  test('displays correct strings in EN and FA for Test button and status', async ({ app }) => {
+  test('displays correct strings in EN and FA for Test button and status', async ({ app, files }) => {
     const { page } = app;
 
     await mouseClick(page, page.locator('#tabs button[data-tab="sub"]'));
+    await chooseFile(page, page.locator('#sDrop'), files.srt);
     const picker = page.locator('#subEnginePickerHost .engine-picker');
     const testBtn = picker.locator('.engine-picker-test-btn');
 
