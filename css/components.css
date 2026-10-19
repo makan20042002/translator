@@ -101,10 +101,11 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
 .engine-picker-select{min-width:210px;max-width:100%;font-family:var(--body);font-size:13.5px;color:var(--text);background:var(--surface2,var(--panel));border:1px solid var(--border);border-radius:var(--r-s);padding:5px 8px}
 .engine-picker-select option:disabled{color:var(--muted)}
 .engine-picker-test-btn{color:var(--text);font-size:12.5px;padding:5px 12px;height:32px;white-space:nowrap}
-.engine-picker-sub-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex-wrap:wrap}
-.engine-picker-using{color:var(--text);font-size:12px}
-.engine-picker-using-val{color:var(--text);font-weight:600}
-.engine-picker-keys-link{color:var(--accent);text-decoration:underline;font-size:12px;cursor:pointer}
+.engine-picker-sub-row{display:flex;align-items:center;gap:6px;font-size:12px;color:var(--muted);flex-wrap:nowrap;min-width:0;max-width:100%;overflow:hidden}
+.engine-picker-using{color:var(--text);font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:0 1 auto}
+.engine-picker-using-val{color:var(--text);font-weight:600;white-space:nowrap}
+.engine-picker-sep{white-space:nowrap;flex-shrink:0}
+.engine-picker-keys-link{color:var(--accent);text-decoration:underline;font-size:12px;cursor:pointer;white-space:nowrap;flex-shrink:0}
 .engine-picker-keys-link:hover{text-decoration:underline;opacity:.85}
 .engine-picker-status{font-size:12px;color:var(--muted);padding:2px 0;min-height:18px;word-break:break-word}
 .engine-picker-status.ok{color:var(--text)}
@@ -119,6 +120,6 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   .engine-picker-model-select{min-width:0;width:100%}
   .engine-picker-main-row{width:100%}
   .engine-picker-label{flex:1 1 auto;min-width:0}
-  .engine-picker-sub-row{max-width:100%;word-break:break-word}
-  .engine-picker-using{min-width:0;word-break:break-word}
+  .engine-picker-sub-row{max-width:100%;flex-wrap:nowrap;overflow:hidden}
+  .engine-picker-using{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
 }

@@ -169,6 +169,7 @@
         }
         usingVal.textContent = eng.name + (model ? ` · ${model}` : '');
       }
+      usingSpan.title = (usingLabel.textContent || '') + (usingVal.textContent || '');
     }
 
     let refreshSeq = 0;

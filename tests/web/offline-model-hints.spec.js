@@ -246,5 +246,68 @@ test.describe('Offline model hint line across tabs (Item 3)', () => {
       }
     });
   }
+
+  test('document engine picker sub-row does not wrap at 360x700 and preserves identical header height regardless of model name length', async ({ app }) => {
+    const { page } = app;
+    await page.setViewportSize({ width: 360, height: 700 });
+
+    await mouseClick(page, page.locator('#tabs button[data-tab="doc"]'));
+
+    const headerControls = page.locator('.doc-header-controls');
+    const dPicker = page.locator('#docEnginePickerHost .engine-picker-select');
+    const subRow = page.locator('#docEnginePickerHost .engine-picker-sub-row');
+    const usingSpan = page.locator('#docEnginePickerHost .engine-picker-using');
+
+    // State 1: Short / default model
+    await page.evaluate(() => {
+      store.set('ui', 'en');
+      if (typeof ui !== 'undefined') ui = 'en';
+      store.set('mdl', {});
+      store.set('nllb', false);
+      cfg.trModel = 'auto';
+      if (typeof saveCfg === 'function') saveCfg();
+      if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
+      if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
+    });
+
+    await dPicker.selectOption('nllb');
+
+    const controlsBox1 = await headerControls.boundingBox();
+    const subRowBox1 = await subRow.boundingBox();
+    expect(controlsBox1).not.toBeNull();
+    expect(subRowBox1).not.toBeNull();
+
+    // State 2: Longest-named model (mBART-50)
+    await page.evaluate(() => {
+      const cat = self.MODEL_CATALOG?.models || [];
+      const model = cat.find(m => m.id === 'tr-mbart50') || cat.find(m => m.id === 'tr-m2m100-418');
+      if (model) {
+        const d = store.get('mdl', {});
+        d[model.id] = { at: Date.now(), files: model.files.map(f => f[0]) };
+        store.set('mdl', d);
+        if (!mcCache) mcCache = {};
+        mcCache[model.repo] = { bytes: 1000, files: new Map(model.files.map(f => [f[0], f[1]])) };
+        cfg.trModel = model.id;
+        if (typeof saveCfg === 'function') saveCfg();
+      }
+      if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
+      if (typeof updateDocEngineInfo === 'function') updateDocEngineInfo();
+    });
+
+    await dPicker.selectOption('nllb');
+
+    const controlsBox2 = await headerControls.boundingBox();
+    const subRowBox2 = await subRow.boundingBox();
+    expect(controlsBox2).not.toBeNull();
+    expect(subRowBox2).not.toBeNull();
+
+    // Sub-row and controls heights are identical in both states
+    expect(subRowBox2.height, 'sub-row height unchanged between model states').toBe(subRowBox1.height);
+    expect(controlsBox2.height, 'controls height unchanged between model states').toBe(controlsBox1.height);
+
+    // Using span text is truncated with ellipsis and has full title attribute
+    const titleAttr = await usingSpan.getAttribute('title');
+    expect(titleAttr).toMatch(/mBART-50|M2M-100/);
+  });
 });
 
