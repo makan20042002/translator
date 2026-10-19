@@ -234,4 +234,124 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('d) Stop keeps what is done and sends no more requests; changing the banner language re-translates from originals', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.goto(stub.appOrigin + '/__test/article.html');
+    await page.evaluate(() => {
+      // Create 60 paragraphs to ensure multiple batches
+      const container = document.createElement('div');
+      container.id = 'bulk-container';
+      for (let i = 1; i <= 60; i++) {
+        const p = document.createElement('p');
+        p.id = `para-${i}`;
+        p.textContent = `Paragraph text item number ${i} for stop and retranslate test.`;
+        container.appendChild(p);
+      }
+      document.body.appendChild(container);
+    });
+
+    // Slow down the engine host slightly so we can click Stop during progress
+    stub.delayHost('clients5.google.com', 400);
+
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // Wait for the stop button to appear in shadow DOM while translating
+    const stopBtn = inShadow(page, '#makanStopBtn');
+    await expect(stopBtn).toBeVisible({ timeout: 10_000 });
+
+    // Click Stop button
+    await stopBtn.click();
+
+    // After stop, banner should indicate stopped and Show Original should appear
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toContainText('Translation stopped', { timeout: 10_000 });
+    await expect(inShadow(page, '#makanStopBtn')).toHaveCount(0);
+    await expect(inShadow(page, '#makanRestoreBtn')).toBeVisible();
+
+    const callCountAfterStop = stub.calls('clients5.google.com').length;
+    await page.waitForTimeout(1000);
+    // Verify no new requests were sent
+    expect(stub.calls('clients5.google.com').length).toBe(callCountAfterStop);
+
+    // Stop keeps what was already done
+    const firstP = await page.locator('#para-1').textContent();
+    expect(firstP).toContain('[fa]');
+
+    // Now test changing the banner language dropdown: re-translates from saved originals
+    stub.resetModes();
+    stub.clearLog();
+
+    const langSelect = inShadow(page, '#makanBannerTgtSelect');
+    await langSelect.selectOption('de');
+
+    // Wait for re-translation to complete
+    await expect(banner).toContainText('Page translated to DE', { timeout: 15_000 });
+
+    // Verify element now has German translation
+    expect(await page.locator('#para-1').textContent()).toContain('[de]');
+
+    // Verify requests sent to the engine contained the ORIGINAL English text, NOT "[fa] ..."
+    const deCalls = stub.calls('clients5.google.com');
+    expect(deCalls.length).toBeGreaterThan(0);
+    for (const call of deCalls) {
+      const form = new URLSearchParams(call.body);
+      for (const q of form.getAll('q')) {
+        expect(q).not.toContain('[fa]');
+        expect(q).toContain('Paragraph text item number');
+      }
+    }
+
+    await page.close();
+  });
+
+  test('f) banner at 360 px in EN and FA fits cleanly without horizontal overflow and all buttons visible', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.setViewportSize({ width: 360, height: 640 });
+    await page.goto(stub.appOrigin + '/__test/article.html');
+
+    // 1. Test EN banner at 360px
+    await ext.clickContextMenu('makan-translate-page', page.url());
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated to FA');
+
+    // Verify all buttons and controls are visible
+    await expect(inShadow(page, '#makanBannerStatus')).toBeVisible();
+    await expect(inShadow(page, '#makanBannerTgtSelect')).toBeVisible();
+    await expect(inShadow(page, '#makanRestoreBtn')).toBeVisible();
+    await expect(inShadow(page, '#makanBannerClose')).toBeVisible();
+
+    // Verify banner bounding box does not exceed viewport width (360px)
+    const enBox = await banner.boundingBox();
+    expect(enBox.width).toBeLessThanOrEqual(360);
+    expect(enBox.x).toBeGreaterThanOrEqual(0);
+    expect(enBox.x + enBox.width).toBeLessThanOrEqual(361);
+
+    // Restore original to dismiss banner
+    await inShadow(page, '#makanRestoreBtn').click();
+    await expect(banner).toHaveCount(0);
+
+    // 2. Test FA banner at 360px
+    await ext.patchConfig({ ui: 'fa' });
+    await page.reload();
+    await page.setViewportSize({ width: 360, height: 640 });
+
+    await ext.clickContextMenu('makan-translate-page', page.url());
+    const faBanner = inShadow(page, '.makan-top-banner');
+    await expect(faBanner).toBeVisible({ timeout: 15_000 });
+
+    // Verify banner has RTL dir attribute and Persian restore button text
+    await expect(faBanner).toHaveAttribute('dir', 'rtl');
+    await expect(inShadow(page, '#makanRestoreBtn')).toHaveText('نمایش متن اصلی');
+    await expect(inShadow(page, '#makanBannerClose')).toBeVisible();
+
+    // Verify banner bounding box does not overflow at 360px
+    const faBox = await faBanner.boundingBox();
+    expect(faBox.width).toBeLessThanOrEqual(360);
+    expect(faBox.x).toBeGreaterThanOrEqual(0);
+    expect(faBox.x + faBox.width).toBeLessThanOrEqual(361);
+
+    await page.close();
+  });
 });

@@ -431,19 +431,37 @@
   left: 50%;
   transform: translateX(-50%);
   z-index: 2147483646;
+  max-width: min(720px, calc(100vw - 16px));
+  box-sizing: border-box;
   background: var(--glass);
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
   border: 1px solid var(--border2);
-  border-radius: 40px;
-  padding: 6px 16px;
+  border-radius: 20px;
+  padding: 6px 12px;
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  gap: 12px;
+  justify-content: center;
+  gap: 8px;
   box-shadow: 0 12px 32px rgba(0, 0, 0, 0.6), 0 0 0 1px rgba(255, 255, 255, 0.08);
   animation: makanBannerDrop 0.25s cubic-bezier(0.16, 1, 0.3, 1);
   font-size: 13px;
   pointer-events: auto !important;
+}
+
+.makan-banner-select {
+  font-size: 12px;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 12px;
+  background: var(--surface2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  outline: none;
+  cursor: pointer;
+  max-width: 130px;
+  box-sizing: border-box;
 }
 
 @keyframes makanBannerDrop {
@@ -462,6 +480,8 @@
   font-weight: 600;
   cursor: pointer;
   transition: all 0.15s ease;
+  white-space: nowrap;
+  box-sizing: border-box;
 }
 
 .makan-banner-btn:hover {
