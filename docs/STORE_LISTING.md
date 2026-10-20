@@ -81,7 +81,7 @@ Seamlessly export translations to the MAKAN desktop workspace or web app with a 
 4. **Local Key Storage**: API keys are saved exclusively in local extension storage (`chrome.storage.local`) and are never uploaded or synced to external servers.
 5. **No Telemetry**: No analytics packages, tracking beacons, or usage analytics are embedded.
 
-Full policy details are available in [`extension/PRIVACY.md`](file:///c:/Users/Makan/Desktop/translator/extension/PRIVACY.md).
+Full policy details are available in [`extension/PRIVACY.md`](../extension/PRIVACY.md).
 
 ---
 
