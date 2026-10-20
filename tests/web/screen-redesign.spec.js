@@ -23,6 +23,12 @@ test.describe('Web app: Screen tab redesign (Stage 1)', () => {
     await expect(page.locator('#tabScreenLaunchBtn')).toBeVisible();
     await expect(page.locator('#tabScreenOpenOcrBtn')).toBeVisible();
 
+    // Verify #screenGetAppLink has underline non-colour cue
+    const appLink = page.locator('#screenGetAppLink');
+    await expect(appLink).toBeVisible();
+    const textDecor = await appLink.evaluate(el => window.getComputedStyle(el).textDecorationLine);
+    expect(textDecor).toContain('underline');
+
     // Verify absence of country flag images or emojis in language controls
     const hasFlags = await page.locator('.screen-ctrl-group').evaluate(el => {
       const text = el.textContent || '';

@@ -4386,6 +4386,30 @@ html[dir="rtl"] .bub-orig-text {
   color: var(--accent-dark);
 }
 
+.screen-app-link:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
+/* Light themes: use high-contrast token (>= 4.5) for link and hover/focus states */
+[data-theme="light"] .screen-app-link,
+[data-theme="platinum-blue"] .screen-app-link,
+[data-theme="champagne-minimal"] .screen-app-link {
+  color: var(--accent-dark);
+}
+
+[data-theme="light"] .screen-app-link:hover,
+[data-theme="light"] .screen-app-link:focus,
+[data-theme="light"] .screen-app-link:focus-visible,
+[data-theme="platinum-blue"] .screen-app-link:hover,
+[data-theme="platinum-blue"] .screen-app-link:focus,
+[data-theme="platinum-blue"] .screen-app-link:focus-visible,
+[data-theme="champagne-minimal"] .screen-app-link:hover,
+[data-theme="champagne-minimal"] .screen-app-link:focus,
+[data-theme="champagne-minimal"] .screen-app-link:focus-visible {
+  color: var(--text);
+}
+
 .screen-launch-btn:disabled {
   opacity: 0.6;
   cursor: not-allowed;
