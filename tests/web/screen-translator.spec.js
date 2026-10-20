@@ -200,7 +200,46 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     const isPinned = await page.evaluate(() => window.__overlayPinned);
     expect(isPinned).toBe(true);
 
-    // Test Live Video Subtitles toggle and Zone re-selector
+    // Verify Live Video button and Zone re-selector are hidden/absent when LIVE_VIDEO_ENABLED is false (v1 default)
+    await expect(page.locator('#btnLiveToggle')).toBeHidden();
+    await expect(page.locator('#btnReselectZone')).toBeHidden();
+
+    // Test close
+    await mouseClick(page, page.locator('#btnClose'));
+    const closeCount = await page.evaluate(() => window.__overlayCloses);
+    expect(closeCount).toBe(1);
+    await expect(page.locator('#cardContainer')).toBeHidden();
+  });
+
+  test('floating overlay Live Video button and watcher interactions when flag is overridden to true (v2 preview)', async ({ page }) => {
+    // Navigate directly to the overlay HTML file
+    const overlayPath = 'file:///' + path.resolve(__dirname, '../../screen-translator/overlay.html').replace(/\\/g, '/');
+    
+    // Inject mock overlay APIs and override flag to true
+    await page.addInitScript(() => {
+      window.LIVE_VIDEO_ENABLED = true;
+      window.__overlayTranslations = [];
+      window.__overlayCloses = 0;
+      window.__overlayPinned = false;
+      window.__liveWatcherToggled = 0;
+      window.__reselectZoneTriggered = 0;
+
+      window.makanOverlay = {
+        close: () => { window.__overlayCloses++; },
+        setPinned: (p) => { window.__overlayPinned = p; },
+        requestTranslation: (req) => { window.__overlayTranslations.push(req); },
+        openInMainApp: () => {},
+        toggleLiveWatcher: () => { window.__liveWatcherToggled++; },
+        reselectZone: () => { window.__reselectZoneTriggered++; },
+        onLiveState: (cb) => { window.__liveStateCb = cb; },
+        onOcrResult: (cb) => { window.__ocrCb = cb; },
+        onTranslationResult: (cb) => { window.__transCb = cb; }
+      };
+    });
+
+    await page.goto(overlayPath);
+
+    // Test Live Video Subtitles toggle and Zone re-selector when flag is overridden to true
     await expect(page.locator('#btnLiveToggle')).toBeVisible();
     await mouseClick(page, page.locator('#btnLiveToggle'));
     const liveToggles = await page.evaluate(() => window.__liveWatcherToggled);
@@ -219,12 +258,6 @@ test.describe('Screen Translator Desktop Web Integration', () => {
     });
     await expect(page.locator('#btnLiveToggle')).toHaveClass(/active/);
     await expect(page.locator('#liveBtnLabel')).toHaveText('Live ON');
-
-    // Test close
-    await mouseClick(page, page.locator('#btnClose'));
-    const closeCount = await page.evaluate(() => window.__overlayCloses);
-    expect(closeCount).toBe(1);
-    await expect(page.locator('#cardContainer')).toBeHidden();
   });
 
   test('Overlay renders Persian text right-to-left in original and translated content', async ({ context }) => {

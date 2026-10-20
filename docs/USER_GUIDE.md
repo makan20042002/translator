@@ -35,7 +35,7 @@ The MAKAN Translate interface provides 13 dedicated functional tabs. Below is th
 ### 5. Screen (`screen`)
 - **What it can do**: Allows configuring OCR reading settings, testing preview translations, and viewing capture history.
 - **What it cannot do in browser**: Native window and screen capture is restricted in standard web browsers.
-- **Limits**: *Experimental in web browser*. Direct screen snipping requires the MAKAN Windows desktop app (which integrates Windows Media OCR and RapidOCR). In browser mode, native capture buttons are honestly disabled with explanatory notices.
+- **Limits**: *Experimental in web browser*. Direct screen snipping requires the MAKAN Windows desktop app (which integrates Windows Media OCR and RapidOCR). In browser mode, native capture buttons are honestly disabled with explanatory notices. Continuous Live Video subtitle tracking is planned for a later version (v2) and is disabled in v1.
 - **Online / Offline**: Configuration and preview translation work offline if an offline model is active.
 
 ### 6. Media (`media`)

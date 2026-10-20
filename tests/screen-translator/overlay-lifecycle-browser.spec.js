@@ -171,5 +171,63 @@ test.describe('Screen Translator Overlay Lifecycle & Open In Browser', () => {
     expect(overlaySrc).toContain('(makanlab.tech/translate/app)');
     expect(overlaySrc).not.toContain('(makanlab.tech)');
   });
+
+  // Test 6: constants.js defines LIVE_VIDEO_ENABLED = false with v2 comment and overlay.html loads it
+  test('constants.js defines LIVE_VIDEO_ENABLED = false with v2 comment and overlay.html hides button when disabled', () => {
+    const constantsPath = path.join(__dirname, '..', '..', 'screen-translator', 'constants.js');
+    const overlayHtmlPath = path.join(__dirname, '..', '..', 'screen-translator', 'overlay.html');
+    const managerPath = path.join(__dirname, '..', '..', 'screen-translator', 'manager.js');
+
+    expect(fs.existsSync(constantsPath)).toBe(true);
+
+    const constantsSrc = fs.readFileSync(constantsPath, 'utf8');
+    const overlaySrc = fs.readFileSync(overlayHtmlPath, 'utf8');
+    const managerSrc = fs.readFileSync(managerPath, 'utf8');
+
+    // 1. Verify constant definition and comment "v2"
+    expect(constantsSrc).toContain('LIVE_VIDEO_ENABLED = false');
+    expect(constantsSrc).toMatch(/v2/i);
+
+    // 2. Verify overlay.html references constants.js and hides #btnLiveToggle
+    expect(overlaySrc).toContain('constants.js');
+    expect(overlaySrc).toContain('id="btnLiveToggle"');
+    expect(overlaySrc).toMatch(/id="btnLiveToggle"[^>]*style="display:\s*none;"/);
+
+    // 3. Verify manager.js imports constants and implements isLiveVideoEnabled
+    expect(managerSrc).toContain("require('./constants')");
+    expect(managerSrc).toContain('isLiveVideoEnabled');
+  });
+
+  // Test 7: IPC handler ignores screen-trans:toggle-live-watcher when disabled
+  test('ScreenTranslatorManager ignores toggle-live-watcher IPC and methods when disabled', () => {
+    const { ScreenTranslatorManager } = require('../../screen-translator/manager');
+    const { LIVE_VIDEO_ENABLED } = require('../../screen-translator/constants');
+    expect(LIVE_VIDEO_ENABLED).toBe(false);
+
+    const dummyWindow = { isDestroyed: () => true };
+    const mgr = new ScreenTranslatorManager(dummyWindow);
+
+    expect(mgr.isLiveVideoEnabled()).toBe(false);
+    expect(mgr.isLiveWatching).toBe(false);
+
+    // Calling toggleLiveWatcher directly while disabled does nothing
+    mgr.toggleLiveWatcher();
+    expect(mgr.isLiveWatching).toBe(false);
+    expect(mgr.liveWatchTimer).toBeNull();
+
+    // Calling startLiveWatcher directly while disabled does nothing
+    mgr.startLiveWatcher({ x: 0, y: 0, width: 100, height: 100 });
+    expect(mgr.isLiveWatching).toBe(false);
+    expect(mgr.liveWatchTimer).toBeNull();
+
+    // Calling reselectZone directly while disabled does nothing
+    mgr.reselectZone();
+    expect(mgr.isLiveWatching).toBe(false);
+    expect(mgr._pendingLiveStartAfterCapture).toBe(false);
+
+    // When flag is overridden to true, toggleLiveWatcher behaves normally
+    mgr.liveVideoEnabled = true;
+    expect(mgr.isLiveVideoEnabled()).toBe(true);
+  });
 });
 

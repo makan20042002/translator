@@ -99,17 +99,24 @@ MAKAN Screen Translator provides instant on-screen region capture, native Window
 
 ---
 
-## Live Video mode
+## Live Video mode (Planned for a later version — v2)
 
-The Windows overlay features a continuous **Live Video** subtitle tracking mode (`screen-translator/overlay.html` `#btnLiveToggle`, `screen-translator/manager.js` `toggleLiveWatcher()` / `startLiveWatcher()` / `stopLiveWatcher()`). It is designed for monitoring video players, live streams, and games, continuously extracting and translating subtitle text as dialogue changes on screen.
+The Windows overlay contains architectural scaffolding for a continuous **Live Video** subtitle tracking mode (`screen-translator/overlay.html` `#btnLiveToggle`, `screen-translator/manager.js` `toggleLiveWatcher()` / `startLiveWatcher()` / `stopLiveWatcher()`).
 
-### 1. Test Coverage
+> **v1 Status**: Live Video is disabled in v1 (`const LIVE_VIDEO_ENABLED = false;` in `screen-translator/constants.js`) and is **planned for a later version (v2)**. The overlay button is hidden from users and all toggle triggers/IPC calls are ignored in v1. The code is kept in place ready for v2 activation.
 
-- **Automated Tests Covering Live Video**:
+When activated in a later version (v2), it is designed for monitoring video players, live streams, and games, continuously extracting and translating subtitle text as dialogue changes on screen.
+
+### 1. Test Coverage (v2 Design)
+
+- **Automated Tests Covering Live Video (v2 preview)**:
   - `tests/web/screen-translator.spec.js`:
-    - Test: `'Overlay UI interaction, dragging, pinning, and buttons'` (lines 136–228) — asserts `#btnLiveToggle` visibility, tests that clicking `#btnLiveToggle` triggers `window.makanOverlay.toggleLiveWatcher()`, and verifies that receiving `screen-trans:live-state` with `{ active: true }` adds `.active` styling and switches the button label to `'Live ON'`.
+    - Asserts `#btnLiveToggle` is hidden/absent when `LIVE_VIDEO_ENABLED` is `false` in v1.
+    - Test `'floating overlay Live Video button and watcher interactions when flag is overridden to true'`: overrides the flag to `true`, asserts `#btnLiveToggle` visibility, tests that clicking `#btnLiveToggle` triggers `window.makanOverlay.toggleLiveWatcher()`, and verifies that receiving `screen-trans:live-state` with `{ active: true }` adds `.active` styling and switches the button label to `'Live ON'`.
   - `tests/ext/screen-translator-responsive.spec.js`:
     - Tests: `overlay panel at <width>x<height> in <lang> fits viewport without clipping` — includes `toggleLiveWatcher: () => {}` in its mock bridge to ensure overlay button rendering and viewport responsiveness.
+  - `tests/screen-translator/overlay-lifecycle-browser.spec.js`:
+    - Verifies that `LIVE_VIDEO_ENABLED` is `false` by default and that manager ignores `screen-trans:toggle-live-watcher` when disabled.
 - **What is NOT Covered by Any Test**:
   - **The recurring `tick()` loop**: No automated test runs or verifies the asynchronous frame loop in `ScreenTranslatorManager`.
   - **Screen capture polling**: `desktopCapturer.getSources({ types: ['screen'] })` recurring execution is not tested.

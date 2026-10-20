@@ -550,7 +550,7 @@
     </div>
 
     <div class="header-actions no-drag">
-      <button class="btn-live no-drag" id="btnLiveToggle" title="Live Video Mode: continuously track and translate video subtitles">
+      <button class="btn-live no-drag" id="btnLiveToggle" title="Live Video Mode: continuously track and translate video subtitles" style="display: none;">
         <span class="live-dot"></span>
         <span id="liveBtnLabel">Live Video</span>
       </button>
@@ -617,7 +617,7 @@
       <span id="retryLabel">Retry</span>
     </button>
 
-    <button class="btn no-drag" id="btnReselectZone" title="Set/reselect video subtitle region">
+    <button class="btn no-drag" id="btnReselectZone" title="Set/reselect video subtitle region" style="display: none;">
       <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/><path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/></svg>
       <span id="zoneLabel">Zone</span>
     </button>
@@ -638,6 +638,7 @@
   </div>
 </div>
 
+<script src="constants.js"></script>
 <script>
   let isPinned = false;
   let rawOcrText = '';
@@ -978,18 +979,33 @@
     showResult(data.translation, data.detectedSrc || sourceLang);
   });
 
+  // Live Video feature toggle (v2)
+  const isLiveVideoEnabled = (typeof window !== 'undefined' && typeof window.LIVE_VIDEO_ENABLED === 'boolean')
+    ? window.LIVE_VIDEO_ENABLED
+    : (typeof LIVE_VIDEO_ENABLED !== 'undefined' ? LIVE_VIDEO_ENABLED : false);
+
+  if (btnLiveToggle) {
+    btnLiveToggle.style.display = isLiveVideoEnabled ? '' : 'none';
+  }
+  if (btnReselectZone) {
+    btnReselectZone.style.display = isLiveVideoEnabled ? '' : 'none';
+  }
+
   // Live video subtitle controls
   btnLiveToggle.onclick = () => {
+    if (!isLiveVideoEnabled) return;
     window.makanOverlay?.toggleLiveWatcher();
   };
 
   if (btnReselectZone) {
     btnReselectZone.onclick = () => {
+      if (!isLiveVideoEnabled) return;
       window.makanOverlay?.reselectZone();
     };
   }
 
   window.makanOverlay?.onLiveState((state) => {
+    if (!isLiveVideoEnabled) return;
     if (state && state.active) {
       btnLiveToggle.classList.add('active');
       liveBtnLabel.textContent = 'Live ON';

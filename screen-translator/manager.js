@@ -4,11 +4,14 @@
  * clipboard watcher, and floating translation panel.
  */
 
-const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, clipboard, shell } = require('electron');
+const electron = require('electron');
+const { app, BrowserWindow, globalShortcut, screen, desktopCapturer, ipcMain, clipboard, shell } =
+  (typeof electron === 'object' && electron !== null && electron.app) ? electron : (typeof electron === 'object' && electron !== null ? electron : {});
 const path = require('path');
 const fs = require('fs');
 const { OcrService } = require('./ocr-service');
 const { buildBrowserUrl } = require('./overlay-url');
+const { LIVE_VIDEO_ENABLED } = require('./constants');
 
 class ScreenTranslatorManager {
   constructor(mainWindow, options = {}) {
@@ -33,6 +36,7 @@ class ScreenTranslatorManager {
     this._lastWatchedHash = '';
     this._lastWatchedText = '';
     this._pendingLiveStartAfterCapture = false;
+    this.liveVideoEnabled = LIVE_VIDEO_ENABLED;
 
     // Default configuration
     this.config = {
@@ -65,6 +69,13 @@ class ScreenTranslatorManager {
 
     this.initIpc();
     this.initClipboardWatcher();
+  }
+
+  isLiveVideoEnabled() {
+    if (typeof this.liveVideoEnabled === 'boolean') {
+      return this.liveVideoEnabled;
+    }
+    return LIVE_VIDEO_ENABLED;
   }
 
   loadConfig() {
@@ -244,13 +255,17 @@ class ScreenTranslatorManager {
       }
     });
 
-    ipcMain.on('screen-trans:toggle-live-watcher', () => {
-      this.toggleLiveWatcher();
-    });
+    if (ipcMain && typeof ipcMain.on === 'function') {
+      ipcMain.on('screen-trans:toggle-live-watcher', () => {
+        if (!this.isLiveVideoEnabled()) return;
+        this.toggleLiveWatcher();
+      });
 
-    ipcMain.on('screen-trans:reselect-zone', () => {
-      this.reselectZone();
-    });
+      ipcMain.on('screen-trans:reselect-zone', () => {
+        if (!this.isLiveVideoEnabled()) return;
+        this.reselectZone();
+      });
+    }
   }
 
   /**
@@ -487,8 +502,10 @@ class ScreenTranslatorManager {
 
     if (this._pendingLiveStartAfterCapture) {
       this._pendingLiveStartAfterCapture = false;
-      this.startLiveWatcher(rect);
-      return;
+      if (this.isLiveVideoEnabled()) {
+        this.startLiveWatcher(rect);
+        return;
+      }
     }
 
     let imageBuffer = null;
@@ -724,6 +741,7 @@ class ScreenTranslatorManager {
    * Reselects screen zone for live subtitle watcher.
    */
   reselectZone() {
+    if (!this.isLiveVideoEnabled()) return;
     this.stopLiveWatcher();
     this._pendingLiveStartAfterCapture = true;
     this.startCapture();
@@ -733,6 +751,7 @@ class ScreenTranslatorManager {
    * Toggles live video subtitle watcher.
    */
   toggleLiveWatcher() {
+    if (!this.isLiveVideoEnabled()) return;
     if (this.isLiveWatching) {
       this.stopLiveWatcher();
     } else {
@@ -744,6 +763,7 @@ class ScreenTranslatorManager {
    * Starts continuously monitoring the subtitle zone, running OCR upon frame changes.
    */
   startLiveWatcher(rect = null) {
+    if (!this.isLiveVideoEnabled()) return;
     const targetRect = rect || this.lastCapturedRect;
     if (!targetRect || targetRect.width < 10 || targetRect.height < 10) {
       this.reselectZone();
