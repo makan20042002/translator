@@ -12,6 +12,7 @@ const SHELL = [
   './css/components.css',
   './css/tabs.css',
   './media/media.css',
+  './js/device.js',
   './js/themes.js',
   './js/version.js',
   './js/store.js',
