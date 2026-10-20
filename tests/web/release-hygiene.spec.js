@@ -265,6 +265,52 @@ test.describe('Release Hygiene & Store Readiness', () => {
     const norm = s => s.replace(/\r\n/g, '\n').trim();
     expect(norm(srcContent), 'ocr-service.js in exe translator must be identical to source in translator').toBe(norm(exeContent));
   });
+
+  test('ITEM 8 - Store-readiness: manifests are valid JSON, icons exist, gecko id is correct, description <=132 chars', () => {
+    const extDir = path.join(ROOT, 'extension');
+    const chromeManifestPath = path.join(extDir, 'manifest.chrome.json');
+    const firefoxManifestPath = path.join(extDir, 'manifest.firefox.json');
+
+    expect(fs.existsSync(chromeManifestPath), 'manifest.chrome.json must exist').toBe(true);
+    expect(fs.existsSync(firefoxManifestPath), 'manifest.firefox.json must exist').toBe(true);
+
+    const chromeManifest = JSON.parse(fs.readFileSync(chromeManifestPath, 'utf8'));
+    const firefoxManifest = JSON.parse(fs.readFileSync(firefoxManifestPath, 'utf8'));
+
+    // Check icons exist on disk
+    for (const manifest of [chromeManifest, firefoxManifest]) {
+      expect(manifest.icons).toBeDefined();
+      for (const [size, relPath] of Object.entries(manifest.icons)) {
+        const fullIconPath = path.join(extDir, relPath);
+        expect(fs.existsSync(fullIconPath), `Icon ${size} at ${fullIconPath} must exist`).toBe(true);
+      }
+    }
+
+    // Check gecko id
+    expect(firefoxManifest.browser_specific_settings).toBeDefined();
+    expect(firefoxManifest.browser_specific_settings.gecko).toBeDefined();
+    expect(firefoxManifest.browser_specific_settings.gecko.id).toBe('makan-translate@makanlab.tech');
+
+    // Check descriptions <= 132 chars
+    const enLocalePath = path.join(extDir, '_locales', 'en', 'messages.json');
+    const faLocalePath = path.join(extDir, '_locales', 'fa', 'messages.json');
+    const enLocale = JSON.parse(fs.readFileSync(enLocalePath, 'utf8'));
+    const faLocale = JSON.parse(fs.readFileSync(faLocalePath, 'utf8'));
+
+    expect(enLocale.extensionDescription).toBeDefined();
+    expect(enLocale.extensionDescription.message.length).toBeLessThanOrEqual(132);
+
+    expect(faLocale.extensionDescription).toBeDefined();
+    expect(faLocale.extensionDescription.message.length).toBeLessThanOrEqual(132);
+
+    // Check docs/STORE_LISTING.md exists and contains short description, gecko ID, etc.
+    const storeListingPath = path.join(ROOT, 'docs', 'STORE_LISTING.md');
+    expect(fs.existsSync(storeListingPath), 'docs/STORE_LISTING.md must exist').toBe(true);
+    const storeListingContent = fs.readFileSync(storeListingPath, 'utf8');
+    expect(storeListingContent).toContain('makan-translate@makanlab.tech');
+    expect(storeListingContent).toContain(enLocale.extensionDescription.message);
+  });
 });
+
 
 
