@@ -40,6 +40,8 @@ tools/model-check/models/
 # Screenshots
 screenshots/
 **/screenshots/
+!docs/screenshots/
+!docs/screenshots/**
 
 # Environment files and credentials
 .env*

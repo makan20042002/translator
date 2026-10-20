@@ -1,185 +1,121 @@
 # MAKAN Translate
 
-A translator in two forms:
-
-* a **web app**: one web page (`index.html`) with Text, Subtitle, Document,
-  Voice, Compare, Glossary, History, Screen, and Media tabs;
-* a **browser extension** for Chrome, Edge and Firefox: select text on any
-  page, press the **M** button, and a small translation card appears.
-
-How the code fits together, where settings and keys are stored, and a list of
-known problems are in [`docs/OVERVIEW.md`](docs/OVERVIEW.md). What the
-automated tests found is in [`docs/TEST-REPORT.md`](docs/TEST-REPORT.md).
-For capabilities, hardware requirements, and operational limits, see the [`User Guide`](docs/USER_GUIDE.md).
+A private, multi-engine translation suite available as a modern web application, desktop app, and browser extension for Chrome, Edge, and Firefox.
 
 ---
 
-## What each folder is
+## Features
 
-| Folder or file | What it is | Do you need it? |
-| --- | --- | --- |
-| `index.html`, `ai-worker.js`, `sw.js`, `manifest.webmanifest`, `icon-192.png`, `icon-512.png` | The web app. | Yes: this is the website. |
-| `extension/` | The **source** of the browser extension. Edit files here. | Yes. |
-| `dist/` | The **built** extension: `dist/chrome` (Chrome and Edge) and `dist/firefox`. Made by the build step below and not kept in git. Rebuild it after every change in `extension/`. | Made for you. |
-| `build-manifests.js` | Makes `dist/` from `extension/`. | Yes. |
-| `docs/` | Explanations: code overview and test report. | For reading. |
-| `tests/` | The automated tests (see below). Nothing the user loads depends on them. | For checking. |
-| `package.json`, `package-lock.json` | List of the developer tools the tests use. Not part of the app. | For checking. |
-| `node_modules/` | The tools themselves, downloaded by `npm install`. Not kept in git. | Made for you. |
-| `test-server.py` | A small local web server from earlier development (port 8080). | Optional. |
-| `ENGINE_SYNC.md` | An older note about keeping the web app and the extension in step. Out of date; see `docs/OVERVIEW.md` section 5. | No. |
-| `test_docs/` | Sample files from earlier work. Not used by the new tests. | No. |
+MAKAN Translate combines on-device neural models, cloud translation APIs, and offline dictionaries into a unified interface matching [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md):
 
----
-
-## Which folder to load in each browser
-
-First build the extension (see "One-time setup" below), then:
-
-| Browser | Steps | Folder or file to choose |
-| --- | --- | --- |
-| **Chrome** | Open `chrome://extensions`, switch on **Developer mode** (top right), click **Load unpacked**. | `dist\chrome` |
-| **Edge** | Open `edge://extensions`, switch on **Developer mode** (left side), click **Load unpacked**. | `dist\chrome` (Edge uses the Chrome build) |
-| **Firefox** (version 142 or newer) | Open `about:debugging#/runtime/this-firefox`, click **Load Temporary Add-on…**. Firefox forgets it when it closes. | `dist\firefox\manifest.json` |
-
-After changing anything in `extension/`, run `npm run build` again and press
-the **reload** arrow on the extension's card in `chrome://extensions` or
-`edge://extensions`.
+* **Text Translation**: Multi-engine translation across 99+ languages with automatic fallback (Google Web, Gemini, Groq, Ollama, and offline NLLB-200/M2M-100), Finglish transliteration, and text-to-speech pronunciation.
+* **Subtitle Translation**: Imports, translates, and exports `.srt` and `.vtt` subtitle files with millisecond timestamp preservation.
+* **Document Translation**: Full document translation preserving layout and tables for DOCX, PPTX, XLSX, PDF, TXT, Markdown, CSV, and JSON.
+* **Voice Dictation & Conversation**: Speech recognition powered by browser APIs or on-device Whisper models, with speech synthesis via local Piper neural voices.
+* **Screen Capture OCR**: Region snipping and image translation via native Windows OCR; note that continuous Live Video subtitle tracking is not in v1 and is planned for a future release.
+* **Media Audio/Video**: Transcribes and translates audio and video files (`.mp3`, `.mp4`, `.wav`, `.m4a`, `.webm`) using local Whisper models, with subtitle burning and multi-format export.
+* **Offline Bilingual Dictionary**: Instant offline bilingual definitions and search based on Wiktionary data (CC BY-SA) with a customizable "My Words" vocabulary notebook.
+* **Idioms & Proverbs**: Searchable colloquial expressions with cultural explanations and reverse idiom discovery.
+* **Side-by-Side Comparison**: Simultaneous side-by-side translation across multiple active engines to evaluate tone, fluency, and nuance.
+* **Custom Glossary**: User-defined terminology replacement rules applied automatically before and after translation.
+* **Translation History**: Searchable, locally stored translation log with one-click export to CSV.
+* **Learning Drills & Games**: Interactive flashcards, matching drills, and quizzes built from your saved dictionary words and history; real-time game translation overlay is planned for a future release.
+* **On-Device Model Hub**: Download, inspect, and manage local AI models (Whisper speech recognition, NLLB-200 translation, Piper voice models) for 100% offline usage.
+* **Browser Extension (Chrome, Edge, Firefox)**: In-page translation card, floating quick button, double-click dictionary lookups, and full-page translation.
 
 ---
 
-## Which files go on the website
+## Installation & Availability
 
-Upload these, keeping the same names and folders:
-
-```
-index.html
-css/                     ← all CSS files (base.css, layout.css, components.css, tabs.css)
-js/                      ← all JavaScript files (store.js, i18n.js, translate.js, ...)
-media/                   ← all Media Translate files (media-ui.js, media-worker.js, media.css, etc.)
-ai-worker.js
-asr-guard.js
-models-catalog.js
-piper-worker.js
-sw.js
-manifest.webmanifest
-icon-192.png
-icon-512.png
-extension/engine.js      ← must stay in a folder called "extension"; index.html loads it from there
-vendor/piper/            ← the whole folder (5 files, about 29 MB): the offline voice engine, loaded by piper-worker.js
-```
-
-Do **not** upload `tests/`, `node_modules/`, `dist/`, `docs/`, `test_docs/`,
-`package.json`, `package-lock.json` or `test-server.py`.
-
-> **Before you publish:** the web app no longer sends API keys to your
-> website's server (this was fixed; see `docs/OVERVIEW.md`, section 6).
-> One open point remains: `index.html` loads JSZip from a public CDN without
-> an integrity check, see the same section.
+* **Web Application**: Access directly online at [https://makanlab.tech/translate/app/](https://makanlab.tech/translate/app/).
+* **Windows Desktop**: Download the Windows installer or portable executable from [GitHub Releases](https://github.com/makan20042002/translator/releases).
+* **Browser Extension**:
+  * Chrome Web Store: links coming when approved
+  * Firefox Add-ons: links coming when approved
 
 ---
 
-## One-time setup on Windows
+## Privacy Summary
 
-1. Install **Node.js** (the "LTS" version) from <https://nodejs.org>.
-2. Open the project folder in File Explorer, type `cmd` in the address bar
-   and press Enter. A black command window opens in the right folder.
-3. Type these two commands, pressing Enter after each:
+MAKAN Translate is designed with a strict offline-first, local-privacy architecture:
+* Zero telemetry, zero analytics tracking, and no automated crash reporting.
+* API keys are kept only on your device in the browser's local storage, never synced, and sent only to their own provider when making translation requests.
+* Translation history, glossaries, custom dictionaries, and downloaded models stay entirely on your local machine.
 
-   ```
-   npm install
-   npx playwright install chromium
-   ```
+Read the complete privacy statement in [`extension/PRIVACY.md`](extension/PRIVACY.md).
 
-   The first downloads the test tools (they took about 160 MB of disk space
-   when this was set up). The second downloads the copy of Chromium that the
-   tests drive (about 600 MB once unpacked). You only do this once.
+---
 
-To build the extension at any time:
+## Screenshots
 
-```
+Screenshots: docs/screenshots/ (added at release)
+
+---
+
+## Development & Building
+
+### Prerequisites
+* [Node.js](https://nodejs.org) (v18 or newer recommended)
+* Optional: [Ollama](https://ollama.com) for running local LLM translation models
+
+### Build Commands
+
+```bash
+# Install development dependencies
+npm install
+
+# Build browser extensions into dist/chrome and dist/firefox
 npm run build
+
+# Package extension release zip archives into dist/packages
+npm run package:extensions
+
+# Build web application bundle
+npm run build:web
 ```
 
-## Running the tests
+### Running Tests
 
-```
+> **Note**: Please close Ollama before tests to avoid local port conflicts with mock server fixtures.
+
+```bash
+# Run full automated test suite
 npm test
+
+# Run specific test suites
+npm run test:web      # Web app tests
+npm run test:ext      # Extension tests
+npm run test:firefox  # Firefox web-ext lint
 ```
-
-This one command:
-
-1. builds the extension into `dist/`;
-2. opens the web app and the extension in a hidden Chromium window and uses
-   them with real mouse clicks and key presses: every tab, translating text,
-   subtitles, every document type, Compare, Glossary, History, Engines &
-   keys, English/Persian switching, the Voice tab with a pretend microphone,
-   the extension's popup, the **M** button and card, double-click
-   dictionary, the right-click menu, whole-page translation and the options
-   page;
-3. checks the Firefox build with Mozilla's own checker (`web-ext lint`);
-4. prints a **summary** at the end, with three lists: what passed, what
-   **failed** (and what each failure means), and what was **skipped** and
-   why.
-
-It takes about 6 minutes. The same summary is saved to
-`tests\.results\report.txt`. For each failed test there is a screenshot and a
-step-by-step recording in `tests\.results\artifacts\`. Open a recording with:
-
-```
-npx playwright show-trace tests\.results\artifacts\<test folder>\trace.zip
-```
-
-You can also run one part: `npm run test:web`, `npm run test:ext`,
-`npm run test:firefox`.
-
-### No keys or internet needed
-
-The tests do not use the real translation services. A small program inside
-the tests pretends to be Google, MyMemory, Gemini, OpenAI and the others, on
-your own computer. It answers with predictable fake translations such as
-`[fa] Hello` for "Hello". So the tests check the app's own behaviour
-(sending the right text, putting answers in the right place, handling
-errors, building valid files), **not** the quality of real translations.
-
-### Tests against the real services (optional)
-
-A few tests talk to the real services. They are **skipped** unless you turn
-them on, and the summary lists them as "skipped: needs key", never as
-passed. In PowerShell:
-
-```
-$env:MAKAN_LIVE="1"              # real Google Translate (no key)
-$env:MAKAN_GEMINI_KEY="your key" # real Gemini translation and read-aloud
-npm test
-```
-
-The key is only put into the test browser; it is not printed or saved.
-
-### What the tests cannot check
-
-* a real microphone and real speech recognition (a recorded sound is used
-  instead);
-* the voices installed in Windows / Edge ("read aloud" with device voices);
-* real providers' answers and limits (unless you run the optional tests
-  above);
-* Firefox itself, unless Firefox is installed (then the summary tells you
-  how to try it by hand);
-* Microsoft Word opening the translated `.docx` (LibreOffice is used instead
-  when it is installed).
 
 ---
 
-## Bug Reports & Diagnostics
+## Project Layout
 
-If you run into an issue or unexpected behavior:
-* In the **web app**: click **Report a bug** in the About window or at the top of the Help window.
-* In the **browser extension**: click **Report a bug** in the Options page (About section) or the link in the popup footer.
-* In the **Windows desktop app**: click **Report a bug** in the Help or About window.
+| Directory / File | Description |
+| :--- | :--- |
+| `index.html` | Web application single-page entry point |
+| `css/` | Application styling (base, components, layout, tabs) |
+| `js/` | Core logic (translation engine, store, i18n, speech, UI controllers) |
+| `extension/` | Browser extension source files (manifests, content scripts, background worker, popup, options) |
+| `dist/` | Distribution builds for Chrome/Edge and Firefox extensions (`dist/chrome`, `dist/firefox`, `dist/packages`) |
+| `dict/` | Wiktionary-derived offline dictionary databases and pack definitions |
+| `media/` | Media tab transcription UI, waveform visualizer, and workers |
+| `vendor/` | Vendored runtime libraries (Piper neural TTS, PDF.js, etc.) |
+| `docs/` | Documentation: [`docs/OVERVIEW.md`](docs/OVERVIEW.md), [`docs/USER_GUIDE.md`](docs/USER_GUIDE.md), [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md) |
+| `tests/` | Playwright test suites, mock services, and fixtures |
+| `tools/` | Build scripts and packaging utilities |
 
-### Privacy Guarantees
-* **Nothing is sent by the app**: The application contains no background telemetry, tracking, or automated error reporting.
-* **Your own email program sends the message**: Clicking "Send by email" opens a draft in your system's default email client addressed to `makan20042002@gmail.com`. You can inspect, edit, or cancel the draft before sending. You can also copy the report to your clipboard.
-* **What the report contains**: App/extension version, interface language, operating system and browser version, active tab, enabled engine names (never keys or custom URLs), offline mode status, names of downloaded offline models, WebGPU availability, whether running in the Windows app, and up to the last 5 in-memory error messages (with any keys, tokens, or queries strictly redacted).
-* **What the report NEVER contains**: API keys or authorization tokens, custom server URLs, user source or translated text, file names or paths, and translation history.
+---
 
+## License & Credits
+
+* **License**: Released under the [MIT License](LICENSE).
+* **Credits**: Third-party components, open-source libraries, and dataset credits are documented in [`docs/THIRD_PARTY.md`](docs/THIRD_PARTY.md).
+
+---
+
+## Contact & Author
+
+Made by Makan, MAKANLAB, [https://makanlab.tech](https://makanlab.tech)  
+Contact: [makan20042002@gmail.com](mailto:makan20042002@gmail.com)

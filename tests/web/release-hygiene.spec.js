@@ -507,6 +507,59 @@ test.describe('Release Hygiene & Store Readiness', () => {
 
     expect(violations, `Remote code or eval violations found in extension:\n${violations.join('\n')}`).toEqual([]);
   });
+
+  test('ITEM 14 - README integrity: links, targets exist on disk, no Live Video promise', () => {
+    const readmePath = path.join(ROOT, 'README.md');
+    expect(fs.existsSync(readmePath), 'README.md must exist').toBe(true);
+    const content = fs.readFileSync(readmePath, 'utf8');
+
+    // README links to LICENSE, docs/THIRD_PARTY.md, extension/PRIVACY.md
+    expect(content).toMatch(/\[.*?\]\((?:.\/)?LICENSE\)/);
+    expect(content).toMatch(/\[.*?\]\((?:.\/)?docs\/THIRD_PARTY\.md\)/);
+    expect(content).toMatch(/\[.*?\]\((?:.\/)?extension\/PRIVACY\.md\)/);
+
+    // Mentions no Live Video promise (if mentioned, must be flagged as planned)
+    if (/live video/i.test(content)) {
+      expect(content).toMatch(/live video[^\n]*(?:planned|not in v1|later version)/i);
+      expect(content).not.toMatch(/live video translation (?:is supported|is available|works)/i);
+    }
+
+    // Screenshots section has exact line and no broken images
+    expect(content).toContain('Screenshots: docs/screenshots/ (added at release)');
+    const imageMatches = content.match(/!\[.*?\]\((.*?)\)/g) || [];
+    for (const img of imageMatches) {
+      const src = img.replace(/^!\[.*?\]\((.*?)\)$/, '$1').trim();
+      if (!/^https?:\/\//i.test(src)) {
+        const resolved = path.resolve(ROOT, src.split('#')[0]);
+        expect(fs.existsSync(resolved), `Broken image link in README: ${src}`).toBe(true);
+      }
+    }
+
+    // Every relative link/target in README exists on disk
+    const linkRegex = /\[.*?\]\((?!https?:\/\/|mailto:)(.*?)\)/g;
+    let match;
+    const missingTargets = [];
+    while ((match = linkRegex.exec(content)) !== null) {
+      const rawTarget = match[1].trim();
+      const targetPath = rawTarget.split('#')[0];
+      if (targetPath) {
+        const resolved = path.resolve(ROOT, targetPath);
+        if (!fs.existsSync(resolved)) {
+          missingTargets.push(rawTarget);
+        }
+      }
+    }
+    expect(missingTargets, `Missing relative link targets: ${missingTargets.join(', ')}`).toEqual([]);
+
+    // Explicit check that docs/screenshots exists on disk
+    expect(fs.existsSync(path.join(ROOT, 'docs', 'screenshots')), 'docs/screenshots/ must exist on disk').toBe(true);
+
+    // No personal paths or sensitive keys
+    expect(content).not.toMatch(/[a-zA-Z]:\\Users\\/i);
+    expect(content).not.toMatch(/\/Users\//i);
+    expect(content).not.toMatch(/AIzaSy[A-Za-z0-9_-]{33}/);
+    expect(content).not.toMatch(/sk-[A-Za-z0-9_-]{20,}/);
+  });
 });
 
 
