@@ -312,7 +312,13 @@ function buildWeb(options = {}) {
   const rootDir = options.rootDir || ROOT_DIR;
   const outDir = options.outDir || DEFAULT_OUT_DIR;
   const pkgPath = path.join(rootDir, 'package.json');
-  const pkg = fs.existsSync(pkgPath) ? JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) : { version: '0.0.0' };
+  const pkg = fs.existsSync(pkgPath) ? JSON.parse(fs.readFileSync(pkgPath, 'utf-8')) : { version: '1.0.0' };
+  const version = pkg.version || '1.0.0';
+
+  // Sync js/version.js so web runtime version cannot drift from package.json
+  const versionFile = path.join(rootDir, 'js', 'version.js');
+  const versionCode = `// Single version source of truth (written from package.json by build scripts)\n(function () {\n  'use strict';\n  var v = '${version}';\n  if (typeof window !== 'undefined') window.MAKAN_VERSION = v;\n  if (typeof self !== 'undefined') self.MAKAN_VERSION = v;\n})();\n`;
+  fs.writeFileSync(versionFile, versionCode, 'utf-8');
 
   console.log(`Building clean web upload folder in: ${outDir}`);
 

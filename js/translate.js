@@ -35,11 +35,12 @@ const ENG={
  groq:{name:'Groq',tier:'freekey',ai:1,key:1,base:'https://api.groq.com/openai/v1',model:'llama-3.3-70b-versatile',url:'https://console.groq.com/keys'}
 };
 ENG.BUG_REPORT_EMAIL = (typeof window !== 'undefined' && (window.BUG_REPORT_EMAIL || (window.ENG && window.ENG.BUG_REPORT_EMAIL))) || 'makan20042002@gmail.com';
-ENG.VERSION = (typeof window !== 'undefined' && (window.APP_VERSION || (window.ENG && window.ENG.VERSION))) || '1.0.0';
+ENG.VERSION = (typeof window !== 'undefined' && (window.MAKAN_VERSION || window.APP_VERSION || (window.ENG && window.ENG.VERSION))) || '1.0.0';
 ENG.getAppVersion = function() {
+  if (typeof window !== 'undefined' && window.MAKAN_VERSION) return window.MAKAN_VERSION;
   if (typeof window !== 'undefined' && typeof window.getAppVersion === 'function') return window.getAppVersion();
   if (typeof window !== 'undefined' && window.ENG && typeof window.ENG.getAppVersion === 'function') return window.ENG.getAppVersion();
-  return ENG.VERSION || '1.0.0';
+  return ENG.VERSION || (typeof window !== 'undefined' && window.MAKAN_VERSION) || '1.0.0';
 };
 ENG.redactDiagnosticsText = (typeof window !== 'undefined' && (window.redactDiagnosticsText || (window.ENG && window.ENG.redactDiagnosticsText))) || function(s) { return typeof s === 'string' ? s : ''; };
 if (typeof window !== 'undefined') {

@@ -14,7 +14,19 @@ const path = require('path');
 const ROOT_DIR = __dirname;
 const EXT_DIR = path.join(ROOT_DIR, 'extension');
 const DIST_DIR = path.join(ROOT_DIR, 'dist');
+const PKG = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'package.json'), 'utf-8'));
+const VERSION = PKG.version;
+
+function syncVersionJs(ver) {
+  const versionFile = path.join(ROOT_DIR, 'js', 'version.js');
+  const content = `// Single version source of truth (written from package.json by build scripts)\n(function () {\n  'use strict';\n  var v = '${ver}';\n  if (typeof window !== 'undefined') window.MAKAN_VERSION = v;\n  if (typeof self !== 'undefined') self.MAKAN_VERSION = v;\n})();\n`;
+  fs.writeFileSync(versionFile, content, 'utf-8');
+}
+syncVersionJs(VERSION);
+
 const BASE_MANIFEST = JSON.parse(fs.readFileSync(path.join(EXT_DIR, 'manifest.json'), 'utf-8'));
+BASE_MANIFEST.version = VERSION;
+fs.writeFileSync(path.join(EXT_DIR, 'manifest.json'), JSON.stringify(BASE_MANIFEST, null, 2) + '\n');
 
 const IGNORED_FILES = ['manifest.json', 'manifest.chrome.json', 'manifest.firefox.json', '.DS_Store', 'Thumbs.db'];
 

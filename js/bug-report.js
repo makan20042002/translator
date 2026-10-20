@@ -61,6 +61,9 @@
   }
 
   function resolveAppVersion() {
+    if (typeof window !== 'undefined' && window.MAKAN_VERSION) {
+      return window.MAKAN_VERSION;
+    }
     if (typeof ENG !== 'undefined' && typeof ENG.getAppVersion === 'function') {
       return ENG.getAppVersion();
     }
@@ -68,7 +71,7 @@
       if (typeof window.getAppVersion === 'function') return window.getAppVersion();
       if (window.ENG && typeof window.ENG.getAppVersion === 'function') return window.ENG.getAppVersion();
     }
-    return '1.0.0';
+    return (typeof window !== 'undefined' && window.MAKAN_VERSION) || '1.0.0';
   }
 
   function buildDiagnosticsLines() {

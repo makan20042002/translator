@@ -76,6 +76,19 @@ const APP_VERSION = '1.0.0';
 ENG.VERSION = APP_VERSION;
 
 function getAppVersion() {
+  try {
+    if (typeof chrome !== 'undefined' && chrome.runtime && typeof chrome.runtime.getManifest === 'function') {
+      const m = chrome.runtime.getManifest();
+      if (m && m.version) return m.version;
+    }
+  } catch (_) {}
+  try {
+    if (typeof browser !== 'undefined' && browser.runtime && typeof browser.runtime.getManifest === 'function') {
+      const m = browser.runtime.getManifest();
+      if (m && m.version) return m.version;
+    }
+  } catch (_) {}
+  if (typeof window !== 'undefined' && window.MAKAN_VERSION) return window.MAKAN_VERSION;
   return APP_VERSION;
 }
 ENG.getAppVersion = getAppVersion;

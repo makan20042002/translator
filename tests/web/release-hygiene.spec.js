@@ -133,4 +133,30 @@ test.describe('Release Hygiene & Store Readiness', () => {
       expect(content).toContain(entry);
     }
   });
+
+  test('ITEM 5 - version.js, package.json, extension/manifest.json, manifest.chrome.json, and manifest.firefox.json all show the same version string', () => {
+    const pkgPath = path.join(ROOT, 'package.json');
+    const pkg = JSON.parse(fs.readFileSync(pkgPath, 'utf8'));
+    const expectedVersion = pkg.version;
+    expect(expectedVersion).toBeTruthy();
+
+    const versionJsPath = path.join(ROOT, 'js', 'version.js');
+    expect(fs.existsSync(versionJsPath), 'js/version.js must exist').toBe(true);
+    const versionJsContent = fs.readFileSync(versionJsPath, 'utf8');
+    const versionJsMatch = versionJsContent.match(/MAKAN_VERSION\s*=\s*['"]([^'"]+)['"]/);
+    expect(versionJsMatch, 'js/version.js must declare MAKAN_VERSION').toBeTruthy();
+    expect(versionJsMatch[1]).toBe(expectedVersion);
+
+    const baseManifestPath = path.join(ROOT, 'extension', 'manifest.json');
+    const baseManifest = JSON.parse(fs.readFileSync(baseManifestPath, 'utf8'));
+    expect(baseManifest.version).toBe(expectedVersion);
+
+    const chromeManifestPath = path.join(ROOT, 'extension', 'manifest.chrome.json');
+    const chromeManifest = JSON.parse(fs.readFileSync(chromeManifestPath, 'utf8'));
+    expect(chromeManifest.version).toBe(expectedVersion);
+
+    const firefoxManifestPath = path.join(ROOT, 'extension', 'manifest.firefox.json');
+    const firefoxManifest = JSON.parse(fs.readFileSync(firefoxManifestPath, 'utf8'));
+    expect(firefoxManifest.version).toBe(expectedVersion);
+  });
 });
