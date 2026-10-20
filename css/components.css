@@ -123,3 +123,14 @@ footer{border-top:1px solid var(--border);padding:22px 0;color:var(--faint);font
   .engine-picker-sub-row{max-width:100%;flex-wrap:nowrap;overflow:hidden}
   .engine-picker-using{min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:0 1 auto}
 }
+
+/* Phone-specific model hiding (ITEM 2) */
+html.is-phone #setTabBtnTrModels,
+html.is-phone #secTrModels,
+html.is-phone .off-models-pickers label:has(#offTrModelSel),
+html.is-phone #hubFilterRow button[data-cat="translate"],
+html.is-phone #hubFilterRow button[data-cat="speak"],
+html.is-phone #hubFilterRow button[data-cat="ocr"],
+html.is-phone .eng[data-id="nllb"] {
+  display: none !important;
+}

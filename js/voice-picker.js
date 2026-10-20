@@ -210,7 +210,7 @@ function buildVoicePickerHTML(lang, radioName){
     html+=`</div></div>`;
   }
 
-  if(undlPipers.length){
+  if(undlPipers.length && !(typeof window !== 'undefined' && window.isPhone && window.isPhone())){
     html+=`<div class="voice-group" data-group="offline-available" style="margin-bottom:12px">
       <div class="voice-group-title" style="font-size:12.5px;font-weight:700;color:var(--muted);margin:8px 0 6px">${esc(L('offlineVoicesAvailable'))} (${undlPipers.length})</div>
       <div class="voice-group-items" style="display:flex;flex-direction:column;gap:6px">`;

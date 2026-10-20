@@ -188,6 +188,7 @@ docCustomUrlPrompt:'Add a server URL in Engines & keys.',docInternetRequiredProm
  vListenLabel:'میکروفون:',vTransLabel:'ترجمه:'
 }};
 Object.assign(I18N.en,{
+ whisperSmallPhoneNote:'Needs a recent phone with about 8 GB RAM',
  mdlGrpListen:'Listening · speech to text (Whisper)',mdlGrpTr:'Translation',mdlGrpSpeak:'Speaking · text to speech',
  mdlPairs:'Small single-pair models: fast and light, but only for the one pair they are named for.',mdlPairsPrefer:'Use a small pair model when one is downloaded for the pair (faster, usually lower quality)',
  mdlSize:'Download',mdlMem:'Memory',mdlGpu:'WebGPU',mdlLangs:'Languages',mdlGpuNo:'not needed',mdlGpuOpt:'optional, faster if your browser has it (not tested by the developer)',
@@ -1064,3 +1065,8 @@ function updateAllUnifiedPickers(){
     if(p&&typeof p.updateDisplays==='function')p.updateDisplays();
   });
 }
+
+if (typeof I18N !== 'undefined' && I18N.fa) {
+  I18N.fa.whisperSmallPhoneNote = 'به یک گوشی جدید با حدود ۸ گیگابایت رم نیاز دارد';
+}
+

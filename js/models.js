@@ -1,4 +1,20 @@
 /* ---------- offline model catalogue (Engines & keys → Offline) ---------- */
+const PHONE_ALLOWED_MODELS = Object.freeze(['asr-tiny', 'asr-base', 'asr-small']);
+const PHONE_ALLOWED_WHISPER_KEYS = Object.freeze(['tiny', 'base', 'small']);
+
+function isModelAllowedOnPhone(m) {
+  if (!m) return false;
+  const id = typeof m === 'string' ? m : (m.id || '');
+  const key = typeof m === 'object' ? (m.key || '') : '';
+  return PHONE_ALLOWED_MODELS.includes(id) || PHONE_ALLOWED_WHISPER_KEYS.includes(key);
+}
+
+if (typeof window !== 'undefined') {
+  window.PHONE_ALLOWED_MODELS = PHONE_ALLOWED_MODELS;
+  window.PHONE_ALLOWED_WHISPER_KEYS = PHONE_ALLOWED_WHISPER_KEYS;
+  window.isModelAllowedOnPhone = isModelAllowedOnPhone;
+}
+
 const MC=self.MODEL_CATALOG||{models:[],codes:{}};
 const MC_CACHE='transformers-cache';       // the cache the model library writes to
 const mcDownloading={};                    // model id -> files being downloaded
@@ -56,12 +72,30 @@ function mcReady(m){
 }
 // What this model takes up in browser storage (a voice shares its repository with other voices, so only its own files count).
 const mcBytes=m=>{const r=mcCache?.[m.repo];if(!r)return 0;return m.kind==='piper'?m.files.reduce((a,f)=>a+(r.files.get(f[0])||0),0):r.bytes};
-const trModels=()=>MC.models.filter(m=>m.job==='translate');
-const trAnyReady=()=>trModels().some(mcReady);
+const trModels=()=>{
+  if(typeof window!=='undefined'&&window.isPhone&&window.isPhone())return [];
+  return MC.models.filter(m=>m.job==='translate');
+};
+const trAnyReady=()=>{
+  if(typeof window!=='undefined'&&window.isPhone&&window.isPhone())return false;
+  return trModels().some(mcReady);
+};
 const asrModel=key=>{
-  const k=key||cfg.whisper;
-  if(!k||k==='auto')return MC.models.find(m=>m.kind==='whisper'&&mcReady(m))||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
-  return MC.models.find(m=>m.kind==='whisper'&&m.key===k)||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+  let k=key||(typeof cfg!=='undefined'?cfg.whisper:'auto');
+  const isPhoneDevice=(typeof window!=='undefined'&&window.isPhone&&window.isPhone());
+  if(isPhoneDevice&&k&&k!=='auto'&&!PHONE_ALLOWED_WHISPER_KEYS.includes(k)){
+    k='auto';
+  }
+  if(!k||k==='auto'){
+    const list=MC.models.filter(m=>m.kind==='whisper'&&(!isPhoneDevice||PHONE_ALLOWED_MODELS.includes(m.id)));
+    const ready=list.filter(mcReady);
+    return ready.find(m=>m.key==='small')||ready.find(m=>m.key==='base')||ready[0]||list.find(m=>m.key==='base')||list[0];
+  }
+  const chosen=MC.models.find(m=>m.kind==='whisper'&&m.key===k);
+  if(isPhoneDevice&&chosen&&!PHONE_ALLOWED_MODELS.includes(chosen.id)){
+    return MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+  }
+  return chosen||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
 };
 const asrReady=()=>mcReady(asrModel());
 function trCovers(m,src,tgt){
@@ -182,6 +216,12 @@ function mcLicence(m){
   return 'Open Source';
 }
 async function mcDownload(m){
+  if(typeof window!=='undefined'&&window.isPhone&&window.isPhone()){
+    if(!isModelAllowedOnPhone(m)){
+      console.warn('Model download blocked on phone:', m?.id);
+      return;
+    }
+  }
   if(mcDownloading[m.id])return;
   delete mcFailed[m.id];
   const ab=new AbortController();
@@ -323,10 +363,14 @@ function mcRow(m){
   const badges=(m.rec?`<span class="badge rec">${esc(L('mdlRecNonEn'))}</span>`:'')+(m.weak?`<span class="badge warn">${esc(L('mdlWeak'))}</span>`:'');
   const dlId=m.id==='tr-nllb-600'?' id="dlTr"':'';
   const st=busy?L('mdlDownloading'):ready?L('ready')+(mcBytes(m)?' · '+mcSize(mcBytes(m)):''):failed?`${L('failed')||'Failed'}: ${failMsg}`:L('notDl');
+  const isPhoneDevice=(typeof window!=='undefined'&&window.isPhone&&window.isPhone());
+  const smallPhoneNote=(isPhoneDevice&&(m.id==='asr-small'||m.key==='small'))
+    ?`<div class="hub-phone-ram-note" style="font-size:11.5px;color:var(--text-sub,#888);margin-top:3px;">ℹ️ ${esc(L('whisperSmallPhoneNote')||'Needs a recent phone with about 8 GB RAM')}</div>`
+    :'';
   return `<div class="mdl${inUse?' inuse':''}" data-mdl="${m.id}" data-state="${busy?'busy':ready?'ready':failed?'failed':'none'}">
     <div class="mdl-h"><span class="dot${ready?' ok':''}"></span><strong>${esc(mcText(m.name))}</strong>${badges}<span class="sp"></span><span class="meta" id="mdlSt-${m.id}">${esc(st)}</span></div>
     <div class="mdl-m"><span title="${esc(L('mdlSizeTip'))}">${esc(L('mdlSize'))} ${mcSize(hasWebGpu&&m.gpuBytes?m.gpuBytes:m.bytes)}${m.extraBytes?` (+${mcSize(m.extraBytes)} ${esc(L('mdlEngineOnce'))})`:''}</span> · <span title="${esc(L('mdlMemTip'))}">${esc(L('mdlMem'))} ≈ ${mcSize(m.memMB*1048576)}</span> · ${esc(L('mdlGpu'))}: ${esc(gpuText)}${m.speed?` · ${esc(L('mdlSpeed'))} ${m.speed<1?m.speed.toFixed(1):Math.round(m.speed*10)/10} ${esc(L('mdlSpeedUnit'))}`:''} · ${esc(L('mdlLangs'))}: ${esc(langs)}</div>
-    <div class="mdl-g">${esc(mcText(m.good))}</div>
+    <div class="mdl-g">${esc(mcText(m.good))}</div>${smallPhoneNote}
     ${gpuFallback?`<div class="hub-gpu-fallback" style="font-size:10px;color:var(--text-sub,#888);margin-top:2px;"><strong>${esc(L('webgpuFallback')||'WebGPU fallback')}:</strong> ${esc(gpuFallback)}</div>`:''}
     ${failed?`<div class="hub-model-error mdl-err" style="font-size:11px;color:var(--err-text,#ef4444);margin-top:4px;word-break:break-all;"><strong>${esc(L('errPrefix')||'Error')}:</strong> <span class="hub-error-msg">${esc(failMsg)}</span>${failFile?` · <code class="hub-error-file">${esc(failFile)}</code>`:''}${failUrl?` · <a href="${esc(failUrl)}" target="_blank" rel="noopener" class="hub-error-url">${esc(failUrl)}</a>`:''}${failDetails?`<details class="hub-error-details-wrap" style="margin-top:4px;"><summary class="hub-error-toggle" style="cursor:pointer;color:var(--text-sub,#888);user-select:none;">${esc(L('showDetails')||'Show details')}</summary><pre class="hub-error-details" style="margin:4px 0 0;padding:4px 6px;background:rgba(0,0,0,0.06);border-radius:4px;white-space:pre-wrap;font-family:monospace;font-size:10px;color:inherit;">${esc(failDetails)}</pre></details>`:''}</div>`:''}
     <div class="prog" id="mdlProg-${m.id}"${busy?'':' hidden'}><i id="mdlBar-${m.id}"></i></div>
@@ -338,25 +382,28 @@ function mcRow(m){
 }
 function mcRender(){
   const box=$('mdlCatalog');if(!box)return;
-  const by=(job,f)=>MC.models.filter(m=>m.job===job&&(!f||f(m)));
+  const isPhoneDevice=(typeof window!=='undefined'&&window.isPhone&&window.isPhone());
+  const by=(job,f)=>MC.models.filter(m=>m.job===job&&(!f||f(m))&&(!isPhoneDevice||PHONE_ALLOWED_MODELS.includes(m.id)));
   let h='';
   const listen=by('listen');
   if(listen.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpListen'))}</div>`+listen.map(mcRow).join('');
-  const multi=by('translate',m=>m.kind!=='opus'),pairs=by('translate',m=>m.kind==='opus');
-  if(multi.length||pairs.length){
-    h+=`<div class="mdl-grp">${esc(L('mdlGrpTr'))}</div>`+multi.map(mcRow).join('');
-    if(pairs.length)h+=`<div class="mdl-sub">${esc(L('mdlPairs'))}</div><label class="chk" style="margin:6px 0"><input type="checkbox" id="mdlPrefPair" ${cfg.trPair?'checked':''}>${esc(L('mdlPairsPrefer'))}</label>`+pairs.map(mcRow).join('');
+  if(!isPhoneDevice){
+    const multi=by('translate',m=>m.kind!=='opus'),pairs=by('translate',m=>m.kind==='opus');
+    if(multi.length||pairs.length){
+      h+=`<div class="mdl-grp">${esc(L('mdlGrpTr'))}</div>`+multi.map(mcRow).join('');
+      if(pairs.length)h+=`<div class="mdl-sub">${esc(L('mdlPairs'))}</div><label class="chk" style="margin:6px 0"><input type="checkbox" id="mdlPrefPair" ${cfg.trPair?'checked':''}>${esc(L('mdlPairsPrefer'))}</label>`+pairs.map(mcRow).join('');
+    }
+    const speak=by('speak');
+    if(speak.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpSpeak'))}</div>`+speak.map(mcRow).join('');
+    const ocr=by('ocr');
+    if(ocr.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpOcr')||(ui==='fa'?'خوانش تصویر و صفحه (OCR)':'OCR & Screen Reading'))}</div>`+ocr.map(mcRow).join('');
   }
-  const speak=by('speak');
-  if(speak.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpSpeak'))}</div>`+speak.map(mcRow).join('');
-  const ocr=by('ocr');
-  if(ocr.length)h+=`<div class="mdl-grp">${esc(L('mdlGrpOcr')||(ui==='fa'?'خوانش تصویر و صفحه (OCR)':'OCR & Screen Reading'))}</div>`+ocr.map(mcRow).join('');
   if(box._lastHtml!==h){
     box.innerHTML=h;
     box._lastHtml=h;
   }
   // total storage used by the models listed here
-  const mine=MC.models.filter(m=>mcBytes(m)>0);
+  const mine=(MC.models||[]).filter(m=>mcBytes(m)>0&&(!isPhoneDevice||PHONE_ALLOWED_MODELS.includes(m.id)));
   const total=mine.reduce((a,m)=>a+mcBytes(m),0);
   const t=$('mdlTotal');
   if(t){
@@ -367,28 +414,33 @@ function mcRender(){
   // Sync Offline translation model & speech model dropdowns
   const trSel=$('offTrModelSel');
   if(trSel){
-    const trDownloaded=trModels().filter(mcReady);
-    const prevTr=(cfg.trModel&&(cfg.trModel==='auto'||trDownloaded.some(m=>m.id===cfg.trModel)))?cfg.trModel:'auto';
-    const s=$('src')?.value||'auto';
-    const t=$('tgt')?.value||'fa';
-    const autoM=pickAutoTr(s,t);
-    let autoText='';
-    if(autoM){
-      const aName=mcText(autoM.name).replace(/\s*\(default\)$/i,'');
-      autoText=(typeof ui!=='undefined'&&ui==='fa')?`خودکار (اکنون: ${aName})`:`Auto (now: ${aName})`;
+    if(isPhoneDevice){
+      trSel.closest('label')?.style.setProperty('display', 'none', 'important');
     }else{
-      autoText=(typeof ui!=='undefined'&&ui==='fa')?'خودکار (هیچ مدلی دانلود نشده)':'Auto (no model downloaded)';
+      trSel.closest('label')?.style.removeProperty('display');
+      const trDownloaded=trModels().filter(mcReady);
+      const prevTr=(cfg.trModel&&(cfg.trModel==='auto'||trDownloaded.some(m=>m.id===cfg.trModel)))?cfg.trModel:'auto';
+      const s=$('src')?.value||'auto';
+      const t=$('tgt')?.value||'fa';
+      const autoM=pickAutoTr(s,t);
+      let autoText='';
+      if(autoM){
+        const aName=mcText(autoM.name).replace(/\s*\(default\)$/i,'');
+        autoText=(typeof ui!=='undefined'&&ui==='fa')?`خودکار (اکنون: ${aName})`:`Auto (now: ${aName})`;
+      }else{
+        autoText=(typeof ui!=='undefined'&&ui==='fa')?'خودکار (هیچ مدلی دانلود نشده)':'Auto (no model downloaded)';
+      }
+      let hTr=`<option value="auto">${esc(autoText)}</option>`;
+      for(const m of trDownloaded){
+        hTr+=`<option value="${m.id}">${esc(mcText(m.name))}</option>`;
+      }
+      trSel.innerHTML=hTr;
+      trSel.value=prevTr;
     }
-    let hTr=`<option value="auto">${esc(autoText)}</option>`;
-    for(const m of trDownloaded){
-      hTr+=`<option value="${m.id}">${esc(mcText(m.name))}</option>`;
-    }
-    trSel.innerHTML=hTr;
-    trSel.value=prevTr;
   }
   const asrSel=$('offWhisperSel');
   if(asrSel){
-    const asrDownloaded=MC.models.filter(m=>m.kind==='whisper'&&mcReady(m));
+    const asrDownloaded=MC.models.filter(m=>m.kind==='whisper'&&mcReady(m)&&(!isPhoneDevice||PHONE_ALLOWED_MODELS.includes(m.id)));
     const prevWhisper=(cfg.whisper&&(cfg.whisper==='auto'||asrDownloaded.some(m=>m.key===cfg.whisper)))?cfg.whisper:'auto';
     let hAsr=`<option value="auto">${esc(L('autoMdl'))}</option>`;
     for(const m of asrDownloaded){
@@ -410,8 +462,13 @@ let hubDeleteConfirmTimer=null;
 function renderModelHub(){
   const grid=$('modelHubCatalog');
   if(!grid)return;
-  const models=MC.models||[];
+  const isPhoneDevice=(typeof window!=='undefined'&&window.isPhone&&window.isPhone());
+  let models=MC.models||[];
+  if(isPhoneDevice){
+    models=models.filter(m=>PHONE_ALLOWED_MODELS.includes(m.id));
+  }
   const filtered=models.filter(m=>{
+    if(isPhoneDevice)return PHONE_ALLOWED_MODELS.includes(m.id);
     if(hubActiveCat==='all')return true;
     if(hubActiveCat==='translate')return m.job==='translate';
     if(hubActiveCat==='listen')return m.job==='listen';
@@ -458,6 +515,10 @@ function renderModelHub(){
     const langs=m.kind==='opus'?`${langShort(m.pair[0])} → ${langShort(m.pair[1])}`:mcText(m.langs);
     const isConfirming=(hubDeleteConfirmId===m.id);
     const inUse=ready&&(m.job==='listen'?(cfg.whisper!=='auto'&&cfg.whisper===m.key):(cfg.trModel!=='auto'&&cfg.trModel===m.id));
+    const isSmallWhisper=(m.id==='asr-small'||m.key==='small');
+    const smallPhoneNote=isPhoneDevice&&isSmallWhisper
+      ?`<div class="hub-phone-ram-note" style="margin-top:6px;font-size:12px;color:var(--text-sub,#888);line-height:1.4;">ℹ️ ${esc(L('whisperSmallPhoneNote')||'Needs a recent phone with about 8 GB RAM')}</div>`
+      :'';
 
     return `<div class="hub-model-card" data-hub-mdl="${esc(m.id)}" data-state="${state}">
       <div class="hub-model-head">
@@ -480,7 +541,7 @@ function renderModelHub(){
         <span>RAM ≈ ${esc(mcSize(m.memMB*1048576))}</span> · 
         <span>Langs: ${esc(langs)}</span>
       </div>
-      <p class="hub-model-desc">${esc(mcText(m.good))}</p>
+      <p class="hub-model-desc">${esc(mcText(m.good))}</p>${smallPhoneNote}
       ${gpuFallback?`<div class="hub-gpu-fallback" style="margin-top:4px;font-size:11px;color:var(--text-sub,#888);word-break:break-all;"><strong>${esc(L('webgpuFallback')||'WebGPU fallback')}:</strong> ${esc(gpuFallback)}</div>`:''}
       ${failed?`<div class="hub-model-error" style="margin-top:8px;padding:8px 10px;background:rgba(239,68,68,0.12);border:1px solid rgba(239,68,68,0.3);border-radius:6px;font-size:12px;color:var(--err-text,#ef4444);word-break:break-all;">
         <div class="hub-error-text"><strong>${esc(L('errPrefix')||'Error')}:</strong> <span class="hub-error-msg">${esc(failMsg||'Download failed')}</span></div>
@@ -804,3 +865,42 @@ if($('testAsrStop'))$('testAsrStop').onclick=()=>{
   if($('testAsrPrompt'))$('testAsrPrompt').hidden=true;
   if($('testAsrStatus'))$('testAsrStatus').textContent=L('testStopped');
 };
+
+function sanitizePhoneModelChoices() {
+  if (typeof window === 'undefined' || !window.isPhone || !window.isPhone()) return;
+  try {
+    if (typeof cfg !== 'undefined') {
+      if (cfg.whisper && !['auto', 'tiny', 'base', 'small'].includes(cfg.whisper)) {
+        cfg.whisper = 'auto';
+        if (typeof saveCfg === 'function') saveCfg();
+      }
+      if (cfg.trModel && cfg.trModel !== 'auto') {
+        cfg.trModel = 'auto';
+        if (typeof saveCfg === 'function') saveCfg();
+      }
+      if (cfg.engine === 'nllb') {
+        cfg.engine = 'auto';
+        if (typeof saveCfg === 'function') saveCfg();
+      }
+    }
+    if (typeof store !== 'undefined') {
+      if (store.get('engine') === 'nllb') {
+        store.set('engine', 'auto');
+      }
+      if (store.get('voiceTransEngine') === 'nllb') {
+        store.set('voiceTransEngine', 'auto');
+      }
+      const w = store.get('whisper');
+      if (w && !['auto', 'tiny', 'base', 'small'].includes(w)) {
+        store.set('whisper', 'auto');
+      }
+    }
+  } catch (_) {}
+}
+
+sanitizePhoneModelChoices();
+
+if (typeof window !== 'undefined') {
+  window.sanitizePhoneModelChoices = sanitizePhoneModelChoices;
+}
+

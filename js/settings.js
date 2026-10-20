@@ -296,7 +296,9 @@ function showSettingsAutoSaved() {
 }
 
 function renderEngines(){
-  $('engList').innerHTML=cfg.order.map((id,i)=>{const d=ENG[id],e=cfg.eng[id],w=why(id);
+  const isPhoneDevice = (typeof window !== 'undefined' && window.isPhone && window.isPhone());
+  const orderList = isPhoneDevice ? cfg.order.filter(id => id !== 'nllb') : cfg.order;
+  $('engList').innerHTML=orderList.map((id,i)=>{const d=ENG[id],e=cfg.eng[id],w=why(id);
     const conn=engineConnStatus[id];
     let connHtml='';
     if(conn){
@@ -329,7 +331,7 @@ function renderEngines(){
     }
     return `<div class="eng ${e.on?'':'off'}" data-id="${id}"><div class="eng-h"><span class="dot ${usable(id)?'ok':''}"></span><strong><bdi>${esc(d.name)}</bdi></strong>${connHtml}<span class="tier ${d.tier}">${esc(L(d.tier))}</span>${w?`<span class="meta">${esc(w)}</span>`:''}<span class="sp"></span>
       ${d.url?`<a href="${d.url}" target="_blank" rel="noopener">${esc(L(d.key?'getKey':'install'))} ↗</a>`:''}
-      <button class="btn ghost" data-a="up" ${i?'':'disabled'} aria-label="Move up">↑</button><button class="btn ghost" data-a="down" ${i<cfg.order.length-1?'':'disabled'} aria-label="Move down">↓</button>
+      <button class="btn ghost" data-a="up" ${i?'':'disabled'} aria-label="Move up">↑</button><button class="btn ghost" data-a="down" ${i<orderList.length-1?'':'disabled'} aria-label="Move down">↓</button>
       <label class="chk"><input type="checkbox" data-f="on" ${e.on?'checked':''}>On</label></div>
       ${d.ai?`<div class="eng-b">${id==='custom'||id==='ollama'?`<div style="grid-column:1/-1;display:flex;flex-direction:column;gap:3px;margin-bottom:4px"><span style="font-size:11px;font-family:var(--mono);color:var(--muted)">Ollama base URL:</span><input type="text" data-f="base" value="${esc(e.base || (id==='ollama'?'http://localhost:11434/v1':''))}" placeholder="${id==='ollama'?'http://localhost:11434/v1':esc(L('baseUrl'))}" spellcheck="false"></div>`:''}
         ${id==='ollama'?'':`<div class="eng-key-wrap" style="position:relative;display:flex;align-items:center;width:100%"><input type="password" data-f="key" value="${esc(e.key)}" placeholder="${esc(L('key'))}" autocomplete="off" spellcheck="false" style="padding-inline-end:${e.key && e.key.length > 4 ? '70px' : '36px'}">${e.key && e.key.length > 4 ? `<span class="eng-key-last4" style="position:absolute;inset-inline-end:34px;font-family:var(--mono);font-size:11px;color:var(--accent);pointer-events:none">…${esc(e.key.slice(-4))}</span>` : ''}<button type="button" class="btn icon-only eng-key-toggle-btn" style="position:absolute;inset-inline-end:4px;width:26px;height:26px;padding:0;min-height:0;background:none;border:none;color:var(--muted);cursor:pointer" title="Toggle visibility" aria-label="Toggle key visibility">👁</button></div>`}

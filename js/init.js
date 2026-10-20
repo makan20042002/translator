@@ -250,7 +250,11 @@
     }) : []),
     getWhisperChoice: getMediaWhisperChoice,
     listWhisperModels: () => {
-      const models = (typeof MC !== 'undefined' && MC.models) ? MC.models.filter(m => m.kind === 'whisper') : [];
+      let models = (typeof MC !== 'undefined' && MC.models) ? MC.models.filter(m => m.kind === 'whisper') : [];
+      if (typeof window !== 'undefined' && window.isPhone && window.isPhone()) {
+        const allowed = window.PHONE_ALLOWED_MODELS || ['asr-tiny', 'asr-base', 'asr-small'];
+        models = models.filter(m => allowed.includes(m.id));
+      }
       return models.map(m => ({
         key: m.key,
         repo: m.repo,
@@ -357,6 +361,10 @@
         ensureMediaMounted();
       }
     });
+  }
+
+  if (typeof sanitizePhoneModelChoices === 'function') {
+    sanitizePhoneModelChoices();
   }
 })();
 

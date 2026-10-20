@@ -144,6 +144,9 @@ function getEngineStatus(id,opts={}){
   if(isOff()&&!offCapable(id)){
     return {usable:false,state:'offline-blocked',reason:'offlineBlocked'};
   }
+  if(id==='nllb'&&(typeof window!=='undefined'&&window.isPhone&&window.isPhone())){
+    return {usable:false,state:'not-here',reason:'notHere'};
+  }
   if(id==='nllb'&&!trAnyReady()){
     return {usable:false,state:'not-downloaded',reason:'needDl'};
   }
@@ -217,6 +220,7 @@ function why(id){
   if(id==='custom'&&!e.base)return L('needUrl');
   if(ENG[id].ai&&!e.model&&id!=='ollama')return L('needModel');
   if(id==='chrome'&&(typeof window!=='undefined'&&window.makanDesktop?.isDesktop===true||!('Translator' in self)||isChromeSessionUnavailable()))return L('notHere');
+  if(id==='nllb'&&typeof window!=='undefined'&&window.isPhone&&window.isPhone())return L('notHere');
   if(id==='nllb'&&!trAnyReady())return L('needDl');
   return '';
 }
