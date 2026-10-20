@@ -63,9 +63,32 @@ Neither has a build step for the app code itself. The only "build" is
 `node build-manifests.js` creates:
 
 * `dist/chrome/`: for Chrome and Edge. Background runs as a service worker.
-* `dist/firefox/`: for Firefox 142 or newer. Background runs as an event page
+* `dist/firefox/`: for Firefox 115 or newer. Background runs as an event page
   with `engine.js` loaded first; `offscreen.html/js` and the `offscreen`
   permission are left out.
+
+### Firefox differences
+
+#### Offscreen Document & Audio Handling
+When running `web-ext lint`, Mozilla's linter reports warnings that `offscreen.hasDocument` and `offscreen.createDocument` (`extension/background.js` lines ~191 and ~202) are unsupported in Firefox.
+
+* **Why the offscreen document exists in Chrome/Edge:**
+  In Chromium Manifest V3, background scripts run strictly inside a Service Worker (`ServiceWorkerGlobalScope`), which lacks access to the DOM, `window`, `new Audio()`, and the Web Audio API (`AudioContext`). Chromium extensions must therefore spin up an isolated offscreen document (`offscreen.html` / `offscreen.js`) with the `AUDIO_PLAYBACK` reason to decode, play, or stream audio.
+
+* **Extension features that depend on the offscreen document (in Chromium):**
+  1. **Text-to-Speech (TTS) chunk playback**: Pipelined sentence-by-sentence audio playback (`playAudioChunk()` dispatching `play-audio` messages to the offscreen document).
+  2. **Streaming Gemini Neural TTS**: Real-time chunk-by-chunk playback via `GeminiAudioStreamPlayer` (dispatching `stream-tts` messages to the offscreen document to decode and play raw PCM/WAV chunks via Web Audio `AudioContext`).
+  3. **Audio state control**: Pausing, resuming, and stopping active speech audio across the popup, the floating card, and background queues.
+
+* **What the Firefox build does instead (Full Fallback Path — Zero Silent Failures):**
+  These features do **not** fail silently on Firefox. Firefox provides a first-class native fallback path:
+  1. **Build packaging**: `build-manifests.js` omits `offscreen.html` and `offscreen.js` from `dist/firefox/`, and strips the `offscreen` permission from `manifest.json`.
+  2. **Runtime guard**: In `background.js`, `ensureOffscreenDocument()` checks `if (typeof chrome === 'undefined' || !chrome.offscreen) return false;`. On Firefox, `chrome.offscreen` is undefined, so the function returns `false` safely and immediately without throwing or attempting to call `createDocument`.
+  3. **Direct Event Page DOM / Audio APIs**: Firefox MV3 implements the background as a background event page (`background.scripts: ['engine.js', 'dictionary.js', 'background.js']`) rather than a restricted service worker. Event pages have direct, native access to DOM `Audio` elements and the Web Audio `AudioContext`.
+  4. **Direct Audio fallback**: `playAudioChunk()` immediately falls back to direct `new Audio(dataUrl)` playback (lines 94-110).
+  5. **Direct AudioContext Streaming fallback**: Background Gemini TTS streaming directly instantiates `new GeminiAudioStreamPlayer({ ... })` using the native `AudioContext` and streams via `streamGeminiTts()` (lines 843-880). If streaming fails for any reason, it automatically falls back to `startPipelinedPlayback()`.
+  
+  Consequently, all TTS playback and streaming features operate completely and natively in Firefox with zero functional degradation.
 
 ## 3. How a translation request travels
 
