@@ -55,7 +55,7 @@ Seamlessly export translations to the MAKAN desktop workspace or web app with a 
 • Zero telemetry, tracking, or background profiling.
 • Translates ONLY when you ask (button click, context menu, or keyboard shortcut).
 • Never reads or scans password fields, payment forms, or sensitive text inputs.
-• Your API keys remain encrypted inside your browser's local storage.
+• Your API keys are kept only on your device in the browser's local storage, never synced and sent only to their own provider.
 ```
 
 ---

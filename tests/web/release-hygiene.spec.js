@@ -361,6 +361,51 @@ test.describe('Release Hygiene & Store Readiness', () => {
     expect(distGecko.data_collection_permissions.required).toContain('websiteContent');
     expect(distGecko.data_collection_permissions.required).not.toContain('none');
   });
+
+  test('ITEM 11 - Honesty: no shipped doc or UI string claims encryption of keys', () => {
+    const shippedDirs = ['docs', 'extension', 'js'];
+    const shippedFiles = ['index.html', 'README.md'];
+    const scannedFiles = [];
+
+    for (const f of shippedFiles) {
+      const fullPath = path.join(ROOT, f);
+      if (fs.existsSync(fullPath)) scannedFiles.push(fullPath);
+    }
+
+    function collectFiles(dir) {
+      for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+        if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === 'vendor') continue;
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          collectFiles(full);
+        } else if (entry.isFile() && /\.(html|js|json|md|txt)$/i.test(entry.name)) {
+          scannedFiles.push(full);
+        }
+      }
+    }
+
+    for (const d of shippedDirs) {
+      const fullDir = path.join(ROOT, d);
+      if (fs.existsSync(fullDir)) collectFiles(fullDir);
+    }
+
+    const falseEncryptionRegex = /(?:encrypt(?:ed|ion)?|رمزگذاری)\s*(?:inside|in|within|for)?\s*(?:(?:the|your|local)?\s*(?:browser(?:'s)?|local\s*storage|storage|device|disk))?.*(?:api\s*keys?|keys?)|(?:api\s*keys?|keys?)\s*(?:are|stay|remain|is)?\s*(?:stored|kept)?\s*(?:encrypted|رمزگذاری)/i;
+    const violations = [];
+
+    for (const file of scannedFiles) {
+      const content = fs.readFileSync(file, 'utf8');
+      const lines = content.split(/\r?\n/);
+      for (let i = 0; i < lines.length; i++) {
+        const line = lines[i];
+        if (falseEncryptionRegex.test(line)) {
+          if (line.includes('no shipped doc') || line.includes('does not encrypt')) continue;
+          violations.push(`${path.relative(ROOT, file)}:${i + 1} "${line.trim()}"`);
+        }
+      }
+    }
+
+    expect(violations, `Found false claims of key encryption: ${violations.join(', ')}`).toEqual([]);
+  });
 });
 
 
