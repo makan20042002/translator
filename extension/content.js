@@ -306,9 +306,11 @@
   if (!('adoptedStyleSheets' in shadow)) {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    try { link.href = (window.browser?.runtime?.getURL || window.chrome?.runtime?.getURL)?.('content.css') || 'http://localhost:8080/extension/content.css'; }
-    catch { link.href = 'http://localhost:8080/extension/content.css'; }
-    shadow.appendChild(link);
+    const cssUrl = (window.browser?.runtime?.getURL || window.chrome?.runtime?.getURL)?.('content.css');
+    if (cssUrl) {
+      link.href = cssUrl;
+      shadow.appendChild(link);
+    }
   }
 
   // If the page's policy refuses something of ours, remember it so a failure can say so plainly.
