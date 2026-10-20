@@ -3,6 +3,7 @@ node_modules/
 
 # Build and distribution artifacts
 dist/
+dist/packages/
 web-ext-artifacts/
 *.zip
 *.xpi

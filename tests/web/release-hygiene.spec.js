@@ -406,6 +406,47 @@ test.describe('Release Hygiene & Store Readiness', () => {
 
     expect(violations, `Found false claims of key encryption: ${violations.join(', ')}`).toEqual([]);
   });
+
+  test('ITEM 12 - Packaging: package:extensions produces deterministic zips with root manifest', async () => {
+    const JSZip = require('jszip');
+    const { packageExtensions, buildZipFromDir } = require('../../tools/package-extensions');
+    const pkg = JSON.parse(fs.readFileSync(path.join(ROOT, 'package.json'), 'utf8'));
+
+    const result = await packageExtensions({ rootDir: ROOT });
+
+    expect(fs.existsSync(result.chromeZipPath)).toBe(true);
+    expect(fs.existsSync(result.firefoxZipPath)).toBe(true);
+
+    for (const [platform, zipPath] of [['chrome', result.chromeZipPath], ['firefox', result.firefoxZipPath]]) {
+      const data = fs.readFileSync(zipPath);
+      const zip = await JSZip.loadAsync(data);
+
+      // Has manifest.json at the root
+      const manifestFile = zip.file('manifest.json');
+      expect(manifestFile, `${platform} zip must contain manifest.json at the root`).not.toBeNull();
+
+      const manifestContent = JSON.parse(await manifestFile.async('string'));
+      expect(manifestContent.version).toBe(pkg.version);
+
+      // Has no file matching tests/ or .map or .md dev files
+      const zipFiles = Object.keys(zip.files);
+      for (const filePath of zipFiles) {
+        expect(filePath).not.toMatch(/^tests\//);
+        expect(filePath).not.toMatch(/\/tests\//);
+        expect(filePath).not.toMatch(/\.map$/i);
+        expect(filePath).not.toMatch(/\.md$/i);
+      }
+    }
+
+    // Building twice gives identical bytes
+    const build1 = await buildZipFromDir(path.join(ROOT, 'dist', 'chrome'));
+    const build2 = await buildZipFromDir(path.join(ROOT, 'dist', 'chrome'));
+    expect(build1.content.equals(build2.content), 'Chrome zip build output must be byte-for-byte deterministic').toBe(true);
+
+    const ffBuild1 = await buildZipFromDir(path.join(ROOT, 'dist', 'firefox'));
+    const ffBuild2 = await buildZipFromDir(path.join(ROOT, 'dist', 'firefox'));
+    expect(ffBuild1.content.equals(ffBuild2.content), 'Firefox zip build output must be byte-for-byte deterministic').toBe(true);
+  });
 });
 
 
