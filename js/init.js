@@ -389,7 +389,110 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();
   if(b.dataset.tab==='media'&&typeof window.MediaTranslate?.ensureMounted==='function')window.MediaTranslate.ensureMounted();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
+  if(typeof updatePhoneNav==='function')updatePhoneNav(b.dataset.tab);
 });
+
+function updatePhoneNav(activeTab) {
+  if (!activeTab) return;
+  const mainPhoneTabs = ['text', 'voice', 'doc', 'media'];
+  const isMain = mainPhoneTabs.includes(activeTab);
+  document.querySelectorAll('#phoneBottomNav button[data-tab]').forEach(btn => {
+    const on = (btn.dataset.tab === activeTab);
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-selected', on ? 'true' : 'false');
+  });
+  const moreBtn = document.getElementById('phoneNavMoreBtn');
+  if (moreBtn) {
+    moreBtn.classList.toggle('on', !isMain);
+    moreBtn.setAttribute('aria-selected', !isMain ? 'true' : 'false');
+  }
+  document.querySelectorAll('#phoneMoreSheet .phone-sheet-item[data-tab]').forEach(item => {
+    const on = (item.dataset.tab === activeTab);
+    item.classList.toggle('on', on);
+  });
+}
+
+function initPhoneNavigation() {
+  const bottomNav = document.getElementById('phoneBottomNav');
+  const moreSheet = document.getElementById('phoneMoreSheet');
+  const backdrop = document.getElementById('phoneSheetBackdrop');
+  const moreBtn = document.getElementById('phoneNavMoreBtn');
+  const closeBtn = document.getElementById('phoneMoreCloseBtn');
+  const settingsBtn = document.getElementById('phoneMoreSettingsBtn');
+
+  function openSheet() {
+    if (!moreSheet || !backdrop) return;
+    moreSheet.hidden = false;
+    backdrop.hidden = false;
+    moreSheet.classList.add('open');
+    backdrop.classList.add('open');
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'true');
+  }
+
+  function closeSheet() {
+    if (!moreSheet || !backdrop) return;
+    moreSheet.classList.remove('open');
+    backdrop.classList.remove('open');
+    moreSheet.hidden = true;
+    backdrop.hidden = true;
+    if (moreBtn) moreBtn.setAttribute('aria-expanded', 'false');
+  }
+
+  if (bottomNav) {
+    bottomNav.addEventListener('click', e => {
+      const btn = e.target.closest('button');
+      if (!btn) return;
+      if (btn === moreBtn || btn.dataset.phoneNav === 'more') {
+        if (moreSheet && moreSheet.classList.contains('open')) closeSheet();
+        else openSheet();
+        return;
+      }
+      const tab = btn.dataset.tab;
+      if (tab) {
+        closeSheet();
+        const tabBtn = document.querySelector('#tabs button[data-tab="' + tab + '"]');
+        if (tabBtn) tabBtn.click();
+      }
+    });
+  }
+
+  if (moreSheet) {
+    moreSheet.addEventListener('click', e => {
+      const item = e.target.closest('.phone-sheet-item');
+      if (!item) return;
+      if (item === settingsBtn || item.id === 'phoneMoreSettingsBtn') {
+        closeSheet();
+        document.getElementById('openSet')?.click();
+        return;
+      }
+      const tab = item.dataset.tab;
+      if (tab) {
+        closeSheet();
+        const tabBtn = document.querySelector('#tabs button[data-tab="' + tab + '"]');
+        if (tabBtn) tabBtn.click();
+      }
+    });
+  }
+
+  if (closeBtn) closeBtn.onclick = closeSheet;
+  if (backdrop) backdrop.onclick = closeSheet;
+
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && moreSheet && moreSheet.classList.contains('open')) {
+      closeSheet();
+    }
+  });
+
+  const activeBtn = document.querySelector('#tabs button.on');
+  if (activeBtn && activeBtn.dataset.tab) {
+    updatePhoneNav(activeBtn.dataset.tab);
+  }
+}
+initPhoneNavigation();
+if (typeof window !== 'undefined') {
+  window.updatePhoneNav = updatePhoneNav;
+  window.initPhoneNavigation = initPhoneNavigation;
+}
 if($('sidebarToggleBtn'))$('sidebarToggleBtn').onclick=()=>{
   const s=$('sidebar'),bd=$('sidebarBackdrop');
   if(s){

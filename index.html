@@ -1917,6 +1917,73 @@
   <button class="btn ghost" id="speakNoticeRetry" type="button" hidden></button>
   <button class="btn ghost" id="speakNoticeClose" type="button" aria-label="Dismiss">✕</button>
 </div>
+<!-- PHONE NAVIGATION (ITEM 3) -->
+<nav class="phone-bottom-nav" id="phoneBottomNav" aria-label="Phone Navigation">
+  <button type="button" class="phone-nav-btn on" data-tab="text" aria-selected="true">
+    <span class="phone-nav-icon phone-nav-icon-text" aria-hidden="true"></span>
+    <span class="phone-nav-label" data-t="tabText">Text</span>
+  </button>
+  <button type="button" class="phone-nav-btn" data-tab="voice" aria-selected="false">
+    <span class="phone-nav-icon phone-nav-icon-voice" aria-hidden="true"></span>
+    <span class="phone-nav-label" data-t="tabVoice">Voice</span>
+  </button>
+  <button type="button" class="phone-nav-btn" data-tab="doc" aria-selected="false">
+    <span class="phone-nav-icon phone-nav-icon-doc" aria-hidden="true"></span>
+    <span class="phone-nav-label" data-t="tabDoc">Document</span>
+  </button>
+  <button type="button" class="phone-nav-btn" data-tab="media" aria-selected="false">
+    <span class="phone-nav-icon phone-nav-icon-media" aria-hidden="true"></span>
+    <span class="phone-nav-label" data-t="tabMedia">Media</span>
+  </button>
+  <button type="button" class="phone-nav-btn" id="phoneNavMoreBtn" data-phone-nav="more" aria-expanded="false" aria-haspopup="dialog" aria-selected="false">
+    <span class="phone-nav-icon phone-nav-icon-more" aria-hidden="true"></span>
+    <span class="phone-nav-label" data-t="navMore">More</span>
+  </button>
+</nav>
+
+<div class="phone-sheet-backdrop" id="phoneSheetBackdrop" hidden></div>
+<div class="phone-more-sheet" id="phoneMoreSheet" role="dialog" aria-modal="true" aria-label="More navigation" hidden>
+  <div class="phone-more-sheet-handle" aria-hidden="true"></div>
+  <div class="phone-more-sheet-header">
+    <h3 class="phone-more-sheet-title" data-t="navMore">More</h3>
+    <button type="button" class="btn icon-only phone-more-sheet-close" id="phoneMoreCloseBtn" aria-label="Close">✕</button>
+  </div>
+  <div class="phone-more-sheet-list" role="menu">
+    <button type="button" class="phone-sheet-item" data-tab="sub" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-sub" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabSubtitles">Subtitles</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="dict" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-dict" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabDict">Dictionary</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="idiom" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-idiom" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabIdiom">Idioms</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="cmp" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-cmp" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabCmp">Compare</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="gls" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-gls" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabGls">Glossary</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="hist" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-hist" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabHist">History</span>
+    </button>
+    <button type="button" class="phone-sheet-item" data-tab="models" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-models" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabModels">Model Hub</span>
+    </button>
+    <button type="button" class="phone-sheet-item" id="phoneMoreSettingsBtn" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-settings" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="tabSettings">Settings</span>
+    </button>
+  </div>
+</div>
+
 <div class="toasts" id="toasts"></div>
 
 <script src="extension/engine.js"></script>
