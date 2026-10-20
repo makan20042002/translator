@@ -311,6 +311,32 @@ test.describe('Release Hygiene & Store Readiness', () => {
     expect(storeListingContent).toContain('makan-translate@makanlab.tech');
     expect(storeListingContent).toContain(enLocale.extensionDescription.message);
   });
+
+  test('ITEM 9 - GPL component section in docs/THIRD_PARTY.md and GPL licence text file exists on disk', () => {
+    const thirdPartyPath = path.join(ROOT, 'docs', 'THIRD_PARTY.md');
+    expect(fs.existsSync(thirdPartyPath), 'docs/THIRD_PARTY.md must exist').toBe(true);
+    const content = fs.readFileSync(thirdPartyPath, 'utf8');
+
+    // Section "GPL component" exists in docs/THIRD_PARTY.md
+    expect(content).toMatch(/##\s+GPL component/i);
+    expect(content).toContain('eSpeak NG');
+    expect(content).toContain('vendor/piper');
+    expect(content).toContain('piper-worker.js');
+
+    // GPL licence text file exists on disk
+    const gplFilePaths = [
+      path.join(ROOT, 'vendor', 'piper', 'LICENSE-GPL.txt'),
+      path.join(ROOT, 'vendor', 'piper', 'LICENSE-GPL'),
+      path.join(ROOT, 'vendor', 'piper', 'COPYING'),
+      path.join(ROOT, 'vendor', 'piper', 'LICENSE'),
+      path.join(ROOT, 'LICENSES', 'GPL-3.0.txt')
+    ];
+    const foundGplFile = gplFilePaths.find(p => fs.existsSync(p));
+    expect(foundGplFile, 'A GPL licence text file must exist in vendor/piper/ or LICENSES/').toBeDefined();
+
+    const gplContent = fs.readFileSync(foundGplFile, 'utf8');
+    expect(gplContent).toContain('GNU GENERAL PUBLIC LICENSE');
+  });
 });
 
 

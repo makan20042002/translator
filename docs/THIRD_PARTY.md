@@ -4,6 +4,17 @@ This repository bundles, vendor-hosts, loads via CDN, or downloads the following
 
 ---
 
+## GPL component
+
+- **Component**: eSpeak NG
+- **Licence**: GNU General Public License v3.0 or later (GPL-3.0-or-later)
+- **Licence Text**: Full licence text is provided in [`vendor/piper/LICENSE-GPL.txt`](../vendor/piper/LICENSE-GPL.txt).
+- **Source Link**: https://github.com/espeak-ng/espeak-ng
+- **Inclusion & Isolation**: eSpeak NG (GPL-3.0-or-later) is included inside `vendor/piper/` (`piper_phonemize.*`), is loaded only by the offline voice worker (`piper-worker.js`), is not linked into any other part of the app, and its full licence text and source link are provided.
+- **Removing Offline Voice**: A user can remove the offline voice by deleting `vendor/piper` and `piper-worker.js` without breaking the rest of the application. All remaining features (text translation, subtitles, documents, online voice, speech recognition, and OCR) continue to work normally.
+
+---
+
 ## 1. Vendored Libraries (`vendor/`)
 
 ### pdfjs (`vendor/pdfjs/`)
