@@ -20,7 +20,7 @@ test.describe('Documentation: Extension testing guidelines', () => {
     const content = fs.readFileSync(overviewPath, 'utf8');
 
     expect(content).toContain('Whole-page translation');
-    expect(content).toMatch(/reads the saved target language on every start/i);
-    expect(content).toMatch(/retranslate after Stop only re-translates the units that were already done/i);
+    expect(content).toMatch(/reads\s+the\s+saved\s+target\s+language\s+on\s+every\s+start/i);
+    expect(content).toMatch(/retranslate\s+after\s+stop\s+only\s+re-translates\s+the\s+units\s+that\s+were\s+already\s+done/i);
   });
 });

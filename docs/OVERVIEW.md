@@ -260,10 +260,7 @@ Subtitle, Document, Compare and the Voice tab all use the same
    `POST /__makan/open` with the text and language pair to bring the desktop app
    window forward. If the desktop app is not running or the ping check is
    rejected, the extension falls back to opening the web app in a browser tab.
-8. **Whole-page translation**: Whole-page translate reads the saved target
-   language on every start (refreshing from settings and updating dynamically
-   if changed in popup/options). Retranslate after Stop only re-translates the
-   units that were already done.
+8. **Whole-page translation**: Whole-page translate reads the saved target language on every start (refreshing from settings and updating dynamically if changed in popup/options). Retranslate after Stop only re-translates the units that were already done.
 
 ## 4. Where settings and keys are stored
 
@@ -611,7 +608,7 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
 * **Extension tests which open extra tabs must use unique addresses**:
   The extension test fixture (`ext`) pre-opens `/__test/article.html` as
   `ext.article`. Test helpers such as `ext.clickContextMenu(menuItemId, pageUrl)`
-  and readiness checks resolve target tabs by address against Chromium's tab registry.
+  and readiness checks resolve tabs by address against Chromium's tab registry.
   When tests open extra tabs (via `ext.context.newPage()`), they must navigate
   to a unique address (for example `stub.appOrigin + '/__test/article.html?case=xyz'`)
   and pass that exact `page.url()` to `clickContextMenu`. Reusing identical
