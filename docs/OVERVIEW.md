@@ -30,6 +30,7 @@ Neither has a build step for the app code itself. The only "build" is
 | `css/` | Modular stylesheets: `base.css` (tokens, reset, nav), `layout.css` (panes, cards, grids), `components.css` (modal, settings, toasts), `tabs.css` (document and voice tabs). |
 | `js/` | Modular application logic (classic scripts): `store.js`, `i18n.js`, `translate.js`, `speech.js`, `text.js`, `subtitles.js`, `documents.js`, `voice.js`, `compare.js`, `settings.js`, `models.js`, `voice-picker.js`, `init.js`, `dictionary.js`, `idioms.js`, `screen.js`. |
 | `media/` | The Media Translate module: in-browser audio/video decoding, Whisper transcription, cue timing, subtitle translation and video preview export (`media-ui.js`, `media-worker.js`, `media.css`, etc.). |
+| `screen-translator/` | Screen translator module for Windows screen capture, OCR, and overlay (`ocr-service.js`, `manager.js`, `overlay.html`). `translator/screen-translator/ocr-service.js` is the authoritative source of truth; `exe translator/screen-translator/ocr-service.js` is an identical copy for the desktop app. |
 | `extension/engine.js` | Loaded by `index.html` (line 918) **and** by the extension. See section 5 for what the web app actually uses from it. |
 | `ai-worker.js` | A background worker for the "offline" features. It downloads the NLLB translation model and the Whisper speech model from Hugging Face (through the `cdn.jsdelivr.net` library `@huggingface/transformers`) and runs them in the browser. |
 | `models-catalog.js` | The list shown in Engines & keys → Offline (name, files, sizes, memory, speed, languages, one-line use for every offline model and voice). **Generated** by `tools/model-check/build-catalog.mjs` from Hugging Face API sizes and saved test runs; do not edit by hand. See `docs/MODELS.md`. |
@@ -619,3 +620,13 @@ Items 1 to 3, 5 to 8 below are written as they were found, before the fixes.
   Automated extension tests run in headless mode where tabs never become hidden,
   and content-script globals live in an isolated execution world. Verification
   of background tab translation pausing must be performed by hand.
+
+## 7. Shared code: screen-translator/ocr-service.js
+
+The file `screen-translator/ocr-service.js` in `translator` is the authoritative source for OCR handling across both the web workspace and the packaged Windows desktop app (`exe translator`). It encapsulates Windows Media OCR execution, language pack detection, image preprocessing, and fallback to RapidOCR / Tesseract bridges.
+
+The copy located at `exe translator/screen-translator/ocr-service.js` is an identical downstream copy used when building and running the standalone Electron desktop executable. By design:
+- `translator/screen-translator/ocr-service.js` is the source of truth.
+- `exe translator/screen-translator/ocr-service.js` is an identical copy.
+- An automated release-hygiene test (`tests/web/release-hygiene.spec.js`) validates that the two files remain identical and alerts if they differ.
+

@@ -252,5 +252,19 @@ test.describe('Release Hygiene & Store Readiness', () => {
     expect(missingInExtFa, 'All extension en messages must exist in fa').toEqual([]);
     expect(missingInExtEn, 'All extension fa messages must exist in en').toEqual([]);
   });
+
+  test('ITEM 7 - screen-translator/ocr-service.js in translator and exe translator are identical copies', () => {
+    const srcOcrPath = path.join(ROOT, 'screen-translator', 'ocr-service.js');
+    expect(fs.existsSync(srcOcrPath), 'translator/screen-translator/ocr-service.js must exist').toBe(true);
+    const srcContent = fs.readFileSync(srcOcrPath, 'utf8');
+
+    const exeOcrPath = path.resolve(ROOT, '..', 'exe translator', 'screen-translator', 'ocr-service.js');
+    expect(fs.existsSync(exeOcrPath), 'exe translator/screen-translator/ocr-service.js must exist').toBe(true);
+    const exeContent = fs.readFileSync(exeOcrPath, 'utf8');
+
+    const norm = s => s.replace(/\r\n/g, '\n').trim();
+    expect(norm(srcContent), 'ocr-service.js in exe translator must be identical to source in translator').toBe(norm(exeContent));
+  });
 });
+
 
