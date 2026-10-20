@@ -90,7 +90,10 @@ function buildFirefox() {
   manifest.browser_specific_settings = {
     gecko: {
       id: 'makan-translate@makanlab.tech',
-      strict_min_version: '115.0'
+      strict_min_version: '115.0',
+      data_collection_permissions: {
+        required: ['websiteContent']
+      }
     }
   };
 

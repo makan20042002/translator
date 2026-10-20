@@ -75,11 +75,13 @@ Seamlessly export translations to the MAKAN desktop workspace or web app with a 
 
 ## 4. Privacy Summary
 
-1. **Explicit Action Only**: The extension never reads or transmits text in the background. Content is read and sent only when the user explicitly clicks the translation button, chooses the context menu option, or presses a shortcut.
-2. **Sensitive Fields Excluded**: Password inputs (`type="password"`), credit card and payment fields (`autocomplete*="cc-"`), editable inputs, and hidden tokens are strictly bypassed and never read.
-3. **No Intermediary Servers**: Network requests travel directly from the user's browser to the selected translation API or local server over HTTPS. There is no central tracking server or proxy.
-4. **Local Key Storage**: API keys are saved exclusively in local extension storage (`chrome.storage.local`) and are never uploaded or synced to external servers.
+1. **What is sent, to whom, and when**: Selected text snippets or visible webpage paragraphs are sent to the translation engine the user picks (Google Translate by default; other engines if the user adds a key) strictly upon explicit user request (clicking the floating button, selecting context menu item, pressing translation shortcut, or clicking Translate).
+2. **Local Key Storage**: API keys stay in local browser storage (`chrome.storage.local`) and are sent only directly to their own provider over HTTPS; they are never uploaded or synced to external servers.
+3. **No MAKAN Servers**: Nothing is sent to MAKAN servers. Network requests travel directly from the user's browser to the selected provider or local Ollama instance without telemetry, tracking, or proxying.
+4. **Sensitive Fields Excluded**: Password inputs (`type="password"`), credit card and payment fields (`autocomplete*="cc-"`), editable inputs, and hidden tokens are strictly bypassed and never read.
 5. **No Telemetry**: No analytics packages, tracking beacons, or usage analytics are embedded.
+6. **AMO Declaration**:
+   AMO form: data collection = website content, required; owner to confirm whether API keys count as authentication info
 
 Full policy details are available in [`extension/PRIVACY.md`](../extension/PRIVACY.md).
 

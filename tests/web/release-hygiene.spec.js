@@ -337,6 +337,30 @@ test.describe('Release Hygiene & Store Readiness', () => {
     const gplContent = fs.readFileSync(foundGplFile, 'utf8');
     expect(gplContent).toContain('GNU GENERAL PUBLIC LICENSE');
   });
+
+  test('ITEM 10 - Firefox manifest includes required data_collection_permissions and Chrome does not', () => {
+    const extDir = path.join(ROOT, 'extension');
+    const firefoxManifest = JSON.parse(fs.readFileSync(path.join(extDir, 'manifest.firefox.json'), 'utf8'));
+    const chromeManifest = JSON.parse(fs.readFileSync(path.join(extDir, 'manifest.chrome.json'), 'utf8'));
+    const distFirefoxManifestPath = path.join(ROOT, 'dist', 'firefox', 'manifest.json');
+
+    const gecko = firefoxManifest.browser_specific_settings?.gecko;
+    expect(gecko).toBeDefined();
+    expect(gecko.data_collection_permissions).toBeDefined();
+    expect(gecko.data_collection_permissions.required).toBeDefined();
+    expect(gecko.data_collection_permissions.required).toContain('websiteContent');
+    expect(gecko.data_collection_permissions.required).not.toContain('none');
+
+    expect(chromeManifest.browser_specific_settings).toBeUndefined();
+
+    expect(fs.existsSync(distFirefoxManifestPath), 'dist/firefox/manifest.json must exist').toBe(true);
+    const distFirefoxManifest = JSON.parse(fs.readFileSync(distFirefoxManifestPath, 'utf8'));
+    const distGecko = distFirefoxManifest.browser_specific_settings?.gecko;
+    expect(distGecko).toBeDefined();
+    expect(distGecko.data_collection_permissions).toBeDefined();
+    expect(distGecko.data_collection_permissions.required).toContain('websiteContent');
+    expect(distGecko.data_collection_permissions.required).not.toContain('none');
+  });
 });
 
 

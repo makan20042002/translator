@@ -81,10 +81,25 @@ MAKAN Translate requests the absolute minimum set of browser permissions require
 ## 4. Mozilla Store Declaration (`data_collection_permissions`)
 
 For Firefox submission and Mozilla Add-on Policies:
-- **Category Declared**: `websiteContent`
-- **Justification**: User-selected text or visible webpage paragraphs are read strictly upon user request (click, context menu, or shortcut) and forwarded to the user's chosen translation provider to produce translated text.
+- **Category Declared**: `websiteContent` (required).
+  ```json
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "makan-translate@makanlab.tech",
+      "strict_min_version": "115.0",
+      "data_collection_permissions": {
+        "required": ["websiteContent"]
+      }
+    }
+  }
+  ```
+- **What is Sent**: Selected text snippets or visible webpage text to be translated.
+- **To Whom**: The translation provider the user picks (Google Translate by default; other engines if the user adds an API key).
+- **When Sent**: Only upon explicit user action (clicking the floating button, choosing the context menu item, pressing translation shortcuts, or clicking Translate).
+- **API Keys**: Stored exclusively in local browser storage (`chrome.storage.local`) and sent only directly to their own provider over HTTPS; never uploaded or synced to external servers.
+- **No MAKAN Servers**: Nothing is sent to MAKAN servers. Zero telemetry, zero tracking, and no intermediary servers.
 - **Identity**: `makan-translate@makanlab.tech`
-- **Strict Min Version**: `142.0` (Ensures full support for data collection declarations on both Desktop and Android)
+- **Strict Min Version**: `115.0`
 
 ---
 
