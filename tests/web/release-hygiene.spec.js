@@ -447,6 +447,66 @@ test.describe('Release Hygiene & Store Readiness', () => {
     const ffBuild2 = await buildZipFromDir(path.join(ROOT, 'dist', 'firefox'));
     expect(ffBuild1.content.equals(ffBuild2.content), 'Firefox zip build output must be byte-for-byte deterministic').toBe(true);
   });
+
+  test('ITEM 13 - Chrome Web Store: extension contains no remote code or eval', () => {
+    const extDir = path.join(ROOT, 'extension');
+    const violations = [];
+
+    function scanDir(dir) {
+      const entries = fs.readdirSync(dir, { withFileTypes: true });
+      for (const entry of entries) {
+        const full = path.join(dir, entry.name);
+        if (entry.isDirectory()) {
+          scanDir(full);
+        } else if (entry.isFile()) {
+          const rel = path.relative(ROOT, full).replace(/\\/g, '/');
+          const ext = path.extname(entry.name).toLowerCase();
+          const content = fs.readFileSync(full, 'utf8');
+
+          if (ext === '.html') {
+            const scriptSrcRegex = /<script\b[^>]*\bsrc\s*=\s*["'](https?:|\/\/)/gi;
+            let match;
+            while ((match = scriptSrcRegex.exec(content)) !== null) {
+              violations.push(`${rel}: Remote script tag detected: ${match[0]}`);
+            }
+          }
+
+          if (ext === '.js') {
+            const lines = content.split(/\r?\n/);
+            for (let i = 0; i < lines.length; i++) {
+              const line = lines[i];
+              const trimmed = line.trim();
+              if (trimmed.startsWith('//') || trimmed.startsWith('*')) continue;
+
+              // Check: no import() or importScripts of http(s) URLs
+              if (/\b(?:importScripts|import)\s*\(\s*["'`]https?:/i.test(line)) {
+                violations.push(`${rel}:${i + 1}: Remote import/importScripts: ${trimmed}`);
+              }
+
+              // Check: no eval
+              if (/\beval\s*\(/.test(line)) {
+                violations.push(`${rel}:${i + 1}: eval() detected: ${trimmed}`);
+              }
+
+              // Check: no new Function
+              if (/\bnew\s+Function\s*\(/.test(line)) {
+                violations.push(`${rel}:${i + 1}: new Function() detected: ${trimmed}`);
+              }
+
+              // Check: no setTimeout/setInterval with a string literal
+              if (/\b(?:setTimeout|setInterval)\s*\(\s*["'`]/.test(line)) {
+                violations.push(`${rel}:${i + 1}: setTimeout/setInterval with string detected: ${trimmed}`);
+              }
+            }
+          }
+        }
+      }
+    }
+
+    scanDir(extDir);
+
+    expect(violations, `Remote code or eval violations found in extension:\n${violations.join('\n')}`).toEqual([]);
+  });
 });
 
 
