@@ -1,6 +1,7 @@
 {
   "name": "makan-translate-dev",
   "version": "1.0.0",
+  "license": "MIT",
   "private": true,
   "description": "Development-only tooling for MAKAN Translate (tests, lint). Nothing the web app or extension loads depends on this file.",
   "scripts": {
