@@ -112,4 +112,25 @@ test.describe('Release Hygiene & Store Readiness', () => {
     scan(ROOT);
     expect(violations, `Found violations: ${violations.join(', ')}`).toEqual([]);
   });
+
+  test('ITEM 4 - .gitignore contains node_modules, dist, test-results, tests/.results, scratch, *.log, *.zip, and big local model caches', () => {
+    const gitignorePath = path.join(ROOT, '.gitignore');
+    expect(fs.existsSync(gitignorePath), '.gitignore must exist').toBe(true);
+    const content = fs.readFileSync(gitignorePath, 'utf8');
+
+    const requiredEntries = [
+      'node_modules',
+      'dist',
+      'test-results',
+      'tests/.results',
+      'scratch',
+      '*.log',
+      '*.zip',
+      'models'
+    ];
+
+    for (const entry of requiredEntries) {
+      expect(content).toContain(entry);
+    }
+  });
 });

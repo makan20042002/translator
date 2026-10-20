@@ -27,6 +27,14 @@ req_subj_test.json
 *.log
 *.tmp
 .cache/
+scratch/
+scratch
+
+# Big local model caches
+models/
+tools/model-check/cache/
+tools/model-check/models/
+*.onnx
 
 # Screenshots
 screenshots/
