@@ -563,9 +563,12 @@
 
 /* Hover Tooltip for translated elements */
 .makan-tooltip {
-  position: absolute;
+  position: fixed;
   z-index: 2147483647;
-  max-width: 380px;
+  width: max-content;
+  min-width: 200px;
+  max-width: 320px;
+  box-sizing: border-box;
   background: #080C14;
   border: 1px solid var(--accent);
   box-shadow: 0 8px 24px rgba(0, 0, 0, 0.7);
@@ -575,6 +578,9 @@
   line-height: 1.5;
   color: #E2E8F0;
   pointer-events: none;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
   animation: makanFadeIn 0.12s ease;
 }
 
@@ -585,6 +591,13 @@
   letter-spacing: 0.08em;
   color: var(--accent);
   margin-bottom: 2px;
+}
+
+.makan-tooltip-text {
+  font-size: 12.5px;
+  line-height: 1.5;
+  color: #E2E8F0;
+  overflow-wrap: anywhere;
 }
 
 /* In-Page Toast Notification (Replaces chrome.notifications) */
