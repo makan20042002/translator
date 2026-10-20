@@ -43,11 +43,34 @@ function copyDir(src, dst) {
   }
 }
 
+const ALLOWED_PORTS_PATTERN = /const ALLOWED_LOCAL_PORTS = new Set\(\['50505', '8080'(?:, '\d+')*\]\);/;
+
+/**
+ * Patch engine.js in the extension test copy to allow the dynamic stub port.
+ * Throws a clear error if the target pattern is not found.
+ */
+function patchEngineAllowedPorts(dir, stubPort) {
+  if (!stubPort) return;
+  const engineFile = path.join(dir, 'engine.js');
+  if (!fs.existsSync(engineFile)) {
+    throw new Error(`engine.js not found in test extension copy: ${engineFile}`);
+  }
+  const code = fs.readFileSync(engineFile, 'utf8');
+  if (!ALLOWED_PORTS_PATTERN.test(code)) {
+    throw new Error(`Target pattern for ALLOWED_LOCAL_PORTS not found in ${engineFile}`);
+  }
+  const patched = code.replace(
+    ALLOWED_PORTS_PATTERN,
+    `const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080', '${stubPort}']);`
+  );
+  fs.writeFileSync(engineFile, patched, 'utf8');
+}
+
 /**
  * A copy of dist/chrome for the tests. dropPairs: dictionary pairs left OUT of the copy (they are then, like every
  * pair that is not bundled, offered as a download from the web app's dict/ folder, which holds the real packs).
  */
-function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
+function prepareTestCopy({ dropPairs = [], dir = TEST_COPY, stubPort } = {}) {
   if (!fs.existsSync(path.join(DIST_CHROME, 'manifest.json'))) {
     throw new Error('dist/chrome is missing. Run "node build-manifests.js" first (npm test does this for you).');
   }
@@ -55,6 +78,9 @@ function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
   copyDir(DIST_CHROME, dir);
   const bg = path.join(dir, 'background.js');
   fs.writeFileSync(bg, SHIM + fs.readFileSync(bg, 'utf8'));
+  if (stubPort) {
+    patchEngineAllowedPorts(dir, stubPort);
+  }
   if (dropPairs.length) {
     const listFile = path.join(dir, 'dict', 'packs.json');
     const list = JSON.parse(fs.readFileSync(listFile, 'utf8'));
@@ -70,6 +96,11 @@ function prepareTestCopy({ dropPairs = [], dir = TEST_COPY } = {}) {
  * Returns helpers used by the extension tests.
  */
 async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
+  const targetExtPath = extPath || TEST_COPY;
+  const stubPort = stub ? String(stub.appPort || (stub.appOrigin ? new URL(stub.appOrigin).port : '')) : '';
+  if (stubPort) {
+    patchEngineAllowedPorts(targetExtPath, stubPort);
+  }
   const userDataDir = fs.mkdtempSync(path.join(os.tmpdir(), 'makan-ext-'));
   const context = await chromium.launchPersistentContext(userDataDir, {
     channel: 'chromium',
@@ -97,10 +128,11 @@ async function launchWithExtension({ stub, files, preOpen = [], extPath }) {
   for (const p of context.pages()) if (p.url() === 'about:blank' && !opened.includes(p)) await p.close();
 
   const cdp = await context.browser().newBrowserCDPSession();
-  const { id } = await cdp.send('Extensions.loadUnpacked', { path: extPath || TEST_COPY });
+  const { id } = await cdp.send('Extensions.loadUnpacked', { path: targetExtPath });
 
   const ext = {
     id, context, cdp, opened, userDataDir,
+    path: targetExtPath,
     url: p => `chrome-extension://${id}/${p}`,
 
     /** The extension's background service worker (waits for it to start). */
@@ -402,4 +434,4 @@ async function dragSelect(page, selector) {
   await page.mouse.up();
 }
 
-module.exports = { prepareTestCopy, launchWithExtension, openRealPopup, inShadow, dragSelect, TEST_COPY, DIST_CHROME };
+module.exports = { prepareTestCopy, launchWithExtension, openRealPopup, inShadow, dragSelect, patchEngineAllowedPorts, TEST_COPY, DIST_CHROME };

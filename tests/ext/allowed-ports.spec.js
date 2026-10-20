@@ -132,4 +132,53 @@ test.describe('Extension: Allowed local ports and Web App URL restriction', () =
     await expect(help).toContainText('۸۰۸۰');
     await page.close();
   });
+
+  test('real unpatched engine.js rejects random ports in allow-list', () => {
+    const randomPort = '49152';
+    expect(ALLOWED_LOCAL_PORTS.has(randomPort)).toBe(false);
+    expect(isAllowListedWebAppAddress(`http://127.0.0.1:${randomPort}`)).toBe(false);
+    expect(isAllowListedWebAppAddress(`http://localhost:${randomPort}`)).toBe(false);
+    expect(isAllowListedLocalAddress(`http://127.0.0.1:${randomPort}`)).toBe(false);
+  });
+
+  test('test copy engine.js differs from dist/chrome/engine.js only in the ALLOWED_LOCAL_PORTS line', async ({ ext, stub }) => {
+    const fs = require('fs');
+    const path = require('path');
+    const distPath = path.resolve(__dirname, '..', '..', 'dist', 'chrome', 'engine.js');
+    const copyPath = path.join(ext.path, 'engine.js');
+
+    const distLines = fs.readFileSync(distPath, 'utf8').split('\n');
+    const copyLines = fs.readFileSync(copyPath, 'utf8').split('\n');
+
+    expect(copyLines.length).toBe(distLines.length);
+
+    const diffs = [];
+    for (let i = 0; i < distLines.length; i++) {
+      const distLine = distLines[i].replace(/\r$/, '');
+      const copyLine = copyLines[i].replace(/\r$/, '');
+      if (distLine !== copyLine) {
+        diffs.push({ line: i + 1, dist: distLine.trim(), copy: copyLine.trim() });
+      }
+    }
+
+    expect(diffs.length).toBe(1);
+    expect(diffs[0].dist).toBe("const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080']);");
+    const port = String(stub.appPort || new URL(stub.appOrigin).port);
+    expect(diffs[0].copy).toBe(`const ALLOWED_LOCAL_PORTS = new Set(['50505', '8080', '${port}']);`);
+  });
+
+  test('patchEngineAllowedPorts throws a clear error if pattern is not found', () => {
+    const fs = require('fs');
+    const os = require('os');
+    const path = require('path');
+    const { patchEngineAllowedPorts } = require('../support/extension');
+    const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'makan-test-err-'));
+    try {
+      fs.writeFileSync(path.join(tmpDir, 'engine.js'), '// no ports pattern here\nconst x = 1;\n', 'utf8');
+      expect(() => patchEngineAllowedPorts(tmpDir, '12345')).toThrow(/Target pattern for ALLOWED_LOCAL_PORTS not found/);
+    } finally {
+      fs.rmSync(tmpDir, { recursive: true, force: true });
+    }
+  });
 });
+
