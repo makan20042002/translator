@@ -584,6 +584,18 @@
   animation: makanFadeIn 0.12s ease;
 }
 
+.makan-tooltip[dir="rtl"],
+.makan-tooltip.makan-tooltip-rtl {
+  direction: rtl;
+  text-align: right;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
+}
+
+.makan-tooltip[dir="ltr"] {
+  direction: ltr;
+  text-align: left;
+}
+
 .makan-tooltip-lbl {
   font-size: 10px;
   font-weight: 700;
@@ -591,6 +603,12 @@
   letter-spacing: 0.08em;
   color: var(--accent);
   margin-bottom: 2px;
+  text-align: left;
+}
+
+.makan-tooltip[dir="rtl"] .makan-tooltip-lbl,
+.makan-tooltip.makan-tooltip-rtl .makan-tooltip-lbl {
+  text-align: right;
 }
 
 .makan-tooltip-text {
@@ -598,6 +616,14 @@
   line-height: 1.5;
   color: #E2E8F0;
   overflow-wrap: anywhere;
+  text-align: left;
+}
+
+.makan-tooltip[dir="rtl"] .makan-tooltip-text,
+.makan-tooltip.makan-tooltip-rtl .makan-tooltip-text {
+  text-align: right;
+  direction: rtl;
+  font-family: 'Vazirmatn', Tahoma, sans-serif;
 }
 
 /* In-Page Toast Notification (Replaces chrome.notifications) */

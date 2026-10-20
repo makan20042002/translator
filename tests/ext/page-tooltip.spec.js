@@ -195,4 +195,59 @@ test.describe('Extension: whole-page translation tooltip and screen button', () 
     await expectNoExtensionErrors(ext);
   });
 
+  test('ITEM 4 - tooltip on Persian RTL original text renders right-aligned with rtl direction', async ({ ext, stub }) => {
+    await ext.patchConfig({ tgt: 'en' });
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=tooltip-rtl-fa');
+    await page.waitForLoadState('domcontentloaded');
+
+    await page.evaluate(() => {
+      const pFa = document.createElement('p');
+      pFa.id = 'p-fa-orig';
+      pFa.style.cssText = 'position:fixed;left:100px;top:100px;margin:0;width:250px;';
+      pFa.textContent = 'این یک متن نمونه فارسی برای بررسی جهت نمایش پاپ‌آپ است.';
+      document.body.appendChild(pFa);
+    });
+
+    // Translate page via context menu
+    await rightClick(page, '#title');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(page.locator('#p-fa-orig')).toContainText('[en]');
+
+    const tip = inShadow(page, '.makan-tooltip');
+
+    // Hover Persian paragraph
+    await page.locator('#p-fa-orig').hover();
+    await expect(tip).toBeVisible({ timeout: 5000 });
+
+    // Assert computed text-align and direction
+    const computed = await tip.evaluate((el) => {
+      const txt = el.querySelector('.makan-tooltip-text');
+      const csTip = window.getComputedStyle(el);
+      const csTxt = txt ? window.getComputedStyle(txt) : csTip;
+      return {
+        tipDirection: csTip.direction,
+        tipTextAlign: csTip.textAlign,
+        txtDirection: csTxt.direction,
+        txtTextAlign: csTxt.textAlign,
+        txtFontFamily: csTxt.fontFamily
+      };
+    });
+
+    expect(computed.tipDirection).toBe('rtl');
+    expect(computed.tipTextAlign).toBe('right');
+    expect(computed.txtDirection).toBe('rtl');
+    expect(computed.txtTextAlign).toBe('right');
+    expect(computed.txtFontFamily).toContain('Vazirmatn');
+
+    await page.close();
+    await expectNoExtensionErrors(ext);
+  });
+
 });
+
