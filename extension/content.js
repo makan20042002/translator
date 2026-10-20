@@ -1544,6 +1544,7 @@
     }
 
     const myRun = ++pageRunId;
+    disableTooltipDelegation();
     await refreshConfig();
     if (myRun !== pageRunId) return;
     const tgt = cfg?.tgt || 'fa';
@@ -1697,6 +1698,7 @@
 
           completed += batch.length;
           if (myRun !== pageRunId) return;
+          enableTooltipDelegation();
           if (isTranslationStopped) {
             isTranslating = false;
             showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, tgt);
@@ -1728,6 +1730,7 @@
       isPageTranslated = false;
       const why = lastPageFailure || plainFailure('');
       showPageBanner(`Page not translated: ${why}`, false, false, failureNeedsOptions(why), tgt);
+      disableTooltipDelegation();
       return;
     }
 
@@ -1968,6 +1971,7 @@
   // Re-translate from saved originals when target language is changed in the banner
   async function retranslateFromOriginals(newTgt) {
     const myRun = ++pageRunId;
+    disableTooltipDelegation();
     isTranslationStopped = true;
     isTranslating = false;
     if (mutationObserver) {
@@ -2105,6 +2109,7 @@
 
             completed += batch.length;
             if (myRun !== pageRunId) return;
+            enableTooltipDelegation();
             if (isTranslationStopped) {
               isTranslating = false;
               showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, newTgt);
@@ -2142,6 +2147,7 @@
     if (completed === 0) {
       const why = lastPageFailure || plainFailure('');
       showPageBanner(`Page not translated: ${why}`, false, true, failureNeedsOptions(why), newTgt);
+      disableTooltipDelegation();
       return;
     }
 
@@ -2218,7 +2224,6 @@
         const count = translatedUnits.length;
         const engineSuffix = lastSuccessfulEngineName ? ` · ${lastSuccessfulEngineName}` : '';
         showPageBanner(`Translation stopped (${count} translated)${engineSuffix}`, false, true, false, tgt);
-        disableTooltipDelegation();
       };
     }
 

@@ -251,5 +251,83 @@ test.describe('Extension: whole-page translation tooltip and screen button', () 
     await expectNoExtensionErrors(ext);
   });
 
+  test('ITEM 5 - hover popups work while page is translating, after Stop, and hide after banner X', async ({ ext, stub }) => {
+    test.setTimeout(60_000);
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=tooltip-in-progress');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    await page.evaluate(() => {
+      const container = document.createElement('div');
+      container.id = 'bulk-container';
+      const p1 = document.createElement('p');
+      p1.id = 'top-p-1';
+      p1.textContent = 'First paragraph text for tooltip during active translation.';
+      container.appendChild(p1);
+      for (let i = 2; i <= 150; i++) {
+        const p = document.createElement('p');
+        p.id = `para-${i}`;
+        p.textContent = `Paragraph bulk item unique number ${i} to create multiple batches.`;
+        container.appendChild(p);
+      }
+      document.body.appendChild(container);
+    });
+
+    stub.delayHost('clients5.google.com', 1200);
+
+    // Translate page via context menu
+    await rightClick(page, '#top-p-1');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+
+    const p1 = page.locator('#top-p-1');
+    // After the first batch is applied (top-p-1 shows [fa])
+    await expect(p1).toContainText('[fa]', { timeout: 15_000 });
+    // And while the banner still shows "Translated ... of ..."
+    await expect(banner).toContainText('Translated ', { timeout: 5000 });
+
+    const tip = inShadow(page, '.makan-tooltip');
+
+    // Hover that paragraph while still translating: the popup appears
+    await page.mouse.move(5, 5);
+    await p1.hover();
+    await expect(tip).toBeVisible({ timeout: 5000 });
+
+    // After Stop it still works
+    const stopBtn = inShadow(page, '#makanStopBtn');
+    await expect(stopBtn).toBeVisible({ timeout: 10_000 });
+    await stopBtn.click();
+    await expect(banner).toContainText('Translation stopped', { timeout: 10_000 });
+
+    await page.mouse.move(5, 5);
+    await page.waitForTimeout(150);
+    await expect(tip).toBeHidden();
+
+    await p1.hover();
+    await expect(tip).toBeVisible({ timeout: 5000 });
+
+    // After the banner X it does not
+    const closeBtn = inShadow(page, '#makanBannerClose');
+    await closeBtn.click();
+    await expect(banner).toBeHidden();
+
+    await page.mouse.move(5, 5);
+    await page.waitForTimeout(150);
+    await expect(tip).toBeHidden();
+
+    await p1.hover();
+    await page.waitForTimeout(600);
+    await expect(tip).toBeHidden();
+
+    await page.close();
+    await expectNoExtensionErrors(ext);
+  });
+
 });
+
 
