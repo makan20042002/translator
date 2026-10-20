@@ -5,11 +5,11 @@
  * Format matches the Web App fragment format: base/#text=...&src=...&tgt=...
  *
  * @param {Object} payload - Translation payload { text, src, tgt }
- * @param {string} [webAppUrl='https://makanlab.tech/'] - Base web app URL
+ * @param {string} [webAppUrl='https://makanlab.tech/translate/app/'] - Base web app URL
  * @returns {string} The formatted URL with hash parameters
  */
-function buildBrowserUrl(payload, webAppUrl = 'https://makanlab.tech/') {
-  const base = String(webAppUrl || 'https://makanlab.tech/').replace(/\/+$/, '');
+function buildBrowserUrl(payload, webAppUrl = 'https://makanlab.tech/translate/app/') {
+  const base = String(webAppUrl || 'https://makanlab.tech/translate/app/').replace(/\/+$/, '');
   const params = new URLSearchParams();
   if (payload && typeof payload === 'object') {
     if (typeof payload.text === 'string' && payload.text.trim()) {

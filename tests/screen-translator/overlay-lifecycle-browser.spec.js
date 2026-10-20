@@ -132,4 +132,44 @@ test.describe('Screen Translator Overlay Lifecycle & Open In Browser', () => {
     const url2 = resolveBrowserUrl({ text: '<script>', src: 'javascript:', tgt: 'http://malicious.com' });
     expect(url2).toBe('http://127.0.0.1:50505/?text=%3Cscript%3E');
   });
+
+  // Test 4: overlay-url formats https://makanlab.tech/translate/app/#text=...&src=...&tgt=... with correct encoding
+  test('overlay-url builds https://makanlab.tech/translate/app/#text=...&src=...&tgt=... with correct encoding', () => {
+    const { buildBrowserUrl } = require('../../screen-translator/overlay-url');
+
+    // Default base without payload
+    const emptyUrl = buildBrowserUrl(null);
+    expect(emptyUrl).toBe('https://makanlab.tech/translate/app');
+
+    // Basic translation payload with correct encoding
+    const url = buildBrowserUrl({ text: 'Hello world', src: 'en', tgt: 'fa' });
+    expect(url.startsWith('https://makanlab.tech/translate/app/#')).toBe(true);
+    const parsed = new URL(url);
+    expect(parsed.origin).toBe('https://makanlab.tech');
+    expect(parsed.pathname).toBe('/translate/app/');
+    expect(parsed.search).toBe('');
+    const params = new URLSearchParams(parsed.hash.slice(1));
+    expect(params.get('text')).toBe('Hello world');
+    expect(params.get('src')).toBe('en');
+    expect(params.get('tgt')).toBe('fa');
+
+    // Non-Latin / Persian & CJK characters
+    const nonLatin = buildBrowserUrl({ text: 'سلام دنیا & Japanese 日本語', src: 'fa', tgt: 'en' });
+    expect(nonLatin.startsWith('https://makanlab.tech/translate/app/#')).toBe(true);
+    const nonLatinParams = new URLSearchParams(new URL(nonLatin).hash.slice(1));
+    expect(nonLatinParams.get('text')).toBe('سلام دنیا & Japanese 日本語');
+
+    // Custom developer base
+    const devUrl = buildBrowserUrl({ text: 'Dev test', src: 'en', tgt: 'fa' }, 'http://localhost:8080/');
+    expect(devUrl.startsWith('http://localhost:8080/#')).toBe(true);
+  });
+
+  // Test 5: overlay.html tooltip updated to (makanlab.tech/translate/app)
+  test('overlay.html tooltip contains (makanlab.tech/translate/app)', () => {
+    const overlayHtmlPath = path.join(__dirname, '..', '..', 'screen-translator', 'overlay.html');
+    const overlaySrc = fs.readFileSync(overlayHtmlPath, 'utf8');
+    expect(overlaySrc).toContain('(makanlab.tech/translate/app)');
+    expect(overlaySrc).not.toContain('(makanlab.tech)');
+  });
 });
+

@@ -215,24 +215,22 @@ class ScreenTranslatorManager {
 
     ipcMain.on('screen-trans:open-in-browser', (event, payload) => {
       console.log('[ScreenTranslator] Received screen-trans:open-in-browser IPC');
+      // Local dev fallback URL: http://127.0.0.1:50505
       const FIXED_PORT = 50505;
-      const ALLOWED_ORIGIN = `http://127.0.0.1:${FIXED_PORT}`;
-      const targetUrl = buildBrowserUrl(payload, 'https://makanlab.tech/');
+      const targetUrl = buildBrowserUrl(payload, 'https://makanlab.tech/translate/app/');
       try {
         const parsed = new URL(targetUrl);
         if (parsed.protocol === 'https:' && (parsed.hostname === 'makanlab.tech' || parsed.hostname.endsWith('.makanlab.tech'))) {
           console.log('[ScreenTranslator] Opening allow-listed URL in external browser:', targetUrl);
           shell.openExternal(targetUrl);
-        } else if (parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && parsed.port === String(FIXED_PORT)) {
+        } else if (parsed.protocol === 'http:' && parsed.hostname === '127.0.0.1' && (parsed.port === String(FIXED_PORT) || parsed.port === '8080')) {
           console.log('[ScreenTranslator] Opening allow-listed URL in external browser:', targetUrl);
           shell.openExternal(targetUrl);
         } else {
           console.warn('[ScreenTranslator] Blocked non-allow-listed URL attempt:', targetUrl);
-          shell.openExternal(ALLOWED_ORIGIN);
         }
       } catch (err) {
         console.error('[ScreenTranslator] Failed to open external browser:', err);
-        shell.openExternal(ALLOWED_ORIGIN);
       }
     });
 
