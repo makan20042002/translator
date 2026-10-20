@@ -145,4 +145,54 @@ test.describe('Extension: whole-page translation tooltip and screen button', () 
     await expectNoExtensionErrors(ext);
   });
 
+  test('ITEM 3 - screen capture requirement line and button states in browser and desktop modes', async ({ ext, stub }) => {
+    // 1. Web project (non-desktop): line and link are visible on the Screen tab and Capture button is disabled
+    const pageWeb = await ext.context.newPage();
+    await pageWeb.bringToFront();
+    await pageWeb.goto(stub.appOrigin + '/index.html?case=screen-item3-web');
+    await pageWeb.waitForLoadState('domcontentloaded');
+
+    // Switch to Screen tab
+    await pageWeb.locator('[data-tab="screen"]').click();
+    await expect(pageWeb.locator('#tab-screen')).toBeVisible();
+
+    // Verify line and link are visible and Capture button is disabled
+    const reqLine = pageWeb.locator('#screenDesktopReqLine');
+    const link = pageWeb.locator('#screenGetAppLink');
+    const launchBtn = pageWeb.locator('#tabScreenLaunchBtn');
+
+    await expect(reqLine).toBeVisible();
+    await expect(link).toBeVisible();
+    await expect(link).toHaveAttribute('href', 'https://makanlab.tech/');
+    await expect(launchBtn).toBeDisabled();
+
+    await pageWeb.close();
+
+    // 2. Mocked as desktop: line is hidden and Capture button is enabled
+    const pageDesktop = await ext.context.newPage();
+    await pageDesktop.addInitScript(() => {
+      window.makanDesktop = {
+        isDesktop: true,
+        startScreenTranslator: () => {}
+      };
+    });
+    await pageDesktop.bringToFront();
+    await pageDesktop.goto(stub.appOrigin + '/index.html?case=screen-item3-desktop');
+    await pageDesktop.waitForLoadState('domcontentloaded');
+
+    // Switch to Screen tab
+    await pageDesktop.locator('[data-tab="screen"]').click();
+    await expect(pageDesktop.locator('#tab-screen')).toBeVisible();
+
+    // Verify line is hidden and Capture button is enabled
+    const reqLineDesktop = pageDesktop.locator('#screenDesktopReqLine');
+    const launchBtnDesktop = pageDesktop.locator('#tabScreenLaunchBtn');
+
+    await expect(reqLineDesktop).toBeHidden();
+    await expect(launchBtnDesktop).toBeEnabled();
+
+    await pageDesktop.close();
+    await expectNoExtensionErrors(ext);
+  });
+
 });

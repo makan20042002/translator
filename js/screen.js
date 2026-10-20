@@ -159,6 +159,13 @@ function initScreenWebUI() {
     browserBanner.hidden = isDesktop;
   }
 
+  // Desktop app requirement line below capture button
+  const reqLine = $('screenDesktopReqLine');
+  if (reqLine) {
+    reqLine.hidden = isDesktop;
+    reqLine.style.display = isDesktop ? 'none' : '';
+  }
+
   const launchBtn = $('tabScreenLaunchBtn');
   if (launchBtn) {
     launchBtn.disabled = !isDesktop;
@@ -531,6 +538,11 @@ if (document.readyState === 'loading') {
   if (launchBtn) {
     launchBtn.disabled = false;
     launchBtn.removeAttribute('title');
+  }
+  const reqLine = $('screenDesktopReqLine');
+  if (reqLine) {
+    reqLine.hidden = true;
+    reqLine.style.display = 'none';
   }
   const btnTest = $('btnTestScreenTrans');
   if (btnTest) {
