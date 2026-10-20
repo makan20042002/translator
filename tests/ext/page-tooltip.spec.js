@@ -217,11 +217,13 @@ test.describe('Extension: whole-page translation tooltip and screen button', () 
 
     const banner = inShadow(page, '.makan-top-banner');
     await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated', { timeout: 15_000 });
     await expect(page.locator('#p-fa-orig')).toContainText('[en]');
 
     const tip = inShadow(page, '.makan-tooltip');
 
-    // Hover Persian paragraph
+    // Move mouse to neutral spot first, then hover Persian paragraph
+    await page.mouse.move(5, 5);
     await page.locator('#p-fa-orig').hover();
     await expect(tip).toBeVisible({ timeout: 5000 });
 
