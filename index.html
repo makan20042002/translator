@@ -86,6 +86,10 @@
   <div class="main-viewport" id="mainViewport">
     <!-- TOP AREA -->
     <header class="topbar" id="topbar">
+      <a class="phone-brand brand" id="phoneBrand" href="https://makanlab.tech/" aria-label="MAKAN Translate">
+        <img class="brand-logo" src="brand/makanlab-m-mark.svg" alt="MAKAN Logo" width="28" height="28">
+        <span class="brand-name">MAKAN</span>
+      </a>
       <button class="btn icon-only" id="sidebarToggleBtn" aria-label="Toggle navigation menu" title="Menu">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
       </button>
@@ -232,6 +236,9 @@
           </div>
         </div>
     </div>
+
+    <!-- Phone sticky action bar (ITEM 4) -->
+    <div class="phone-sticky-action-bar" id="phoneTextStickyBar"></div>
 
     <!-- RECENT TRANSLATIONS STRIP (ITEM 3) -->
     <div class="trans-recent" id="tRecentStrip">
@@ -1976,6 +1983,15 @@
     <button type="button" class="phone-sheet-item" data-tab="models" role="menuitem">
       <span class="phone-nav-icon phone-nav-icon-models" aria-hidden="true"></span>
       <span class="phone-sheet-item-label" data-t="tabModels">Model Hub</span>
+    </button>
+    <button type="button" class="phone-sheet-item" id="phoneMoreEnginesBtn" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-settings" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="engines">Engines &amp; keys</span>
+    </button>
+    <button type="button" class="phone-sheet-item" id="phoneMoreOffBtn" role="menuitem">
+      <span class="phone-nav-icon phone-nav-icon-off" aria-hidden="true"></span>
+      <span class="phone-sheet-item-label" data-t="offMode">Offline mode</span>
+      <span class="dot" id="phoneMoreOffDot" style="margin-inline-start:auto"></span>
     </button>
     <button type="button" class="phone-sheet-item" id="phoneMoreSettingsBtn" role="menuitem">
       <span class="phone-nav-icon phone-nav-icon-settings" aria-hidden="true"></span>

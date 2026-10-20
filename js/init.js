@@ -412,6 +412,22 @@ function updatePhoneNav(activeTab) {
   });
 }
 
+function setupPhoneActionBars() {
+  if (typeof isPhone === 'function' && isPhone()) {
+    const stickyBar = document.getElementById('phoneTextStickyBar');
+    const tGo = document.getElementById('tGo');
+    const tStop = document.getElementById('tStop');
+    const tCopy = document.getElementById('tCopy');
+    const tSpeak = document.getElementById('tSpeak');
+    if (stickyBar && tGo && tStop && tCopy && tSpeak) {
+      if (tStop.parentElement !== stickyBar) stickyBar.appendChild(tStop);
+      if (tGo.parentElement !== stickyBar) stickyBar.appendChild(tGo);
+      if (tCopy.parentElement !== stickyBar) stickyBar.appendChild(tCopy);
+      if (tSpeak.parentElement !== stickyBar) stickyBar.appendChild(tSpeak);
+    }
+  }
+}
+
 function initPhoneNavigation() {
   const bottomNav = document.getElementById('phoneBottomNav');
   const moreSheet = document.getElementById('phoneMoreSheet');
@@ -419,9 +435,17 @@ function initPhoneNavigation() {
   const moreBtn = document.getElementById('phoneNavMoreBtn');
   const closeBtn = document.getElementById('phoneMoreCloseBtn');
   const settingsBtn = document.getElementById('phoneMoreSettingsBtn');
+  const enginesBtn = document.getElementById('phoneMoreEnginesBtn');
+  const offBtn = document.getElementById('phoneMoreOffBtn');
+  const offDot = document.getElementById('phoneMoreOffDot');
 
   function openSheet() {
     if (!moreSheet || !backdrop) return;
+    if (offDot) {
+      const mainDot = document.querySelector('#offBtn .dot');
+      const isOffActive = document.getElementById('offBtn')?.classList.contains('on');
+      offDot.className = mainDot ? mainDot.className : (isOffActive ? 'dot on' : 'dot');
+    }
     moreSheet.hidden = false;
     backdrop.hidden = false;
     moreSheet.classList.add('open');
@@ -460,9 +484,14 @@ function initPhoneNavigation() {
     moreSheet.addEventListener('click', e => {
       const item = e.target.closest('.phone-sheet-item');
       if (!item) return;
-      if (item === settingsBtn || item.id === 'phoneMoreSettingsBtn') {
+      if (item === settingsBtn || item.id === 'phoneMoreSettingsBtn' || item === enginesBtn || item.id === 'phoneMoreEnginesBtn') {
         closeSheet();
         document.getElementById('openSet')?.click();
+        return;
+      }
+      if (item === offBtn || item.id === 'phoneMoreOffBtn') {
+        closeSheet();
+        document.getElementById('offBtn')?.click();
         return;
       }
       const tab = item.dataset.tab;
@@ -487,11 +516,14 @@ function initPhoneNavigation() {
   if (activeBtn && activeBtn.dataset.tab) {
     updatePhoneNav(activeBtn.dataset.tab);
   }
+
+  setupPhoneActionBars();
 }
 initPhoneNavigation();
 if (typeof window !== 'undefined') {
   window.updatePhoneNav = updatePhoneNav;
   window.initPhoneNavigation = initPhoneNavigation;
+  window.setupPhoneActionBars = setupPhoneActionBars;
 }
 if($('sidebarToggleBtn'))$('sidebarToggleBtn').onclick=()=>{
   const s=$('sidebar'),bd=$('sidebarBackdrop');
