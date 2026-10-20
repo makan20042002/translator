@@ -143,9 +143,10 @@ test.describe('Release Hygiene & Store Readiness', () => {
     const versionJsPath = path.join(ROOT, 'js', 'version.js');
     expect(fs.existsSync(versionJsPath), 'js/version.js must exist').toBe(true);
     const versionJsContent = fs.readFileSync(versionJsPath, 'utf8');
-    const versionJsMatch = versionJsContent.match(/MAKAN_VERSION\s*=\s*['"]([^'"]+)['"]/);
-    expect(versionJsMatch, 'js/version.js must declare MAKAN_VERSION').toBeTruthy();
+    const versionJsMatch = versionJsContent.match(/var\s+v\s*=\s*['"]([^'"]+)['"]/);
+    expect(versionJsMatch, 'js/version.js must declare version in var v').toBeTruthy();
     expect(versionJsMatch[1]).toBe(expectedVersion);
+    expect(versionJsContent).toContain('MAKAN_VERSION');
 
     const baseManifestPath = path.join(ROOT, 'extension', 'manifest.json');
     const baseManifest = JSON.parse(fs.readFileSync(baseManifestPath, 'utf8'));
