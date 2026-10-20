@@ -1730,6 +1730,7 @@
     const engineLabel = lastEngineName || (cfg?.order?.[0] || 'MAKAN');
     const capNotice = hitCap ? ' (capped at 4000 units)' : '';
     showPageBanner(`Page translated to ${tgt.toUpperCase()} via ${engineLabel}${capNotice}.`, false, true, false, tgt);
+    enableTooltipDelegation();
 
     // Watch for new or changed text with MutationObserver
     startMutationObserver(tgt);
@@ -1860,6 +1861,7 @@
 
   // Restore original page text and attributes
   function restoreOriginalPage() {
+    disableTooltipDelegation();
     ++pageRunId;
     isTranslating = false;
     isTranslationStopped = true;
@@ -2130,6 +2132,7 @@
     isPageTranslated = true;
     const engineLabel = lastEngineName || (cfg?.order?.[0] || 'MAKAN');
     showPageBanner(`Page translated to ${newTgt.toUpperCase()} via ${engineLabel}.`, false, true, false, newTgt);
+    enableTooltipDelegation();
     startMutationObserver(newTgt);
   }
 
@@ -2183,6 +2186,7 @@
     banner.querySelector('#makanBannerClose').onclick = () => {
       banner.remove();
       currentBannerElem = null;
+      disableTooltipDelegation();
     };
 
     const stopBtn = banner.querySelector('#makanStopBtn');
@@ -2197,6 +2201,7 @@
         clearTimeout(mutationDebounceTimer);
         const count = translatedUnits.length;
         showPageBanner(`Translation stopped (${count} translated).`, false, true, false, tgt);
+        disableTooltipDelegation();
       };
     }
 
@@ -2321,16 +2326,16 @@
     };
   }
 
-  // Hover Tooltip for Original Text
+  // Delegated Hover Tooltip for Original Text
+  let isTooltipDelegationActive = false;
+  let currentHoveredEl = null;
   let tooltipHoverTimer = null;
-  let activeTooltipTarget = null;
 
   function hideTooltip() {
     if (tooltipHoverTimer) {
       clearTimeout(tooltipHoverTimer);
       tooltipHoverTimer = null;
     }
-    activeTooltipTarget = null;
     if (currentTooltipElem) {
       currentTooltipElem.style.display = 'none';
     }
@@ -2420,31 +2425,77 @@
     currentTooltipElem.style.visibility = 'visible';
   }
 
-  function attachTooltip(el, originalText) {
-    el.setAttribute('data-makan-orig', originalText);
-    el._makanOrigText = originalText;
+  function onDelegatedMouseOver(e) {
+    if (!isTooltipDelegationActive) return;
+    const target = e.target;
+    const el = target ? target.closest?.('[data-makan-orig]') : null;
 
-    el.addEventListener('mouseenter', () => {
+    if (el === currentHoveredEl) return;
+
+    if (currentHoveredEl) {
+      hideTooltip();
+      currentHoveredEl = null;
+    }
+
+    if (el && document.contains(el)) {
+      currentHoveredEl = el;
+      const originalText = el._makanOrigText || el.getAttribute('data-makan-orig') || '';
+      if (!originalText) return;
       if (tooltipHoverTimer) clearTimeout(tooltipHoverTimer);
-      activeTooltipTarget = el;
       tooltipHoverTimer = setTimeout(() => {
-        if (activeTooltipTarget === el && document.contains(el)) {
+        if (currentHoveredEl === el && document.contains(el)) {
           showTooltip(el, originalText);
         }
       }, 350);
-    });
-
-    el.addEventListener('mouseleave', () => {
-      if (activeTooltipTarget === el) {
-        hideTooltip();
-      }
-    });
+    }
   }
 
-  window.addEventListener('scroll', () => { hideTooltip(); }, { passive: true, capture: true });
-  window.addEventListener('keydown', (e) => {
-    if (e.key === 'Escape') hideTooltip();
-  }, { capture: true });
+  function onDelegatedMouseOut(e) {
+    if (!isTooltipDelegationActive || !currentHoveredEl) return;
+    const related = e.relatedTarget;
+    if (!related || !currentHoveredEl.contains(related)) {
+      currentHoveredEl = null;
+      hideTooltip();
+    }
+  }
+
+  function onTooltipDismiss() {
+    currentHoveredEl = null;
+    hideTooltip();
+  }
+
+  function onTooltipKeyDown(e) {
+    if (e.key === 'Escape') onTooltipDismiss();
+  }
+
+  function enableTooltipDelegation() {
+    if (isTooltipDelegationActive) return;
+    isTooltipDelegationActive = true;
+    document.addEventListener('mouseover', onDelegatedMouseOver, true);
+    document.addEventListener('mouseout', onDelegatedMouseOut, true);
+    window.addEventListener('scroll', onTooltipDismiss, { passive: true, capture: true });
+    window.addEventListener('keydown', onTooltipKeyDown, { capture: true });
+  }
+
+  function disableTooltipDelegation() {
+    isTooltipDelegationActive = false;
+    currentHoveredEl = null;
+    document.removeEventListener('mouseover', onDelegatedMouseOver, true);
+    document.removeEventListener('mouseout', onDelegatedMouseOut, true);
+    window.removeEventListener('scroll', onTooltipDismiss, { capture: true });
+    window.removeEventListener('keydown', onTooltipKeyDown, { capture: true });
+    hideTooltip();
+    if (currentTooltipElem) {
+      currentTooltipElem.remove();
+      currentTooltipElem = null;
+    }
+  }
+
+  function attachTooltip(el, originalText) {
+    if (!el) return;
+    el.setAttribute('data-makan-orig', originalText);
+    el._makanOrigText = originalText;
+  }
 
   // What the background tells us about the speech it is playing for this card.
   function applyTtsState(req) {

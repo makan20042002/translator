@@ -80,4 +80,69 @@ test.describe('Extension: whole-page translation tooltip and screen button', () 
     await expectNoExtensionErrors(ext);
   });
 
+  test('ITEM 2 - closing banner stops hover popups; show original stops hover popups', async ({ ext, stub }) => {
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=tooltip-item2');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    // 1. Translate page, close banner via X, assert no popup on hover and text stays translated
+    await rightClick(page, '#title');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 15_000 });
+    await expect(banner).toContainText('Page translated', { timeout: 15_000 });
+    const p1 = page.locator('#p1');
+    await expect(p1).toContainText('[fa]');
+
+    // Close the banner via the X (#makanBannerClose)
+    const closeBtn = inShadow(page, '#makanBannerClose');
+    await closeBtn.click();
+    await expect(banner).toBeHidden();
+
+    // Hover translated paragraph for 600 ms
+    await p1.hover();
+    await page.waitForTimeout(600);
+
+    // Assert no popup element is visible; the paragraph text is still translated
+    const tip = inShadow(page, '.makan-tooltip');
+    await expect(tip).toBeHidden();
+    await expect(p1).toContainText('[fa]');
+
+    // 2. Also test: Show Original then hover: no popup
+    const page2 = await ext.context.newPage();
+    await page2.bringToFront();
+    await page2.waitForFunction(() => document.visibilityState === 'visible');
+    await page2.goto(stub.appOrigin + '/__test/article.html?case=tooltip-item2-restore');
+    await page2.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page2);
+
+    await rightClick(page2, '#title');
+    await ext.clickContextMenu('makan-translate-page', page2.url());
+
+    const banner2 = inShadow(page2, '.makan-top-banner');
+    await expect(banner2).toBeVisible({ timeout: 15_000 });
+    await expect(banner2).toContainText('Page translated', { timeout: 15_000 });
+    const p1Page2 = page2.locator('#p1');
+    await expect(p1Page2).toContainText('[fa]');
+
+    // Click Show Original (#makanRestoreBtn)
+    const restoreBtn = inShadow(page2, '#makanRestoreBtn');
+    await restoreBtn.click();
+    await expect(p1Page2).not.toContainText('[fa]');
+
+    // Hover paragraph for 600 ms: assert no popup
+    await p1Page2.hover();
+    await page2.waitForTimeout(600);
+    const tip2 = inShadow(page2, '.makan-tooltip');
+    await expect(tip2).toBeHidden();
+
+    await page.close();
+    await page2.close();
+    await expectNoExtensionErrors(ext);
+  });
+
 });
