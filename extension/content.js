@@ -103,7 +103,7 @@
       activePlayingBtn.classList.remove('playing');
       activePlayingBtn.setAttribute('title', 'Read aloud');
       const span = activePlayingBtn.querySelector('span');
-      if (span) span.textContent = 'Speak';
+      if (span) span.textContent = chrome.i18n?.getMessage('speak') || 'Speak';
       activePlayingBtn = null;
     }
     try {
@@ -152,7 +152,7 @@
     if (retry) {
       const b = document.createElement('button');
       b.className = 'makan-voice-retry';
-      b.textContent = 'Retry';
+      b.textContent = chrome.i18n?.getMessage('retry') || 'Retry';
       b.onclick = e => { if (!e.isTrusted) return; e.stopPropagation(); n.remove(); retry(); };
       n.appendChild(b);
     }
@@ -187,7 +187,7 @@
     btn.classList.remove('playing');
     btn.setAttribute('title', 'Preparing voice... (Click to stop)');
     const span = btn.querySelector('span');
-    if (span) span.textContent = 'Stop';
+    if (span) span.textContent = chrome.i18n?.getMessage('stop') || 'Stop';
 
     function cleanup() {
       if (currentSpeakToken === token) {
@@ -195,7 +195,7 @@
         activePlayingBtn = null;
         btn.classList.remove('preparing', 'playing');
         btn.setAttribute('title', 'Read aloud');
-        if (span) span.textContent = 'Speak';
+        if (span) span.textContent = chrome.i18n?.getMessage('speak') || 'Speak';
       }
     }
 
@@ -604,11 +604,11 @@
       <div class="makan-card-footer">
         <button class="makan-action-btn" id="makanCopyBtn" title="Copy translation">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="14" height="14" x="8" y="8" rx="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>
-          <span>Copy</span>
+          <span>${chrome.i18n?.getMessage('copy') || (isFa ? 'کپی' : 'Copy')}</span>
         </button>
         <button class="makan-action-btn" id="makanSpeakBtn" title="Read aloud">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>
-          <span>Speak</span>
+          <span>${chrome.i18n?.getMessage('speak') || (isFa ? 'خواندن' : 'Speak')}</span>
         </button>
         <button class="makan-action-btn" id="makanSwapBtn" title="Swap direction">
           <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m16 3 4 4-4 4"/><path d="M20 7H4"/><path d="m8 21-4-4 4-4"/><path d="M4 17h16"/></svg>
@@ -777,7 +777,7 @@
       const rtl = ['fa', 'ar', 'he', 'ur'].includes(idiom.to); // the meanings are in the pack's target language
       const dir = rtl ? 'rtl' : 'ltr';
       translatedResult = idiom.meanings.join(rtl ? '، ' : '; ');
-      enginePill.textContent = 'Offline dictionary';
+      enginePill.textContent = chrome.i18n?.getMessage('offlineDictionary') || 'Offline dictionary';
       enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
       bodyElem.innerHTML = `<div class="makan-dict-wrap">
         <div class="makan-dict-head"><span class="makan-dict-word">${escapeHtml(idiom.headword)}</span><span class="makan-dict-badge">Idiom</span></div>
@@ -790,7 +790,7 @@
       const dir = toFa ? 'rtl' : 'ltr', sep = toFa ? '، ' : '; ';
       const head = (res.groups[0] && res.groups[0].entries[0].headword) || res.query;
       translatedResult = (res.groups[0] ? res.groups[0].entries[0].meanings.slice(0, 3) : res.extra.map(x => x.headword)).join(sep);
-      enginePill.textContent = 'Offline dictionary';
+      enginePill.textContent = chrome.i18n?.getMessage('offlineDictionary') || 'Offline dictionary';
       enginePill.title = 'Offline dictionary (Wiktionary, CC BY-SA)';
       const groups = res.groups.map(g => `<div class="makan-dict-pos">${escapeHtml(g.pos)}</div>` + g.entries.map(e => `
         ${e.viaForm ? `<div class="makan-dict-form">${escapeHtml(e.viaForm.form)} → ${escapeHtml(e.headword)}${e.viaForm.tags && e.viaForm.tags.length ? ' (' + escapeHtml(e.viaForm.tags.join(', ')) + ')' : ''}</div>` : ''}
@@ -812,7 +812,7 @@
           const parts = [d.definition, ...(d.examples || []).slice(0, 2)].filter(Boolean);
           if (!parts.length) return;
           box.replaceChildren();
-          const lab = document.createElement('div'); lab.className = 'makan-dict-pos'; lab.textContent = 'AI explanation';
+          const lab = document.createElement('div'); lab.className = 'makan-dict-pos'; lab.textContent = chrome.i18n?.getMessage('aiExplanation') || 'AI explanation';
           box.appendChild(lab);
           for (const t of parts) { const p = document.createElement('div'); p.className = 'makan-dict-ex'; p.textContent = t; box.appendChild(p); }
           box.hidden = false;
@@ -829,7 +829,7 @@
       head.className = 'makan-dict-head';
       const b = document.createElement('span');
       b.className = 'makan-dict-badge';
-      b.textContent = 'Idiom (AI)';
+      b.textContent = chrome.i18n?.getMessage('idiomAi') || 'Idiom (AI)';
       head.appendChild(b);
       box.appendChild(head);
       const line = (label, text) => {
@@ -849,7 +849,7 @@
       line('Register', i.register);
       const lab = document.createElement('div');
       lab.className = 'makan-dict-pos';
-      lab.textContent = 'Literal translation';
+      lab.textContent = chrome.i18n?.getMessage('literalTranslation') || 'Literal translation';
       bodyElem.prepend(lab);
       bodyElem.prepend(box);
     }

@@ -456,7 +456,7 @@ if($('tSaveCorrection'))$('tSaveCorrection').onclick=async()=>{
   updateTmCount();
   renderRecentTranslations();
 };
-$('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast('Clipboard blocked','err')}};
+$('tPaste').onclick=async()=>{try{$('tIn').value=await navigator.clipboard.readText();$('tIn').dispatchEvent(new Event('input'))}catch{toast(L('clipboardBlocked')||'Clipboard blocked','err')}};
 $('tCopy').onclick=()=>copy($('tOut').value);
 if($('tCardSwap')) $('tCardSwap').onclick=()=>{
   const outVal=$('tOut')?.value||'';

@@ -600,7 +600,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   async function runSiteCheck() {
     siteCheckBadge.className = 'opt-check-badge warn';
-    siteCheckBadge.textContent = 'Checking…';
+    siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckChecking') || 'Checking…';
     siteCheckUrl.textContent = 'Detecting active tab…';
     siteCheckDetail.textContent = 'Querying browser tab state…';
     btnInjectScript.style.display = 'none';
@@ -614,7 +614,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (!res || !res.ok) {
         siteCheckBadge.className = 'opt-check-badge warn';
-        siteCheckBadge.textContent = 'Unavailable';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckUnavailable') || 'Unavailable';
         siteCheckUrl.textContent = 'No tab info';
         siteCheckDetail.textContent = res?.reason || 'Could not determine active tab. Make sure a web page is open in this window.';
         return;
@@ -625,34 +625,34 @@ document.addEventListener('DOMContentLoaded', async () => {
 
       if (res.isInternal) {
         siteCheckBadge.className = 'opt-check-badge err';
-        siteCheckBadge.textContent = 'Restricted';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckRestricted') || 'Restricted';
         siteCheckDetail.textContent = `Browser security policies restrict extension content scripts on internal pages (${res.url.split(':')[0]}://). MAKAN Translate cannot run on browser settings or internal utility pages.`;
       } else if (res.isStore) {
         siteCheckBadge.className = 'opt-check-badge err';
-        siteCheckBadge.textContent = 'Restricted';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckRestricted') || 'Restricted';
         siteCheckDetail.textContent = 'Browser web store pages block extension execution by browser security policy. Please test on any normal website (e.g. Wikipedia, BBC, GitHub).';
       } else if (res.isDomainDisabled) {
         siteCheckBadge.className = 'opt-check-badge warn';
-        siteCheckBadge.textContent = 'Disabled on Site';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckDisabledOnSite') || 'Disabled on Site';
         siteCheckDetail.textContent = `MAKAN is currently disabled on ${res.host} in your settings. Click the button below to re-enable it.`;
         btnToggleSiteDisable.style.display = 'inline-block';
         btnToggleSiteDisable.textContent = `Re-enable on ${res.host}`;
       } else if (!res.contentScriptResponding) {
         siteCheckBadge.className = 'opt-check-badge warn';
-        siteCheckBadge.textContent = 'Not Injected Yet';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckNotInjected') || 'Not Injected Yet';
         siteCheckDetail.textContent = `This tab was opened before MAKAN Translate was installed or reloaded, or site access is pending. Reload the tab once, or click "Inject Script Now" below.`;
         btnInjectScript.style.display = 'inline-block';
-        btnInjectScript.textContent = 'Inject Script Now';
+        btnInjectScript.textContent = chrome.i18n?.getMessage('siteCheckInjectNow') || 'Inject Script Now';
       } else {
         siteCheckBadge.className = 'opt-check-badge ok';
-        siteCheckBadge.textContent = 'Active & Ready';
+        siteCheckBadge.textContent = chrome.i18n?.getMessage('siteCheckActiveReady') || 'Active & Ready';
         siteCheckDetail.textContent = `MAKAN Translate is active and fully operational on ${res.host || 'this site'}. Text selection button, right-click menu, Alt-selection, and whole-page translation are ready.`;
         btnToggleSiteDisable.style.display = 'inline-block';
         btnToggleSiteDisable.textContent = `Disable MAKAN on ${res.host}`;
       }
     } catch (e) {
       siteCheckBadge.className = 'opt-check-badge err';
-      siteCheckBadge.textContent = 'Error';
+      siteCheckBadge.textContent = chrome.i18n?.getMessage('error') || 'Error';
       siteCheckDetail.textContent = 'Failed to check tab status: ' + e.message;
     }
   }
@@ -662,7 +662,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnInjectScript.onclick = async () => {
     if (!activeTabInfo?.tabId) return;
     btnInjectScript.disabled = true;
-    btnInjectScript.textContent = 'Injecting…';
+    btnInjectScript.textContent = chrome.i18n?.getMessage('siteCheckInjecting') || 'Injecting…';
     try {
       const res = await chrome.runtime.sendMessage({ action: 'inject-into-tab', tabId: activeTabInfo.tabId });
       if (res && res.ok) {
@@ -1140,8 +1140,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   btnResetSettings.onclick = async () => {
     const label = document.getElementById('btnResetSettingsText');
     if (!resetArmed) {
-      label.textContent = 'Click again to erase all settings and keys';
-      resetArmed = setTimeout(() => { resetArmed = null; label.textContent = 'Reset extension settings'; }, 6000);
+      label.textContent = chrome.i18n?.getMessage('resetSettingsArm') || 'Click again to erase all settings and keys';
+      resetArmed = setTimeout(() => { resetArmed = null; label.textContent = chrome.i18n?.getMessage('resetSettingsLabel') || 'Reset extension settings'; }, 6000);
       return;
     }
     clearTimeout(resetArmed); resetArmed = null;

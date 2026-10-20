@@ -159,4 +159,98 @@ test.describe('Release Hygiene & Store Readiness', () => {
     const firefoxManifest = JSON.parse(fs.readFileSync(firefoxManifestPath, 'utf8'));
     expect(firefoxManifest.version).toBe(expectedVersion);
   });
+
+  test('ITEM 6 - Each new i18n key exists in every language file (web js/i18n.js and extension _locales)', () => {
+    // 1. Web app js/i18n.js
+    const i18nJsPath = path.join(ROOT, 'js', 'i18n.js');
+    expect(fs.existsSync(i18nJsPath), 'js/i18n.js must exist').toBe(true);
+    const i18nContent = fs.readFileSync(i18nJsPath, 'utf8');
+
+    const vm = require('vm');
+    const sandbox = {
+      window: { MediaTranslate: {} },
+      store: { get: () => 'en' },
+      $: () => null,
+      document: { documentElement: {}, querySelectorAll: () => [] }
+    };
+    const ctx = vm.createContext(sandbox);
+    vm.runInContext(i18nContent.replace('const I18N=', 'var I18N='), ctx);
+    const I18N = sandbox.I18N;
+    expect(I18N).toBeDefined();
+    expect(I18N.en).toBeDefined();
+    expect(I18N.fa).toBeDefined();
+
+    const newWebKeys = [
+      'docEngineTurnedOffPrompt',
+      'clipboardBlocked',
+      'noSubLines',
+      'noTermsToAdd',
+      'nothingTranslatedYet',
+      'couldNotReadFile'
+    ];
+    for (const key of newWebKeys) {
+      expect(key in I18N.en, `Key "${key}" must exist in I18N.en`).toBe(true);
+      expect(key in I18N.fa, `Key "${key}" must exist in I18N.fa`).toBe(true);
+      expect(typeof I18N.en[key]).toBe('string');
+      expect(typeof I18N.fa[key]).toBe('string');
+      expect(I18N.en[key].length).toBeGreaterThan(0);
+      expect(I18N.fa[key].length).toBeGreaterThan(0);
+    }
+
+    // Check complete parity between en and fa
+    const enKeys = Object.keys(I18N.en);
+    const faKeys = Object.keys(I18N.fa);
+    const missingInFa = enKeys.filter(k => !(k in I18N.fa));
+    const missingInEn = faKeys.filter(k => !(k in I18N.en));
+    expect(missingInFa, 'All en keys must exist in fa').toEqual([]);
+    expect(missingInEn, 'All fa keys must exist in en').toEqual([]);
+
+    // 2. Extension _locales
+    const extEnPath = path.join(ROOT, 'extension', '_locales', 'en', 'messages.json');
+    const extFaPath = path.join(ROOT, 'extension', '_locales', 'fa', 'messages.json');
+    expect(fs.existsSync(extEnPath), 'extension/_locales/en/messages.json must exist').toBe(true);
+    expect(fs.existsSync(extFaPath), 'extension/_locales/fa/messages.json must exist').toBe(true);
+
+    const extEn = JSON.parse(fs.readFileSync(extEnPath, 'utf8'));
+    const extFa = JSON.parse(fs.readFileSync(extFaPath, 'utf8'));
+
+    const newExtKeys = [
+      'error',
+      'showDetails',
+      'openOptions',
+      'retry',
+      'copy',
+      'copied',
+      'speak',
+      'stop',
+      'aiExplanation',
+      'idiomAi',
+      'literalTranslation',
+      'offlineDictionary',
+      'siteCheckChecking',
+      'siteCheckActiveReady',
+      'siteCheckUnavailable',
+      'siteCheckRestricted',
+      'siteCheckDisabledOnSite',
+      'siteCheckNotInjected',
+      'siteCheckInjectNow',
+      'siteCheckInjecting',
+      'resetSettingsArm',
+      'resetSettingsLabel'
+    ];
+    for (const key of newExtKeys) {
+      expect(key in extEn, `Message "${key}" must exist in extension/_locales/en/messages.json`).toBe(true);
+      expect(key in extFa, `Message "${key}" must exist in extension/_locales/fa/messages.json`).toBe(true);
+      expect(extEn[key].message && extEn[key].message.length > 0).toBe(true);
+      expect(extFa[key].message && extFa[key].message.length > 0).toBe(true);
+    }
+
+    const extEnKeys = Object.keys(extEn);
+    const extFaKeys = Object.keys(extFa);
+    const missingInExtFa = extEnKeys.filter(k => !(k in extFa));
+    const missingInExtEn = extFaKeys.filter(k => !(k in extEn));
+    expect(missingInExtFa, 'All extension en messages must exist in fa').toEqual([]);
+    expect(missingInExtEn, 'All extension fa messages must exist in en').toEqual([]);
+  });
 });
+

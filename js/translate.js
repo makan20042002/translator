@@ -1709,7 +1709,7 @@ function showOfflineGuidance(errReason,targetEl){
   }
 }
 function fail(e){if(e.name==='AbortError')toast(L('stopped'),'warn');else if(isOff())showOfflineGuidance(e.message);else toast(e.message,'err',7000)}
-async function copy(s){try{await navigator.clipboard.writeText(s);toast(L('copied'),'ok',1500)}catch{toast('Clipboard blocked','err')}}
+async function copy(s){try{await navigator.clipboard.writeText(s);toast(L('copied'),'ok',1500)}catch{toast(L('clipboardBlocked')||'Clipboard blocked','err')}}
 if(typeof window!=='undefined'){
   window.engLabel=engLabel;
   window.terminateAiWorker=terminateAiWorker;

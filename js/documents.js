@@ -1179,7 +1179,7 @@ $('docAddTermBtn').onclick=()=>{
 };
 $('docAddToGlossaryBtn').onclick=()=>{
   const valid=getDocTerms();
-  if(!valid.length){toast('No terms to add','warn');return}
+  if(!valid.length){toast(L('noTermsToAdd')||'No terms to add','warn');return}
   let added=0;
   valid.forEach(v=>{
     if(!glossary.some(g=>g.s.toLowerCase()===v.s.toLowerCase())){
@@ -1529,7 +1529,7 @@ async function loadDoc(f){
       return;
     }
 
-    toast('Could not read file: '+e.message,'err',8000);
+    toast((L('couldNotReadFile')||'Could not read file')+': '+e.message,'err',8000);
     docLoadingPromise = null;
     docUiState = 'idle';
     resolveDocLoad(null);
@@ -2302,7 +2302,7 @@ $('dSave').onclick=async()=>{
   const fmt=$('dOutFmt').value;
   if(doc.ext==='pdf'){
     const targetFmt=(fmt==='same'||!OUT_FORMATS[fmt])?'docx':fmt;
-    if(!dOutItems&&!dResult){toast('Nothing translated yet','warn');return}
+    if(!dOutItems&&!dResult){toast(L('nothingTranslatedYet')||'Nothing translated yet','warn');return}
     try{
       $('dSave').disabled=true;
       if(targetFmt==='docx'&&dResult instanceof Blob){
@@ -2319,7 +2319,7 @@ $('dSave').onclick=async()=>{
     const ext=p>0?doc.name.slice(p):'.'+doc.ext;
     return download(`${baseName}.${$('tgt').value}${ext}`,dResult);
   }
-  if(!dOutItems){toast('Nothing translated yet','warn');return}
+  if(!dOutItems){toast(L('nothingTranslatedYet')||'Nothing translated yet','warn');return}
   try{
     $('dSave').disabled=true;
     const data=await buildOutputFormat(fmt);

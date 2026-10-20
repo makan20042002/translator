@@ -10,5 +10,93 @@
   "offerPageTranslate": {
     "message": "پیشنهاد ترجمه صفحاتی که به زبان دیگری هستند",
     "description": "گزینه پیشنهاد ترجمه در صفحات با زبان غیرمقصد."
+  },
+  "error": {
+    "message": "خطا",
+    "description": "Generic error label."
+  },
+  "showDetails": {
+    "message": "نمایش جزئیات",
+    "description": "Summary toggle to expand technical error details."
+  },
+  "openOptions": {
+    "message": "باز کردن تنظیمات",
+    "description": "Button to open extension options page."
+  },
+  "retry": {
+    "message": "تلاش مجدد",
+    "description": "Button to retry an action."
+  },
+  "copy": {
+    "message": "کپی",
+    "description": "Button to copy text."
+  },
+  "copied": {
+    "message": "کپی شد!",
+    "description": "Notification that text has been copied."
+  },
+  "speak": {
+    "message": "خواندن",
+    "description": "Button to read aloud."
+  },
+  "stop": {
+    "message": "توقف",
+    "description": "Button to stop reading aloud."
+  },
+  "aiExplanation": {
+    "message": "توضیح هوش مصنوعی",
+    "description": "Header for dictionary AI explanation."
+  },
+  "idiomAi": {
+    "message": "اصطلاح (هوش مصنوعی)",
+    "description": "Badge for AI explained idiom."
+  },
+  "literalTranslation": {
+    "message": "ترجمه تحت‌اللفظی",
+    "description": "Label for literal translation of an idiom."
+  },
+  "offlineDictionary": {
+    "message": "فرهنگ لغت آفلاین",
+    "description": "Engine badge for offline dictionary result."
+  },
+  "siteCheckChecking": {
+    "message": "در حال بررسی…",
+    "description": "Status badge while checking tab permissions."
+  },
+  "siteCheckActiveReady": {
+    "message": "فعال و آماده",
+    "description": "Status badge when extension is ready on tab."
+  },
+  "siteCheckUnavailable": {
+    "message": "در دسترس نیست",
+    "description": "Status badge when active tab cannot be inspected."
+  },
+  "siteCheckRestricted": {
+    "message": "محدود شده",
+    "description": "Status badge for restricted browser pages."
+  },
+  "siteCheckDisabledOnSite": {
+    "message": "غیرفعال در این سایت",
+    "description": "Status badge when user disabled extension on this site."
+  },
+  "siteCheckNotInjected": {
+    "message": "هنوز تزریق نشده است",
+    "description": "Status badge when content script not yet injected."
+  },
+  "siteCheckInjectNow": {
+    "message": "تزریق اسکریپت",
+    "description": "Button to manually inject content script."
+  },
+  "siteCheckInjecting": {
+    "message": "در حال تزریق…",
+    "description": "Button text while injecting content script."
+  },
+  "resetSettingsArm": {
+    "message": "برای پاک کردن تمام تنظیمات و کلیدها دوباره کلیک کنید",
+    "description": "Confirmation prompt before erasing settings."
+  },
+  "resetSettingsLabel": {
+    "message": "بازنشانی تنظیمات افزونه",
+    "description": "Button text to reset settings."
   }
 }

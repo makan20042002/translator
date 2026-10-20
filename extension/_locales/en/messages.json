@@ -10,5 +10,93 @@
   "offerPageTranslate": {
     "message": "Offer to translate pages in other languages",
     "description": "Option to prompt translation on pages in foreign languages."
+  },
+  "error": {
+    "message": "Error",
+    "description": "Generic error label."
+  },
+  "showDetails": {
+    "message": "Show details",
+    "description": "Summary toggle to expand technical error details."
+  },
+  "openOptions": {
+    "message": "Open Options",
+    "description": "Button to open extension options page."
+  },
+  "retry": {
+    "message": "Retry",
+    "description": "Button to retry an action."
+  },
+  "copy": {
+    "message": "Copy",
+    "description": "Button to copy text."
+  },
+  "copied": {
+    "message": "Copied!",
+    "description": "Notification that text has been copied."
+  },
+  "speak": {
+    "message": "Speak",
+    "description": "Button to read aloud."
+  },
+  "stop": {
+    "message": "Stop",
+    "description": "Button to stop reading aloud."
+  },
+  "aiExplanation": {
+    "message": "AI explanation",
+    "description": "Header for dictionary AI explanation."
+  },
+  "idiomAi": {
+    "message": "Idiom (AI)",
+    "description": "Badge for AI explained idiom."
+  },
+  "literalTranslation": {
+    "message": "Literal translation",
+    "description": "Label for literal translation of an idiom."
+  },
+  "offlineDictionary": {
+    "message": "Offline dictionary",
+    "description": "Engine badge for offline dictionary result."
+  },
+  "siteCheckChecking": {
+    "message": "Checking…",
+    "description": "Status badge while checking tab permissions."
+  },
+  "siteCheckActiveReady": {
+    "message": "Active & Ready",
+    "description": "Status badge when extension is ready on tab."
+  },
+  "siteCheckUnavailable": {
+    "message": "Unavailable",
+    "description": "Status badge when active tab cannot be inspected."
+  },
+  "siteCheckRestricted": {
+    "message": "Restricted",
+    "description": "Status badge for restricted browser pages."
+  },
+  "siteCheckDisabledOnSite": {
+    "message": "Disabled on Site",
+    "description": "Status badge when user disabled extension on this site."
+  },
+  "siteCheckNotInjected": {
+    "message": "Not Injected Yet",
+    "description": "Status badge when content script not yet injected."
+  },
+  "siteCheckInjectNow": {
+    "message": "Inject Script Now",
+    "description": "Button to manually inject content script."
+  },
+  "siteCheckInjecting": {
+    "message": "Injecting…",
+    "description": "Button text while injecting content script."
+  },
+  "resetSettingsArm": {
+    "message": "Click again to erase all settings and keys",
+    "description": "Confirmation prompt before erasing settings."
+  },
+  "resetSettingsLabel": {
+    "message": "Reset extension settings",
+    "description": "Button text to reset settings."
   }
 }

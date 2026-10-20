@@ -153,7 +153,7 @@ $('cues').addEventListener('focusout',e=>{
   }
 });
 async function loadSubs(f){
-  const c=parseSubs(await f.text());if(!c.length){toast('No subtitle lines found in this file','err');return}
+  const c=parseSubs(await f.text());if(!c.length){toast(L('noSubLines')||'No subtitle lines found in this file','err');return}
   sCtl?.abort(); // a translation still running belongs to the old file
   cues=c;sName=f.name.replace(/\.[^.]+$/,'');
   if($('sFileName'))$('sFileName').textContent=f.name;
