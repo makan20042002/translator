@@ -865,5 +865,61 @@ test.describe('Extension: whole-page translation full suite', () => {
 
     await page.close();
   });
+
+  test('s) stopped banner contains engine name (Google Translate) when stub answered at least one batch', async ({ ext, stub }) => {
+    test.setTimeout(60_000);
+    const page = await ext.context.newPage();
+    await page.bringToFront();
+    await page.waitForFunction(() => document.visibilityState === 'visible');
+    await page.goto(stub.appOrigin + '/__test/article.html?case=s');
+    await page.waitForLoadState('domcontentloaded');
+    await ext.waitForContentScript(page);
+
+    await page.evaluate(() => {
+      // Create 120 paragraphs with unique text to ensure multiple batches
+      const container = document.createElement('div');
+      container.id = 'bulk-container-s';
+      for (let i = 1; i <= 120; i++) {
+        const p = document.createElement('p');
+        p.id = `para-s-${i}`;
+        p.textContent = `Paragraph test item ${i} for stopped banner engine validation suite.`;
+        container.appendChild(p);
+      }
+      document.body.appendChild(container);
+    });
+
+    // Slow down engine responses so subsequent batches stay in flight while batch 1 finishes
+    stub.delayHost('clients5.google.com', 1200);
+
+    stub.clearLog();
+    await rightClick(page, '#para-s-1');
+    await ext.clickContextMenu('makan-translate-page', page.url());
+
+    // Wait for the stop button to appear in shadow DOM while translating
+    const stopBtn = inShadow(page, '#makanStopBtn');
+    await expect(stopBtn).toBeVisible({ timeout: 15_000 });
+
+    // Wait until at least the first batch completes and translates the first paragraph
+    await expect(page.locator('#para-s-1')).toContainText('[fa]', { timeout: 15_000 });
+
+    // Click Stop button now that at least one batch has succeeded
+    await stopBtn.click();
+
+    // After stop, the banner status must contain both "Translation stopped" and "Google Translate"
+    const banner = inShadow(page, '.makan-top-banner');
+    await expect(banner).toBeVisible({ timeout: 10_000 });
+    const status = inShadow(page, '#makanBannerStatus');
+    await expect(status).toContainText('Translation stopped', { timeout: 10_000 });
+    await expect(status).toContainText('Google Translate', { timeout: 10_000 });
+
+    // Stop button is removed and Show Original is visible
+    await expect(inShadow(page, '#makanStopBtn')).toHaveCount(0);
+    await expect(inShadow(page, '#makanRestoreBtn')).toBeVisible();
+
+    stub.resetModes();
+    stub.clearLog();
+    await page.close();
+  });
 });
+
 

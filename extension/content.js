@@ -24,6 +24,7 @@
   let currentFloatBtn = null;
   let currentBannerElem = null;
   let currentTooltipElem = null;
+  let lastSuccessfulEngineName = '';
 
   // Initialize Shadow DOM Container (clean up any leftover roots from previous instances/reload)
   try {
@@ -1620,6 +1621,7 @@
 
     let completed = 0;
     let lastEngineName = '';
+    lastSuccessfulEngineName = '';
     let lastPageFailure = '';
     isTranslating = true;
     isTranslationStopped = false;
@@ -1655,6 +1657,7 @@
         if (res && res.ok && res.results) {
           if (res.engineName || res.engineUsed) {
             lastEngineName = res.engineName || res.engineUsed;
+            lastSuccessfulEngineName = lastEngineName;
           }
           const transMap = new Map();
           uniqueTexts.forEach((orig, idx) => {
@@ -1696,14 +1699,14 @@
           if (myRun !== pageRunId) return;
           if (isTranslationStopped) {
             isTranslating = false;
-            showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
+            showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, tgt);
             return;
           }
-          showPageBanner(`Translated ${completed} of ${units.length}`, true, false, false, tgt);
+          showPageBanner(`Translated ${completed} of ${units.length}${lastEngineName ? ` · ${lastEngineName}` : ''}`, true, false, false, tgt);
         } else if (isTranslationStopped) {
           if (myRun !== pageRunId) return;
           isTranslating = false;
-          showPageBanner(`Translation stopped (${completed} translated).`, false, true, false, tgt);
+          showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, tgt);
           return;
         }
       } catch (err) {
@@ -1715,6 +1718,7 @@
     if (myRun !== pageRunId) return;
     if (isTranslationStopped) {
       isTranslating = false;
+      showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, tgt);
       return;
     }
 
@@ -1948,6 +1952,7 @@
 
     translatedUnits = [];
     translatedNodes = [];
+    lastSuccessfulEngineName = '';
     isPageTranslated = false;
     if (currentBannerElem) {
       currentBannerElem.remove();
@@ -2013,6 +2018,7 @@
 
     let completed = 0;
     let lastEngineName = '';
+    lastSuccessfulEngineName = '';
     let lastPageFailure = '';
     isTranslating = true;
     isTranslationStopped = false;
@@ -2044,12 +2050,14 @@
 
           if (isTranslationStopped) {
             isTranslating = false;
+            showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, newTgt);
             return;
           }
 
           if (res && res.ok && res.results) {
             if (res.engineName || res.engineUsed) {
               lastEngineName = res.engineName || res.engineUsed;
+              lastSuccessfulEngineName = lastEngineName;
             }
             const transMap = new Map();
             uniqueTexts.forEach((orig, idx) => {
@@ -2099,9 +2107,15 @@
             if (myRun !== pageRunId) return;
             if (isTranslationStopped) {
               isTranslating = false;
+              showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, newTgt);
               return;
             }
-            showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}`, true, false, false, newTgt);
+            showPageBanner(`Translated ${completed} of ${unitsToTranslate.length}${lastEngineName ? ` · ${lastEngineName}` : ''}`, true, false, false, newTgt);
+          } else if (isTranslationStopped) {
+            if (myRun !== pageRunId) return;
+            isTranslating = false;
+            showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, newTgt);
+            return;
           }
         } catch (err) {
           if (myRun !== pageRunId) return;
@@ -2119,6 +2133,7 @@
     if (myRun !== pageRunId) return;
     if (isTranslationStopped) {
       isTranslating = false;
+      showPageBanner(`Translation stopped (${completed} translated)${lastEngineName ? ` · ${lastEngineName}` : ''}`, false, true, false, newTgt);
       return;
     }
 
@@ -2201,7 +2216,8 @@
         }
         clearTimeout(mutationDebounceTimer);
         const count = translatedUnits.length;
-        showPageBanner(`Translation stopped (${count} translated).`, false, true, false, tgt);
+        const engineSuffix = lastSuccessfulEngineName ? ` · ${lastSuccessfulEngineName}` : '';
+        showPageBanner(`Translation stopped (${count} translated)${engineSuffix}`, false, true, false, tgt);
         disableTooltipDelegation();
       };
     }
