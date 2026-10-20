@@ -205,6 +205,7 @@ self.MODEL_CATALOG = {
    "repo": "onnx-community/whisper-large-v3-turbo",
    "name": "Whisper Large v3 Turbo",
    "rec": true,
+   "licence": "MIT",
    "gpu": {
     "encoder_model": "fp16",
     "decoder_model_merged": "q4"
@@ -295,6 +296,7 @@ self.MODEL_CATALOG = {
    "repo": "onnx-community/whisper-large-v3-ONNX",
    "name": "Whisper Large v3",
    "rec": true,
+   "licence": "Apache-2.0",
    "gpu": {
     "encoder_model": "fp16",
     "decoder_model_merged": "q4f16"
@@ -341,6 +343,7 @@ self.MODEL_CATALOG = {
    "repo": "distil-whisper/distil-large-v3",
    "name": "Whisper Distil Large v3 (English only, fast)",
    "rec": false,
+   "licence": "MIT",
    "gpu": null,
    "good": {
     "en": "Fast and lightweight large model, English only.",

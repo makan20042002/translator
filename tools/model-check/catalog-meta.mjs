@@ -11,11 +11,11 @@ export const WHISPER = [
     good: { en: 'First size that handles Persian, Arabic and Turkish properly. The best balance of accuracy and waiting time for most people.', fa: 'اولین اندازه‌ای که فارسی، عربی و ترکی را درست تشخیص می‌دهد. برای بیشتر کاربران بهترین تعادل دقت و زمان انتظار.' } },
   { key: 'medium', repo: 'Xenova/whisper-medium', name: 'Whisper Medium', rec: true, gpu: null,
     good: { en: 'More accurate than Small, but slow and heavy on memory. Use it when Small makes mistakes.', fa: 'دقیق‌تر از Small ولی کند و پرمصرف از نظر حافظه. وقتی Small اشتباه می‌کند.' } },
-  { key: 'large-v3-turbo', repo: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper Large v3 Turbo', rec: true, gpu: 'turbo',
+  { key: 'large-v3-turbo', repo: 'onnx-community/whisper-large-v3-turbo', name: 'Whisper Large v3 Turbo', rec: true, gpu: 'turbo', licence: 'MIT',
     good: { en: 'Best accuracy offered here. Large download, and slow without WebGPU: best for short clips when Small makes mistakes.', fa: 'بهترین دقت در این فهرست. دانلود بزرگ و بدون WebGPU کند است: برای کلیپ‌های کوتاه، وقتی Small اشتباه می‌کند.' } },
-  { key: 'large-v3', repo: 'onnx-community/whisper-large-v3-ONNX', name: 'Whisper Large v3', rec: true, gpu: 'large-v3',
+  { key: 'large-v3', repo: 'onnx-community/whisper-large-v3-ONNX', name: 'Whisper Large v3', rec: true, gpu: 'large-v3', licence: 'Apache-2.0',
     good: { en: 'Best accuracy, slower than Turbo.', fa: 'بهترین دقت، کندتر از Turbo.' } },
-  { key: 'distil-large-v3', repo: 'distil-whisper/distil-large-v3', name: 'Whisper Distil Large v3 (English only, fast)', rec: false, gpu: null,
+  { key: 'distil-large-v3', repo: 'distil-whisper/distil-large-v3', name: 'Whisper Distil Large v3 (English only, fast)', rec: false, gpu: null, licence: 'MIT',
     langs: { en: 'English only', fa: 'فقط انگلیسی' },
     good: { en: 'Fast and lightweight large model, English only.', fa: 'مدل بزرگ سریع و سبک، فقط برای زبان انگلیسی.' } }
 ].map(m => ({ ...m, langs: m.langs || WHISPER_LANGS }));

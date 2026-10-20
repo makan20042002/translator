@@ -39,12 +39,14 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
       const models = window.MODEL_CATALOG?.models || [];
       const largeV3 = models.find(m => m.id === 'asr-large-v3');
       const distil = models.find(m => m.id === 'asr-distil-large-v3');
+      const turbo = models.find(m => m.id === 'asr-large-v3-turbo');
 
       return {
         largeV3: {
           id: largeV3?.id,
           key: largeV3?.key,
           repo: largeV3?.repo,
+          licence: largeV3?.licence,
           name: largeV3?.name,
           rec: largeV3?.rec,
           gpu: largeV3?.gpu,
@@ -60,6 +62,7 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
           id: distil?.id,
           key: distil?.key,
           repo: distil?.repo,
+          licence: distil?.licence,
           name: distil?.name,
           rec: distil?.rec,
           gpu: distil?.gpu,
@@ -68,6 +71,12 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
           files: distil?.files,
           memMB: distil?.memMB,
           langs: distil?.langs
+        },
+        turbo: {
+          id: turbo?.id,
+          key: turbo?.key,
+          repo: turbo?.repo,
+          licence: turbo?.licence
         }
       };
     });
@@ -117,9 +126,21 @@ test.describe('Whisper Large v3 and Distil Large v3 Models (ITEM 1, 2, 4)', () =
 
     // Third-party notice assertions
     const thirdPartyContent = fs.readFileSync(path.join(ROOT, 'docs', 'THIRD_PARTY.md'), 'utf8');
-    expect(thirdPartyContent).toContain('**Licence**: Apache-2.0 (original OpenAI model; repo tag not shown)');
-    expect(thirdPartyContent).toContain('distil-whisper/distil-large-v3');
-    expect(thirdPartyContent).toContain('**Licence**: MIT');
+    const tpLines = thirdPartyContent.split('\n');
+    const targetCatalogEntries = [
+      catalogCheck.turbo,
+      catalogCheck.largeV3,
+      catalogCheck.distil
+    ];
+
+    for (const entry of targetCatalogEntries) {
+      expect(entry?.repo, 'Catalog entry must have repo defined').toBeTruthy();
+      expect(entry?.licence, `Catalog entry for ${entry?.repo} must have a licence field`).toBeTruthy();
+      const line = tpLines.find(l => l.includes(entry.repo));
+      expect(line, `THIRD_PARTY.md must contain line naming ${entry.repo}`).toBeDefined();
+      const afterRepo = line.slice(line.indexOf(entry.repo) + entry.repo.length);
+      expect(afterRepo).toContain(entry.licence);
+    }
   });
 
   test('Hub lists both with GPU download size (1.8 GB for Large v3, 731 MB for Distil) when WebGPU is mocked present', async ({ app }) => {
