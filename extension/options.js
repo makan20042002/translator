@@ -30,7 +30,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblDefaultTgt: 'Default Target Language:',
       lblDefaultTone: 'Default Translation Tone:',
       lblAppUrl: 'App address:',
-      helpAppUrl: 'Only ports 50505 (desktop app) and 8080 (web app) on localhost / 127.0.0.1 are allowed.',
+      helpAppUrl: 'Hosted app (https://makanlab.tech/translate/app/) and local ports 50505 (desktop app) and 8080 (web app) on localhost / 127.0.0.1 are allowed.',
       lblWebAppUrl: 'Web App URL:',
       lblDictLookup: 'Enable dictionary lookup on single-word double-click (displays phonetic, definitions and examples via AI)',
       lblOfferPageTranslate: 'Offer to translate pages in other languages (detects language locally without sending requests)',
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded', async () => {
       lblDefaultTgt: 'زبان مقصد پیش‌فرض:',
       lblDefaultTone: 'لحن پیش‌فرض ترجمه:',
       lblAppUrl: 'آدرس برنامه ویندوز (App address):',
-      helpAppUrl: 'فقط پورت‌های ۵۰۵۰۵ (برنامه دسکتاپ) و ۸۰۸۰ (نسخه وب) روی localhost / 127.0.0.1 مجاز هستند.',
+      helpAppUrl: 'برنامه میزبانی‌شده (https://makanlab.tech/translate/app/) و پورت‌های محلی ۵۰۵۰۵ (برنامه دسکتاپ) و ۸۰۸۰ (نسخه وب) روی localhost / 127.0.0.1 مجاز هستند.',
       lblWebAppUrl: 'آدرس وب‌اپلیکیشن:',
       lblDictLookup: 'فعال‌سازی حالت دیکشنری با دوبار کلیک روی کلمه (تلفظ، معانی و مثال با هوش مصنوعی)',
       lblOfferPageTranslate: 'پیشنهاد ترجمه صفحاتی که به زبان دیگری هستند (تشخیص زبان به صورت محلی بدون ارسال درخواست)',
@@ -228,7 +228,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
   /* ----- More dictionaries: pairs the web app offers that are not inside the extension ----- */
   const DICT_EXTRA_KEY = 'makanDictExtra';
-  const dictBase = () => String(cfg.webAppUrl || 'http://localhost:8080').replace(/\/+$/, '');
+  const dictBase = () => String(cfg.webAppUrl || 'https://makanlab.tech/translate/app/').replace(/\/+$/, '');
   const validPack = p => p && /^[a-z]{2,3}-[a-z]{2,3}$/.test(p.id) && /^[a-z]{2,3}-[a-z]{2,3}\/pack-\d+$/.test(p.dir || '') && p.from && p.to;
   const dictExtras = async () => ((await chrome.storage.local.get(DICT_EXTRA_KEY))[DICT_EXTRA_KEY] || []).filter(validPack);
   let dictRenderSeq = 0;
@@ -365,13 +365,13 @@ document.addEventListener('DOMContentLoaded', async () => {
   selDefaultTgt.value = cfg.tgt || 'fa';
   selDefaultTone.value = cfg.tone || 'neutral';
   if (txtAppUrl) txtAppUrl.value = cfg.appUrl || 'http://127.0.0.1:50505';
-  txtWebAppUrl.value = cfg.webAppUrl || 'http://localhost:8080';
+  txtWebAppUrl.value = cfg.webAppUrl || 'https://makanlab.tech/translate/app/';
   chkDictLookup.checked = cfg.dictLookup !== false;
   chkShowVulgar.checked = cfg.showVulgar === true;
   const chkOfferPageTranslate = document.getElementById('chkOfferPageTranslate');
   if (chkOfferPageTranslate) chkOfferPageTranslate.checked = cfg.offerPageTranslate === true;
-  optOpenApp.href = cfg.webAppUrl || 'http://localhost:8080';
-  if (optOpenBrowser) optOpenBrowser.href = cfg.webAppUrl || 'http://localhost:8080';
+  optOpenApp.href = cfg.webAppUrl || 'https://makanlab.tech/translate/app/';
+  if (optOpenBrowser) optOpenBrowser.href = cfg.webAppUrl || 'https://makanlab.tech/translate/app/';
 
   applyUi(currentUi);
 
@@ -535,10 +535,16 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   txtWebAppUrl.onchange = () => {
-    const typed = txtWebAppUrl.value.trim() || 'http://localhost:8080';
-    const checked = safeHttpUrl(typed, null);
+    const fallbackUrl = (typeof WEB_APP_URL !== 'undefined') ? WEB_APP_URL : 'https://makanlab.tech/translate/app/';
+    const typed = txtWebAppUrl.value.trim() || fallbackUrl;
+    if (typeof isAllowListedWebAppAddress === 'function' && !isAllowListedWebAppAddress(typed)) {
+      txtWebAppUrl.value = cfg.webAppUrl || fallbackUrl;
+      toast('The web app address must be https://makanlab.tech/translate/app/ or local port 50505/8080', 'warn');
+      return;
+    }
+    const checked = (typeof safeWebAppUrl === 'function') ? safeWebAppUrl(typed, null) : safeHttpUrl(typed, null);
     if (!checked) {
-      txtWebAppUrl.value = cfg.webAppUrl;
+      txtWebAppUrl.value = cfg.webAppUrl || fallbackUrl;
       toast('The web app address must start with http:// or https://', 'warn');
       return;
     }

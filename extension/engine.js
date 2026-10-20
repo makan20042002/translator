@@ -111,6 +111,8 @@ ENG.redactDiagnosticsText = redactDiagnosticsText;
 
 const DEF_ORDER = ['gemini', 'openrouter', 'mistral', 'cerebras', 'openai', 'claude', 'ollama', 'custom', 'google', 'mymemory', 'groq'];
 
+const WEB_APP_URL = 'https://makanlab.tech/translate/app/';
+
 const DEFAULT_CFG = {
   order: DEF_ORDER.slice(),
   eng: {
@@ -138,7 +140,7 @@ const DEFAULT_CFG = {
   disabledSites: [],
   ui: 'en',
   glossary: [],
-  webAppUrl: 'http://localhost:8080',
+  webAppUrl: WEB_APP_URL,
   appUrl: 'http://127.0.0.1:50505',
   tts: {
     rate: 1.0,
@@ -171,6 +173,37 @@ function isAllowListedLocalAddress(u) {
   } catch {
     return false;
   }
+}
+
+function isAllowListedWebAppAddress(u) {
+  if (!u || typeof u !== 'string') return false;
+  try {
+    const x = new URL(String(u).trim());
+    // 1. Hosted web app rule: https only, hostname exactly makanlab.tech, path starts with /translate/app
+    if (x.protocol === 'https:' && x.hostname.toLowerCase() === 'makanlab.tech') {
+      return x.pathname.startsWith('/translate/app');
+    }
+    // 2. Local developer rule: localhost / 127.0.0.1 with ports 50505 or 8080
+    if (x.protocol === 'http:' || x.protocol === 'https:') {
+      const host = x.hostname.toLowerCase();
+      if (ALLOWED_LOCAL_HOSTS.has(host)) {
+        const port = x.port || (x.protocol === 'http:' ? '80' : '443');
+        return ALLOWED_LOCAL_PORTS.has(port);
+      }
+    }
+    return false;
+  } catch {
+    return false;
+  }
+}
+
+const isAllowedWebAppUrl = isAllowListedWebAppAddress;
+
+function safeWebAppUrl(u, fallback = WEB_APP_URL) {
+  if (isAllowListedWebAppAddress(u)) {
+    try { return String(u).trim(); } catch {}
+  }
+  return fallback;
 }
 
 function safeHttpUrl(u, fallback) {
@@ -257,13 +290,14 @@ async function chooseAppAddress(options = {}) {
 }
 
 function buildAppTargetUrl(baseUrl, { text = '', src = 'auto', tgt = 'fa' } = {}) {
-  const origin = new URL(baseUrl).origin;
+  const u = new URL(baseUrl);
+  const base = `${u.origin}${u.pathname.replace(/\/+$/, '')}`;
   const p = new URLSearchParams();
   if (text) p.set('text', String(text).slice(0, 2000));
   if (src) p.set('src', src);
   if (tgt) p.set('tgt', tgt);
   const hash = p.toString();
-  return hash ? `${origin}/#${hash}` : `${origin}/`;
+  return hash ? `${base}/#${hash}` : `${base}/`;
 }
 
 function sanitizeConfig(raw, previous) {
@@ -277,7 +311,7 @@ function sanitizeConfig(raw, previous) {
   cfg.trigger = pick(src.trigger, v => ['auto', 'alt', 'never'].includes(v), 'trigger');
   cfg.ui = pick(src.ui, v => v === 'en' || v === 'fa', 'ui');
   cfg.dictLookup = typeof src.dictLookup === 'boolean' ? src.dictLookup : (typeof prev.dictLookup === 'boolean' ? prev.dictLookup : true);
-  cfg.webAppUrl = safeHttpUrl(src.webAppUrl, safeHttpUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
+  cfg.webAppUrl = safeWebAppUrl(src.webAppUrl, safeWebAppUrl(prev.webAppUrl, DEFAULT_CFG.webAppUrl));
   cfg.appUrl = safeAppUrl(src.appUrl, safeAppUrl(prev.appUrl, DEFAULT_CFG.appUrl));
   cfg.edgeHintOff = src.edgeHintOff === true;
   cfg.showVulgar = src.showVulgar === true;
@@ -1677,6 +1711,10 @@ if (root) {
   root.ALLOWED_LOCAL_HOSTS = ALLOWED_LOCAL_HOSTS;
   root.ALLOWED_LOCAL_PORTS = ALLOWED_LOCAL_PORTS;
   root.isAllowListedLocalAddress = isAllowListedLocalAddress;
+  root.WEB_APP_URL = WEB_APP_URL;
+  root.isAllowListedWebAppAddress = isAllowListedWebAppAddress;
+  root.isAllowedWebAppUrl = isAllowedWebAppUrl;
+  root.safeWebAppUrl = safeWebAppUrl;
   root.safeAppUrl = safeAppUrl;
   root.isAllowedAppUrl = isAllowedAppUrl;
   root.checkAddressReachable = checkAddressReachable;

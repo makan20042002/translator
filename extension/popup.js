@@ -241,21 +241,23 @@ document.addEventListener('DOMContentLoaded', async () => {
   applyUi(currentUi);
 
   // Set web app link
-  const appBase = cfg.webAppUrl || 'http://localhost:8080';
+  const appBase = cfg.webAppUrl || 'https://makanlab.tech/translate/app/';
   function updateOpenWebAppHref(inputText) {
     if (!pOpenWebApp && !pOpenBrowser) return;
     const t = (inputText != null ? inputText : pInputText.value || '').trim();
+    const base = appBase.replace(/\/+$/, '');
     if (t) {
       const p = new URLSearchParams();
       p.set('text', t.slice(0, 2000));
       p.set('src', pSrcLang.value || 'auto');
       p.set('tgt', pTgtLang.value || 'fa');
-      const targetHref = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      const targetHref = `${base}/#${p.toString()}`;
       if (pOpenWebApp) pOpenWebApp.href = targetHref;
       if (pOpenBrowser) pOpenBrowser.href = targetHref;
     } else {
-      if (pOpenWebApp) pOpenWebApp.href = appBase;
-      if (pOpenBrowser) pOpenBrowser.href = appBase;
+      const targetHref = `${base}/`;
+      if (pOpenWebApp) pOpenWebApp.href = targetHref;
+      if (pOpenBrowser) pOpenBrowser.href = targetHref;
     }
   }
   updateOpenWebAppHref();

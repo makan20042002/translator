@@ -90,6 +90,22 @@ test.describe('Extension: selection card', () => {
     await expect(inShadow(page, '.makan-result-text')).toBeVisible();
     const href = await inShadow(page, '#makanOpenApp').getAttribute('href');
     const u = new URL(href);
+    expect(u.origin).toBe('https://makanlab.tech');
+    expect(u.pathname).toBe('/translate/app/');
+    const params = u.searchParams.get('text') ? u.searchParams : new URLSearchParams(u.hash.replace(/^#/, ''));
+    expect(params.get('text')).toBe('First item in the list of things.');
+    expect(params.get('tgt')).toBe('fa');
+  });
+
+  test('"Open in App" links to localhost:8080 when set by hand', async ({ ext }) => {
+    await ext.patchConfig({ webAppUrl: 'http://localhost:8080' });
+    const page = ext.article;
+    await page.reload();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-result-text')).toBeVisible();
+    const href = await inShadow(page, '#makanOpenApp').getAttribute('href');
+    const u = new URL(href);
     expect(u.origin).toBe('http://localhost:8080');
     const params = u.searchParams.get('text') ? u.searchParams : new URLSearchParams(u.hash.replace(/^#/, ''));
     expect(params.get('text')).toBe('First item in the list of things.');

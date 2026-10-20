@@ -10,9 +10,25 @@ test.describe('Extension: "Open in App" links', () => {
     await dragSelect(page, '#li1');
     await pressM(page);
     await expect(inShadow(page, '.makan-result-text')).toBeVisible();
-    const u = parts(await inShadow(page, '#makanOpenApp').getAttribute('href'));
-    expect(u.origin).toBe('http://localhost:8080');
+    const href = await inShadow(page, '#makanOpenApp').getAttribute('href');
+    const u = parts(href);
+    expect(u.origin).toBe('https://makanlab.tech');
+    expect(new URL(href).pathname).toBe('/translate/app/');
     expect(u.search, 'the "?" part of the address (sent to the server)').toBe('');
+    expect(u.hash.get('text')).toBe('First item in the list of things.');
+    expect(u.hash.get('tgt')).toBe('fa');
+  });
+
+  test('a developer can still set http://localhost:8080 by hand', async ({ ext }) => {
+    await ext.patchConfig({ webAppUrl: 'http://localhost:8080' });
+    const page = ext.article;
+    await page.reload();
+    await dragSelect(page, '#li1');
+    await pressM(page);
+    await expect(inShadow(page, '.makan-result-text')).toBeVisible();
+    const href = await inShadow(page, '#makanOpenApp').getAttribute('href');
+    const u = parts(href);
+    expect(u.origin).toBe('http://localhost:8080');
     expect(u.hash.get('text')).toBe('First item in the list of things.');
     expect(u.hash.get('tgt')).toBe('fa');
   });

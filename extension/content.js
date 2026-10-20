@@ -706,12 +706,13 @@
     }
 
     function updateAppUrl(sourceText, sLang, tLang) {
-      const appBase = cfg?.webAppUrl || 'http://localhost:8080';
+      const appBase = cfg?.webAppUrl || 'https://makanlab.tech/translate/app/';
       const p = new URLSearchParams();
       p.set('text', (sourceText || '').slice(0, 2000));
       p.set('src', sLang || 'auto');
       p.set('tgt', tLang || 'fa');
-      const fullUrl = `${appBase.replace(/\/+$/, '')}/#${p.toString()}`;
+      const base = appBase.replace(/\/+$/, '');
+      const fullUrl = `${base}/#${p.toString()}`;
       openAppBtn.href = fullUrl;
       if (openBrowserBtn) openBrowserBtn.href = fullUrl;
     }

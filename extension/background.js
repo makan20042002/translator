@@ -466,8 +466,10 @@ try { chrome.runtime.onInstalled.addListener(() => { ensureAllDictionaries().cat
 
 // What a web page's content script may know about the settings: never keys, models or addresses.
 function safeWebAppUrl(u) {
-  try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return x.href.replace(/\/+$/, ''); } catch {}
-  return 'http://localhost:8080';
+  if (typeof isAllowListedWebAppAddress === 'function' && isAllowListedWebAppAddress(u)) {
+    try { const x = new URL(String(u)); if (x.protocol === 'http:' || x.protocol === 'https:') return x.href.replace(/\/+$/, ''); } catch {}
+  }
+  return (typeof WEB_APP_URL !== 'undefined' ? WEB_APP_URL : 'https://makanlab.tech/translate/app/').replace(/\/+$/, '');
 }
 function safeAppUrl(u) {
   if (typeof isAllowListedLocalAddress === 'function' && isAllowListedLocalAddress(u)) {
