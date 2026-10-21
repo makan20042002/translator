@@ -6945,3 +6945,54 @@ html[lang="fa"] .media-page-title {
   color: var(--accent-dark);
   background: var(--hover);
 }
+
+/* ==================== PHONE BOTTOM NAV CONTRAST (ITEM 6) ==================== */
+html.is-phone[data-theme="makan-lab"] .phone-nav-btn.on,
+html.is-phone[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"],
+[data-theme="makan-lab"] .phone-nav-btn.on,
+[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent, #08A8FF) !important;
+}
+
+html.is-phone[data-theme="platinum-blue"] .phone-nav-btn.on,
+html.is-phone[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"],
+[data-theme="platinum-blue"] .phone-nav-btn.on,
+[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent-dark, #0C4FAE) !important;
+}
+
+html.is-phone[data-theme="dracula"] .phone-nav-btn.on,
+html.is-phone[data-theme="dracula"] .phone-nav-btn[aria-selected="true"],
+[data-theme="dracula"] .phone-nav-btn.on,
+[data-theme="dracula"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent, #BD93F9) !important;
+}
+
+html.is-phone[data-theme="champagne-minimal"] .phone-nav-btn.on,
+html.is-phone[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"],
+[data-theme="champagne-minimal"] .phone-nav-btn.on,
+[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent-dark, #754817) !important;
+}
+
+html.is-phone[data-theme="rose-titanium"] .phone-nav-btn.on,
+html.is-phone[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"],
+[data-theme="rose-titanium"] .phone-nav-btn.on,
+[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent, #E187B1) !important;
+}
+
+html.is-phone[data-theme="royal-amethyst"] .phone-nav-btn.on,
+html.is-phone[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"],
+[data-theme="royal-amethyst"] .phone-nav-btn.on,
+[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent, #A873F0) !important;
+}
+
+html.is-phone[data-theme="obsidian-gold"] .phone-nav-btn.on,
+html.is-phone[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"],
+[data-theme="obsidian-gold"] .phone-nav-btn.on,
+[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"] {
+  color: var(--accent, #E0B75A) !important;
+}
+
