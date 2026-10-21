@@ -42,12 +42,27 @@ test.describe('ITEM 6: Contrast, themes and documentation', () => {
     const page = await context.newPage();
     await page.goto(stub.appUrl);
 
+    // Disable transitions and animations once at page start so computed styles are final immediately
+    await page.addStyleTag({
+      content: '*, *::before, *::after { transition: none !important; animation: none !important; }'
+    });
+
     for (const themeId of ALL_THEMES) {
       await page.evaluate(tid => {
         if (typeof window.applyTheme === 'function') {
           window.applyTheme(tid);
         }
+        // Activate the Text tab so a real .phone-nav-btn.on exists
+        const textBtn = document.querySelector('#phoneBottomNav button[data-tab="text"]');
+        if (textBtn) {
+          textBtn.click();
+        } else if (typeof updatePhoneNav === 'function') {
+          updatePhoneNav('text');
+        }
       }, themeId);
+
+      // Wait one animation frame (requestAnimationFrame twice) so computed styles are final
+      await page.evaluate(() => new Promise(resolve => requestAnimationFrame(() => requestAnimationFrame(resolve))));
 
       const contrasts = await page.evaluate(() => {
         function parseRgb(colorStr) {
