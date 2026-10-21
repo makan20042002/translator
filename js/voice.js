@@ -1552,6 +1552,8 @@ $('vAskNew').onclick = () => {
   updateAskAiView();
   setVoiceState('ready');
   toast(L('done'), 'ok', 1500);
+};
+
 if ($('vPhoneOptionsBtn')) {
   $('vPhoneOptionsBtn').onclick = () => {
     const bar = $('vControlBar');
