@@ -590,9 +590,21 @@ html.is-phone .engine-picker-select {
 
 html.is-phone #tSubjGrp {
   width: 100% !important;
-  flex: 1 1 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
   min-width: 0 !important;
+  box-sizing: border-box !important;
   order: 5 !important;
+}
+
+html.is-phone #tSubjGrp label {
+  width: 100% !important;
+  box-sizing: border-box !important;
+  margin-bottom: 4px !important;
+  font-size: 12px !important;
 }
 
 html.is-phone #tSubject {
@@ -605,9 +617,15 @@ html.is-phone #tSubject {
   box-sizing: border-box !important;
 }
 
+html.is-phone .trans-bar .sp {
+  display: none !important;
+}
+
 html.is-phone .trans-tm-grp {
   width: 100% !important;
-  flex: 1 1 100% !important;
+  max-width: 100% !important;
+  flex: 0 0 100% !important;
+  box-sizing: border-box !important;
   order: 6 !important;
 }
 
