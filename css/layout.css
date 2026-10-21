@@ -522,10 +522,49 @@ html.is-phone .bar.trans-bar .grp label {
   display: block !important;
 }
 
+html.is-phone .trans-lang-grp {
+  width: 100% !important;
+  flex: 1 1 100% !important;
+  order: 1 !important;
+}
+
+html.is-phone #tModeGrp {
+  width: calc(50% - 5px) !important;
+  flex: 0 0 calc(50% - 5px) !important;
+  min-width: 0 !important;
+  order: 2 !important;
+}
+
+html.is-phone #tMode {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  font-size: 16px !important;
+  box-sizing: border-box !important;
+}
+
+html.is-phone #tToneGrp {
+  width: calc(50% - 5px) !important;
+  flex: 0 0 calc(50% - 5px) !important;
+  min-width: 0 !important;
+  order: 3 !important;
+}
+
+html.is-phone #tone {
+  width: 100% !important;
+  min-width: 0 !important;
+  height: 44px !important;
+  min-height: 44px !important;
+  font-size: 16px !important;
+  box-sizing: border-box !important;
+}
+
 html.is-phone #tEngineGrp {
   width: 100% !important;
   flex: 1 1 100% !important;
   min-width: 0 !important;
+  order: 4 !important;
 }
 
 html.is-phone .text-engine-picker-host,
@@ -536,32 +575,11 @@ html.is-phone .engine-picker-select {
   min-width: 0 !important;
 }
 
-html.is-phone #tModeGrp {
-  width: calc(50% - 5px) !important;
-  flex: 1 1 calc(50% - 5px) !important;
-  min-width: 0 !important;
-}
-
-html.is-phone #tMode {
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
-html.is-phone #tToneGrp {
-  width: calc(50% - 5px) !important;
-  flex: 1 1 calc(50% - 5px) !important;
-  min-width: 0 !important;
-}
-
-html.is-phone #tone {
-  width: 100% !important;
-  min-width: 0 !important;
-}
-
 html.is-phone #tSubjGrp {
   width: 100% !important;
   flex: 1 1 100% !important;
   min-width: 0 !important;
+  order: 5 !important;
 }
 
 html.is-phone #tSubject {
@@ -577,6 +595,7 @@ html.is-phone #tSubject {
 html.is-phone .trans-tm-grp {
   width: 100% !important;
   flex: 1 1 100% !important;
+  order: 6 !important;
 }
 
 /* Full width source and result cards */
