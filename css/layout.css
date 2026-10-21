@@ -83,6 +83,19 @@ textarea::placeholder{color:var(--faint)}
 .micbig{flex:1;min-height:64px;justify-content:center;font-size:15px}
 
 /* modal */
+html.is-phone #closeSet {
+  min-width: 44px !important;
+  min-height: 44px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  font-size: 18px !important;
+  cursor: pointer !important;
+}
+
+html.is-phone #btnSaveDone {
+  min-height: 44px !important;
+}
 
 /* Phone Navigation (ITEM 3) */
 html:not(.is-phone) #phoneBottomNav,

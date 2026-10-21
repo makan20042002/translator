@@ -129,10 +129,11 @@ test.describe('ITEM 3: Phone navigation', () => {
     await expect(moreSheet).toBeVisible();
     await mouseClick(page, settingsItem);
     await expect(moreSheet).not.toBeVisible();
-    await expect(page.locator('#setOv')).toHaveClass(/\bon\b/);
+    await expect(page.locator('#ov')).toHaveClass(/\bon\b/);
 
     // Close settings overlay
     await page.keyboard.press('Escape');
+    await expect(page.locator('#ov')).not.toHaveClass(/\bon\b/);
 
     await context.close();
   });
