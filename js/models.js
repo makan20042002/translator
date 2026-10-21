@@ -81,18 +81,23 @@ const trAnyReady=()=>{
   return trModels().some(mcReady);
 };
 const asrModel=key=>{
-  let k=key||(typeof cfg!=='undefined'?cfg.whisper:'auto');
   const isPhoneDevice=(typeof window!=='undefined'&&window.isPhone&&window.isPhone());
-  if(isPhoneDevice&&k&&k!=='auto'&&!PHONE_ALLOWED_WHISPER_KEYS.includes(k)){
+  if(!isPhoneDevice){
+    const k=key||(typeof cfg!=='undefined'?cfg.whisper:'auto');
+    if(!k||k==='auto')return MC.models.find(m=>m.kind==='whisper'&&mcReady(m))||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+    return MC.models.find(m=>m.kind==='whisper'&&m.key===k)||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
+  }
+  let k=key||(typeof cfg!=='undefined'?cfg.whisper:'auto');
+  if(k&&k!=='auto'&&!PHONE_ALLOWED_WHISPER_KEYS.includes(k)){
     k='auto';
   }
   if(!k||k==='auto'){
-    const list=MC.models.filter(m=>m.kind==='whisper'&&(!isPhoneDevice||PHONE_ALLOWED_MODELS.includes(m.id)));
+    const list=MC.models.filter(m=>m.kind==='whisper'&&PHONE_ALLOWED_MODELS.includes(m.id));
     const ready=list.filter(mcReady);
     return ready.find(m=>m.key==='small')||ready.find(m=>m.key==='base')||ready[0]||list.find(m=>m.key==='base')||list[0];
   }
   const chosen=MC.models.find(m=>m.kind==='whisper'&&m.key===k);
-  if(isPhoneDevice&&chosen&&!PHONE_ALLOWED_MODELS.includes(chosen.id)){
+  if(chosen&&!PHONE_ALLOWED_MODELS.includes(chosen.id)){
     return MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
   }
   return chosen||MC.models.find(m=>m.kind==='whisper'&&m.key==='base');
@@ -870,7 +875,7 @@ function sanitizePhoneModelChoices() {
   if (typeof window === 'undefined' || !window.isPhone || !window.isPhone()) return;
   try {
     if (typeof cfg !== 'undefined') {
-      if (cfg.whisper && !['tiny', 'base', 'small'].includes(cfg.whisper)) {
+      if (cfg.whisper && cfg.whisper !== 'auto' && !['tiny', 'base', 'small'].includes(cfg.whisper)) {
         cfg.whisper = 'base';
         if (typeof saveCfg === 'function') saveCfg();
       }
@@ -891,7 +896,7 @@ function sanitizePhoneModelChoices() {
         store.set('voiceTransEngine', 'google');
       }
       const w = store.get('whisper');
-      if (w && !['tiny', 'base', 'small'].includes(w)) {
+      if (w && w !== 'auto' && !['tiny', 'base', 'small'].includes(w)) {
         store.set('whisper', 'base');
       }
       const tr = store.get('trModel');

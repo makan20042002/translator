@@ -28,7 +28,7 @@ function sanitizePhoneModelChoices() {
         store.set('voiceTransEngine', 'google');
       }
       const w = store.get('whisper');
-      if (w && !['tiny', 'base', 'small'].includes(w)) {
+      if (w && w !== 'auto' && !['tiny', 'base', 'small'].includes(w)) {
         store.set('whisper', 'base');
       }
       const tr = store.get('trModel');
@@ -37,7 +37,7 @@ function sanitizePhoneModelChoices() {
       }
     }
     if (typeof cfg !== 'undefined') {
-      if (cfg.whisper && !['tiny', 'base', 'small'].includes(cfg.whisper)) {
+      if (cfg.whisper && cfg.whisper !== 'auto' && !['tiny', 'base', 'small'].includes(cfg.whisper)) {
         cfg.whisper = 'base';
         if (typeof saveCfg === 'function') saveCfg();
       }
