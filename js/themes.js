@@ -326,6 +326,7 @@
           }
         }
       }
+      root.style.setProperty('--surface2', theme.colors.Panel || theme.colors.Surface);
     }
 
     // Update <meta name="theme-color"> to the Bg token

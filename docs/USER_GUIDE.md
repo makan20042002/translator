@@ -245,5 +245,20 @@ The MAKAN Translate browser extension (Chrome, Edge, Firefox) provides full in-p
   - **Same-Origin Iframes**: Content inside nested `<iframe>` elements is not translated by the top-level page translator (each frame operates in isolation).
   - **Mutation Rate Limit**: Dynamic mutations are rate-guarded to at most one batch per second to prevent browser freezes on rapidly updating pages.
 
+---
+
+## 10. On a phone
+
+MAKAN Translate can be installed directly from any mobile browser using the standard "Add to Home screen" or "Install app" option.
+
+- **Touch-Optimized Layout**: When opened on a phone, the app adapts to touch screens with a compact single-row header (56 px), full-width cards, a sticky action bar above navigation, and a fixed bottom navigation bar with 5 primary tabs (Text, Voice, Document, Media, and More).
+- **Available Models & Engines**:
+  - **Online Engines**: All cloud engines (Google Web, Gemini, Groq, OpenRouter, Mistral, OpenAI, Claude) and browser speech recognition are fully available.
+  - **Small Whisper Models Only**: To prevent browser tab crashes and memory exhaustion on mobile devices, offline speech recognition is limited to small Whisper models: **Whisper Tiny**, **Whisper Base**, and **Whisper Small** (marked with a note: *Needs a recent phone with about 8 GB RAM*).
+  - **Offline Dictionaries & Idioms**: Downloadable offline dictionary and idiom packs remain fully functional offline.
+- **Desktop & Computer Features**:
+  - Heavy offline translation models (NLLB-200, M2M-100, mBART-50, OPUS-MT), large Whisper models (Whisper Large v3, Large v3 Turbo, Distil Large v3), and offline Piper neural voice models are hidden on phones and require a computer or the MAKAN Windows app.
+  - **Screen Translation**: Requires native desktop screen capture capabilities and is available only on a computer with the Windows app.
+
 
 

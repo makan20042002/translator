@@ -448,7 +448,9 @@ Object.assign(I18N.en,{
     </tr>
   </tbody>
 </table>
-</div>`
+</div>
+<h4>10. On a phone</h4>
+<p>You can install MAKAN Translate directly from your mobile browser ("Add to Home screen" or "Install app"). On a phone, the web app offers online engines plus small Whisper models only (Whisper Tiny, Base, and Small) and offline dictionary/idioms. Other offline translation models (NLLB, M2M-100, OPUS-MT), offline Piper voices, and Screen translation need a computer or the Windows app.</p>`
 });
 Object.assign(I18N.fa,{
  tabEnginesKeys:'موتورهای ترجمه و کلیدها',tabVoices:'صداها (خواندن با صدای بلند)',tabVoiceModels:'مدل‌های صوتی (تشخیص گفتار)',tabTrModels:'مدل‌های ترجمه (آفلاین)',tabOcr:'خوانش تصویر و صفحه (OCR)',tabAppearance:'ظاهر و تم',themeH:'تم رنگی',themeNote:'از بین ۷ تم طراحی‌شده انتخاب کنید. تغییرات فوراً اعمال می‌شوند.',
@@ -733,7 +735,9 @@ helpGuideHtml:`<p>راهنمای جامع قابلیت‌ها، نیازمندی
     </tr>
   </tbody>
 </table>
-</div>`
+</div>
+<h4>۱۰. روی گوشی تلفن همراه</h4>
+<p>می‌توانید مترجم ماکان را مستقیماً از مرورگر گوشی خود نصب کنید (گزینه «افزودن به صفحه اصلی» یا «نصب برنامه»). روی گوشی، نسخه وب موتورهای آنلاین را به همراه مدل‌های کوچک Whisper (مدل‌های Tiny، Base و Small) و لغت‌نامه و اصطلاحات آفلاین ارائه می‌دهد. سایر مدل‌های آفلاین ترجمه (NLLB، M2M-100، OPUS-MT)، صداهای آفلاین Piper و مترجم صفحه نمایش به رایانه یا برنامه ویندوز نیاز دارند.</p>`
 });
 const ensureMediaI18n = () => {
   if (typeof window !== 'undefined' && window.MediaTranslate && window.MediaTranslate.i18n) {

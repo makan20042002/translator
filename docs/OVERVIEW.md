@@ -20,6 +20,15 @@ Neither has a build step for the app code itself. The only "build" is
 `build-manifests.js`, which copies the extension into `dist/chrome` and
 `dist/firefox` with a manifest suited to each browser.
 
+### On a phone
+
+The web app can be installed directly from the mobile browser ("Add to Home screen" or "Install app"). On a phone (`isPhone()` detector), the interface adapts with a touch-friendly 56 px header, a fixed bottom navigation bar, and a sticky action bar. It offers:
+* Online translation engines (Google Web, Gemini, Groq, OpenRouter, etc.)
+* Small offline Whisper models only (Whisper Tiny, Base, and Small)
+* Offline bilingual dictionary and idioms
+
+Other offline translation models (NLLB-200, M2M-100, mBART-50, OPUS-MT), offline Piper voice synthesis, and Screen translation require a computer or the MAKAN Windows app.
+
 ## 2. What each file does
 
 ### Web app (top folder)

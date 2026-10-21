@@ -33,6 +33,15 @@ MAKAN Translate combines on-device neural models, cloud translation APIs, and of
   * Chrome Web Store: links coming when approved
   * Firefox Add-ons: links coming when approved
 
+### On a phone
+
+You can install the web app directly from your mobile browser ("Add to Home screen" or "Install app"). On a phone, the web app offers:
+* Online translation engines (Google Web, Gemini, Groq, OpenRouter, etc.)
+* Small offline Whisper models for speech recognition (Whisper Tiny, Base, and Small)
+* Offline bilingual dictionary and idioms
+
+Other offline models (such as NLLB-200, M2M-100, mBART-50, OPUS-MT, and Piper neural voices) and Screen translation require a computer or the MAKAN Windows app.
+
 ---
 
 ## Privacy Summary

@@ -107,7 +107,7 @@ html.is-phone #phoneBottomNav {
   left: 0;
   right: 0;
   height: 56px;
-  background: var(--surface2, #111622);
+  background: var(--panel, var(--surface, #071022));
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
   z-index: 900;
@@ -179,7 +179,7 @@ html.is-phone .phone-more-sheet {
   left: 0;
   right: 0;
   bottom: 0;
-  background: var(--surface2, #111622);
+  background: var(--panel, var(--surface, #071022));
   border-top: 1px solid var(--border2);
   border-radius: var(--r-l, 16px) var(--r-l, 16px) 0 0;
   box-shadow: 0 -8px 32px rgba(0, 0, 0, 0.55);
@@ -609,7 +609,7 @@ html.is-phone .phone-sticky-action-bar {
   left: 0 !important;
   right: 0 !important;
   height: 56px !important;
-  background: var(--surface2, #111622) !important;
+  background: var(--panel, var(--surface, #071022)) !important;
   border-top: 1px solid var(--border) !important;
   padding: 4px 12px !important;
   gap: 8px !important;
