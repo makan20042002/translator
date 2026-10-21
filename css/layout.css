@@ -85,9 +85,9 @@ textarea::placeholder{color:var(--faint)}
 /* modal */
 
 /* Phone Navigation (ITEM 3) */
-#phoneBottomNav,
-#phoneMoreSheet,
-#phoneSheetBackdrop {
+html:not(.is-phone) #phoneBottomNav,
+html:not(.is-phone) #phoneMoreSheet,
+html:not(.is-phone) #phoneSheetBackdrop {
   display: none !important;
 }
 
@@ -169,6 +169,7 @@ html.is-phone .phone-sheet-backdrop {
   z-index: 950;
   display: none !important;
 }
+html.is-phone #phoneSheetBackdrop.open,
 html.is-phone .phone-sheet-backdrop.open {
   display: block !important;
 }
@@ -192,6 +193,7 @@ html.is-phone .phone-more-sheet {
   display: none !important;
   flex-direction: column;
 }
+html.is-phone #phoneMoreSheet.open,
 html.is-phone .phone-more-sheet.open {
   display: flex !important;
 }

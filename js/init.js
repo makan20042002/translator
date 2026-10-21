@@ -474,6 +474,7 @@ function initPhoneNavigation() {
       const tab = btn.dataset.tab;
       if (tab) {
         closeSheet();
+        updatePhoneNav(tab);
         const tabBtn = document.querySelector('#tabs button[data-tab="' + tab + '"]');
         if (tabBtn) tabBtn.click();
       }
@@ -497,6 +498,7 @@ function initPhoneNavigation() {
       const tab = item.dataset.tab;
       if (tab) {
         closeSheet();
+        updatePhoneNav(tab);
         const tabBtn = document.querySelector('#tabs button[data-tab="' + tab + '"]');
         if (tabBtn) tabBtn.click();
       }
@@ -512,10 +514,9 @@ function initPhoneNavigation() {
     }
   });
 
-  const activeBtn = document.querySelector('#tabs button.on');
-  if (activeBtn && activeBtn.dataset.tab) {
-    updatePhoneNav(activeBtn.dataset.tab);
-  }
+  const activeBtn = document.querySelector('#tabs button.on') || document.querySelector('#phoneBottomNav button.on');
+  const activeTab = activeBtn?.dataset?.tab || 'text';
+  updatePhoneNav(activeTab);
 
   setupPhoneActionBars();
 }
@@ -642,6 +643,10 @@ function boot(){
   if (typeof updateListenButtonState === 'function') updateListenButtonState();
   if (typeof renderTextStatusStrip === 'function') renderTextStatusStrip();
   if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
+  if (typeof updatePhoneNav === 'function') {
+    const curTab = document.querySelector('#tabs button.on')?.dataset?.tab || 'text';
+    updatePhoneNav(curTab);
+  }
   $('tIn').dispatchEvent(new Event('input'));
 }
 boot();

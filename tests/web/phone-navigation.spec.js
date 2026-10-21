@@ -48,8 +48,8 @@ test.describe('ITEM 3: Phone navigation', () => {
     await expect(moreNavBtn.locator('.phone-nav-label')).toHaveText('More');
 
     // Initial active tab is text
-    await expect(textNavBtn).toHaveClass(/on/);
-    await expect(page.locator('#tab-text')).toHaveClass(/on/);
+    await expect(textNavBtn).toHaveClass(/\bon\b/);
+    await expect(page.locator('#tab-text')).toHaveClass(/\bon\b/);
 
     // Main content has bottom padding so nothing hides under the bottom nav
     const bottomPadding = await page.evaluate(() => {
@@ -60,24 +60,24 @@ test.describe('ITEM 3: Phone navigation', () => {
 
     // 1. Switch to Voice
     await mouseClick(page, voiceNavBtn);
-    await expect(page.locator('#tab-voice')).toHaveClass(/on/);
-    await expect(voiceNavBtn).toHaveClass(/on/);
-    await expect(textNavBtn).not.toHaveClass(/on/);
+    await expect(page.locator('#tab-voice')).toHaveClass(/\bon\b/);
+    await expect(voiceNavBtn).toHaveClass(/\bon\b/);
+    await expect(textNavBtn).not.toHaveClass(/\bon\b/);
 
     // 2. Switch to Document
     await mouseClick(page, docNavBtn);
-    await expect(page.locator('#tab-doc')).toHaveClass(/on/);
-    await expect(docNavBtn).toHaveClass(/on/);
+    await expect(page.locator('#tab-doc')).toHaveClass(/\bon\b/);
+    await expect(docNavBtn).toHaveClass(/\bon\b/);
 
     // 3. Switch to Media
     await mouseClick(page, mediaNavBtn);
-    await expect(page.locator('#tab-media')).toHaveClass(/on/);
-    await expect(mediaNavBtn).toHaveClass(/on/);
+    await expect(page.locator('#tab-media')).toHaveClass(/\bon\b/);
+    await expect(mediaNavBtn).toHaveClass(/\bon\b/);
 
     // 4. Switch back to Text
     await mouseClick(page, textNavBtn);
-    await expect(page.locator('#tab-text')).toHaveClass(/on/);
-    await expect(textNavBtn).toHaveClass(/on/);
+    await expect(page.locator('#tab-text')).toHaveClass(/\bon\b/);
+    await expect(textNavBtn).toHaveClass(/\bon\b/);
 
     // Open More sheet
     const moreSheet = page.locator('#phoneMoreSheet');
@@ -119,9 +119,9 @@ test.describe('ITEM 3: Phone navigation', () => {
       await mouseClick(page, btn);
       // Sheet closes and target tab is active
       await expect(moreSheet).not.toBeVisible();
-      await expect(page.locator(item.id)).toHaveClass(/on/);
+      await expect(page.locator(item.id)).toHaveClass(/\bon\b/);
       // More button is marked active because active tab is in More sheet
-      await expect(moreNavBtn).toHaveClass(/on/);
+      await expect(moreNavBtn).toHaveClass(/\bon\b/);
     }
 
     // Settings item in sheet opens settings overlay
@@ -129,7 +129,7 @@ test.describe('ITEM 3: Phone navigation', () => {
     await expect(moreSheet).toBeVisible();
     await mouseClick(page, settingsItem);
     await expect(moreSheet).not.toBeVisible();
-    await expect(page.locator('#setOv')).toHaveClass(/on/);
+    await expect(page.locator('#setOv')).toHaveClass(/\bon\b/);
 
     // Close settings overlay
     await page.keyboard.press('Escape');
