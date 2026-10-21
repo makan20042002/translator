@@ -6949,40 +6949,46 @@ html[lang="fa"] .media-page-title {
 }
 
 /* ==================== PHONE BOTTOM NAV CONTRAST (ITEM 6) ==================== */
-:root,
-[data-theme="dark"],
-[data-theme="makan-lab"] {
+html:not([data-theme]),
+[data-theme="makan-lab"],
+html[data-theme="makan-lab"] {
   --phone-nav-active: #08A8FF;
   --phone-nav-bg: #071022;
 }
 
+html[data-theme="platinum-blue"],
 [data-theme="platinum-blue"] {
-  --phone-nav-active: #0C4FAE;
-  --phone-nav-bg: #F4F9FF;
+  --phone-nav-active: #0C4FAE !important;
+  --phone-nav-bg: #F4F9FF !important;
 }
 
+html[data-theme="dracula"],
 [data-theme="dracula"] {
-  --phone-nav-active: #BD93F9;
-  --phone-nav-bg: #282A36;
+  --phone-nav-active: #BD93F9 !important;
+  --phone-nav-bg: #282A36 !important;
 }
 
+html[data-theme="champagne-minimal"],
 [data-theme="champagne-minimal"] {
-  --phone-nav-active: #754817;
-  --phone-nav-bg: #FBF7F1;
+  --phone-nav-active: #754817 !important;
+  --phone-nav-bg: #FBF7F1 !important;
 }
 
+html[data-theme="rose-titanium"],
 [data-theme="rose-titanium"] {
-  --phone-nav-active: #E187B1;
-  --phone-nav-bg: #20111B;
+  --phone-nav-active: #E187B1 !important;
+  --phone-nav-bg: #20111B !important;
 }
 
+html[data-theme="royal-amethyst"],
 [data-theme="royal-amethyst"] {
-  --phone-nav-active: #A873F0;
-  --phone-nav-bg: #150D2C;
+  --phone-nav-active: #A873F0 !important;
+  --phone-nav-bg: #150D2C !important;
 }
 
+html[data-theme="obsidian-gold"],
 [data-theme="obsidian-gold"] {
-  --phone-nav-active: #E0B75A;
-  --phone-nav-bg: #11100D;
+  --phone-nav-active: #E0B75A !important;
+  --phone-nav-bg: #11100D !important;
 }
 

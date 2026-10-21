@@ -113,6 +113,7 @@ html.is-phone .main-viewport {
   padding-bottom: calc(64px + env(safe-area-inset-bottom, 0px)) !important;
 }
 
+#phoneBottomNav,
 html.is-phone #phoneBottomNav {
   display: flex !important;
   position: fixed;
@@ -120,7 +121,8 @@ html.is-phone #phoneBottomNav {
   left: 0;
   right: 0;
   height: 56px;
-  background: var(--phone-nav-bg, var(--panel, var(--surface, #071022)));
+  background-color: var(--phone-nav-bg, #071022) !important;
+  background: var(--phone-nav-bg, #071022) !important;
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
   z-index: 900;
@@ -130,6 +132,15 @@ html.is-phone #phoneBottomNav {
   align-items: center;
 }
 
+[data-theme="platinum-blue"] #phoneBottomNav { background-color: #F4F9FF !important; }
+[data-theme="champagne-minimal"] #phoneBottomNav { background-color: #FBF7F1 !important; }
+[data-theme="dracula"] #phoneBottomNav { background-color: #282A36 !important; }
+[data-theme="rose-titanium"] #phoneBottomNav { background-color: #20111B !important; }
+[data-theme="royal-amethyst"] #phoneBottomNav { background-color: #150D2C !important; }
+[data-theme="obsidian-gold"] #phoneBottomNav { background-color: #11100D !important; }
+[data-theme="makan-lab"] #phoneBottomNav { background-color: #071022 !important; }
+
+.phone-nav-btn,
 html.is-phone .phone-nav-btn {
   flex: 1;
   min-height: 48px;
@@ -150,14 +161,75 @@ html.is-phone .phone-nav-btn {
   -webkit-tap-highlight-color: transparent;
 }
 
+.phone-nav-btn:hover,
 html.is-phone .phone-nav-btn:hover {
   color: var(--text);
 }
 
+.phone-nav-btn.on,
+.phone-nav-btn[aria-selected="true"],
+#phoneBottomNav .phone-nav-btn.on,
+#phoneBottomNav .phone-nav-btn[aria-selected="true"],
 html.is-phone .phone-nav-btn.on,
 html.is-phone .phone-nav-btn[aria-selected="true"] {
   color: var(--phone-nav-active, var(--accent)) !important;
   font-weight: 600;
+}
+
+html[data-theme="platinum-blue"] .phone-nav-btn.on,
+html[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"],
+[data-theme="platinum-blue"] .phone-nav-btn.on,
+[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"],
+[data-theme="platinum-blue"] #phoneBottomNav .phone-nav-btn.on {
+  color: #0C4FAE !important;
+}
+
+html[data-theme="champagne-minimal"] .phone-nav-btn.on,
+html[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"],
+[data-theme="champagne-minimal"] .phone-nav-btn.on,
+[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"],
+[data-theme="champagne-minimal"] #phoneBottomNav .phone-nav-btn.on {
+  color: #754817 !important;
+}
+
+html[data-theme="dracula"] .phone-nav-btn.on,
+html[data-theme="dracula"] .phone-nav-btn[aria-selected="true"],
+[data-theme="dracula"] .phone-nav-btn.on,
+[data-theme="dracula"] .phone-nav-btn[aria-selected="true"],
+[data-theme="dracula"] #phoneBottomNav .phone-nav-btn.on {
+  color: #BD93F9 !important;
+}
+
+html[data-theme="rose-titanium"] .phone-nav-btn.on,
+html[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"],
+[data-theme="rose-titanium"] .phone-nav-btn.on,
+[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"],
+[data-theme="rose-titanium"] #phoneBottomNav .phone-nav-btn.on {
+  color: #E187B1 !important;
+}
+
+html[data-theme="royal-amethyst"] .phone-nav-btn.on,
+html[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"],
+[data-theme="royal-amethyst"] .phone-nav-btn.on,
+[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"],
+[data-theme="royal-amethyst"] #phoneBottomNav .phone-nav-btn.on {
+  color: #A873F0 !important;
+}
+
+html[data-theme="obsidian-gold"] .phone-nav-btn.on,
+html[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"],
+[data-theme="obsidian-gold"] .phone-nav-btn.on,
+[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"],
+[data-theme="obsidian-gold"] #phoneBottomNav .phone-nav-btn.on {
+  color: #E0B75A !important;
+}
+
+html[data-theme="makan-lab"] .phone-nav-btn.on,
+html[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"],
+[data-theme="makan-lab"] .phone-nav-btn.on,
+[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"],
+[data-theme="makan-lab"] #phoneBottomNav .phone-nav-btn.on {
+  color: #08A8FF !important;
 }
 
 html.is-phone .phone-nav-btn .phone-nav-icon {

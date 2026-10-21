@@ -343,6 +343,15 @@
         }
       }
       root.style.setProperty('--surface2', theme.colors.Panel || theme.colors.Surface);
+      if (theme.colors && theme.colors.PhoneNavActive) {
+        root.style.setProperty('--phone-nav-active', theme.colors.PhoneNavActive);
+      }
+      if (theme.colors && theme.colors.PhoneNavBg) {
+        root.style.setProperty('--phone-nav-bg', theme.colors.PhoneNavBg);
+      }
+    } else {
+      root.style.setProperty('--phone-nav-active', '#08A8FF');
+      root.style.setProperty('--phone-nav-bg', '#071022');
     }
 
     // Update <meta name="theme-color"> to the Bg token
