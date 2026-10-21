@@ -35,12 +35,32 @@
     return false;
   }
 
+  function removePhoneOnlyDom() {
+    if (typeof document === 'undefined') return;
+    if (isPhone()) return;
+    var ids = [
+      'phoneBottomNav',
+      'phoneMoreSheet',
+      'phoneSheetBackdrop',
+      'phoneTextStickyBar',
+      'phoneBrand',
+      'vPhoneOptionsBtn'
+    ];
+    for (var i = 0; i < ids.length; i++) {
+      var el = document.getElementById(ids[i]);
+      if (el && el.parentNode) {
+        el.parentNode.removeChild(el);
+      }
+    }
+  }
+
   function applyPhoneClass() {
     if (typeof document !== 'undefined' && document.documentElement) {
       if (isPhone()) {
         document.documentElement.classList.add('is-phone');
       } else {
         document.documentElement.classList.remove('is-phone');
+        removePhoneOnlyDom();
       }
     }
   }
@@ -51,7 +71,12 @@
   // Re-check after DOM is ready in case makanDesktop or other properties were defined
   if (typeof document !== 'undefined') {
     if (document.readyState === 'loading') {
-      document.addEventListener('DOMContentLoaded', applyPhoneClass);
+      document.addEventListener('DOMContentLoaded', function () {
+        applyPhoneClass();
+        removePhoneOnlyDom();
+      });
+    } else {
+      removePhoneOnlyDom();
     }
   }
 
@@ -59,12 +84,13 @@
   if (typeof window !== 'undefined') {
     window.isPhone = isPhone;
     window.applyPhoneClass = applyPhoneClass;
+    window.removePhoneOnlyDom = removePhoneOnlyDom;
   }
   if (typeof globalThis !== 'undefined') {
     globalThis.isPhone = isPhone;
   }
 
   if (typeof module !== 'undefined' && module.exports) {
-    module.exports = { isPhone: isPhone, applyPhoneClass: applyPhoneClass };
+    module.exports = { isPhone: isPhone, applyPhoneClass: applyPhoneClass, removePhoneOnlyDom: removePhoneOnlyDom };
   }
 })();

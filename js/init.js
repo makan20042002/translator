@@ -1,4 +1,7 @@
 /* ---------- shell ---------- */
+if (typeof removePhoneOnlyDom === 'function') {
+  removePhoneOnlyDom();
+}
 (() => {
   let mediaHandle = null;
   let mediaMounting = null;
@@ -389,11 +392,12 @@ $('tabs').addEventListener('click',e=>{const b=e.target.closest('button');if(!b)
   if(typeof ENG!=='undefined'&&typeof ENG.updateEnginePickers==='function')ENG.updateEnginePickers();
   if(b.dataset.tab==='media'&&typeof window.MediaTranslate?.ensureMounted==='function')window.MediaTranslate.ensureMounted();
   if($('tModeGrp'))$('tModeGrp').hidden=(b.dataset.tab!=='text');
-  if(typeof updatePhoneNav==='function')updatePhoneNav(b.dataset.tab);
+  if(typeof isPhone==='function'&&isPhone()&&typeof updatePhoneNav==='function')updatePhoneNav(b.dataset.tab);
 });
 
 function updatePhoneNav(activeTab) {
   if (!activeTab) return;
+  if (typeof isPhone === 'function' && !isPhone()) return;
   const mainPhoneTabs = ['text', 'voice', 'doc', 'media'];
   const isMain = mainPhoneTabs.includes(activeTab);
   document.querySelectorAll('#phoneBottomNav button[data-tab]').forEach(btn => {
@@ -429,6 +433,16 @@ function setupPhoneActionBars() {
 }
 
 function initPhoneNavigation() {
+  if (typeof isPhone === 'function' && !isPhone()) {
+    if (typeof removePhoneOnlyDom === 'function') {
+      removePhoneOnlyDom();
+    } else {
+      ['phoneBottomNav', 'phoneMoreSheet', 'phoneSheetBackdrop', 'phoneTextStickyBar', 'phoneBrand', 'vPhoneOptionsBtn'].forEach(id => {
+        document.getElementById(id)?.remove();
+      });
+    }
+    return;
+  }
   const bottomNav = document.getElementById('phoneBottomNav');
   const moreSheet = document.getElementById('phoneMoreSheet');
   const backdrop = document.getElementById('phoneSheetBackdrop');
@@ -643,7 +657,7 @@ function boot(){
   if (typeof updateListenButtonState === 'function') updateListenButtonState();
   if (typeof renderTextStatusStrip === 'function') renderTextStatusStrip();
   if (typeof updateOfflineModelHints === 'function') updateOfflineModelHints();
-  if (typeof updatePhoneNav === 'function') {
+  if (typeof isPhone === 'function' && isPhone() && typeof updatePhoneNav === 'function') {
     const curTab = document.querySelector('#tabs button.on')?.dataset?.tab || 'text';
     updatePhoneNav(curTab);
   }
