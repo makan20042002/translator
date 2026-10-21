@@ -870,8 +870,8 @@ function sanitizePhoneModelChoices() {
   if (typeof window === 'undefined' || !window.isPhone || !window.isPhone()) return;
   try {
     if (typeof cfg !== 'undefined') {
-      if (cfg.whisper && !['auto', 'tiny', 'base', 'small'].includes(cfg.whisper)) {
-        cfg.whisper = 'auto';
+      if (cfg.whisper && !['tiny', 'base', 'small'].includes(cfg.whisper)) {
+        cfg.whisper = 'base';
         if (typeof saveCfg === 'function') saveCfg();
       }
       if (cfg.trModel && cfg.trModel !== 'auto') {
@@ -879,20 +879,24 @@ function sanitizePhoneModelChoices() {
         if (typeof saveCfg === 'function') saveCfg();
       }
       if (cfg.engine === 'nllb') {
-        cfg.engine = 'auto';
+        cfg.engine = 'google';
         if (typeof saveCfg === 'function') saveCfg();
       }
     }
     if (typeof store !== 'undefined') {
       if (store.get('engine') === 'nllb') {
-        store.set('engine', 'auto');
+        store.set('engine', 'google');
       }
       if (store.get('voiceTransEngine') === 'nllb') {
-        store.set('voiceTransEngine', 'auto');
+        store.set('voiceTransEngine', 'google');
       }
       const w = store.get('whisper');
-      if (w && !['auto', 'tiny', 'base', 'small'].includes(w)) {
-        store.set('whisper', 'auto');
+      if (w && !['tiny', 'base', 'small'].includes(w)) {
+        store.set('whisper', 'base');
+      }
+      const tr = store.get('trModel');
+      if (tr && tr !== 'auto') {
+        store.set('trModel', 'auto');
       }
     }
   } catch (_) {}

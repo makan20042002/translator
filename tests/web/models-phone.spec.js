@@ -11,13 +11,12 @@ const HIDDEN_MODEL_IDS = [
   'asr-large-v3-turbo',
   'asr-large-v3',
   'asr-distil-large-v3',
-  'fa_IR-amir-medium',
-  'fa_IR-ganji-medium',
-  'en_GB-alba-medium',
-  'en_US-cori-medium',
-  'en_US-kristin-medium',
-  'en_US-libritts_r-medium',
-  'en_US-ljspeech-medium',
+  'tts-fa-amir',
+  'tts-fa-ganji',
+  'tts-en-alba',
+  'tts-en-cori',
+  'tts-en-kristin',
+  'tts-en-ljspeech',
   'ocr-rapidocr-det',
   'ocr-rapidocr-rec',
   'ocr-rapidocr-rec-fa',
@@ -45,7 +44,21 @@ test.describe('ITEM 2: Only online + small Whisper on phones', () => {
     await expect(page.locator('html')).toHaveClass(/is-phone/);
 
     // Switch to Model Hub tab
-    await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    const phoneMoreBtn = page.locator('#phoneNavMoreBtn');
+    if (await phoneMoreBtn.isVisible()) {
+      await mouseClick(page, phoneMoreBtn);
+      const hubItem = page.locator('#phoneMoreSheet .phone-sheet-item[data-tab="models"]');
+      if (await hubItem.isVisible()) {
+        await mouseClick(page, hubItem);
+      } else {
+        await page.evaluate(() => {
+          const btn = document.querySelector('#tabs button[data-tab="models"]') || document.querySelector('#phoneMoreSheet [data-tab="models"]');
+          if (btn) btn.click();
+        });
+      }
+    } else {
+      await mouseClick(page, page.locator('#tabs button[data-tab="models"]'));
+    }
     await expect(page.locator('#modelHubCatalog')).toBeVisible();
 
     // Check each hidden model ID is NOT visible in Model Hub
@@ -108,8 +121,8 @@ test.describe('ITEM 2: Only online + small Whisper on phones', () => {
       return m ? m.key : null;
     });
 
-    expect(fallbackEngine).not.toBe('nllb');
-    expect(fallbackWhisper).not.toBe('large-v3-turbo');
+    expect(fallbackEngine).toBe('google');
+    expect(fallbackWhisper).toBe('base');
     expect(['tiny', 'base', 'small']).toContain(asrResult);
     expect(errors).toEqual([]);
 
@@ -129,6 +142,6 @@ test.describe('ITEM 2: Only online + small Whisper on phones', () => {
     // Key desktop models are present
     await expect(page.locator('#modelHubCatalog [data-hub-mdl="tr-nllb-600"]')).toBeVisible();
     await expect(page.locator('#modelHubCatalog [data-hub-mdl="asr-large-v3-turbo"]')).toBeVisible();
-    await expect(page.locator('#modelHubCatalog [data-hub-mdl="fa_IR-amir-medium"]')).toBeVisible();
+    await expect(page.locator('#modelHubCatalog [data-hub-mdl="tts-fa-amir"]')).toBeVisible();
   });
 });
