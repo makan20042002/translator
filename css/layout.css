@@ -663,3 +663,193 @@ html.is-phone .main-viewport {
   -webkit-mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M1 1l22 22'/%3E%3Cpath d='M16.72 11.06A10.94 10.94 0 0 1 19 12.55'/%3E%3Cpath d='M5 12.55a10.94 10.94 0 0 1 5.17-2.39'/%3E%3Cpath d='M10.71 5.05A16 16 0 0 1 22.58 9'/%3E%3Cpath d='M1.42 9a15.91 15.91 0 0 1 4.7-2.88'/%3E%3Cpath d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Cline x1='12' y1='20' x2='12.01' y2='20'/%3E%3C/svg%3E");
   mask-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='currentColor' stroke-width='2'%3E%3Cpath d='M1 1l22 22'/%3E%3Cpath d='M16.72 11.06A10.94 10.94 0 0 1 19 12.55'/%3E%3Cpath d='M5 12.55a10.94 10.94 0 0 1 5.17-2.39'/%3E%3Cpath d='M10.71 5.05A16 16 0 0 1 22.58 9'/%3E%3Cpath d='M1.42 9a15.91 15.91 0 0 1 4.7-2.88'/%3E%3Cpath d='M8.53 16.11a6 6 0 0 1 6.95 0'/%3E%3Cline x1='12' y1='20' x2='12.01' y2='20'/%3E%3C/svg%3E");
 }
+
+/* Voice Phone Styles (ITEM 5) */
+.v-phone-options-btn {
+  display: none !important;
+}
+
+html.is-phone .v-phone-options-btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  min-height: 44px !important;
+  min-width: 44px !important;
+  padding: 0 12px !important;
+  margin-inline-start: auto !important;
+  font-size: 14px !important;
+}
+
+html.is-phone #vControlBar:not(.options-open) #vMicSttPickerWrap,
+html.is-phone #vControlBar:not(.options-open) #vConvVoicePickerWrap,
+html.is-phone #vControlBar:not(.options-open) #vSaveConv,
+html.is-phone #vControlBar:not(.options-open) #vToggleSettings,
+html.is-phone #vControlBar:not(.options-open) #vAudioInputToggle,
+html.is-phone #vControlBar:not(.options-open) #vAutoEngines {
+  display: none !important;
+}
+
+html.is-phone #vControlBar.options-open {
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 10px !important;
+}
+
+html.is-phone #vControlBar.options-open #vMicSttPickerWrap,
+html.is-phone #vControlBar.options-open #vConvVoicePickerWrap,
+html.is-phone #vControlBar.options-open .v-top-actions,
+html.is-phone #vControlBar.options-open #vAutoEngines {
+  display: flex !important;
+  width: 100% !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+}
+
+/* Voice Talk button large at bottom */
+html.is-phone .v-bottom-dock {
+  position: sticky !important;
+  bottom: calc(56px + env(safe-area-inset-bottom, 0px)) !important;
+  z-index: 800 !important;
+  background: var(--surface) !important;
+  padding: 8px 12px !important;
+}
+
+html.is-phone #vPttBtn,
+html.is-phone .ptt-btn {
+  width: 96px !important;
+  height: 96px !important;
+  min-width: 48px !important;
+  min-height: 48px !important;
+}
+
+/* Single line Not ready notice with fix link */
+html.is-phone .voice-status-chip {
+  display: flex !important;
+  align-items: center !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  height: 36px !important;
+  line-height: 36px !important;
+  padding: 0 10px !important;
+}
+
+html.is-phone .voice-ready-text {
+  overflow: hidden !important;
+  text-overflow: ellipsis !important;
+  white-space: nowrap !important;
+  flex: 1 1 auto !important;
+  min-width: 0 !important;
+  font-size: 13px !important;
+}
+
+html.is-phone .voice-fix-link {
+  flex: 0 0 auto !important;
+  margin-inline-start: 6px !important;
+  font-weight: 600 !important;
+  text-decoration: underline !important;
+  color: var(--accent, #3b82f6) !important;
+  white-space: nowrap !important;
+  font-size: 13px !important;
+}
+
+/* Media Phone layout (ITEM 5) */
+html.is-phone .mt-tab {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  padding: 0 !important;
+}
+
+html.is-phone .mt-card,
+html.is-phone .mt-drop {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html.is-phone .mt-drop {
+  min-height: 120px !important;
+  padding: 24px 16px !important;
+}
+
+/* Stacked file picker, model choice, Start button with large tap targets */
+html.is-phone .mt-asr-row,
+html.is-phone .mt-asr-model-row,
+html.is-phone .mt-tr-row {
+  display: flex !important;
+  flex-direction: column !important;
+  align-items: stretch !important;
+  gap: 6px !important;
+  width: 100% !important;
+  margin-bottom: 12px !important;
+}
+
+html.is-phone .mt-asr-lang,
+html.is-phone .mt-asr-model-select,
+html.is-phone .mt-tr-src,
+html.is-phone .mt-tr-tgt {
+  width: 100% !important;
+  max-width: 100% !important;
+  min-width: 0 !important;
+  height: 48px !important;
+  min-height: 48px !important;
+  font-size: 16px !important;
+  box-sizing: border-box !important;
+}
+
+html.is-phone .mt-actions {
+  display: flex !important;
+  flex-direction: column !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+html.is-phone .mt-btn {
+  width: 100% !important;
+  min-height: 48px !important;
+  height: 48px !important;
+  font-size: 16px !important;
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  box-sizing: border-box !important;
+}
+
+/* Progress and results readable at 360px */
+html.is-phone .mt-asr-progress,
+html.is-phone .mt-tr-progress,
+html.is-phone .mt-progress {
+  width: 100% !important;
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+}
+
+html.is-phone .mt-asr-text,
+html.is-phone .mt-tr-text,
+html.is-phone .mt-pv-list {
+  max-width: 100% !important;
+  box-sizing: border-box !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+  overflow-x: auto !important;
+  font-size: 14px !important;
+}
+
+/* Export buttons wrap instead of overflowing */
+html.is-phone .mt-pv-export .mt-actions {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  gap: 8px !important;
+  width: 100% !important;
+}
+
+html.is-phone .mt-pv-export .mt-btn {
+  flex: 1 1 calc(50% - 6px) !important;
+  width: auto !important;
+  min-height: 48px !important;
+  font-size: 14px !important;
+}

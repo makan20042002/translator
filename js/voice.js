@@ -173,8 +173,35 @@ function updateVoiceReadiness() {
     chip.classList.toggle('ready', r.ready);
     chip.classList.toggle('not-ready', !r.ready);
   }
+  let fixLink = document.getElementById('vVoiceFixLink');
   if (txt) {
-    txt.textContent = r.ready ? L('voiceReady') : `${L('voiceNotReady')}: ${r.reason}`;
+    if (r.ready) {
+      txt.textContent = L('voiceReady');
+      if (fixLink) fixLink.hidden = true;
+    } else {
+      txt.textContent = `${L('voiceNotReady')}: ${r.reason}`;
+      if (!fixLink && chip) {
+        fixLink = document.createElement('a');
+        fixLink.id = 'vVoiceFixLink';
+        fixLink.className = 'voice-fix-link';
+        fixLink.href = '#';
+        chip.appendChild(fixLink);
+      }
+      if (fixLink) {
+        fixLink.hidden = false;
+        fixLink.textContent = (typeof L === 'function' ? L('fix') : null) || (ui === 'fa' ? 'رفع مشکل' : 'Fix');
+        fixLink.onclick = (e) => {
+          e.preventDefault();
+          if (r.asr.mode === 'whisper' && !r.asr.ok) {
+            const mBtn = document.querySelector('#tabs button[data-tab="models"]') || document.querySelector('#phoneMoreSheet [data-tab="models"]');
+            if (mBtn) mBtn.click();
+            else $('openSet')?.click();
+          } else {
+            $('openSet')?.click();
+          }
+        };
+      }
+    }
   }
   if (chip) {
     chip.title = r.ready ? (L('voiceReady') + ' — All engines ready') : (L('voiceNotReady') + ': ' + r.reason);
@@ -1525,7 +1552,17 @@ $('vAskNew').onclick = () => {
   updateAskAiView();
   setVoiceState('ready');
   toast(L('done'), 'ok', 1500);
-};
+if ($('vPhoneOptionsBtn')) {
+  $('vPhoneOptionsBtn').onclick = () => {
+    const bar = $('vControlBar');
+    const btn = $('vPhoneOptionsBtn');
+    if (bar && btn) {
+      const open = bar.classList.toggle('options-open');
+      btn.setAttribute('aria-expanded', String(open));
+      btn.classList.toggle('on', open);
+    }
+  };
+}
 
 initVoiceLangs();
 updateVoiceLangPills();
