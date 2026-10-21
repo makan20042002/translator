@@ -40,7 +40,9 @@
         "IconAmber": "#F59E0B",
         "ScrollThumb": "rgba(28, 64, 118, 0.45)",
         "ScrollThumbHover": "#08A8FF",
-        "Disabled": "#506482"
+        "Disabled": "#506482",
+        "PhoneNavActive": "#08A8FF",
+        "PhoneNavBg": "#071022"
       }
     },
     'platinum-blue': {
@@ -77,7 +79,9 @@
         "IconAmber": "#9A5700",
         "ScrollThumb": "#AFC8E2",
         "ScrollThumbHover": "#1467D8",
-        "Disabled": "#8B9DB0"
+        "Disabled": "#8B9DB0",
+        "PhoneNavActive": "#0C4FAE",
+        "PhoneNavBg": "#F4F9FF"
       }
     },
     'dracula': {
@@ -114,7 +118,9 @@
         "IconAmber": "#FFB86C",
         "ScrollThumb": "#5A5F78",
         "ScrollThumbHover": "#BD93F9",
-        "Disabled": "#6B6E82"
+        "Disabled": "#6B6E82",
+        "PhoneNavActive": "#BD93F9",
+        "PhoneNavBg": "#282A36"
       }
     },
     'champagne-minimal': {
@@ -151,7 +157,9 @@
         "IconAmber": "#9B682D",
         "ScrollThumb": "#CFB999",
         "ScrollThumbHover": "#9B682D",
-        "Disabled": "#A2927D"
+        "Disabled": "#A2927D",
+        "PhoneNavActive": "#754817",
+        "PhoneNavBg": "#FBF7F1"
       }
     },
     'rose-titanium': {
@@ -188,7 +196,9 @@
         "IconAmber": "#F2C565",
         "ScrollThumb": "#6A3B56",
         "ScrollThumbHover": "#E187B1",
-        "Disabled": "#79596A"
+        "Disabled": "#79596A",
+        "PhoneNavActive": "#E187B1",
+        "PhoneNavBg": "#20111B"
       }
     },
     'royal-amethyst': {
@@ -225,7 +235,9 @@
         "IconAmber": "#F4C96B",
         "ScrollThumb": "#54338B",
         "ScrollThumbHover": "#A873F0",
-        "Disabled": "#6E5C86"
+        "Disabled": "#6E5C86",
+        "PhoneNavActive": "#A873F0",
+        "PhoneNavBg": "#150D2C"
       }
     },
     'obsidian-gold': {
@@ -262,7 +274,9 @@
         "IconAmber": "#E0B75A",
         "ScrollThumb": "#4A3B22",
         "ScrollThumbHover": "#E0B75A",
-        "Disabled": "#6E634E"
+        "Disabled": "#6E634E",
+        "PhoneNavActive": "#E0B75A",
+        "PhoneNavBg": "#11100D"
       }
     }
   };
@@ -274,12 +288,14 @@
     '--warning', '--success-bg', '--header-bg', '--track', '--input',
     '--input-border', '--popup', '--icon-grey', '--icon-purple',
     '--icon-teal', '--icon-amber', '--scroll-thumb', '--scroll-thumb-hover',
-    '--disabled'
+    '--disabled', '--phone-nav-active', '--phone-nav-bg'
   ];
 
   // Convert PascalCase token name (e.g. ScrollThumbHover) to CSS var (--scroll-thumb-hover)
   function tokenToVar(token) {
     if (token === 'TopBarText') return '--topbar-text';
+    if (token === 'PhoneNavActive') return '--phone-nav-active';
+    if (token === 'PhoneNavBg') return '--phone-nav-bg';
     return '--' + token.replace(/([a-z0-9])([A-Z])/g, '$1-$2').toLowerCase();
   }
 

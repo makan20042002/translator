@@ -120,7 +120,7 @@ html.is-phone #phoneBottomNav {
   left: 0;
   right: 0;
   height: 56px;
-  background: var(--panel, var(--surface, #071022));
+  background: var(--phone-nav-bg, var(--panel, var(--surface, #071022)));
   border-top: 1px solid var(--border);
   box-shadow: 0 -4px 18px rgba(0, 0, 0, 0.3);
   z-index: 900;
@@ -156,7 +156,7 @@ html.is-phone .phone-nav-btn:hover {
 
 html.is-phone .phone-nav-btn.on,
 html.is-phone .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent);
+  color: var(--phone-nav-active, var(--accent)) !important;
   font-weight: 600;
 }
 

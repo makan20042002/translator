@@ -45,6 +45,8 @@
   --scroll-thumb-hover: #08A8FF;
   --disabled: #506482;
   --top-bar-text: var(--topbar-text);
+  --phone-nav-active: #08A8FF;
+  --phone-nav-bg: #071022;
 
   /* Surface & Background Navy Palette (Legacy Aliases) */
   --bg-navy: var(--bg);
@@ -6947,52 +6949,40 @@ html[lang="fa"] .media-page-title {
 }
 
 /* ==================== PHONE BOTTOM NAV CONTRAST (ITEM 6) ==================== */
-html.is-phone[data-theme="makan-lab"] .phone-nav-btn.on,
-html.is-phone[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"],
-[data-theme="makan-lab"] .phone-nav-btn.on,
-[data-theme="makan-lab"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent, #08A8FF) !important;
+:root,
+[data-theme="dark"],
+[data-theme="makan-lab"] {
+  --phone-nav-active: #08A8FF;
+  --phone-nav-bg: #071022;
 }
 
-html.is-phone[data-theme="platinum-blue"] .phone-nav-btn.on,
-html.is-phone[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"],
-[data-theme="platinum-blue"] .phone-nav-btn.on,
-[data-theme="platinum-blue"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent-dark, #0C4FAE) !important;
+[data-theme="platinum-blue"] {
+  --phone-nav-active: #0C4FAE;
+  --phone-nav-bg: #F4F9FF;
 }
 
-html.is-phone[data-theme="dracula"] .phone-nav-btn.on,
-html.is-phone[data-theme="dracula"] .phone-nav-btn[aria-selected="true"],
-[data-theme="dracula"] .phone-nav-btn.on,
-[data-theme="dracula"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent, #BD93F9) !important;
+[data-theme="dracula"] {
+  --phone-nav-active: #BD93F9;
+  --phone-nav-bg: #282A36;
 }
 
-html.is-phone[data-theme="champagne-minimal"] .phone-nav-btn.on,
-html.is-phone[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"],
-[data-theme="champagne-minimal"] .phone-nav-btn.on,
-[data-theme="champagne-minimal"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent-dark, #754817) !important;
+[data-theme="champagne-minimal"] {
+  --phone-nav-active: #754817;
+  --phone-nav-bg: #FBF7F1;
 }
 
-html.is-phone[data-theme="rose-titanium"] .phone-nav-btn.on,
-html.is-phone[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"],
-[data-theme="rose-titanium"] .phone-nav-btn.on,
-[data-theme="rose-titanium"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent, #E187B1) !important;
+[data-theme="rose-titanium"] {
+  --phone-nav-active: #E187B1;
+  --phone-nav-bg: #20111B;
 }
 
-html.is-phone[data-theme="royal-amethyst"] .phone-nav-btn.on,
-html.is-phone[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"],
-[data-theme="royal-amethyst"] .phone-nav-btn.on,
-[data-theme="royal-amethyst"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent, #A873F0) !important;
+[data-theme="royal-amethyst"] {
+  --phone-nav-active: #A873F0;
+  --phone-nav-bg: #150D2C;
 }
 
-html.is-phone[data-theme="obsidian-gold"] .phone-nav-btn.on,
-html.is-phone[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"],
-[data-theme="obsidian-gold"] .phone-nav-btn.on,
-[data-theme="obsidian-gold"] .phone-nav-btn[aria-selected="true"] {
-  color: var(--accent, #E0B75A) !important;
+[data-theme="obsidian-gold"] {
+  --phone-nav-active: #E0B75A;
+  --phone-nav-bg: #11100D;
 }
 

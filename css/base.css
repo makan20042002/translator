@@ -7,7 +7,7 @@
   --track:#0e1e38; --input:#0a1528; --input-border:rgba(28,64,118,.45);
   --popup:#0a1528; --icon-grey:#8496B0; --icon-purple:#A78BFA; --icon-teal:#08E7E5;
   --icon-amber:#F59E0B; --scroll-thumb:rgba(28,64,118,.45); --scroll-thumb-hover:#08A8FF;
-  --disabled:#506482;
+  --disabled:#506482; --phone-nav-active:#08A8FF; --phone-nav-bg:#071022;
 
   /* Legacy aliases */
   --bg2:var(--panel); --bg-navy:var(--bg); --bg-sidebar:var(--panel2);
